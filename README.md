@@ -29,41 +29,39 @@ function sell(uint256 _amount) external;
 ```solidity
 function deposit(address _token, uint256 _value) external payable;
 function transfer(address _token, uint256 _value) external;
+function execute(address _target, bytes _data) external;
 ```
 
 ##### Roles
 
-|                  | Description                                          | Grantee                     |
-| ---------------- |:-----------------------------------------------------| ---------------------------:|
-| `DEPOSIT_ROLE`   | Deposit ETH or ERC-20 into the `CollateralPool`      | `BondingCurve` contract[s]  |
-| `TRANSFER_ROLE`  | Transfer ETH or ERC-20 to the discretionary `Vault`  | `Tap` contract              |
+|                     | Description                                               | Grantee                                       |
+| ------------------- |:----------------------------------------------------------| ---------------------------------------------:|
+| `DEPOSIT_ROLE`      | Deposit ETH or ERC-20 into the `CollateralPool`           | `BondingCurve` contract[s]                    |
+| `TRANSFER_ROLE`     | Transfer ETH or ERC-20 out of the `CollateralPool`        | `BondingCurve` contract[s] and `Tap` contract |
+| `SAFE_EXECUTE_ROLE` | Execute balance neutral transactions on external contract | `Voting [BOND]` contract                      |
 
 
 ##### Notes
 
-Depending on the token address the contract must also hook into the `BondingCurve` contract to let it [optionnally] update its `vBalance` state variable [thus reflecting the requested changes in the price curve]
-
-##### Questions
-
-It's better to limit transfers's to a vault address defined on initialization, right?
+Depending on the token address the contract must also hook into the `BondingCurve` contract to let it [optionally] update its `vBalance` state variable [thus reflecting the requested changes in the price curve]
 
 
 ### Tap
-
 
 ##### Interface
 
 ```solidity
 function updateTap(uint256 _tap) external;
+function updateVault(address _vault) external;
 function withdraw() external;
 ```
 
 ##### Roles
 
-|                   | Description                                                                   | Grantee                  |
-| ----------------- |:------------------------------------------------------------------------------| ------------------------:|
-| `UPDATE_TAP_ROLE` | Update tap rate                                                               | `Voting [BOND]` contract |
-| `WITHDRAW_ROLE`   | Withdraw ETH or ERC-20 from the `CollateralPool` to the discretionary `Vault` | `ANY_ADDRESS`            |
+|                   | Description                                                                              | Grantee                  |
+| ----------------- |:-----------------------------------------------------------------------------------------| ------------------------:|
+| `UPDATE_TAP_ROLE` | Update tap rate                                                                          | `Voting [BOND]` contract |
+| `WITHDRAW_ROLE`   | Initialize ETH or ERC-20 `transfer` on the `CollateralPool` to the discretionary `Vault` | `ANY_ADDRESS`            |
 
 ##### Notes
 
