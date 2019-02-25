@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "description": "",
   "keywords": [],
-  "author": "Aragon Association <legal@aragon.org>",
+  "author": "Aragon Black <contact@aragon.black>",
   "contributors": [
     "Olivier Sarrouy <olivier@aragon.black>"
   ],
@@ -20,6 +20,13 @@
     "publish:devnet": "aragon apm publish major --files ./app/build --environment default",
     "publish": "npm run publish:devnet"
   },
+  "files": [
+    "/arapp.json",
+    "/build",
+    "/contracts",
+    "/scripts",
+    "/test"
+  ],
   "dependencies": {
     "@aragon/os": "^4.0.1"
   },

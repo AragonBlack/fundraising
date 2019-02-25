@@ -1,6 +1,6 @@
 {
-  "name": "Agent",
-  "description": "Hold assets and perform actions from DAOs",
+  "name": "Pool",
+  "description": "Hold assets and perform actions from bonding-curve holders",
   "icons": [
     {
       "src": "images/icon.svg",
