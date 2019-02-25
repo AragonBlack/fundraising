@@ -2,7 +2,7 @@
 
 ## Architecture
 
-![](assets/img/architecture.svg "Architecture")
+![](.github/images/architecture.svg "Architecture")
 
 ## Contracts
 
@@ -17,10 +17,10 @@ function sell(uint256 _amount) external;
 
 ##### Roles
 
-|              | Description                                | Grantee       |
-| ------------ |:-------------------------------------------| -------------:|
-| `BUY_ROLE`   | Buy bonds against ETH or ERC-20 collateral | `ANY_ADDRESS` |
-| `SELL_ROLE`  | Redeem bonds for ETH or ERC-20 collateral  | `ANY_ADDRESS` |
+|             | Description                                |       Grantee |
+| ----------- | :----------------------------------------- | ------------: |
+| `BUY_ROLE`  | Buy bonds against ETH or ERC-20 collateral | `ANY_ADDRESS` |
+| `SELL_ROLE` | Redeem bonds for ETH or ERC-20 collateral  | `ANY_ADDRESS` |
 
 ### CollateralPool
 
@@ -34,17 +34,15 @@ function execute(address _target, bytes _data) external;
 
 ##### Roles
 
-|                     | Description                                               | Grantee                                       |
-| ------------------- |:----------------------------------------------------------| ---------------------------------------------:|
-| `DEPOSIT_ROLE`      | Deposit ETH or ERC-20 into the `CollateralPool`           | `BondingCurve` contract[s]                    |
+|                     | Description                                               |                                       Grantee |
+| ------------------- | :-------------------------------------------------------- | --------------------------------------------: |
+| `DEPOSIT_ROLE`      | Deposit ETH or ERC-20 into the `CollateralPool`           |                    `BondingCurve` contract[s] |
 | `TRANSFER_ROLE`     | Transfer ETH or ERC-20 out of the `CollateralPool`        | `BondingCurve` contract[s] and `Tap` contract |
-| `SAFE_EXECUTE_ROLE` | Execute balance neutral transactions on external contract | `Voting [BOND]` contract                      |
-
+| `SAFE_EXECUTE_ROLE` | Execute balance neutral transactions on external contract |                      `Voting [BOND]` contract |
 
 ##### Notes
 
 Depending on the token address the contract must also hook into the `BondingCurve` contract to let it [optionally] update its `vBalance` state variable [thus reflecting the requested changes in the price curve]
-
 
 ### Tap
 
@@ -58,10 +56,10 @@ function withdraw() external;
 
 ##### Roles
 
-|                   | Description                                                                              | Grantee                  |
-| ----------------- |:-----------------------------------------------------------------------------------------| ------------------------:|
+|                   | Description                                                                              |                  Grantee |
+| ----------------- | :--------------------------------------------------------------------------------------- | -----------------------: |
 | `UPDATE_TAP_ROLE` | Update tap rate                                                                          | `Voting [BOND]` contract |
-| `WITHDRAW_ROLE`   | Initialize ETH or ERC-20 `transfer` on the `CollateralPool` to the discretionary `Vault` | `ANY_ADDRESS`            |
+| `WITHDRAW_ROLE`   | Initialize ETH or ERC-20 `transfer` on the `CollateralPool` to the discretionary `Vault` |            `ANY_ADDRESS` |
 
 ##### Notes
 
