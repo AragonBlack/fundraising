@@ -1,0 +1,28 @@
+# See https://help.github.com/ignore-files/ for more about ignoring files.
+
+# cache
+.cache
+.eslintcache
+.npm
+
+# dependencies
+node_modules/
+package-lock.json
+
+# testing
+/coverage
+
+# production
+build/
+dist/
+
+# logs
+npm-debug.log*
+lerna-debug.log*
+
+# misc
+.DS_Store
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
