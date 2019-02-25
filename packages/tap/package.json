@@ -1,24 +1,16 @@
 {
-  "name": "@pando/repository",
+  "name": "@aragonblack/fundraising-tap",
   "version": "0.1.0",
-  "description": "Aragon app for pando repositories",
-  "author": "Pando Network <contact@pando.network>",
+  "description": "",
+  "keywords": [],
+  "author": "Aragon Association <legal@aragon.org>",
   "contributors": [
-    "Olivier Sarrouy <olivier@pando.network>",
-    "Deam Hansen <deam@pando.network>"
+    "Olivier Sarrouy <olivier@aragon.black>"
   ],
-  "repository": "github:pandonetwork/pando",
-  "homepage": "https://github.com/pandonetwork/pando",
-  "bugs": "https://github.com/pandonetwork/pando/issues",
+  "repository": "github:AragonBlack/fundraising",
+  "homepage": "https://github.com/AragonBlack/fundraising",
+  "bugs": "https://github.com/AragonBlack/fundraising/issues",
   "license": "(GPL-3.0-or-later OR MIT)",
-  "keywords": [
-    "pando",
-    "git",
-    "dao",
-    "aragon",
-    "ethereum",
-    "ipfs"
-  ],
   "scripts": {
     "lint": "solium --dir ./contracts",
     "compile": "aragon contracts compile",
