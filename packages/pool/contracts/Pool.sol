@@ -13,7 +13,7 @@ import "@aragon/apps-vault/contracts/Vault.sol";
 import "@aragon/os/contracts/common/IForwarder.sol";
 
 
-contract Agent is IERC165, ERC1271Bytes, IForwarder, IsContract, Vault {
+contract Pool is IERC165, ERC1271Bytes, IForwarder, IsContract, Vault {
     bytes32 public constant EXECUTE_ROLE = keccak256("EXECUTE_ROLE");
     bytes32 public constant RUN_SCRIPT_ROLE = keccak256("RUN_SCRIPT_ROLE");
     bytes32 public constant ADD_PRESIGNED_HASH_ROLE = keccak256("ADD_PRESIGNED_HASH_ROLE");
