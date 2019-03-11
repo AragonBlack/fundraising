@@ -1,0 +1,10 @@
+{
+  "name": "Pool",
+  "description": "Hold assets and perform actions from bonding-curve holders",
+  "icons": [
+    {
+      "src": "images/icon.svg",
+      "sizes": "192x192"
+    }
+  ]
+}

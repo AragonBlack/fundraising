@@ -1,4 +1,4 @@
 {
-  "packages": ["packages/*"],
+  "packages": ["apps/*", "shared/*"],
   "version": "0.1.0"
 }
