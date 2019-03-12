@@ -97,7 +97,118 @@ contract('Pool app', accounts => {
 
   context('#initialize', () => {
     it('it should revert on re-initialization', async () => {
-      await assertRevert(() => pool.initialize())
+      await assertRevert(async () => await pool.initialize())
+    })
+  })
+
+  context('#addCollateralToken', () => {
+    context('sender has ADD_COLLATERAL_TOKEN_ROLE', () => {
+      context('and token is ETH or ERC20', () => {
+        context('and token does not already exist in mapping', () => {
+          it('it should add collateral token in mapping', async () => {
+            const token2 = await TokenMock.new(authorized, 10000)
+            const token3 = await TokenMock.new(authorized, 10000)
+
+            await pool.addCollateralToken(ETH, { from: authorized })
+            await pool.addCollateralToken(token2.address, { from: authorized })
+            await pool.addCollateralToken(token3.address, { from: authorized })
+
+            const collateralTokensLength = await pool.collateralTokensLength()
+            const address1 = await pool.collateralTokens(1)
+            const address2 = await pool.collateralTokens(2)
+            const address3 = await pool.collateralTokens(3)
+
+            assert.equal(collateralTokensLength, 3)
+            assert.equal(ETH, address1)
+            assert.equal(token2.address, address2)
+            assert.equal(token3.address, address3)
+          })
+        })
+        context('but token already exists in mapping', () => {
+          it('it should revert', async () => {
+            const token = await TokenMock.new(authorized, 10000)
+            await pool.addCollateralToken(token.address, { from: authorized })
+
+            await assertRevert(
+              async () =>
+                await pool.addCollateralToken(token.address, {
+                  from: authorized
+                })
+            )
+          })
+        })
+      })
+      context('but token is not ETH or ERC20', () => {
+        it('it should revert', async () => {
+          await assertRevert(
+            async () =>
+              await pool.addCollateralToken(root, { from: authorized })
+          )
+        })
+      })
+    })
+    context('sender does not have ADD_COLLATERAL_TOKEN_ROLE', () => {
+      it('it should revert', async () => {
+        const token = await TokenMock.new(authorized, 10000)
+
+        await assertRevert(
+          async () =>
+            await pool.addCollateralToken(token.address, { from: unauthorized })
+        )
+      })
+    })
+  })
+
+  context('#removeCollateralToken', () => {
+    context('sender has REMOVE_COLLATERAL_TOKEN_ROLE', () => {
+      context('and token already exists in mapping', () => {
+        it('it should remove collateral token from mapping', async () => {
+          const token2 = await TokenMock.new(authorized, 10000)
+          const token3 = await TokenMock.new(authorized, 10000)
+
+          await pool.addCollateralToken(ETH, { from: authorized })
+          await pool.addCollateralToken(token2.address, { from: authorized })
+          await pool.addCollateralToken(token3.address, { from: authorized })
+
+          await pool.removeCollateralToken(token2.address, { from: authorized })
+
+          const collateralTokensLength = await pool.collateralTokensLength()
+          const address1 = await pool.collateralTokens(1)
+          const address2 = await pool.collateralTokens(2)
+
+          assert.equal(collateralTokensLength, 2)
+          assert.equal(ETH, address1)
+          assert.equal(token3.address, address2)
+        })
+      })
+      context('but token does not already exist in mapping', () => {
+        it('it should revert', async () => {
+          const token1 = await TokenMock.new(authorized, 10000)
+          const token2 = await TokenMock.new(authorized, 10000)
+          await pool.addCollateralToken(token1.address, { from: authorized })
+
+          await assertRevert(
+            async () =>
+              await pool.removeCollateralToken(token2.address, {
+                from: authorized
+              })
+          )
+        })
+      })
+    })
+
+    context('sender does not have REMOVE_COLLATERAL_TOKEN_ROLE', () => {
+      it('it should revert', async () => {
+        const token = await TokenMock.new(authorized, 10000)
+        await pool.addCollateralToken(token.address, { from: authorized })
+
+        await assertRevert(
+          async () =>
+            await pool.removeCollateralToken(token.address, {
+              from: unauthorized
+            })
+        )
+      })
     })
   })
 })

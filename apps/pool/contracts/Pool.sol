@@ -38,7 +38,7 @@ contract Pool is Agent {
         _addCollateralToken(_token);
     }
 
-    function removeCollateralToken(address _token) {
+    function removeCollateralToken(address _token) external auth(REMOVE_COLLATERAL_TOKEN_ROLE) {
       uint256 index = collateralTokenIndex(_token);
       require(index != 0, ERROR_TOKEN_DOES_NOT_EXIST);
 
