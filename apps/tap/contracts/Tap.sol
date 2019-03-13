@@ -12,7 +12,7 @@ import "@aragon/os/contracts/lib/token/ERC20.sol";
 import "@aragon/os/contracts/lib/math/SafeMath.sol";
 
 import "@aragon/apps-vault/contracts/Vault.sol";
-import "@aragonblack/fundraising-pool/contracts/Pool.sol";
+import "../../pool/contracts/Pool.sol";
 
 
 contract Tap is EtherTokenConstant, IsContract, AragonApp {
@@ -33,12 +33,16 @@ contract Tap is EtherTokenConstant, IsContract, AragonApp {
     string private constant ERROR_TOKEN_TAP_DOES_NOT_EXIST = "TAP_TOKEN_TAP_DOES_NOT_EXIST";
     string private constant ERROR_TAP_RATE_ZERO = "TAP_TAP_RATE_ZERO";
     string private constant ERROR_WITHDRAWAL_VALUE_ZERO = "TAP_WITHDRAWAL_VALUE_ZERO";
+    string private constant ERROR_TAP_RATE_NOT_PERCENTAGE = "TAP_RATE_NOT_PERCENTAGE";
+    string private constant ERROR_UPDATE_TAP_RATE_EXCEEDS_LIMIT = "TAP_RATE_EXCEEDS_MONTHLY_LIMIT";
 
     Pool public pool;
     Vault public vault;
 
     mapping (address => uint256) public taps;
     mapping (address => uint256) public lastWithdrawals;
+    mapping (address => uint256) public lastTapUpdate;
+    uint256 public tapRate; //pptt
 
     event AddTokenTap(address indexed token, uint256 tap);
     event RemoveTokenTap(address indexed token);
@@ -47,14 +51,16 @@ contract Tap is EtherTokenConstant, IsContract, AragonApp {
     event UpdateVault(address vault);
     event Withdraw(address indexed token, uint256 value);
 
-    function initialize(Pool _pool, Vault _vault) public onlyInit {
+    function initialize(Pool _pool, Vault _vault, uint256 monthlyTapRate ) public onlyInit {
         initialized();
 
         require(isContract(_pool), ERROR_POOL_NOT_CONTRACT);
         require(isContract(_vault), ERROR_VAULT_NOT_CONTRACT);
+        require(monthlyTapRate < 10000,  ERROR_TAP_RATE_NOT_PERCENTAGE);
 
         pool = _pool;
         vault = _vault;
+        tapRate = monthlyTapRate;
     }
 
     /***** external function *****/
@@ -76,6 +82,15 @@ contract Tap is EtherTokenConstant, IsContract, AragonApp {
     function updateTokenTap(address _token, uint256 _tap) external auth(UPDATE_TOKEN_TAP_ROLE) {
         require(taps[_token] != uint256(0), ERROR_TOKEN_TAP_DOES_NOT_EXIST);
         require(_tap > 0, ERROR_TAP_RATE_ZERO);
+
+        if (lastTapUpdate[_token] != uint256(0)) {
+          uint256 diff = (now).sub(lastTapUpdate[_token]);
+          //Verify that within the 30-day period since last update it increases no more than the fixed percentage
+          if (diff.div(60).div(60).div(24) < 30) {
+            uint256 percentage = (taps[_token].mul(_tap)).div(10000);
+            require(percentage < tapRate, ERROR_UPDATE_TAP_RATE_EXCEEDS_LIMIT);
+          }
+        }
 
         _updateTokenTap(_token, _tap);
     }
@@ -116,6 +131,10 @@ contract Tap is EtherTokenConstant, IsContract, AragonApp {
         return max > balance ? balance : max;
     }
 
+    function getMonthlyTapRate() public view isInitialized returns (uint256) {
+      return tapRate;
+    }
+
     /***** internal functions *****/
 
     function _addTokenTap(address _token, uint256 _tap) internal {
@@ -134,6 +153,7 @@ contract Tap is EtherTokenConstant, IsContract, AragonApp {
 
     function _updateTokenTap(address _token, uint256 _tap) internal {
         taps[_token] = _tap;
+        lastTapUpdate[_token] = now;
 
         emit UpdateTokenTap(_token, _tap);
     }
@@ -156,6 +176,4 @@ contract Tap is EtherTokenConstant, IsContract, AragonApp {
 
         emit Withdraw(_token, _value);
     }
-
-
 }
