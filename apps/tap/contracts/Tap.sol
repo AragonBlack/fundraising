@@ -12,12 +12,13 @@ import "@aragon/os/contracts/lib/token/ERC20.sol";
 import "@aragon/os/contracts/lib/math/SafeMath.sol";
 
 import "@aragon/apps-vault/contracts/Vault.sol";
-import "../../pool/contracts/Pool.sol";
-
+import "@aragonblack/fundraising-pool/contracts/Pool.sol";
 
 contract Tap is EtherTokenConstant, IsContract, AragonApp {
     using SafeERC20 for ERC20;
     using SafeMath for uint256;
+
+    uint64 public constant PCT_BASE = 10 ** 18; // 0% = 0; 1% = 10^16; 100% = 10^18
 
     bytes32 public constant ADD_TOKEN_TAP_ROLE = keccak256("ADD_TOKEN_TAP_ROLE");
     bytes32 public constant REMOVE_TOKEN_TAP_ROLE = keccak256("REMOVE_TOKEN_TAP_ROLE");
@@ -51,16 +52,16 @@ contract Tap is EtherTokenConstant, IsContract, AragonApp {
     event UpdateVault(address vault);
     event Withdraw(address indexed token, uint256 value);
 
-    function initialize(Pool _pool, Vault _vault, uint256 monthlyTapRate ) public onlyInit {
+    function initialize(Pool _pool, Vault _vault, uint256 _monthlyTapRate ) public onlyInit {
         initialized();
 
         require(isContract(_pool), ERROR_POOL_NOT_CONTRACT);
         require(isContract(_vault), ERROR_VAULT_NOT_CONTRACT);
-        require(monthlyTapRate < 10000,  ERROR_TAP_RATE_NOT_PERCENTAGE);
+        require(_monthlyTapRate < PCT_BASE,  ERROR_TAP_RATE_NOT_PERCENTAGE);
 
         pool = _pool;
         vault = _vault;
-        tapRate = monthlyTapRate;
+        tapRate = _monthlyTapRate;
     }
 
     /***** external function *****/
@@ -87,8 +88,7 @@ contract Tap is EtherTokenConstant, IsContract, AragonApp {
           uint256 diff = (now).sub(lastTapUpdate[_token]);
           //Verify that within the 30-day period since last update it increases no more than the fixed percentage
           if (diff.div(60).div(60).div(24) < 30) {
-            uint256 percentage = (taps[_token].mul(_tap)).div(10000);
-            require(percentage < tapRate, ERROR_UPDATE_TAP_RATE_EXCEEDS_LIMIT);
+            require(!_isValuePct(_tap, taps[_token], tapRate), ERROR_UPDATE_TAP_RATE_EXCEEDS_LIMIT);
           }
         }
 
@@ -175,5 +175,18 @@ contract Tap is EtherTokenConstant, IsContract, AragonApp {
         pool.transfer(_token, vault, _value); // Pool / Agent / Vault contacts transfer method already throws on error
 
         emit Withdraw(_token, _value);
+    }
+
+    /**
+    * https://github.com/aragon/aragon-apps/blob/98c1e387c82e634da47ea7cefde5ffdf54a5b432/apps/voting/contracts/Voting.sol#L344
+    * @dev Calculates whether `_value` is more than a percentage `_pct` of `_total`
+    */
+    function _isValuePct(uint256 _value, uint256 _total, uint256 _pct) internal pure returns (bool) {
+        if (_total == 0) {
+            return false;
+        }
+
+        uint256 computedPct = _value.mul(PCT_BASE) / _total;
+        return computedPct > _pct;
     }
 }
