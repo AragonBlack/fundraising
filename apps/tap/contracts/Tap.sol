@@ -12,7 +12,7 @@ import "@aragon/os/contracts/lib/token/ERC20.sol";
 import "@aragon/os/contracts/lib/math/SafeMath.sol";
 
 import "@aragon/apps-vault/contracts/Vault.sol";
-import "../../pool/contracts/Pool.sol";
+import "@aragonblack/fundraising-pool/contracts/Pool.sol";
 
 contract Tap is EtherTokenConstant, IsContract, AragonApp {
     using SafeERC20 for ERC20;
