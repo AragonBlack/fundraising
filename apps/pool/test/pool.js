@@ -17,6 +17,7 @@ const DAOFactory = artifacts.require('DAOFactory')
 const Kernel = artifacts.require('Kernel')
 const Pool = artifacts.require('Pool')
 
+const SimpleERC20 = artifacts.require('tokens/SimpleERC20')
 const EtherTokenConstantMock = artifacts.require('EtherTokenConstantMock')
 const TokenMock = artifacts.require('TokenMock')
 const DestinationMock = artifacts.require('DestinationMock')
@@ -50,6 +51,9 @@ contract('Pool app', accounts => {
     SAFE_EXECUTE_ROLE = await pBase.SAFE_EXECUTE_ROLE()
     ADD_COLLATERAL_TOKEN_ROLE = await pBase.ADD_COLLATERAL_TOKEN_ROLE()
     REMOVE_COLLATERAL_TOKEN_ROLE = await pBase.REMOVE_COLLATERAL_TOKEN_ROLE()
+
+    const ethConstant = await EtherTokenConstantMock.new()
+    ETH = await ethConstant.getETHConstant()
   })
 
   beforeEach(async () => {
@@ -107,7 +111,11 @@ contract('Pool app', accounts => {
 
   context('> initialize', () => {
     it('it should revert on re-initialization', async () => {
-      await assertRevert(async () => await pool.initialize())
+      const newPool= await Pool.new()
+      assert.isTrue(await newPool.isPetrified())
+      return assertRevert(async () => {
+        await newPool.initialize()
+      })
     })
   })
 
