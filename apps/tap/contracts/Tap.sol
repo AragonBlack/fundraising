@@ -14,6 +14,7 @@ import "@aragon/os/contracts/lib/math/SafeMath.sol";
 import "@aragon/apps-vault/contracts/Vault.sol";
 import "@aragonblack/fundraising-pool/contracts/Pool.sol";
 
+
 contract Tap is EtherTokenConstant, IsContract, AragonApp {
     using SafeERC20 for ERC20;
     using SafeMath for uint256;
@@ -43,7 +44,7 @@ contract Tap is EtherTokenConstant, IsContract, AragonApp {
     mapping (address => uint256) public taps;
     mapping (address => uint256) public lastWithdrawals;
     mapping (address => uint256) public lastTapUpdate;
-    uint256 public tapRate; //pptt
+    uint256 public tapRate;
 
     event AddTokenTap(address indexed token, uint256 tap);
     event RemoveTokenTap(address indexed token);
@@ -65,7 +66,6 @@ contract Tap is EtherTokenConstant, IsContract, AragonApp {
     }
 
     /***** external function *****/
-
     function addTokenTap(address _token, uint256 _tap) external auth(ADD_TOKEN_TAP_ROLE) {
         require(_token == ETH || isContract(_token), ERROR_TOKEN_NOT_ETH_OR_CONTRACT);
         require(taps[_token] == uint256(0), ERROR_TOKEN_TAP_ALREADY_EXISTS);
