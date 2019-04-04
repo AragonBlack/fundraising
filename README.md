@@ -49,7 +49,8 @@ Depending on the token address the contract must also hook into the `BondingCurv
 ##### Interface
 
 ```solidity
-function updateTap(uint256 _tap) external;
+function updateTokenTap(address _token, uint256 _tap) external;
+function removeTokenTap(address _token) external;
 function updateVault(address _vault) external;
 function withdraw() external;
 ```
@@ -64,3 +65,6 @@ function withdraw() external;
 ##### Notes
 
 Implementing the tap system as an external contract owning TRANSFER_ROLE over the `CollateralPool` contract provides more modularity than implementing it directly into the `CollateralPool` contract.
+
+The tap contract upon initialization allows the user to set the max percentage the tap can be raised per 30-day period.
+
