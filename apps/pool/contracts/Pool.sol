@@ -4,7 +4,7 @@
 
 pragma solidity 0.4.24;
 
-import "@aragon/apps-agent/contracts/Agent.sol";
+import "../node_modules/@aragon/apps-agent/contracts/Agent.sol";
 
 
 contract Pool is Agent {
