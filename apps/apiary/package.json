@@ -1,0 +1,46 @@
+{
+  "name": "@pando/apiary",
+  "version": "0.1.0",
+  "author": "Aragon Black <contact@aragon.black>",
+  "contributors": [
+    "Olivier Sarrouy <olivier@pando.network>",
+    "Cory Dickson <cory@aragon.black>",
+    "Deam Hansen <deam@aragon.blackk>"
+  ],
+  "repository": "github:aragonblack/fundraising",
+  "homepage": "https://github.com/aragonblack/fundraising",
+  "bugs": "https://github.com/aragonblack/fundraising/issues",
+  "license": "(GPL-3.0-or-later OR MIT)",
+  "scripts": {
+    "lint:contracts": "solium --dir ./contracts",
+    "lint:tests": "eslint ./test",
+    "lint:app": "cd app && npm run lint",
+    "lint": "npm run lint:contracts && npm run lint:tests && npm run lint:app",
+    "compile": "aragon contracts compile",
+    "test": "aragon contracts test --network devchain",
+    "start": "cd app && npm run start",
+    "build": "cd app && npm run build",
+    "publish:minor:rinkeby": "aragon apm publish minor --use-frame --only-content --files ./app/build --environment rinkeby",
+    "publish:major:devchain": "aragon apm publish major --files ./app/build --environment default",
+    "publish:major:rinkeby": "aragon apm publish major --use-frame --files ./app/build --environment rinkeby"
+  },
+  "dependencies": {
+    "@aragon/os": "^4.0.1"
+  },
+  "devDependencies": {
+    "@aragon/cli": "^5.5.0",
+    "@aragon/test-helpers": "^1.0.1",
+    "eslint": "5.5.0",
+    "eslint-config-prettier": "^3.0.1",
+    "eslint-config-standard": "^12.0.0",
+    "eslint-plugin-import": "^2.16.0",
+    "eslint-plugin-node": "^8.0.1",
+    "eslint-plugin-prettier": "^2.3.1",
+    "eslint-plugin-promise": "^4.0.1",
+    "eslint-plugin-standard": "^4.0.0",
+    "ethlint": "^1.2.3",
+    "prettier": "^1.8.2",
+    "truffle": "^5.0.0"
+  },
+  "gitHead": "cb2b7c6fe7805fdbbcd29733c3ebb24eeb5d3d42"
+}
