@@ -95,16 +95,16 @@ contract Pool is Agent {
         return uint256(0);
     }
 
-    /***** private functions *****/
+    /***** internal functions *****/
 
-    function _addCollateralToken(address _token) private {
+    function _addCollateralToken(address _token) internal {
         collateralTokensLength = collateralTokensLength + 1;
         collateralTokens[collateralTokensLength] = _token;
 
         emit AddCollateralToken(_token);
     }
 
-    function _removeCollateralToken(uint256 _index, address _token) private {
+    function _removeCollateralToken(uint256 _index, address _token) internal {
         delete collateralTokens[_index];
         collateralTokens[_index] = collateralTokens[collateralTokensLength];
         collateralTokensLength = collateralTokensLength - 1;
