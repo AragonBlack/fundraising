@@ -12,12 +12,11 @@ contract Pool is Agent {
     bytes32 public constant ADD_COLLATERAL_TOKEN_ROLE = keccak256("ADD_COLLATERAL_TOKEN_ROLE");
     bytes32 public constant REMOVE_COLLATERAL_TOKEN_ROLE = keccak256("REMOVE_COLLATERAL_TOKEN_ROLE");
 
-    string private constant ERROR_TOKEN_NOT_ETH_OR_CONTRACT = "POOL_TOKEN_NOT_ETH_OR_CONTRACT";
-    string private constant ERROR_TOKEN_ALREADY_EXISTS = "POOL_TOKEN_ALREADY_EXISTS";
-    string private constant ERROR_TOKEN_DOES_NOT_EXIST = "POOL_TOKEN_DOES_NOT_EXIST";
-    string private constant ERROR_TARGET_IS_COLLATERAL_TOKEN = "POOL_TARGET_IS_COLLATERAL_TOKEN";
-    string private constant ERROR_TOKEN_BALANCE_NOT_CONSTANT = "POOL_TOKEN_BALANCE_NOT_CONSTANT";
-
+    string private constant ERROR_COLLATERAL_TOKEN_NOT_ETH_OR_CONTRACT = "POOL_COLLATERAL_TOKEN_NOT_ETH_OR_CONTRACT";
+    string private constant ERROR_COLLATERAL_TOKEN_ALREADY_EXISTS = "POOL_COLLATERAL_TOKEN_ALREADY_EXISTS";
+    string private constant ERROR_COLLATERAL_TOKEN_DOES_NOT_EXIST = "POOL_COLLATERAL_TOKEN_DOES_NOT_EXIST";
+    string private constant ERROR_SAFE_EXEC_TARGET_IS_COLLATERAL_TOKEN = "POOL_SAFE_EXEC_TARGET_IS_COLLATERAL_TOKEN";
+    string private constant ERROR_SAFE_EXEC_COLLATERAL_BALANCE_NOT_CONSTANT = "POOL_SAFE_EXEC_COLLATERAL_TOKEN_BALANCE_NOT_CONSTANT";
 
     mapping (uint256 => address) public collateralTokens;
     uint256 public collateralTokensLength;
@@ -28,11 +27,12 @@ contract Pool is Agent {
 
     /***** external functions *****/
 
-    // Forbid any actions on the collateralized token (blacklist the target address)
-    // PLus check the balance to make sure there has been no approved transferFrom
-    // The only thing that it prevents which could not be a security feature would
-    // be a call to transferFrom for which I see no immediate use-case
-    // This function MUST always be external as the function performs a low level return, exiting the Agent app execution context
+    /**
+    * @notice Safe execute '`@radspec(_target, _data)`' on `_target`
+    * @param _target Address where the action is being executed
+    * @param _data Calldata for the action
+    * @return Exits call frame forwarding the return data of the executed call (either error or success data)
+    */
     function safeExecute(address _target, bytes _data) external auth(SAFE_EXECUTE_ROLE) {
         uint256[] memory balances = new uint256[](collateralTokensLength);
         bytes32 size;
@@ -40,7 +40,12 @@ contract Pool is Agent {
 
         for (uint256 i = 0; i < collateralTokensLength; i++) {
             address token = collateralTokens[i + 1];
-            if(token != ETH && token == _target) revert(ERROR_TARGET_IS_COLLATERAL_TOKEN); // we don't care if token is ETH as it can't be spent
+
+            // we don't care if token is ETH as it can't be spent
+            if (token != ETH && token == _target) {
+              revert(ERROR_SAFE_EXEC_TARGET_IS_COLLATERAL_TOKEN);
+            }
+
             balances[i] = balance(token);
         }
 
@@ -56,7 +61,7 @@ contract Pool is Agent {
 
         if (result) {
           for (uint256 j = 0; j < collateralTokensLength; j++) {
-              require(balances[j] == balance(collateralTokens[j + 1]), ERROR_TOKEN_BALANCE_NOT_CONSTANT);
+              require(balances[j] == balance(collateralTokens[j + 1]), ERROR_SAFE_EXEC_COLLATERAL_BALANCE_NOT_CONSTANT);
           }
             emit SafeExecute(msg.sender, _target, _data);
         }
@@ -69,16 +74,24 @@ contract Pool is Agent {
         }
     }
 
+    /**
+    * @notice Add `_token.symbol(): string` as a collateral token to safeguard
+    * @param _token Address of collateral token
+    */
     function addCollateralToken(address _token) external auth(ADD_COLLATERAL_TOKEN_ROLE) {
-        require(_token == ETH || isContract(_token), ERROR_TOKEN_NOT_ETH_OR_CONTRACT);
-        require(collateralTokenIndex(_token) == 0, ERROR_TOKEN_ALREADY_EXISTS);
+        require(_token == ETH || isContract(_token), ERROR_COLLATERAL_TOKEN_NOT_ETH_OR_CONTRACT);
+        require(collateralTokenIndex(_token) == 0, ERROR_COLLATERAL_TOKEN_ALREADY_EXISTS);
 
         _addCollateralToken(_token);
     }
 
+    /**
+    * @notice Remove `_token.symbol(): string` as a collateral token to safeguard
+    * @param _token Address of collateral token
+    */
     function removeCollateralToken(address _token) external auth(REMOVE_COLLATERAL_TOKEN_ROLE) {
       uint256 index = collateralTokenIndex(_token);
-      require(index != 0, ERROR_TOKEN_DOES_NOT_EXIST);
+      require(index != 0, ERROR_COLLATERAL_TOKEN_DOES_NOT_EXIST);
 
       _removeCollateralToken(index, _token);
     }
