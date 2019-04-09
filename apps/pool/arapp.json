@@ -26,7 +26,7 @@
     {
       "name": "Add collateral tokens to safeguard",
       "id": "ADD_COLLATERAL_TOKEN_ROLE",
-      "params": ["Designated signer address"]
+      "params": []
     },
     {
       "name": "Remove collateral tokens to safeguard",
