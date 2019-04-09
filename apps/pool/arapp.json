@@ -24,12 +24,12 @@
       "params": []
     },
     {
-      "name": "Add a collateral token to whitelist check",
+      "name": "Add collateral tokens to safeguard",
       "id": "ADD_COLLATERAL_TOKEN_ROLE",
       "params": ["Designated signer address"]
     },
     {
-      "name": "Remove a collateral token to whitelist check",
+      "name": "Remove collateral tokens to safeguard",
       "id": "REMOVE_COLLATERAL_TOKEN_ROLE",
       "params": []
     }
