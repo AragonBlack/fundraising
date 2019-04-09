@@ -13,7 +13,10 @@
   "scripts": {
     "lint": "solium --dir ./contracts",
     "compile": "aragon contracts compile",
-    "test": "aragon contracts test --network devchain",
+    "test": "TRUFFLE_TEST=true npm run ganache-cli:test",
+    "test:gas": "GAS_REPORTER=true npm test",
+    "test:coverage": "SOLIDITY_COVERAGE=true npm run ganache-cli:test",
+    "ganache-cli:test": "./node_modules/@aragon/test-helpers/ganache-cli.sh",
     "publish:devnet": "aragon apm publish major --files ./app/build --environment default",
     "publish": "npm run publish:devnet"
   },
@@ -43,9 +46,10 @@
     "eslint-plugin-standard": "^4.0.0",
     "eth-gas-reporter": "^0.1.1",
     "ethereumjs-util": "^6.1.0",
+    "ganache-cli": "^6.1.0",
     "prettier": "^1.16.4",
     "solidity-coverage": "0.5.11",
-    "solium": "^1.0.4",
+    "solium": "^1.2.3",
     "truffle": "4.1.14",
     "web3-eth-abi": "^1.0.0-beta.38"
   }
