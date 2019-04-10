@@ -4,51 +4,48 @@
 
 pragma solidity ^0.4.24;
 
+import "./IBC.sol";
 import "@aragon/os/contracts/apps/AragonApp.sol";
+import "@aragon/apps-token-manager/contracts/TokenManager.sol";
 import "@aragon/os/contracts/common/EtherTokenConstant.sol";
 import "@aragon/os/contracts/common/IsContract.sol";
+import "./BancorContracts/converter/BancorFormula.sol";
+
 import "@aragon/os/contracts/common/SafeERC20.sol";
 import "@aragon/os/contracts/lib/token/ERC20.sol";
 import "@aragon/os/contracts/lib/math/SafeMath.sol";
 
-import "@aragon/apps-token-manager/contracts/TokenManager.sol";
 import "@aragon/apps-vault/contracts/Vault.sol";
 import "@aragonblack/fundraising-pool/contracts/Pool.sol";
 
-import "./BancorContracts/converter/BancorFormula.sol";
-
-import "./IBC.sol";
-
-contract BC is EtherTokenConstant, IsContract, AragonApp, IBC, BancorFormula {
+contract BC is EtherTokenConstant, IsContract, AragonApp, IBC, BancorFormula, TokenManager {
     using SafeERC20 for ERC20;
     using SafeMath for uint256;
 
     uint32 public ppm = 1000000;
     uint256 public batchBlocks;
 
-    // bytes32 public constant _ROLE = keccak256("_ROLE");
+    bytes32 public constant BUY_ROLE = keccak256("BUY_ROLE");
+    bytes32 public constant SELL_ROLE = keccak256("SELL_ROLE");
+    bytes32 public constant UPDATE_CURVE = keccak256("UPDATE_CURVE");
+
     string private constant ERROR_POOL_NOT_CONTRACT = "BC_POOL_NOT_CONTRACT";
     string private constant ERROR_VAULT_NOT_CONTRACT = "BC_VAULT_NOT_CONTRACT";
-    string private constant ERROR_TM_NOT_CONTRACT = "BC_TOKEN_MANAGER_NOT_CONTRACT";
     
     string private constant ERROR_BCTOKEN_NOT_CONTRACT = "BC_TOKEN_NOT_CONTRACT";
     string private constant ERROR_INVALID_INIT_PARAMETER = "INVALID_INIT_PARAMETER";
     string private constant ERROR_TRANSFERFROM_FAILED = "TRANSERFROM_FAILED";
     string private constant ERROR_TRANSFER_FAILED = "TRANSER_FAILED";
+    string private constant ERROR_TOKEN_CONTROLLER = "TM_TOKEN_CONTROLLER";
 
     Pool public pool;
     Vault public vault;
-    TokenManager public tokenManager;
-
-    address public bondingCurveToken;
 
     uint256 public MAX_COLLATERAL_TOKENS = 5;
     address[] public collateralTokens;
     mapping(address => uint256) public virtualSupplies;
     mapping(address => uint256) public virtualBalances;
-    
-    mapping(address => uint256) public tokenSupplies;
-    mapping(address => uint256) public poolBalances;
+
 
     mapping(address => uint32) public reserveRatios;
 
@@ -78,19 +75,30 @@ contract BC is EtherTokenConstant, IsContract, AragonApp, IBC, BancorFormula {
     function initialize(
         Pool _pool,
         Vault _vault,
-        TokenManager _tokenManager,
-        address _bondingCurveToken,
         address[] _collateralTokens,
         uint256[] _virtualSupplies,
         uint256[] _virtualBalances,
         uint32[] _reserveRatios,
-        uint256 _batchBlocks) public onlyInit {
+        uint256 _batchBlocks,
+        MiniMeToken _token,
+        bool _transferable,
+        uint256 _maxAccountTokens) public onlyInit {
+
         initialized();
+
+        // From here til demarcated is a reproduction of initialize() within TokenManager.sol (including ERROR_TOKEN_CONTROLLER above)
+        require(_token.controller() == address(this), ERROR_TOKEN_CONTROLLER);
+
+        token = _token;
+        maxAccountTokens = _maxAccountTokens == 0 ? uint256(-1) : _maxAccountTokens;
+
+        if (token.transfersEnabled() != _transferable) {
+            token.enableTransfers(_transferable);
+        }
+        // End of TokenManager.sol initialize()
 
         require(isContract(_pool), ERROR_POOL_NOT_CONTRACT);
         require(isContract(_vault), ERROR_VAULT_NOT_CONTRACT);
-        require(isContract(_tokenManager), ERROR_TM_NOT_CONTRACT);
-        require(isContract(_bondingCurveToken), ERROR_BCTOKEN_NOT_CONTRACT);
         require(_batchBlocks >= 0, ERROR_INVALID_INIT_PARAMETER);
         require(_collateralTokens.length <= MAX_COLLATERAL_TOKENS, ERROR_INVALID_INIT_PARAMETER);
         uint256 len = _collateralTokens.length;
@@ -105,9 +113,7 @@ contract BC is EtherTokenConstant, IsContract, AragonApp, IBC, BancorFormula {
 
         pool = _pool;
         vault = _vault;
-        bondingCurveToken = _bondingCurveToken;
 
-        // TODO: is it possible to use mappings as init parameters?
         for (uint256 i = 0; i < _collateralTokens.length; i++) {
             address collateralToken = _collateralTokens[i];
             virtualSupplies[collateralToken] = _virtualSupplies[i];
@@ -118,68 +124,120 @@ contract BC is EtherTokenConstant, IsContract, AragonApp, IBC, BancorFormula {
         batchBlocks = _batchBlocks;
     }
 
-    /***** external function *****/
-    // function buy(uint256 _value) external payable;
-    // function sell(uint256 _amount) external;
+/***** external view functions *****/
 
+    /**
+        @dev getUserBlocks() Returns an array of all the batched blocks a user may have or have had an order in.
+
+        @param collateralToken The address of the collateral token used.
+        @param user The address of the user in question.
+
+        @return uint256[] An array of batch block numbers.
+    */
+    function getUserBlocks(address collateralToken, address user) external view returns (uint256[] memory) {
+        return addressToBlocksByCollateralToken[collateralToken][user];
+    }
+
+    /**
+        @dev getUserBlocksLength() Returns the number of batches that a user has make an order within.
+
+        @param collateralToken The address of the collateral token used.
+        @param user The address of the user in question.
+
+        @return uint256 A number representing how many different batches.
+    */
+    function getUserBlocksLength(address collateralToken, address user) external view returns (uint256) {
+        return addressToBlocksByCollateralToken[collateralToken][user].length;
+    }
+
+    /**
+        @dev getUserBlocksByIndex() Returns a specific batch block number from the list of all the batches that a user participated in.
+
+        @param collateralToken The address of the collateral token used.
+        @param user The address of the user in question.
+        @param index The index of the batch in question.
+
+        @return uint256 A number representing how many different batches.
+    */
+    function getUserBlocksByIndex(address collateralToken, address user, uint256 index) external view returns (uint256) {
+        return addressToBlocksByCollateralToken[collateralToken][user][index];
+    }
+
+    /**
+        @dev isUserBuyerByBlockIndex() Designates whether a user is a buyer with reference to a specific batch block by index.
+
+        @param collateralToken The address of the collateral token used.
+        @param user The address of the user in question.
+        @param index The index of the batch in question.
+
+        @return bool Whether of not the user in that batch was a buyer.
+    */
+    function isUserBuyerByBlockIndex(address collateralToken, address user, uint256 index) external view returns (bool) {
+        return batchesByCollateralToken[collateralToken][index].buyers[user] > 0;
+    }
+
+    /**
+        @dev isUserSellerByBlockIndex() Designates whether a user is a seller with reference to a specific batch block by index.
+
+        @param collateralToken The address of the collateral token used.
+        @param user The address of the user in question.
+        @param index The index of the batch in question.
+
+        @return bool Whether of not the user in that batch was a seller.
+    */
+    function isUserSellerByBlockIndex(address collateralToken, address user, uint256 index) external view returns (bool) {
+        return batchesByCollateralToken[collateralToken][index].sellers[user] > 0;
+    }
+
+    /**
+        @dev getPolynomial() Returns the family of polynomials describing the curve of this market maker.
+        WARNING: This number might suffer from rounding errors and should be corroborated off-chain.
+
+        @param collateralToken The address of the collateral token used.
+
+        @return uint256 a polynomial.
+    */
+    function getPolynomial(address collateralToken) external view returns (uint256) {
+        return uint256(ppm / reserveRatios[collateralToken]).sub(1);
+    }
+
+    /**
+        @dev getSlopePPM() Returns the slope describing the curve of this market maker in the format of parts per million.
+
+        @param collateralToken The address of the collateral token used.
+        @param _totalSupply The total supply of tokens to be used in the calculation.
+
+        @return uint256 The value for slope as represented in parts per million.
+    */
+    function getSlopePPM(address collateralToken, uint256 _totalSupply) external view returns (uint256) {
+        return _totalSupply.mul(ppm).mul(ppm) / (uint256(reserveRatios[collateralToken]).mul(_totalSupply) ** (ppm / reserveRatios[collateralToken]));
+    }
+
+/***** external functions *****/
+
+    /**
+        @dev updateReserveRatio() This function let's you update the reserve ratio for a specific collateral token.
+
+        @param collateralToken The address of the collateral token used.
+        @param reserveRatioPPM The new reserve ratio to be used for that collateral token.
+    */
     function updateReserveRatio(address collateralToken, uint32 reserveRatioPPM) external isInitialized {
         reserveRatios[collateralToken] = reserveRatioPPM;
     }
-    function updateTokenSupply(address collateralToken, uint256 tokenSupply) external isInitialized {
-        tokenSupplies[collateralToken] = tokenSupply;
-    }
-    function updatePoolBalance(address collateralToken, uint256 poolBalance) external isInitialized {
-        poolBalances[collateralToken] = poolBalance;
-    }
 
-    function injectCollateral(uint256 index) external payable isInitialized returns (bool);
-    function removeCollateral() external isInitialized returns (bool);
+    /**
+        @dev addBuy() This function allows you to enter a buy order into the current batch.
+        
+        NOTICE: totalSupply remains the same and balance remains the same
+        (although collateral has been collected and is being held by this contract)
 
-    /***** public functions *****/
-    function currentBatch() public view returns (uint cb) {
-        cb = (block.number / batchBlocks) * batchBlocks;
-    }
-    function getUserBlocks(address collateralToken, address user) public view returns (uint256[] memory) {
-        return addressToBlocksByCollateralToken[collateralToken][user];
-    }
-    function getUserBlocksLength(address collateralToken, address user) public view returns (uint256) {
-        return addressToBlocksByCollateralToken[collateralToken][user].length;
-    }
-    function getUserBlocksByIndex(address collateralToken, address user, uint256 index) public view returns (uint256) {
-        return addressToBlocksByCollateralToken[collateralToken][user][index];
-    }
-    function isUserBuyerByBlock(address collateralToken, address user, uint256 index) public view returns (bool) {
-        return batchesByCollateralToken[collateralToken][index].buyers[user] > 0;
-    }
-    function isUserSellerByBlock(address collateralToken, address user, uint256 index) public view returns (bool) {
-        return batchesByCollateralToken[collateralToken][index].sellers[user] > 0;
-    }
-    function getPolynomial(address collateralToken) public view returns (uint256) {
-        return uint256(ppm / reserveRatios[collateralToken]).sub(1);
-    }
-    // returns in parts per million
-    function getSlopePPM(address collateralToken, uint256 _totalSupply) public view returns (uint256) {
-        return _totalSupply.mul(ppm).mul(ppm) / (uint256(reserveRatios[collateralToken]).mul(_totalSupply) ** (ppm / reserveRatios[collateralToken]));
-    }
-    // returns in parts per million
-    function getPricePPM(address collateralToken, uint256 _totalSupply, uint256 _poolBalance) public view returns (uint256) {
-        return uint256(ppm).mul(_poolBalance) / _totalSupply.mul(reserveRatios[collateralToken]);
-        // return getSlope(_totalSupply, _poolBalance).mul(_totalSupply ** getPolynomial()) / ppm;
-    }
-    function getBuy(address collateralToken, uint256 _totalSupply, uint256 _poolBalance, uint256 buyValue) public view returns (uint256) {
-        return calculatePurchaseReturn(
-            safeAdd(_totalSupply, virtualSupplies[collateralToken]), 
-            safeAdd(_poolBalance, virtualBalances[collateralToken]), 
-            reserveRatios[collateralToken], 
-            buyValue);
-    }
-    function getSell(address collateralToken, uint256 _totalSupply, uint256 _poolBalance, uint256 sellAmount) public view returns (uint256) {
-        return calculateSaleReturn(safeAdd(_totalSupply, virtualSupplies[collateralToken]), safeAdd(_poolBalance, virtualBalances[collateralToken]), reserveRatios[collateralToken], sellAmount);
-    }
+        @param collateralToken The address of the collateral token used.
+        @param value The amount of collateral token the user would like to spend.
+        @param sender The address of who should be the benefactor of this purchase.
 
-    // totalSupply remains the same
-    // balance remains the same (although collateral has been collected)
-    function addBuy(address collateralToken, uint256 value, address sender) public returns (bool) {
+        @return bool Whether or not the transaction was successful.
+    */
+    function addBuy(address collateralToken, uint256 value, address sender) external returns (bool) {
         uint256 batch = currentBatch();
         Batch storage cb = batchesByCollateralToken[collateralToken][batch]; // currentBatch
         if (!cb.init) {
@@ -193,10 +251,19 @@ contract BC is EtherTokenConstant, IsContract, AragonApp, IBC, BancorFormula {
         cb.buyers[sender] = cb.buyers[sender].add(value);
         return true;
     }
-    // totalSupply is decremented
-    // balance remains the same
-    function addSell(address collateralToken, uint256 amount) public returns (bool) {
-        require(ERC20(bondingCurveToken).balanceOf(msg.sender) >= amount, "insufficient funds to do that");
+
+    /**
+        @dev addSell() This function allows you to enter a sell order into the current batch.
+    
+        NOTICE: totalSupply is decremented but the pool balance remains the same.
+
+        @param collateralToken The address of the collateral token used.
+        @param amount The amount of tokens to be sold.
+
+        @return bool Whether or not the transaction was successful.
+    */
+    function addSell(address collateralToken, uint256 amount) external returns (bool) {
+        require(token.balanceOf(msg.sender) >= amount, "insufficient funds to do that");
         uint256 batch = currentBatch();
         Batch storage cb = batchesByCollateralToken[collateralToken][batch]; // currentBatch
         if (!cb.init) {
@@ -207,46 +274,178 @@ contract BC is EtherTokenConstant, IsContract, AragonApp, IBC, BancorFormula {
             addressToBlocksByCollateralToken[collateralToken][msg.sender].push(batch);
         }
         cb.sellers[msg.sender] = cb.sellers[msg.sender].add(amount);
-        tokenManager.burn(msg.sender, amount);
+        _burn(msg.sender, amount);
         return true;
     }
 
-    function clearBatches() public {
+    /**
+        @dev clearBatches() This function clears the last batch of orders if it has not yet been cleared.
+    */
+    function clearBatches() external {
         for (uint256 i = 0; i < collateralTokens.length; i++) {
             address collateralToken = collateralTokens[i];
             _clearBatch(collateralToken);
         }
     }
-    /***** internal functions *****/
 
+    /**
+        @dev claimSell() This function allows a seller to claim the results of their sell from the last batch or for someone else to do so on their behalf.
+
+        @param collateralToken The address of the collateral token used.
+        @param batch The block number of the batch in question.
+        @param sender The address of the user whose sale results are being collected.
+    */
+    function claimSell(address collateralToken, uint256 batch, address sender) external {
+        Batch storage cb = batchesByCollateralToken[collateralToken][batch]; // claming batch
+        require(cb.cleared, "can't claim a batch that hasn't cleared");
+        require(cb.sellers[sender] != 0, "already claimed this sell");
+        uint256 individualSellReturn = (cb.totalSellReturn.mul(cb.sellers[sender])).div(cb.totalSellSpend);
+        cb.sellers[sender] = 0;
+        require(ERC20(collateralToken).transfer(sender, individualSellReturn), ERROR_TRANSFER_FAILED);
+        // sender.transfer(individualSellReturn);
+    }
+
+    /**
+        @dev claimBuy() This function allows a buyer to claim the results of their purchase from the last batch or for someone else to do so on their behalf.
+
+        @param collateralToken The address of the collateral token used.
+        @param batch The block number of the batch in question.
+        @param sender The address of the user whose buy results are being collected.
+    */
+    function claimBuy(address collateralToken, uint256 batch, address sender) external {
+        Batch storage cb = batchesByCollateralToken[collateralToken][batch]; // claming batch
+        require(cb.cleared, "can't claim a batch that hasn't cleared");
+        require(cb.buyers[sender] != 0, "already claimed this buy");
+        uint256 individualBuyReturn = (cb.buyers[sender].mul(cb.totalBuyReturn)).div(cb.totalBuySpend);
+        cb.buyers[sender] = 0;
+        _burn(address(this), individualBuyReturn);
+        _mint(sender, individualBuyReturn);
+    }
+
+/***** public view functions *****/
+
+    /**
+        @dev currentBatch() Returns the block number being attached to the current batch of orders.
+
+        @return uint The block number of the current batch of orders.
+    */
+    function currentBatch() public view returns (uint) {
+        return (block.number / batchBlocks) * batchBlocks;
+    }
+
+    /**
+        @dev poolBalance() Returns the pool balance of a specific collateral token.
+
+        @param collateralToken The address of the collateral token used.
+
+        @return uint The balance of a specific collateral token.
+    */
+    function poolBalance(address collateralToken) public view returns (uint) {
+        // TODO: Where does this come from??
+        // return Tap.poolBalance(collateralToken);
+    }
+
+    /**
+        @dev getPricePPM() Returns the current exact price (with no slippage) of the token with relevance to a specific collateral token, returned as parts per million for precision.
+
+        @param collateralToken The address of the collateral token used.
+        @param _totalSupply The token supply to be used in the calculation.
+        @param _poolBalance The collateral pool balance to be used in the calculation.
+
+        @return uint256 The current exact price in parts per million.
+    */
+    function getPricePPM(address collateralToken, uint256 _totalSupply, uint256 _poolBalance) public view returns (uint256) {
+        return uint256(ppm).mul(_poolBalance) / _totalSupply.mul(reserveRatios[collateralToken]);
+    }
+
+    /**
+        @dev getBuy() Returns the estimate result of a purchase in the scenario that it were the only order within the current batch or orders.
+
+        @param collateralToken The address of the collateral token used.
+        @param _totalSupply The token supply to be used in the calculation.
+        @param _poolBalance The collateral pool balance to be used in the calculation.
+        @param buyValue The amount of collateral token to be spent in the purchase.
+
+        @return uint256 The number of tokens that would be purchased in this scenario.
+    */
+    function getBuy(address collateralToken, uint256 _totalSupply, uint256 _poolBalance, uint256 buyValue) public view returns (uint256) {
+        return calculatePurchaseReturn(
+            safeAdd(_totalSupply, virtualSupplies[collateralToken]), 
+            safeAdd(_poolBalance, virtualBalances[collateralToken]), 
+            reserveRatios[collateralToken], 
+            buyValue);
+    }
+
+    /**
+        @dev getSell() Returns the estimate result of a sale of tokens in the scenario that it were the only order withint the current batch of orders.
+
+        @param collateralToken The address of the collateral token used.
+        @param _totalSupply The token supply to be used in the calculation.
+        @param _poolBalance The collateral pool balance to be used in the calculation.
+        @param sellAmount The amount of tokens to be sold in the transaction.
+
+        @return uint256 The number of collateral tokens that would be returned in this scenario.
+    */
+    function getSell(address collateralToken, uint256 _totalSupply, uint256 _poolBalance, uint256 sellAmount) public view returns (uint256) {
+        return calculateSaleReturn(safeAdd(_totalSupply, virtualSupplies[collateralToken]), safeAdd(_poolBalance, virtualBalances[collateralToken]), reserveRatios[collateralToken], sellAmount);
+    }
+
+/***** public functions *****/
+
+
+/***** internal functions *****/
+
+    /**
+    * @notice Burn `@tokenAmount(self.token(): address, _amount, false)` tokens from `_holder`
+    * @param _holder Holder of tokens being burned
+    * @param _amount Number of tokens being burned
+    */
+    function _burn(address _holder, uint256 _amount) internal authP(BURN_ROLE, arr(_holder, _amount)) {
+        // minime.destroyTokens() never returns false, only reverts on failure
+        token.destroyTokens(_holder, _amount);
+    }
+
+    /**
+        @dev _initBatch() This function initialized a new batch of orders, recording the current token supply and pool balance per collateral token.
+
+        @param batch The block number of the batch being initialized.
+    */
     function _initBatch(uint256 batch) internal {
         for (uint256 i = 0; i < collateralTokens.length; i++) {
             address collateralToken = collateralTokens[i];
             _clearBatch(collateralToken);
-            batchesByCollateralToken[collateralToken][batch].poolBalance = poolBalances[collateralToken];
-            batchesByCollateralToken[collateralToken][batch].totalSupply = ERC20(bondingCurveToken).totalSupply();
+            batchesByCollateralToken[collateralToken][batch].poolBalance = poolBalance(collateralToken);
+            batchesByCollateralToken[collateralToken][batch].totalSupply = token.totalSupply();
             batchesByCollateralToken[collateralToken][batch].init = true;
         }
         waitingClear = batch;
     }
 
+    /**
+        @dev _clearBatch() This function closes the currently opened batch and records the total amount spent on buys and the total amount of tokens sold. These numbers are used recorded in a way that the buyers and sellers can withdraw the amounts asynchronously. It also prepares the contract to begin the next batch of orders.
+
+        @param collateralToken The address of the collateral token used.
+    */
     function _clearBatch(address collateralToken) internal {
         if (waitingClear == 0) return;
         Batch storage cb = batchesByCollateralToken[collateralToken][waitingClear]; // clearing batch
         if (cb.cleared) return;
         _clearMatching(collateralToken);
 
-        poolBalances[collateralToken] = cb.poolBalance; // Does this matter here?
-
 
         // The totalSupply was decremented when _burns took place as the sell orders came in. Now
         // the totalSupply needs to be incremented by totalBuyReturn, the resulting tokens are
         // held by this contract until collected by the buyers.
-        tokenManager.mint(address(this), cb.totalBuyReturn);
+        _mint(address(this), cb.totalBuyReturn);
         cb.cleared = true;
         waitingClear = 0;
     }
     
+    /**
+        @dev _clearMatching() This function does the work of recording the results of the orders from the current batch. It is instigated from the `_clearBatch()` function and the exact details of how it works are written in the code itself.
+
+        @param collateralToken The address of the collateral token used.
+    */
     function _clearMatching(address collateralToken) internal {
         Batch storage cb = batchesByCollateralToken[collateralToken][waitingClear]; // clearing batch
 
@@ -290,7 +489,7 @@ contract BC is EtherTokenConstant, IsContract, AragonApp, IBC, BancorFormula {
             // cb.totalSupply = cb.totalSupply.sub(remainingSell);
 
             // poolBalance is ultimately only affected by the net difference between the buys and sells
-            cb.poolBalance = cb.poolBalance.sub(remainingSellReturn);
+            // cb.poolBalance = cb.poolBalance.sub(remainingSellReturn);
             cb.sellsCleared = true;
 
             // if the collateral resulting from the sells is LESS THAN
@@ -327,27 +526,9 @@ contract BC is EtherTokenConstant, IsContract, AragonApp, IBC, BancorFormula {
             // cb.totalSupply = cb.totalSupply.add(remainingBuyReturn);
 
             // poolBalance is ultimately only affected by the net difference between the buys and sells
-            cb.poolBalance = cb.poolBalance.add(remainingBuyReturn);
+            // cb.poolBalance = cb.poolBalance.add(remainingBuyReturn);
             cb.buysCleared = true;
         }
-    }
-    function claimSell(address collateralToken, uint256 batch, address sender) public {
-        Batch storage cb = batchesByCollateralToken[collateralToken][batch]; // claming batch
-        require(cb.cleared, "can't claim a batch that hasn't cleared");
-        require(cb.sellers[sender] != 0, "already claimed this sell");
-        uint256 individualSellReturn = (cb.totalSellReturn.mul(cb.sellers[sender])).div(cb.totalSellSpend);
-        cb.sellers[sender] = 0;
-        require(ERC20(collateralToken).transfer(sender, individualSellReturn), ERROR_TRANSFER_FAILED);
-        // sender.transfer(individualSellReturn);
-    }
-    function claimBuy(address collateralToken, uint256 batch, address sender) public {
-        Batch storage cb = batchesByCollateralToken[collateralToken][batch]; // claming batch
-        require(cb.cleared, "can't claim a batch that hasn't cleared");
-        require(cb.buyers[sender] != 0, "already claimed this buy");
-        uint256 individualBuyReturn = (cb.buyers[sender].mul(cb.totalBuyReturn)).div(cb.totalBuySpend);
-        cb.buyers[sender] = 0;
-        tokenManager.burn(address(this), individualBuyReturn);
-        tokenManager.mint(sender, individualBuyReturn);
     }
 
 }
