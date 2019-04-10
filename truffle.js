@@ -1,16 +1,27 @@
 module.exports = {
   networks: {
-    devchain: {
+    rpc: {
       host: "localhost",
       port: 8545,
+      network_id: 15,
+      gas: 6.9e6,
+      gasPrice: 15000000001
+    },
+    devchain: {
       network_id: "*",
-      gas: 8e6,
-      gasPrice: 1500000000
+      host: "localhost",
+      port: 8545,
+      gas: 6.9e6,
+      gasPrice: 15000000001
     }
   },
   compilers: {
     solc: {
-      version: "0.4.24"
+      version: "0.4.24",
+      optimizer: {
+        enabled: true,
+        runs: 10000
+      }
     }
   }
 };
