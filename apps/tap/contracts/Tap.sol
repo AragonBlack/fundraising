@@ -53,7 +53,7 @@ contract Tap is EtherTokenConstant, IsContract, AragonApp {
     event Withdraw(address indexed token, uint256 amount);
 
 
-    function initialize(Vault _vault, Pool _pool, uint256 _maxMonthlyTapIncreaseRate) public onlyInit {
+    function initialize(Vault _vault, Pool _pool, uint256 _maxMonthlyTapIncreaseRate) external onlyInit {
         require(isContract(_vault), ERROR_VAULT_NOT_CONTRACT);
         require(isContract(_pool), ERROR_POOL_NOT_CONTRACT);
 
@@ -163,8 +163,6 @@ contract Tap is EtherTokenConstant, IsContract, AragonApp {
 
     /***** internal functions *****/
 
-    // INTERNAL FUNCTIONS YET TO REVIEW
-
     function _addTokenTap(address _token, uint256 _tap) internal {
         taps[_token] = _tap;
         lastWithdrawals[_token] = now;
@@ -174,9 +172,8 @@ contract Tap is EtherTokenConstant, IsContract, AragonApp {
     }
 
     function _removeTokenTap(address _token) internal {
-        taps[_token] = uint256(0);
-        // no need to re-initialize lastWithdrawals[_token] as it
-        // will be automatically updated if the token is re-added
+        taps[_token] = uint256(0); // no need to re-initialize other data as they will be updated if the token is re-added
+
         emit RemoveTokenTap(_token);
     }
 
@@ -187,14 +184,12 @@ contract Tap is EtherTokenConstant, IsContract, AragonApp {
         emit UpdateTokenTap(_token, _tap);
     }
 
-    // OK
     function _updatePool(Pool _pool) internal {
         pool = _pool;
 
         emit UpdatePool(address(_pool));
     }
 
-    // OK
     function _updateVault(Vault _vault) internal {
         vault = _vault;
 
