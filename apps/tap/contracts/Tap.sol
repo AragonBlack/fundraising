@@ -66,6 +66,8 @@ contract Tap is EtherTokenConstant, IsContract, AragonApp {
 
     /***** external function *****/
 
+    // add ability to update maxMonthlyTapIncreaseRate ?
+
     /**
     * @notice Update vault to `_vault`
     * @param _vault Address of the new vault
