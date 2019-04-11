@@ -1,3 +1,13 @@
+const mochaGasSettings = {
+  reporter: "eth-gas-reporter",
+  reporterOptions: {
+    currency: "USD",
+    gasPrice: 3
+  }
+};
+
+const mocha = process.env.GAS_REPORTER ? mochaGasSettings : {};
+
 module.exports = {
   networks: {
     rpc: {
@@ -15,6 +25,7 @@ module.exports = {
       gasPrice: 15000000001
     }
   },
+  mocha,
   compilers: {
     solc: {
       version: "0.4.24",
