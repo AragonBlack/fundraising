@@ -8,9 +8,9 @@ module.exports = {
       gasPrice: 15000000001
     },
     devchain: {
-      network_id: "*",
       host: "localhost",
       port: 8545,
+      network_id: "*",
       gas: 6.9e6,
       gasPrice: 15000000001
     }
