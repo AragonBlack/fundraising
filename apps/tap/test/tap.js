@@ -1,432 +1,473 @@
-const Agent = artifacts.require('Agent')
-
-const {
-  assertRevert,
-  assertInvalidOpcode
-} = require('@aragon/test-helpers/assertThrow')
-const { hash } = require('eth-ens-namehash')
-const ethUtil = require('ethereumjs-util')
+/* eslint-disable no-undef */
+const { assertRevert } = require('@aragon/test-helpers/assertThrow')
 const getBalance = require('@aragon/test-helpers/balance')(web3)
-const web3Call = require('@aragon/test-helpers/call')(web3)
-const web3Sign = require('@aragon/test-helpers/sign')(web3)
-
 const assertEvent = require('@aragon/test-helpers/assertEvent')
-const timeTravel = require('@aragon/test-helpers/timeTravel')
+const timeTravel = require('@aragon/test-helpers/timeTravel')(web3)
+const { hash } = require('eth-ens-namehash')
+
 const getEvent = (receipt, event, arg) => {
-  return receipt.logs.filter(l => l.event == event)[0].args[arg]
+  return receipt.logs.filter(l => l.event === event)[0].args[arg]
+}
+const getTimestamp = receipt => {
+  return web3.eth.getBlock(receipt.receipt.blockNumber).timestamp
 }
 
+const Kernel = artifacts.require('Kernel')
 const ACL = artifacts.require('ACL')
-const AppProxyUpgradeable = artifacts.require('AppProxyUpgradeable')
 const EVMScriptRegistryFactory = artifacts.require('EVMScriptRegistryFactory')
 const DAOFactory = artifacts.require('DAOFactory')
-const Kernel = artifacts.require('Kernel')
-const KernelProxy = artifacts.require('KernelProxy')
-const Pool = artifacts.require('Pool')
 const Vault = artifacts.require('Vault')
+const Pool = artifacts.require('Pool')
 const Tap = artifacts.require('Tap')
-const TokenMock = artifacts.require('TokenMock')
 const EtherTokenConstantMock = artifacts.require('EtherTokenConstantMock')
-const DestinationMock = artifacts.require('DestinationMock')
-const KernelDepositableMock = artifacts.require('KernelDepositableMock')
+const TokenMock = artifacts.require('TokenMock')
 const ForceSendETH = artifacts.require('ForceSendETH')
 
-const NULL_ADDRESS = '0x00'
-
 contract('Tap app', accounts => {
-  let daoFact, agentBase, agent, agentAppId, tapBase, tap, poolBase, pool, token1, token2 = {}
+  let factory, dao, acl, tBase, tap, pBase, pool, vBase, vault, token1, token2
+  let ETH, APP_MANAGER_ROLE, UPDATE_VAULT_ROLE, UPDATE_POOL_ROLE, ADD_TOKEN_TAP_ROLE, REMOVE_TOKEN_TAP_ROLE, UPDATE_TOKEN_TAP_ROLE, WITHDRAW_ROLE, TRANSFER_ROLE
 
-  let ETH,
-    ANY_ENTITY,
-    APP_MANAGER_ROLE,
-    EXECUTE_ROLE,
-    RUN_SCRIPT_ROLE,
-    ADD_PRESIGNED_HASH_ROLE,
-    DESIGNATE_SIGNER_ROLE,
-    ERC1271_INTERFACE_ID,
-    ADD_TOKEN_TAP_ROLE,
-    REMOVE_TOKEN_TAP_ROLE,
-    UPDATE_TOKEN_TAP_ROLE,
-    UPDATE_POOL_ROLE,
-    UPDATE_VAULT_ROLE,
-    WITHDRAW_ROLE,
-    SAFE_EXECUTE_ROLE,
-    TRANSFER_ROLE
+  const VAULT_ID = hash('vault.aragonpm.eth')
+  const POOL_ID = hash('pool.aragonpm.eth')
+  const TAP_ID = hash('tap.aragonpm.eth')
+
+  const INITIAL_ETH_BALANCE = 400
+  const INITIAL_TOKEN_BALANCE = 1000
+  const MAX_MONTHLY_TAP_INCREASE_RATE = 50 * Math.pow(10, 16)
 
   const root = accounts[0]
   const authorized = accounts[1]
   const unauthorized = accounts[2]
 
-  const START_TIME = 1
-  const PERIOD_DURATION = 60 * 60 * 24 // One day in seconds
-  const INITIAL_ETH_BALANCE = 400
-  const INITIAL_TAP_RATE = 50
-  const tapAmt = 20
-
-  before(async () => {
-    const kernelBase = await Kernel.new(true) // petrify immediately
-    const aclBase = await ACL.new()
-    const regFact = await EVMScriptRegistryFactory.new()
-    daoFact = await DAOFactory.new(
-      kernelBase.address,
-      aclBase.address,
-      regFact.address
-    )
-    agentBase = await Agent.new()
-    tapBase = await Tap.new()
-    poolBase = await Pool.new()
-    vaultBase = await Vault.new()
-
-    // Setup constants
-    ANY_ENTITY = await aclBase.ANY_ENTITY()
-    APP_MANAGER_ROLE = await kernelBase.APP_MANAGER_ROLE()
-    EXECUTE_ROLE = await agentBase.EXECUTE_ROLE()
-    RUN_SCRIPT_ROLE = await agentBase.RUN_SCRIPT_ROLE()
-    ADD_PRESIGNED_HASH_ROLE = await agentBase.ADD_PRESIGNED_HASH_ROLE()
-    DESIGNATE_SIGNER_ROLE = await agentBase.DESIGNATE_SIGNER_ROLE()
-    ERC1271_INTERFACE_ID = await agentBase.ERC1271_INTERFACE_ID()
-    ADD_TOKEN_TAP_ROLE = await tapBase.ADD_TOKEN_TAP_ROLE()
-    REMOVE_TOKEN_TAP_ROLE = await tapBase.REMOVE_TOKEN_TAP_ROLE()
-    UPDATE_TOKEN_TAP_ROLE = await tapBase.UPDATE_TOKEN_TAP_ROLE()
-    UPDATE_POOL_ROLE = await tapBase.UPDATE_POOL_ROLE()
-    UPDATE_VAULT_ROLE = await tapBase.UPDATE_VAULT_ROLE()
-    WITHDRAW_ROLE = await tapBase.WITHDRAW_ROLE()
-    TRANSFER_ROLE = await vaultBase.TRANSFER_ROLE()
-    SAFE_EXECUTE_ROLE = await poolBase.SAFE_EXECUTE_ROLE()
-
-    const ethConstant = await EtherTokenConstantMock.new()
-    ETH = await ethConstant.getETHConstant()
-  })
-
-  const setupAgentDispatch = async (dao) => {
-    const agentId = hash('agent.aragonpm.eth')
-    const agentReceipt = await dao.newAppInstance(agentId, agentBase.address, '0x', false, { from: root })
-    const agentDispatch = await Agent.at(agentReceipt.logs.filter(l => l.event == 'NewAppProxy')[0].args.proxy)
-    await agentDispatch.initialize()
-    await dao.setApp(await dao.APP_ADDR_NAMESPACE(), agentId, agentDispatch.address)
-
-    return agentDispatch
-  }
-
-  const setupInitialPool = async (dao) => {
-    const poolId = hash('fundraising-pool.aragonpm.eth')
-    const poolReceipt = await dao.newAppInstance(poolId, poolBase.address, '0x', false, { from: root })
-    const initialPool = await Pool.at(poolReceipt.logs.filter(l => l.event == 'NewAppProxy')[0].args.proxy)
-    await initialPool.initialize()
-    await dao.setApp(await dao.APP_ADDR_NAMESPACE(), poolId, initialPool.address)
-
-    return initialPool
-  }
-
-  const setupRecoveryVault = async (dao) => {
-    const vaultId = hash('vault.aragonpm.eth')
-    const vaultReceipt = await dao.newAppInstance(vaultId, vaultBase.address, '0x', false, { from: root })
-    const recoveryVault = await Vault.at(vaultReceipt.logs.filter(l => l.event == 'NewAppProxy')[0].args.proxy)
-    await recoveryVault.initialize()
-    await dao.setApp(await dao.APP_ADDR_NAMESPACE(), vaultId, recoveryVault.address)
-    await dao.setRecoveryVaultAppId(vaultId, { from: root })
-
-    return recoveryVault
-  }
-
-  const newProxyTap = async () => {
-    const r = await daoFact.newDAO(root)
-    const dao = await Kernel.at(getEvent(r, 'DeployDAO', 'dao'))
-    const acl = await ACL.at(await dao.acl())
-
-    await acl.createPermission(root, dao.address, APP_MANAGER_ROLE, root, {
-      from: root
-    })
-
+  const initialize = async _ => {
+    // DAO
+    const dReceipt = await factory.newDAO(root)
+    dao = await Kernel.at(getEvent(dReceipt, 'DeployDAO', 'dao'))
+    acl = ACL.at(await dao.acl())
+    await acl.createPermission(root, dao.address, APP_MANAGER_ROLE, root, { from: root })
+    // vault
+    const vReceipt = await dao.newAppInstance(VAULT_ID, vBase.address, '0x', false)
+    vault = await Vault.at(getEvent(vReceipt, 'NewAppProxy', 'proxy'))
+    // pool
+    const pReceipt = await dao.newAppInstance(POOL_ID, pBase.address, '0x', false)
+    pool = await Pool.at(getEvent(pReceipt, 'NewAppProxy', 'proxy'))
     // tap
-    const tapAppId = hash('fundraising-tap.aragonpm.test')
-    const tapReceipt = await dao.newAppInstance(tapAppId, tapBase.address, '0x', false, { from: root })
-    const tapApp = await Tap.at(getEvent(tapReceipt, 'NewAppProxy', 'proxy'))
-
-    await acl.createPermission(authorized, tapApp.address, ADD_TOKEN_TAP_ROLE, root, { from: root })
-    await acl.createPermission(authorized, tapApp.address, REMOVE_TOKEN_TAP_ROLE, root, { from: root })
-    await acl.createPermission(authorized, tapApp.address, UPDATE_TOKEN_TAP_ROLE, root, { from: root })
-    await acl.createPermission(authorized, tapApp.address, UPDATE_POOL_ROLE, root, { from: root })
-    await acl.createPermission(authorized, tapApp.address, UPDATE_VAULT_ROLE, root, { from: root })
-    await acl.createPermission(authorized, tapApp.address, WITHDRAW_ROLE, root, { from: root })
-
-    const recoveryVault = await setupRecoveryVault(dao)
-    const initialPool = await setupInitialPool(dao)
-    const agentDispatch = await setupAgentDispatch(dao)
-
-    return { dao, tapApp, recoveryVault, initialPool, agentDispatch }
+    const tReceipt = await dao.newAppInstance(TAP_ID, tBase.address, '0x', false)
+    tap = await Tap.at(getEvent(tReceipt, 'NewAppProxy', 'proxy'))
+    // permissions
+    await acl.createPermission(authorized, tap.address, UPDATE_VAULT_ROLE, root, { from: root })
+    await acl.createPermission(authorized, tap.address, UPDATE_POOL_ROLE, root, { from: root })
+    await acl.createPermission(authorized, tap.address, ADD_TOKEN_TAP_ROLE, root, { from: root })
+    await acl.createPermission(authorized, tap.address, REMOVE_TOKEN_TAP_ROLE, root, { from: root })
+    await acl.createPermission(authorized, tap.address, UPDATE_TOKEN_TAP_ROLE, root, { from: root })
+    await acl.createPermission(authorized, tap.address, WITHDRAW_ROLE, root, { from: root })
+    await acl.createPermission(tap.address, pool.address, TRANSFER_ROLE, root, { from: root })
+    // initializations
+    await vault.initialize()
+    await pool.initialize()
+    await tap.initialize(pool.address, vault.address, MAX_MONTHLY_TAP_INCREASE_RATE)
+    // balances
+    await forceSendETH(pool.address, INITIAL_ETH_BALANCE)
+    token1 = await TokenMock.new(pool.address, INITIAL_TOKEN_BALANCE)
+    token2 = await TokenMock.new(pool.address, INITIAL_TOKEN_BALANCE)
   }
+
   const forceSendETH = async (to, value) => {
     // Using this contract ETH will be send by selfdestruct which always succeeds
     const forceSend = await ForceSendETH.new()
     return forceSend.sendByDying(to, { value })
   }
 
+  before(async () => {
+    // factory
+    const kBase = await Kernel.new(true) // petrify immediately
+    const aBase = await ACL.new()
+    const rFact = await EVMScriptRegistryFactory.new()
+    factory = await DAOFactory.new(kBase.address, aBase.address, rFact.address)
+    // base contracts
+    tBase = await Tap.new()
+    pBase = await Pool.new()
+    vBase = await Vault.new()
+    // constants
+    ETH = await (await EtherTokenConstantMock.new()).getETHConstant()
+    APP_MANAGER_ROLE = await kBase.APP_MANAGER_ROLE()
+    ADD_TOKEN_TAP_ROLE = await tBase.ADD_TOKEN_TAP_ROLE()
+    REMOVE_TOKEN_TAP_ROLE = await tBase.REMOVE_TOKEN_TAP_ROLE()
+    UPDATE_TOKEN_TAP_ROLE = await tBase.UPDATE_TOKEN_TAP_ROLE()
+    UPDATE_POOL_ROLE = await tBase.UPDATE_POOL_ROLE()
+    UPDATE_VAULT_ROLE = await tBase.UPDATE_VAULT_ROLE()
+    WITHDRAW_ROLE = await tBase.WITHDRAW_ROLE()
+    TRANSFER_ROLE = await pBase.TRANSFER_ROLE()
+  })
+
   beforeEach(async () => {
-    const { dao, tapApp, recoveryVault, initialPool, agentDispatch } = await newProxyTap()
-    tap = tapApp
-    pool = initialPool
-    agent = agentDispatch
-
-    //vault
-    const receipt1 = await dao.newAppInstance('0x1234', vaultBase.address, '0x', false, { from: root })
-    vault = await Vault.at(getEvent(receipt1, 'NewAppProxy', 'proxy'))
-    const acl = await ACL.at(await dao.acl())
-    await acl.createPermission(tap.address, vault.address, TRANSFER_ROLE, root, { from: root })
-    await acl.createPermission(tap.address, pool.address, SAFE_EXECUTE_ROLE, root, { from: root })
-
-    await vault.initialize()
-    await forceSendETH(pool.address, INITIAL_ETH_BALANCE)
-    token1 = await TokenMock.new(pool.address, 10000)
-
-    await tap.initialize(pool.address, vault.address, INITIAL_TAP_RATE)
+    await initialize()
   })
 
-  context("> initialize", () => {
-    it("it should revert on re-initialization", async () => {
-      const newTap = await Tap.new()
-      const newVault = await Vault.new()
-      const newPool = await Pool.new()
-      assert.isTrue(await newTap.isPetrified())
-      assert.isTrue(await newVault.isPetrified())
-      assert.isTrue(await newPool.isPetrified())
-      return assertRevert(async () => {
-        await newTap.initialize(newPool, newVault, 15)
-      })
-    })
-  })
-
-  /**
-  context("> withdraw", () => {
-    context("ETH", () => {
-      it("it should transfer a tap-defined amount of ETH from the collateral pool to the vault", async () => {
-        await tap.addTokenTap(ETH, tapAmt, { from: authorized })
-        assert.equal(await getBalance(pool.address), INITIAL_ETH_BALANCE, 'pool balance should be correct prior to withdraw')
-        await tap.withdraw(ETH, { from: authorized })
-
-        let balance = await tap.poolBalance(ETH, { from: authorized })
-        assert.equal(balance.toNumber(), INITIAL_ETH_BALANCE - tapAmt, 'pool balance should be decreased by tap amount')
-        assert.equal(await getBalance(vault.address), tapAmt, 'vault balance should be equal to tap amount')
+  context('> #initialize', () => {
+    context('> initialize parameters are correct', () => {
+      it('it should initialize tap contract', async () => {
+        assert.equal(await tap.vault(), vault.address)
+        assert.equal(await tap.pool(), pool.address)
+        assert.equal(await tap.maxMonthlyTapIncreaseRate(), MAX_MONTHLY_TAP_INCREASE_RATE)
       })
     })
 
-    context("ERC20", () => {
-      it("it should transfer a tap-defined amount of ERC20 from the collateral pool to the vault", async () => {
-        await tap.addTokenTap(token1.address, tapAmt, { from: authorized })
-        assert.equal(await token1.balanceOf(pool.address), 10000, 'pool should have ERC20 token balance')
-        await tap.withdraw(token1.address, { from: authorized })
-
-        assert.equal(await token1.balanceOf(pool.address), 10000 - tapAmt, 'token balance in pool should decrease by tap amount')
-        assert.equal(await token1.balanceOf(vault.address), tapAmt, 'vault should have updated token balance')
-      })
-    })
-
-    it("it should revert if sender does not have 'WITHDRAW_ROLE'", async () => {
-      return assertRevert(async () => {
-        await tap.withdraw(token1.address, { from: unauthorized })
-      })
-    })
-  })
-  **/
-
-  context("> addTokenTap", () => {
-    context('sender has ADD_TOKEN_TAP_ROLE', () => {
-      context('and token is ETH or ERC20', () => {
-        context('and token does not already exist in mapping', () => {
-          it('it should add tap token in mapping', async () => {
-            token2 = await TokenMock.new(authorized, 10000)
-            const token3 = await TokenMock.new(authorized, 10000)
-
-            await tap.addTokenTap(ETH, tapAmt, { from: authorized })
-            await tap.addTokenTap(token2.address, tapAmt, { from: authorized })
-            await tap.addTokenTap(token3.address, tapAmt, { from: authorized })
-            assert(await tap.getWithdrawalValue(ETH))
-            assert(await tap.getWithdrawalValue(token2.address))
-            assert(await tap.getWithdrawalValue(token3.address))
-          })
-        })
-        context('but token already exists in mapping', () => {
-          it('it should revert', async () => {
-            await tap.addTokenTap(token2.address, tapAmt, { from: authorized })
-
-            await assertRevert(
-              async () =>
-                await tap.addTokenTap(token2.address, tapAmt, {
-                  from: authorized
-                })
-            )
-          })
-        })
-      })
-      context('but token is not ETH or ERC20', () => {
-        it('it should revert', async () => {
-          await assertRevert(
-            async () =>
-              await tap.addTokenTap(root, tapAmt, { from: authorized })
-          )
-        })
-      })
-    })
-    context('sender does not have ADD_TOKEN_TAP_ROLE', () => {
+    context('> initialize parameters are not correct', () => {
       it('it should revert', async () => {
-        const token = await TokenMock.new(authorized, 10000)
+        const dReceipt = await factory.newDAO(root)
+        const dao = await Kernel.at(getEvent(dReceipt, 'DeployDAO', 'dao'))
+        const acl = ACL.at(await dao.acl())
+        await acl.createPermission(root, dao.address, APP_MANAGER_ROLE, root, { from: root })
 
-        await assertRevert(
-          async () =>
-            await tap.addTokenTap(token.address, tapAmt, { from: unauthorized })
-        )
+        const tReceipt = await dao.newAppInstance(TAP_ID, tBase.address, '0x', false)
+        const _tap = await Tap.at(getEvent(tReceipt, 'NewAppProxy', 'proxy'))
+
+        await assertRevert(async () => _tap.initialize(root, vault.address, MAX_MONTHLY_TAP_INCREASE_RATE))
+        await assertRevert(async () => _tap.initialize(pool.address, root, MAX_MONTHLY_TAP_INCREASE_RATE))
+      })
+    })
+
+    it('it should revert on re-initialization', async () => {
+      return assertRevert(async () => {
+        await tap.initialize(pool.address, vault.address, MAX_MONTHLY_TAP_INCREASE_RATE, { from: authorized })
       })
     })
   })
 
-  context("> removeTokenTap", () => {
-    context('sender has REMOVE_TOKEN_TAP_ROLE', () => {
-      context('and token is ETH or ERC20', () => {
-        context('and token does exist in mapping', () => {
-          it('it should remove tap token in mapping', async () => {
-            token2 = await TokenMock.new(authorized, 10000)
+  context('> #updateVault', () => {
+    context('> sender has UPDATE_VAULT_ROLE', () => {
+      context('> and new vault is a contract', () => {
+        it('it should update vault', async () => {
+          const vault2 = await Vault.new()
+          const receipt = await tap.updateVault(vault2.address, { from: authorized })
 
-            await tap.addTokenTap(ETH, tapAmt, { from: authorized })
-            await tap.addTokenTap(token2.address, tapAmt, { from: authorized })
-
-            await tap.removeTokenTap(ETH, { from: authorized })
-            const receipt = await tap.removeTokenTap(token2.address, { from: authorized })
-            assertEvent(receipt, 'RemoveTokenTap')
-            assert.equal(await tap.taps(ETH), 0, 'ETH should be removed from mapping')
-            assert.equal(await tap.taps(token2.address), 0, 'ERC20h should be removed from mapping')
-          })
-        })
-        context('but token does not exist in mapping', () => {
-          it('it should revert', async () => {
-            const token = await TokenMock.new(authorized, 10000)
-            await assertRevert(
-              async () =>
-                await tap.removeTokenTap(token.address, {
-                  from: authorized
-                })
-            )
-          })
+          assertEvent(receipt, 'UpdateVault')
+          assert.equal(await tap.vault(), vault2.address)
         })
       })
-      context('but token is not ETH or ERC20', () => {
+
+      context('> but new vault is not a contract', () => {
         it('it should revert', async () => {
-          await assertRevert(
-            async () =>
-              await tap.removeTokenTap(root, { from: authorized })
-          )
+          await assertRevert(() => tap.updateVault(root, { from: authorized }))
         })
       })
     })
-    context('sender does not have REMOVE_TOKEN_TAP_ROLE', () => {
+
+    context('> sender does not have UPDATE_VAULT_ROLE', () => {
       it('it should revert', async () => {
-        const token = await TokenMock.new(authorized, 10000)
-        await tap.addTokenTap(token.address, tapAmt, { from: authorized })
-
-        await assertRevert(
-          async () =>
-            await tap.removeTokenTap(token.address, { from: unauthorized })
-        )
-      })
-    })
-  })
-
-  context("updateTokenTap", () => {
-    context("sender does have UPDATE_TOKEN_TAP_ROLE", () => {
-      context('and token is ETH or ERC20', () => {
-        it("it should update tap rate if within monthly limit", async () => {
-          const token = await TokenMock.new(authorized, 10000)
-          await tap.addTokenTap(ETH, tapAmt, { from: authorized })
-          await tap.addTokenTap(token.address, tapAmt, { from: authorized })
-
-          const receipt = await tap.updateTokenTap(ETH, 10, { from: authorized })
-          await tap.updateTokenTap(token.address, 10, { from: authorized })
-          assertEvent(receipt, 'UpdateTokenTap')
-          assert.equal(await tap.taps(token.address), 10, 'tap rate should update for ERC20')
-          assert.equal(await tap.taps(ETH), 10, 'tap rate should update for ETH')
-        })
-        it("it should revert if tap rate exceeds limit within 30 days", async () => {
-          const token = await TokenMock.new(authorized, 10000)
-          await tap.addTokenTap(ETH, tapAmt, { from: authorized })
-          await tap.addTokenTap(token.address, tapAmt, { from: authorized })
-          await tap.updateTokenTap(token.address, 10, { from: authorized })
-
-          await assertRevert( //Exceeds tap rate
-            async () =>
-              await tap.updateTokenTap(token.address, 10000, { from: authorized })
-          )
-        })
-        /** TODO: Fix time travel so that we actually exceed the 30 day period
-        it("it should update tap rate to any amount after 30 days", async () => {
-          const token = await TokenMock.new(authorized, 10000)
-          await tap.addTokenTap(ETH, tapAmt, { from: authorized })
-          await tap.addTokenTap(token.address, tapAmt, { from: authorized })
-          await tap.updateTokenTap(token.address, 10, { from: authorized })
-          let date = new Date(await tap.lastTapUpdate(token.address))
-
-          //30 days later
-          await timeTravel(date + 31)
-          await tap.updateTokenTap(token.address, 1000, { from: authorized })
-        })
-        **/
-        it("it should revert if not in tap list", async () => {
-          const token = await TokenMock.new(authorized, 10000)
-          await assertRevert(
-            async () =>
-              await tap.updateTokenTap(token.address, 30, { from: authorized })
-          )
-        })
-      })
-    })
-  })
-
-  context("updateVault", () => {
-    context("sender does have UPDATE_VAULT_ROLE", () => {
-      it("it should update vault address", async () => {
         const vault2 = await Vault.new()
-        const receipt = await tap.updateVault(vault2.address, { from: authorized })
-        assertEvent(receipt, 'UpdateVault')
-        assert.equal(await tap.vault(), vault2.address, 'vault should have updated')
-      })
-      it("it should revert if not vault contract", async () => {
-        await assertRevert(
-          async () =>
-            await tap.updateVault(root, { from: authorized })
-        )
-      })
-    })
-    context("sender does not have UPDATE_VAULT_ROLE", () => {
-      it("it should revert", async () => {
-        const vault2 = await Vault.new()
-        await assertRevert(
-          async () =>
-            await tap.updateVault(vault2.address, { from: unauthorized })
-        )
+        await assertRevert(() => tap.updateVault(vault2.address, { from: unauthorized }))
       })
     })
   })
 
-  context("updateCollateralPool", () => {
-    context("sender does have UPDATE_POOL_ROLE", () => {
-      it("it should update pool address", async () => {
-        const pool2 = await Pool.new()
-        const receipt = await tap.updatePool(pool2.address, { from: authorized })
-        assertEvent(receipt, 'UpdatePool')
-        assert.equal(await tap.pool(), pool2.address, 'pool should have updated')
+  context('> #updatePool', () => {
+    context('> sender has UPDATE_POOL_ROLE', () => {
+      context('> and new pool is a contract', () => {
+        it('it should update pool', async () => {
+          const pool2 = await Pool.new()
+          const receipt = await tap.updatePool(pool2.address, { from: authorized })
+
+          assertEvent(receipt, 'UpdatePool')
+          assert.equal(await tap.pool(), pool2.address)
+        })
       })
-      it("it should revert if not pool contract", async () => {
-        await assertRevert(
-          async () =>
-            await tap.updatePool(root, { from: authorized })
-        )
+
+      context('> but new pool is not a contract', () => {
+        it('it should revert', async () => {
+          await assertRevert(() => tap.updatePool(root, { from: authorized }))
+        })
       })
     })
-    context("sender does not have UPDATE_POOL_ROLE", () => {
-      it("it should revert", async () => {
+
+    context('> sender does not have UPDATE_POOL_ROLE', () => {
+      it('it should revert', async () => {
         const pool2 = await Pool.new()
-        await assertRevert(
-          async () =>
-            await tap.updatePool(pool2, { from: unauthorized })
-        )
+        await assertRevert(() => tap.updatePool(pool2.address, { from: unauthorized }))
+      })
+    })
+  })
+
+  context('> #addTokenTap', () => {
+    context('> sender has ADD_TOKEN_TAP_ROLE', () => {
+      context('> and token is ETH or ERC20', () => {
+        context('> and token does not already exist', () => {
+          context('> and tap is above zero', () => {
+            it('it should add tap token', async () => {
+              const receipt1 = await tap.addTokenTap(ETH, 10, { from: authorized })
+              const receipt2 = await tap.addTokenTap(token1.address, 50, { from: authorized })
+              const receipt3 = await tap.addTokenTap(token2.address, 100, { from: authorized })
+
+              const timestamp1 = getTimestamp(receipt1)
+              const timestamp2 = getTimestamp(receipt2)
+              const timestamp3 = getTimestamp(receipt3)
+
+              assertEvent(receipt1, 'AddTokenTap')
+              assertEvent(receipt2, 'AddTokenTap')
+              assertEvent(receipt3, 'AddTokenTap')
+
+              assert.equal(await tap.taps(ETH), 10)
+              assert.equal(await tap.taps(token1.address), 50)
+              assert.equal(await tap.taps(token2.address), 100)
+
+              assert.equal(await tap.lastWithdrawals(ETH), timestamp1)
+              assert.equal(await tap.lastWithdrawals(token1.address), timestamp2)
+              assert.equal(await tap.lastWithdrawals(token2.address), timestamp3)
+
+              assert.equal(await tap.lastTapUpdates(ETH), timestamp1)
+              assert.equal(await tap.lastTapUpdates(token1.address), timestamp2)
+              assert.equal(await tap.lastTapUpdates(token2.address), timestamp3)
+            })
+          })
+
+          context('> but tap is zero', () => {
+            it('it should revert', async () => {
+              await assertRevert(() => tap.addTokenTap(ETH, 0, { from: authorized }))
+              await assertRevert(() => tap.addTokenTap(token1.address, 0, { from: authorized }))
+            })
+          })
+        })
+
+        context('> but token already exists', () => {
+          it('it should revert', async () => {
+            await tap.addTokenTap(token1.address, 50, { from: authorized })
+
+            await assertRevert(() => tap.addTokenTap(token1.address, 50, { from: authorized }))
+          })
+        })
+      })
+
+      context('> but token is not ETH or ERC20', () => {
+        it('it should revert', async () => {
+          await assertRevert(() => tap.addTokenTap(root, 50, { from: authorized }))
+        })
+      })
+    })
+
+    context('> sender does not have ADD_TOKEN_TAP_ROLE', () => {
+      it('it should revert', async () => {
+        await assertRevert(() => tap.addTokenTap(token1.address, 50, { from: unauthorized }))
+      })
+    })
+  })
+
+  context('> #removeTokenTap', () => {
+    context('> sender has REMOVE_TOKEN_TAP_ROLE', () => {
+      context('> and token exists', () => {
+        it('it should remove token tap', async () => {
+          await tap.addTokenTap(ETH, 2, { from: authorized })
+          await tap.addTokenTap(token1.address, 5, { from: authorized })
+
+          const receipt1 = await tap.removeTokenTap(ETH, { from: authorized })
+          const receipt2 = await tap.removeTokenTap(token1.address, { from: authorized })
+
+          assertEvent(receipt1, 'RemoveTokenTap')
+          assertEvent(receipt2, 'RemoveTokenTap')
+          assert.equal(await tap.taps(ETH), 0)
+          assert.equal(await tap.taps(token1.address), 0)
+        })
+      })
+
+      context('> but token does not exist', () => {
+        it('it should revert', async () => {
+          const token = await TokenMock.new(authorized, 10000)
+
+          await assertRevert(async () => tap.removeTokenTap(token.address, { from: authorized }))
+        })
+      })
+    })
+
+    context('> sender does not have REMOVE_TOKEN_TAP_ROLE', () => {
+      it('it should revert', async () => {
+        await tap.addTokenTap(token1.address, 2, { from: authorized })
+
+        await assertRevert(() => tap.removeTokenTap(token1.address, { from: unauthorized }))
+      })
+    })
+  })
+
+  context('> #updateTokenTap', () => {
+    context('> sender has UPDATE_TOKEN_TAP_ROLE', () => {
+      context('> and token exists', () => {
+        context('> and new tap rate is above zero', () => {
+          context('> and increase is within monthly limit', () => {
+            it('it should update tap rate', async () => {
+              await tap.addTokenTap(ETH, 10, { from: authorized })
+              await tap.addTokenTap(token1.address, 20, { from: authorized })
+              await tap.addTokenTap(token2.address, 30, { from: authorized })
+              // 1 month = 2592000 seconds
+              await timeTravel(2592000)
+
+              const receipt1 = await tap.updateTokenTap(ETH, 14, { from: authorized })
+              const receipt2 = await tap.updateTokenTap(token1.address, 15, { from: authorized })
+              const receipt3 = await tap.updateTokenTap(token2.address, 44, { from: authorized })
+
+              assertEvent(receipt1, 'UpdateTokenTap')
+              assertEvent(receipt2, 'UpdateTokenTap')
+              assertEvent(receipt3, 'UpdateTokenTap')
+
+              assert.equal(await tap.taps(ETH), 14)
+              assert.equal(await tap.taps(token1.address), 15)
+              assert.equal(await tap.taps(token2.address), 44)
+
+              assert.equal(await tap.lastTapUpdates(ETH), getTimestamp(receipt1))
+              assert.equal(await tap.lastTapUpdates(token1.address), getTimestamp(receipt2))
+              assert.equal(await tap.lastTapUpdates(token2.address), getTimestamp(receipt3))
+
+              // let's time travel and update again
+              // 2 weeks = 1296000 seconds
+              await timeTravel(2592000)
+
+              const receipt4 = await tap.updateTokenTap(ETH, 17, { from: authorized })
+              const receipt5 = await tap.updateTokenTap(token1.address, 18, { from: authorized })
+              const receipt6 = await tap.updateTokenTap(token2.address, 10, { from: authorized })
+
+              assertEvent(receipt4, 'UpdateTokenTap')
+              assertEvent(receipt5, 'UpdateTokenTap')
+              assertEvent(receipt6, 'UpdateTokenTap')
+
+              assert.equal(await tap.taps(ETH), 17)
+              assert.equal(await tap.taps(token1.address), 18)
+              assert.equal(await tap.taps(token2.address), 10)
+
+              assert.equal(await tap.lastTapUpdates(ETH), getTimestamp(receipt4))
+              assert.equal(await tap.lastTapUpdates(token1.address), getTimestamp(receipt5))
+              assert.equal(await tap.lastTapUpdates(token2.address), getTimestamp(receipt6))
+            })
+          })
+
+          context('> but increase is above monthly limit', () => {
+            it('it should revert', async () => {
+              await tap.addTokenTap(ETH, 10, { from: authorized })
+              await tap.addTokenTap(token1.address, 20, { from: authorized })
+              // 1 month = 2592000 seconds
+              await timeTravel(2592000)
+
+              await assertRevert(() => tap.updateTokenTap(ETH, 16, { from: authorized }))
+              await assertRevert(() => tap.updateTokenTap(token1.address, 31, { from: authorized }))
+            })
+          })
+        })
+
+        context('> but new tap rate is zero', () => {
+          it('it should revert', async () => {
+            await tap.addTokenTap(ETH, 10, { from: authorized })
+            await tap.addTokenTap(token1.address, 20, { from: authorized })
+            // 1 month = 2592000 seconds
+            await timeTravel(2592000)
+
+            await assertRevert(() => tap.updateTokenTap(ETH, 0, { from: authorized }))
+            await assertRevert(() => tap.updateTokenTap(token1.address, 0, { from: authorized }))
+          })
+        })
+      })
+
+      context('> but token does not exist', () => {
+        it('it should revert', async () => {
+          const token = await TokenMock.new(authorized, 10000)
+
+          await assertRevert(() => tap.updateTokenTap(token.address, 10, { from: authorized }))
+        })
+      })
+    })
+
+    context('> sender does not have UPDATE_TOKEN_TAP_ROLE', () => {
+      it('it should revert', async () => {
+        await tap.addTokenTap(ETH, 10, { from: authorized })
+
+        await assertRevert(() => tap.updateTokenTap(ETH, 9, { from: unauthorized }))
+      })
+    })
+  })
+
+  context('> #getMaxWithdrawal', () => {
+    context('> tapped amount is inferior to pool balance', () => {
+      it('it should return tapped amount', async () => {
+        await tap.addTokenTap(ETH, 1, { from: authorized })
+        await tap.addTokenTap(token1.address, 2, { from: authorized })
+        await timeTravel(10)
+
+        assert.equal((await tap.getMaxWithdrawal(ETH)).toNumber(), 10)
+        assert.equal((await tap.getMaxWithdrawal(token1.address)).toNumber(), 20)
+      })
+    })
+
+    context('> tapped amount is superior to pool balance', () => {
+      it('it should return pool balance', async () => {
+        await tap.addTokenTap(ETH, 4, { from: authorized })
+        await tap.addTokenTap(token1.address, 5, { from: authorized })
+        await timeTravel(400)
+
+        assert.equal((await tap.getMaxWithdrawal(ETH)).toNumber(), INITIAL_ETH_BALANCE)
+        assert.equal((await tap.getMaxWithdrawal(token1.address)).toNumber(), INITIAL_TOKEN_BALANCE)
+      })
+    })
+  })
+
+  context('> #withdraw', () => {
+    context('> sender has WITHDRAW_ROLE', () => {
+      context('> ETH', () => {
+        it('it should transfer a tapped amount of ETH from the pool to the vault', async () => {
+          const receipt1 = await tap.addTokenTap(ETH, 2, { from: authorized })
+          const timestamp1 = getTimestamp(receipt1)
+          await timeTravel(10)
+
+          // first withdrawal
+          const receipt2 = await tap.withdraw(ETH, { from: authorized })
+          const timestamp2 = await getTimestamp(receipt2)
+          const diff1 = timestamp2 - timestamp1
+          assertEvent(receipt2, 'Withdraw')
+          assert.equal((await getBalance(pool.address)).toNumber(), INITIAL_ETH_BALANCE - 2 * diff1)
+          assert.equal((await getBalance(vault.address)).toNumber(), 2 * diff1)
+          assert.equal(await tap.lastWithdrawals(ETH), getTimestamp(receipt1) + diff1)
+
+          // let's time travel and withdraw again
+          await timeTravel(5)
+          const receipt3 = await tap.withdraw(ETH, { from: authorized })
+          const timestamp3 = await getTimestamp(receipt3)
+          const diff2 = timestamp3 - timestamp1
+          assertEvent(receipt3, 'Withdraw')
+          assert.equal((await getBalance(pool.address)).toNumber(), INITIAL_ETH_BALANCE - 2 * diff2)
+          assert.equal((await getBalance(vault.address)).toNumber(), 2 * diff2)
+          assert.equal(await tap.lastWithdrawals(ETH), getTimestamp(receipt1) + diff2)
+        })
+      })
+
+      context('> ERC20', () => {
+        it('it should transfer a tapped amount of ERC20 from the pool to the vault', async () => {
+          const receipt1 = await tap.addTokenTap(token1.address, 2, { from: authorized })
+          const timestamp1 = getTimestamp(receipt1)
+          await timeTravel(10)
+
+          // first withdrawal
+          const receipt2 = await tap.withdraw(token1.address, { from: authorized })
+          const timestamp2 = await getTimestamp(receipt2)
+          const diff1 = timestamp2 - timestamp1
+          assertEvent(receipt2, 'Withdraw')
+          assert.equal((await token1.balanceOf(pool.address)).toNumber(), INITIAL_TOKEN_BALANCE - 2 * diff1)
+          assert.equal((await token1.balanceOf(vault.address)).toNumber(), 2 * diff1)
+          assert.equal(await tap.lastWithdrawals(token1.address), getTimestamp(receipt1) + diff1)
+
+          // let's time travel and withdraw again
+          await timeTravel(5)
+          const receipt3 = await tap.withdraw(token1.address, { from: authorized })
+          const timestamp3 = await getTimestamp(receipt3)
+          const diff2 = timestamp3 - timestamp1
+          assertEvent(receipt3, 'Withdraw')
+          assert.equal((await token1.balanceOf(pool.address)).toNumber(), INITIAL_TOKEN_BALANCE - 2 * diff2)
+          assert.equal((await token1.balanceOf(vault.address)).toNumber(), 2 * diff2)
+          assert.equal(await tap.lastWithdrawals(token1.address), getTimestamp(receipt1) + diff2)
+        })
+      })
+    })
+
+    context('> sender does not have WITHDRAW_ROLE', () => {
+      it('it should revert', async () => {
+        await tap.addTokenTap(ETH, 2, { from: authorized })
+        await timeTravel(10)
+
+        await assertRevert(() => tap.withdraw(ETH, { from: unauthorized }))
       })
     })
   })
