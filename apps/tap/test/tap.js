@@ -65,7 +65,7 @@ contract('Tap app', accounts => {
     // initializations
     await vault.initialize()
     await pool.initialize()
-    await tap.initialize(pool.address, vault.address, MAX_MONTHLY_TAP_INCREASE_RATE)
+    await tap.initialize(vault.address, pool.address, MAX_MONTHLY_TAP_INCREASE_RATE)
     // balances
     await forceSendETH(pool.address, INITIAL_ETH_BALANCE)
     token1 = await TokenMock.new(pool.address, INITIAL_TOKEN_BALANCE)
@@ -123,8 +123,8 @@ contract('Tap app', accounts => {
         const tReceipt = await dao.newAppInstance(TAP_ID, tBase.address, '0x', false)
         const _tap = await Tap.at(getEvent(tReceipt, 'NewAppProxy', 'proxy'))
 
-        await assertRevert(async () => _tap.initialize(root, vault.address, MAX_MONTHLY_TAP_INCREASE_RATE))
-        await assertRevert(async () => _tap.initialize(pool.address, root, MAX_MONTHLY_TAP_INCREASE_RATE))
+        await assertRevert(async () => _tap.initialize(root, pool.address, MAX_MONTHLY_TAP_INCREASE_RATE))
+        await assertRevert(async () => _tap.initialize(vault.address, root, MAX_MONTHLY_TAP_INCREASE_RATE))
       })
     })
 

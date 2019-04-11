@@ -2,7 +2,7 @@
  * SPDX-License-Identitifer:    GPL-3.0-or-later
  */
 
-pragma solidity ^0.4.24;
+pragma solidity 0.4.24;
 
 import "@aragon/os/contracts/apps/AragonApp.sol";
 import "@aragon/os/contracts/common/EtherTokenConstant.sol";
@@ -21,101 +21,131 @@ contract Tap is EtherTokenConstant, IsContract, AragonApp {
 
     uint64 public constant PCT_BASE = 10 ** 18; // 0% = 0; 1% = 10^16; 100% = 10^18
 
+    bytes32 public constant UPDATE_VAULT_ROLE = keccak256("UPDATE_VAULT_ROLE");
+    bytes32 public constant UPDATE_POOL_ROLE = keccak256("UPDATE_POOL_ROLE");
     bytes32 public constant ADD_TOKEN_TAP_ROLE = keccak256("ADD_TOKEN_TAP_ROLE");
     bytes32 public constant REMOVE_TOKEN_TAP_ROLE = keccak256("REMOVE_TOKEN_TAP_ROLE");
     bytes32 public constant UPDATE_TOKEN_TAP_ROLE = keccak256("UPDATE_TOKEN_TAP_ROLE");
-    bytes32 public constant UPDATE_POOL_ROLE = keccak256("UPDATE_POOL_ROLE");
-    bytes32 public constant UPDATE_VAULT_ROLE = keccak256("UPDATE_VAULT_ROLE");
     bytes32 public constant WITHDRAW_ROLE = keccak256("WITHDRAW_ROLE");
 
-    string private constant ERROR_POOL_NOT_CONTRACT = "TAP_POOL_NOT_CONTRACT";
     string private constant ERROR_VAULT_NOT_CONTRACT = "TAP_VAULT_NOT_CONTRACT";
+    string private constant ERROR_POOL_NOT_CONTRACT = "TAP_POOL_NOT_CONTRACT";
     string private constant ERROR_TOKEN_NOT_ETH_OR_CONTRACT = "TAP_TOKEN_NOT_ETH_OR_CONTRACT";
     string private constant ERROR_TOKEN_TAP_ALREADY_EXISTS = "TAP_TOKEN_TAP_ALREADY_EXISTS";
     string private constant ERROR_TOKEN_TAP_DOES_NOT_EXIST = "TAP_TOKEN_TAP_DOES_NOT_EXIST";
-    string private constant ERROR_TAP_RATE_ZERO = "TAP_TAP_RATE_ZERO";
-    string private constant ERROR_WITHDRAWAL_VALUE_ZERO = "TAP_WITHDRAWAL_VALUE_ZERO";
-    string private constant ERROR_TAP_RATE_NOT_PERCENTAGE = "TAP_RATE_NOT_PERCENTAGE";
-    string private constant ERROR_UPDATE_TAP_RATE_EXCEEDS_LIMIT = "TAP_RATE_EXCEEDS_MONTHLY_LIMIT";
+    string private constant ERROR_TOKEN_TAP_RATE_ZERO = "TAP_TOKEN_TAP_RATE_ZERO";
+    string private constant ERROR_TAP_INCREASE_EXCEEDS_LIMIT = "TAP_TAP_INCREASE_EXCEEDS_LIMIT";
+    string private constant ERROR_WITHDRAWAL_AMOUNT_ZERO = "TAP_WITHDRAWAL_AMOUNT_ZERO";
 
-    Pool public pool;
     Vault public vault;
+    Pool public pool;
 
     mapping (address => uint256) public taps;
     mapping (address => uint256) public lastWithdrawals;
-    mapping (address => uint256) public lastTapUpdate;
-    uint256 public tapRate;
+    mapping (address => uint256) public lastTapUpdates;
+    uint256 public maxMonthlyTapIncreaseRate;
 
+    event UpdateVault(address vault);
+    event UpdatePool(address pool);
     event AddTokenTap(address indexed token, uint256 tap);
     event RemoveTokenTap(address indexed token);
     event UpdateTokenTap(address indexed token, uint256 tap);
-    event UpdatePool(address pool);
-    event UpdateVault(address vault);
-    event Withdraw(address indexed token, uint256 value);
+    event Withdraw(address indexed token, uint256 amount);
 
-    function initialize(Pool _pool, Vault _vault, uint256 _monthlyTapRate ) public onlyInit {
-        initialized();
 
-        require(isContract(_pool), ERROR_POOL_NOT_CONTRACT);
+    function initialize(Vault _vault, Pool _pool, uint256 _maxMonthlyTapIncreaseRate) public onlyInit {
         require(isContract(_vault), ERROR_VAULT_NOT_CONTRACT);
-        require(_monthlyTapRate < PCT_BASE,  ERROR_TAP_RATE_NOT_PERCENTAGE);
+        require(isContract(_pool), ERROR_POOL_NOT_CONTRACT);
+
+        initialized();
 
         pool = _pool;
         vault = _vault;
-        tapRate = _monthlyTapRate;
+        maxMonthlyTapIncreaseRate = _maxMonthlyTapIncreaseRate;
     }
 
     /***** external function *****/
-    function addTokenTap(address _token, uint256 _tap) external auth(ADD_TOKEN_TAP_ROLE) {
-        require(_token == ETH || isContract(_token), ERROR_TOKEN_NOT_ETH_OR_CONTRACT);
-        require(taps[_token] == uint256(0), ERROR_TOKEN_TAP_ALREADY_EXISTS);
-        require(_tap > 0, ERROR_TAP_RATE_ZERO);
 
-        _addTokenTap(_token, _tap);
-    }
-
-    function removeTokenTap(address _token) external auth(REMOVE_TOKEN_TAP_ROLE) {
-        require(taps[_token] != uint256(0), ERROR_TOKEN_TAP_DOES_NOT_EXIST);
-
-        _removeTokenTap(_token);
-    }
-
-    function updateTokenTap(address _token, uint256 _tap) external auth(UPDATE_TOKEN_TAP_ROLE) {
-        require(taps[_token] != uint256(0), ERROR_TOKEN_TAP_DOES_NOT_EXIST);
-        require(_tap > 0, ERROR_TAP_RATE_ZERO);
-
-        if (lastTapUpdate[_token] != uint256(0)) {
-          uint256 diff = (now).sub(lastTapUpdate[_token]);
-          //Verify that within the 30-day period since last update it increases no more than the fixed percentage
-          if (diff.div(60).div(60).div(24) < 30) {
-            require(!_isValuePct(_tap, taps[_token], tapRate), ERROR_UPDATE_TAP_RATE_EXCEEDS_LIMIT);
-          }
-        }
-
-        _updateTokenTap(_token, _tap);
-    }
-
-    function updatePool(Pool _pool) external auth(UPDATE_POOL_ROLE) {
-        require(isContract(_pool), ERROR_POOL_NOT_CONTRACT);
-
-        _updatePool(_pool);
-    }
-
+    /**
+    * @notice Update vault to `_vault`
+    * @param _vault Address of the new vault
+    */
     function updateVault(Vault _vault) external auth(UPDATE_VAULT_ROLE) {
         require(isContract(_vault), ERROR_VAULT_NOT_CONTRACT);
 
         _updateVault(_vault);
     }
 
+    /**
+    * @notice Update pool to `_pool`
+    * @param _pool Address of the new pool
+    */
+    function updatePool(Pool _pool) external auth(UPDATE_POOL_ROLE) {
+        require(isContract(_pool), ERROR_POOL_NOT_CONTRACT);
+
+        _updatePool(_pool);
+    }
+
+    /**
+    * @notice Add a tap for `_token.symbol(): string` at the pace of `@tokenAmount(_token, _tap)` per second
+    * @param _token Address of the tapped token
+    * @param _tap Tap applied to the token (in wei / second)
+    */
+    function addTokenTap(address _token, uint256 _tap) external auth(ADD_TOKEN_TAP_ROLE) {
+        require(_token == ETH || isContract(_token), ERROR_TOKEN_NOT_ETH_OR_CONTRACT);
+        require(taps[_token] == uint256(0), ERROR_TOKEN_TAP_ALREADY_EXISTS);
+        require(_tap > 0, ERROR_TOKEN_TAP_RATE_ZERO);
+
+        _addTokenTap(_token, _tap);
+    }
+
+    /**
+    * @notice Remove tap for `_token.symbol(): string`
+    * @param _token Address of the tapped token
+    */
+    function removeTokenTap(address _token) external auth(REMOVE_TOKEN_TAP_ROLE) {
+        require(taps[_token] != uint256(0), ERROR_TOKEN_TAP_DOES_NOT_EXIST);
+
+        _removeTokenTap(_token);
+    }
+
+    /**
+    * @notice Update tap for `_token.symbol(): string` to the pace of `@tokenAmount(_token, _tap)` per second
+    * @param _token Address of the tapped token
+    * @param _tap New tap applied to the token (in wei / second)
+    */
+    function updateTokenTap(address _token, uint256 _tap) external auth(UPDATE_TOKEN_TAP_ROLE) {
+        require(taps[_token] != uint256(0), ERROR_TOKEN_TAP_DOES_NOT_EXIST);
+        require(_tap > 0, ERROR_TOKEN_TAP_RATE_ZERO);
+        require(isMonthlyTapIncreaseValid(_token, _tap), ERROR_TAP_INCREASE_EXCEEDS_LIMIT);
+
+        _updateTokenTap(_token, _tap);
+    }
+
+    /**
+    * @notice Withdraw maximum `_token.symbol(): string` amount from pool
+    * @param _token Address of the token to withdraw from pool
+    */
     function withdraw(address _token) external auth(WITHDRAW_ROLE) {
         require(taps[_token] > 0, ERROR_TOKEN_TAP_DOES_NOT_EXIST);
-        uint256 value = getWithdrawalValue(_token);
-        require(value > 0, ERROR_WITHDRAWAL_VALUE_ZERO);
+        uint256 amount = getMaxWithdrawal(_token);
+        require(amount > 0, ERROR_WITHDRAWAL_AMOUNT_ZERO);
 
-        _withdraw(_token, value);
+        _withdraw(_token, amount);
     }
 
     /***** public functions *****/
+
+    function isMonthlyTapIncreaseValid(address _token, uint256 _tap) public view isInitialized returns (bool) {
+        if (_tap < taps[_token])
+            return true;
+
+        uint256 time = (now).sub(lastWithdrawals[_token]);
+        uint256 diff = _tap.sub(taps[_token]);
+        uint256 rate = maxMonthlyTapIncreaseRate.div(uint256(30).mul(uint256(1 days)));
+
+        return !_isValuePct(diff, taps[_token], rate.mul(time));
+    }
 
     function poolBalance(address _token) public view isInitialized returns (uint256) {
         if (_token == ETH) {
@@ -125,21 +155,20 @@ contract Tap is EtherTokenConstant, IsContract, AragonApp {
         }
     }
 
-    function getWithdrawalValue(address _token) public view isInitialized returns (uint256) {
+    function getMaxWithdrawal(address _token) public view isInitialized returns (uint256) {
         uint256 balance = poolBalance(_token);
-        uint256 max = (now.sub(lastWithdrawals[_token])).mul(taps[_token]);
-        return max > balance ? balance : max;
-    }
-
-    function getMonthlyTapRate() public view isInitialized returns (uint256) {
-      return tapRate;
+        uint256 tapped = (now.sub(lastWithdrawals[_token])).mul(taps[_token]);
+        return tapped > balance ? balance : tapped;
     }
 
     /***** internal functions *****/
 
+    // INTERNAL FUNCTIONS YET TO REVIEW
+
     function _addTokenTap(address _token, uint256 _tap) internal {
         taps[_token] = _tap;
         lastWithdrawals[_token] = now;
+        lastTapUpdates[_token] = now;
 
         emit AddTokenTap(_token, _tap);
     }
@@ -153,28 +182,30 @@ contract Tap is EtherTokenConstant, IsContract, AragonApp {
 
     function _updateTokenTap(address _token, uint256 _tap) internal {
         taps[_token] = _tap;
-        lastTapUpdate[_token] = now;
+        lastTapUpdates[_token] = now;
 
         emit UpdateTokenTap(_token, _tap);
     }
 
+    // OK
     function _updatePool(Pool _pool) internal {
         pool = _pool;
 
         emit UpdatePool(address(_pool));
     }
 
+    // OK
     function _updateVault(Vault _vault) internal {
         vault = _vault;
 
         emit UpdateVault(address(_vault));
     }
 
-    function _withdraw(address _token, uint256 _value) internal {
+    function _withdraw(address _token, uint256 _amount) internal {
         lastWithdrawals[_token] = now;
-        pool.transfer(_token, vault, _value); // Pool / Agent / Vault contacts transfer method already throws on error
+        pool.transfer(_token, vault, _amount); // pool / agent / vault contacts transfer method already throws on error
 
-        emit Withdraw(_token, _value);
+        emit Withdraw(_token, _amount);
     }
 
     /**
