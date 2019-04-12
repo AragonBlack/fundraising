@@ -123,15 +123,13 @@ contract('Tap app', accounts => {
         const tReceipt = await dao.newAppInstance(TAP_ID, tBase.address, '0x', false)
         const _tap = await Tap.at(getEvent(tReceipt, 'NewAppProxy', 'proxy'))
 
-        await assertRevert(async () => _tap.initialize(root, pool.address, MAX_MONTHLY_TAP_INCREASE_RATE))
-        await assertRevert(async () => _tap.initialize(vault.address, root, MAX_MONTHLY_TAP_INCREASE_RATE))
+        await assertRevert(() => _tap.initialize(root, pool.address, MAX_MONTHLY_TAP_INCREASE_RATE))
+        await assertRevert(() => _tap.initialize(vault.address, root, MAX_MONTHLY_TAP_INCREASE_RATE))
       })
     })
 
     it('it should revert on re-initialization', async () => {
-      return assertRevert(async () => {
-        await tap.initialize(pool.address, vault.address, MAX_MONTHLY_TAP_INCREASE_RATE, { from: authorized })
-      })
+      await assertRevert(() => tap.initialize(pool.address, vault.address, MAX_MONTHLY_TAP_INCREASE_RATE, { from: authorized }))
     })
   })
 
