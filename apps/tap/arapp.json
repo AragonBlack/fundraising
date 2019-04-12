@@ -19,8 +19,33 @@
   },
   "roles": [
     {
-      "name": "",
-      "id": "",
+      "name": "Update vault address",
+      "id": "UPDATE_VAULT_ROLE",
+      "params": []
+    },
+    {
+      "name": "Update pool address",
+      "id": "UPDATE_POOL_ROLE",
+      "params": []
+    },
+    {
+      "name": "Add token taps",
+      "id": "ADD_TOKEN_TAP_ROLE",
+      "params": []
+    },
+    {
+      "name": "Remove token taps",
+      "id": "REMOVE_TOKEN_TAP_ROLE",
+      "params": []
+    },
+    {
+      "name": "Update token taps",
+      "id": "UPDATE_TOKEN_TAP_ROLE",
+      "params": []
+    },
+    {
+      "name": "Withdraw funds from the pool to the vault",
+      "id": "WITHDRAW_ROLE",
       "params": []
     }
   ],
