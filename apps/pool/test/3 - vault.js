@@ -1,3 +1,4 @@
+/* eslint-disable no-undef */
 // Test that Pool is a fully functioning Vault by running the same tests against the Pool app
 const runSharedVaultTests = require('./shared/vault_shared.js')
 
