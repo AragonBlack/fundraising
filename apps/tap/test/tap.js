@@ -407,57 +407,78 @@ contract('Tap app', accounts => {
 
   context('> #withdraw', () => {
     context('> sender has WITHDRAW_ROLE', () => {
-      context('> ETH', () => {
-        it('it should transfer a tapped amount of ETH from the pool to the vault', async () => {
-          const receipt1 = await tap.addTokenTap(ETH, 2, { from: authorized })
-          const timestamp1 = getTimestamp(receipt1)
-          await timeTravel(10)
+      context(' > and tap is defined for token', () => {
+        context(' > and pool balance is not zero for token', () => {
+          context('> ETH', () => {
+            it('it should transfer a tapped amount of ETH from the pool to the vault', async () => {
+              const receipt1 = await tap.addTokenTap(ETH, 2, { from: authorized })
+              const timestamp1 = getTimestamp(receipt1)
+              await timeTravel(10)
 
-          // first withdrawal
-          const receipt2 = await tap.withdraw(ETH, { from: authorized })
-          const timestamp2 = await getTimestamp(receipt2)
-          const diff1 = timestamp2 - timestamp1
-          assertEvent(receipt2, 'Withdraw')
-          assert.equal((await getBalance(pool.address)).toNumber(), INITIAL_ETH_BALANCE - 2 * diff1)
-          assert.equal((await getBalance(vault.address)).toNumber(), 2 * diff1)
-          assert.equal(await tap.lastWithdrawals(ETH), getTimestamp(receipt1) + diff1)
+              // first withdrawal
+              const receipt2 = await tap.withdraw(ETH, { from: authorized })
+              const timestamp2 = await getTimestamp(receipt2)
+              const diff1 = timestamp2 - timestamp1
+              assertEvent(receipt2, 'Withdraw')
+              assert.equal((await getBalance(pool.address)).toNumber(), INITIAL_ETH_BALANCE - 2 * diff1)
+              assert.equal((await getBalance(vault.address)).toNumber(), 2 * diff1)
+              assert.equal(await tap.lastWithdrawals(ETH), getTimestamp(receipt1) + diff1)
 
-          // let's time travel and withdraw again
-          await timeTravel(5)
-          const receipt3 = await tap.withdraw(ETH, { from: authorized })
-          const timestamp3 = await getTimestamp(receipt3)
-          const diff2 = timestamp3 - timestamp1
-          assertEvent(receipt3, 'Withdraw')
-          assert.equal((await getBalance(pool.address)).toNumber(), INITIAL_ETH_BALANCE - 2 * diff2)
-          assert.equal((await getBalance(vault.address)).toNumber(), 2 * diff2)
-          assert.equal(await tap.lastWithdrawals(ETH), getTimestamp(receipt1) + diff2)
+              // let's time travel and withdraw again
+              await timeTravel(5)
+              const receipt3 = await tap.withdraw(ETH, { from: authorized })
+              const timestamp3 = await getTimestamp(receipt3)
+              const diff2 = timestamp3 - timestamp1
+              assertEvent(receipt3, 'Withdraw')
+              assert.equal((await getBalance(pool.address)).toNumber(), INITIAL_ETH_BALANCE - 2 * diff2)
+              assert.equal((await getBalance(vault.address)).toNumber(), 2 * diff2)
+              assert.equal(await tap.lastWithdrawals(ETH), getTimestamp(receipt1) + diff2)
+            })
+          })
+
+          context('> ERC20', () => {
+            it('it should transfer a tapped amount of ERC20 from the pool to the vault', async () => {
+              const receipt1 = await tap.addTokenTap(token1.address, 2, { from: authorized })
+              const timestamp1 = getTimestamp(receipt1)
+              await timeTravel(10)
+
+              // first withdrawal
+              const receipt2 = await tap.withdraw(token1.address, { from: authorized })
+              const timestamp2 = await getTimestamp(receipt2)
+              const diff1 = timestamp2 - timestamp1
+              assertEvent(receipt2, 'Withdraw')
+              assert.equal((await token1.balanceOf(pool.address)).toNumber(), INITIAL_TOKEN_BALANCE - 2 * diff1)
+              assert.equal((await token1.balanceOf(vault.address)).toNumber(), 2 * diff1)
+              assert.equal(await tap.lastWithdrawals(token1.address), getTimestamp(receipt1) + diff1)
+
+              // let's time travel and withdraw again
+              await timeTravel(5)
+              const receipt3 = await tap.withdraw(token1.address, { from: authorized })
+              const timestamp3 = await getTimestamp(receipt3)
+              const diff2 = timestamp3 - timestamp1
+              assertEvent(receipt3, 'Withdraw')
+              assert.equal((await token1.balanceOf(pool.address)).toNumber(), INITIAL_TOKEN_BALANCE - 2 * diff2)
+              assert.equal((await token1.balanceOf(vault.address)).toNumber(), 2 * diff2)
+              assert.equal(await tap.lastWithdrawals(token1.address), getTimestamp(receipt1) + diff2)
+            })
+          })
+        })
+
+        context(' > but pool balance is zero for token', () => {
+          it('it should revert', async () => {
+            const token = await TokenMock.new(pool.address, 0)
+            await tap.addTokenTap(token.address, 1000, { from: authorized })
+
+            await assertRevert(() => tap.withdraw(token.address, { from: authorized }))
+          })
         })
       })
 
-      context('> ERC20', () => {
-        it('it should transfer a tapped amount of ERC20 from the pool to the vault', async () => {
-          const receipt1 = await tap.addTokenTap(token1.address, 2, { from: authorized })
-          const timestamp1 = getTimestamp(receipt1)
-          await timeTravel(10)
+      context(' > but tap is not defined for token', () => {
+        it('it should revert', async () => {
+          const token = await TokenMock.new(pool.address, INITIAL_TOKEN_BALANCE)
 
-          // first withdrawal
-          const receipt2 = await tap.withdraw(token1.address, { from: authorized })
-          const timestamp2 = await getTimestamp(receipt2)
-          const diff1 = timestamp2 - timestamp1
-          assertEvent(receipt2, 'Withdraw')
-          assert.equal((await token1.balanceOf(pool.address)).toNumber(), INITIAL_TOKEN_BALANCE - 2 * diff1)
-          assert.equal((await token1.balanceOf(vault.address)).toNumber(), 2 * diff1)
-          assert.equal(await tap.lastWithdrawals(token1.address), getTimestamp(receipt1) + diff1)
-
-          // let's time travel and withdraw again
-          await timeTravel(5)
-          const receipt3 = await tap.withdraw(token1.address, { from: authorized })
-          const timestamp3 = await getTimestamp(receipt3)
-          const diff2 = timestamp3 - timestamp1
-          assertEvent(receipt3, 'Withdraw')
-          assert.equal((await token1.balanceOf(pool.address)).toNumber(), INITIAL_TOKEN_BALANCE - 2 * diff2)
-          assert.equal((await token1.balanceOf(vault.address)).toNumber(), 2 * diff2)
-          assert.equal(await tap.lastWithdrawals(token1.address), getTimestamp(receipt1) + diff2)
+          await assertRevert(() => tap.withdraw(token.address, { from: authorized }))
         })
       })
     })
