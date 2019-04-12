@@ -118,8 +118,8 @@ contract Pool is Agent {
     }
 
     function _removeCollateralToken(uint256 _index, address _token) internal {
-        delete collateralTokens[_index];
         collateralTokens[_index] = collateralTokens[collateralTokensLength];
+        collateralTokens[collateralTokensLength] = address(0);
         collateralTokensLength = collateralTokensLength - 1;
 
         emit RemoveCollateralToken(_token);
