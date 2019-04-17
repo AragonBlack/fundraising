@@ -1,6 +1,7 @@
-pragma solidity ^0.4.24;
-import "./interfaces/IBancorFormula.sol";
-import "../utility/Utils.sol";
+pragma solidity 0.4.24;
+
+import "./IBancorFormula.sol";
+import "./Utils.sol";
 
 contract BancorFormula is IBancorFormula, Utils {
     string public version = "0.3";

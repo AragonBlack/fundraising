@@ -7,7 +7,6 @@ pragma solidity ^0.4.24;
 import "@aragon/os/contracts/apps/AragonApp.sol";
 import "@aragon/os/contracts/common/EtherTokenConstant.sol";
 import "@aragon/os/contracts/common/IsContract.sol";
-import "./BancorContracts/converter/BancorFormula.sol";
 
 import "@aragon/apps-shared-minime/contracts/ITokenController.sol";
 import "@aragon/apps-shared-minime/contracts/MiniMeToken.sol";
@@ -18,69 +17,35 @@ import "@aragon/os/contracts/common/SafeERC20.sol";
 import "@aragon/os/contracts/lib/token/ERC20.sol";
 import "@aragon/os/contracts/lib/math/SafeMath.sol";
 
+import "@aragonblack/fundraising-formulas-bancor/contracts/IBancorFormula.sol";
 import "@aragonblack/fundraising-core/contracts/IMarketMakerController.sol";
 import "@aragonblack/fundraising-pool/contracts/Pool.sol";
 
 
 
-contract BancorCurve is EtherTokenConstant, IsContract, /*ITokenController, IForwarder ,*/ BancorFormula, AragonApp {
+contract BancorCurve is EtherTokenConstant, IsContract, /*ITokenController, IForwarder ,*/ AragonApp {
     using SafeERC20 for ERC20;
     using SafeMath for uint256;
 
-    
     bytes32 public constant CREATE_BUY_ORDER_ROLE = keccak256("CREATE_BUY_ORDER_ROLE");
     bytes32 public constant CREATE_SELL_ORDER_ROLE = keccak256("CREATE_SELL_ORDER_ROLE");
     // bytes32 public constant UPDATE_CURVE = keccak256("UPDATE_CURVE");
 
-    string private constant ERROR_CONTROLLER_NOT_CONTRACT = "BC_CONTROLLER_NOT_CONTRACT";
-
-    string private constant ERROR_POOL_NOT_CONTRACT = "BC_POOL_NOT_CONTRACT";
-    string private constant ERROR_TOKEN_NOT_CONTRACT = "BC_TOKEN_NOT_CONTRACT";
+    string private constant ERROR_TOKEN_CONTROLLER = "BC_TOKEN_CONTROLLER";
+    string private constant ERROR_CALLER_NOT_TOKEN = "BC_CALLER_NOT_TOKEN";
+    string private constant ERROR_NOT_CONTRACT = "BC_NOT_CONTRACT";
     string private constant ERROR_INVALID_INIT_PARAMETER = "BC_INVALID_INIT_PARAMETER";
+    string private constant ERROR_NOT_COLLATERAL_TOKEN = "BC_NOT_COLLATERAL_TOKEN";
     string private constant ERROR_TRANSFERFROM_FAILED = "BC_TRANSERFROM_FAILED";
     string private constant ERROR_TRANSFER_FAILED = "BC_TRANSER_FAILED";
-    string private constant ERROR_TOKEN_CONTROLLER = "BC_TOKEN_CONTROLLER";
-
     string private constant ERROR_BATCH_NOT_CLEARED = "BC_BATCH_NOT_CLEARED";
     string private constant ERROR_ALREADY_CLAIMED = "BC_ALREADY_CLAIMED";
-
-    string private constant ERROR_NOT_COLLATERAL_TOKEN = "BC_NOT_COLLATERAL_TOKEN";
     string private constant ERROR_BUY_VALUE_ZERO = "BC_BUY_VALUE_ZERO";
-    string private constant ERROR_SELL_VALUE_ZERO = "BC_SELL_VALUE_ZERO";
+    string private constant ERROR_SELL_AMOUNT_ZERO = "BC_SELL_AMOUNT_ZERO";
     string private constant ERROR_INSUFFICIENT_FUNDS = "BC_INSUFFICIENT_FUNDS";
-
-    string private constant ERROR_CALLER_NOT_TOKEN = "BC_CALLER_NOT_TOKEN";
-    // string private constant ERROR_NO_VESTING = "TM_NO_VESTING";
-    // string private constant ERROR_TOKEN_CONTROLLER = "BCTM_TOKEN_CONTROLLER";
-    // string private constant ERROR_MINT_RECEIVER_IS_TM = "TM_MINT_RECEIVER_IS_TM";
-    // string private constant ERROR_VESTING_TO_TM = "TM_VESTING_TO_TM";
-    // string private constant ERROR_TOO_MANY_VESTINGS = "TM_TOO_MANY_VESTINGS";
-    // string private constant ERROR_WRONG_CLIFF_DATE = "TM_WRONG_CLIFF_DATE";
-    // string private constant ERROR_VESTING_NOT_REVOKABLE = "TM_VESTING_NOT_REVOKABLE";
-    // string private constant ERROR_REVOKE_TRANSFER_FROM_REVERTED = "TM_REVOKE_TRANSFER_FROM_REVERTED";
-    // string private constant ERROR_CAN_NOT_FORWARD = "TM_CAN_NOT_FORWARD";
-    // string private constant ERROR_BALANCE_INCREASE_NOT_ALLOWED = "TM_BALANCE_INC_NOT_ALLOWED";
-    // string private constant ERROR_ASSIGN_TRANSFER_FROM_REVERTED = "TM_ASSIGN_TRANSFER_FROM_REVERTED";
-
 
     uint256 public constant MAX_COLLATERAL_TOKENS = 5;
 
-    IMarketMakerController public controller;
-    Pool public pool;
-    MiniMeToken public token;
-
-    uint32 public ppm = 1000000;
-    uint256 public batchBlocks;
-
-
-    uint256 public collateralTokensLength;
-    mapping(uint256 => address) public collateralTokens; // TODO: update arrays to mappings
-    mapping(address => bool) public isCollateralToken;
-    mapping(address => uint256) public virtualSupplies;
-    mapping(address => uint256) public virtualBalances;
-    mapping(address => uint32) public reserveRatios;
-
-    uint256 public waitingClear;
     struct Batch {
         bool init;
         bool buysCleared;
@@ -95,20 +60,32 @@ contract BancorCurve is EtherTokenConstant, IsContract, /*ITokenController, IFor
         mapping(address => uint256) buyers;
         mapping(address => uint256) sellers;
     }
+
+    IMarketMakerController public controller;
+    IBancorFormula formula;
+    MiniMeToken public token;
+    Pool public pool;
+
+    uint32 public ppm = 1000000;
+    uint256 public batchBlocks;
+    uint256 public waitingClear;
+
+    uint256 public collateralTokensLength;
+    mapping(uint256 => address) public collateralTokens;
+    mapping(address => bool) public isCollateralToken;
+    mapping(address => uint256) public virtualSupplies;
+    mapping(address => uint256) public virtualBalances;
+    mapping(address => uint32) public reserveRatios;    
     mapping(address => mapping(uint256 => Batch)) public batchesByCollateralToken;
     mapping(address => mapping(address => uint256[])) public addressToBlocksByCollateralToken;
 
-    event Mint(address indexed to, uint256 amount, address collateralToken);
-    event Burn(address indexed burner, uint256 amount, uint256 collateralToken);
-    event AddBuy(address indexed buyer, address indexed collateralToken, uint256 value);
-    event AddSell(address indexed seller, address indexed collateralToken, uint256 amount);
-    event Buy(address indexed to, uint256 poolBalance, uint tokenSupply, uint256 amountTokens, uint256 totalCostCollateral, uint256 collateralToken);
-    event Sell(address indexed from, uint256 poolBalance, uint tokenSupply, uint256 amountTokens, uint256 returnedCollateral, uint256 collateralToken);
-
+    // event Mint(address indexed to, uint256 amount, address collateralToken);
+    // event Burn(address indexed burner, uint256 amount, uint256 collateralToken);
     event AddCollateralToken(address indexed collateralToken, uint256 virtualSupply, uint256 virtualBalance, uint32 reserveRatio);
-
-    event Test(uint256 test);
-
+    event NewBuyOrder(address indexed buyer, address indexed collateralToken, uint256 value);
+    event NewSellOrder(address indexed seller, address indexed collateralToken, uint256 amount);
+    // event Buy(address indexed to, uint256 poolBalance, uint tokenSupply, uint256 amountTokens, uint256 totalCostCollateral, uint256 collateralToken);
+    // event Sell(address indexed from, uint256 poolBalance, uint tokenSupply, uint256 amountTokens, uint256 returnedCollateral, uint256 collateralToken);
 
     modifier onlyToken() {
         require(msg.sender == address(token), ERROR_CALLER_NOT_TOKEN);
@@ -117,6 +94,7 @@ contract BancorCurve is EtherTokenConstant, IsContract, /*ITokenController, IFor
 
     function initialize(
         IMarketMakerController _controller,
+        IBancorFormula _formula,
         MiniMeToken _token,
         bool _transferable,
         uint256 _batchBlocks,
@@ -136,8 +114,9 @@ contract BancorCurve is EtherTokenConstant, IsContract, /*ITokenController, IFor
         }
         // end
   
-        require(isContract(_controller), ERROR_CONTROLLER_NOT_CONTRACT);
-        require(isContract(_controller.pool()), ERROR_POOL_NOT_CONTRACT);
+        require(isContract(_controller), ERROR_NOT_CONTRACT);
+        require(isContract(_formula), ERROR_NOT_CONTRACT);
+        require(isContract(_controller.pool()), ERROR_NOT_CONTRACT);
         require(_batchBlocks > 0, ERROR_INVALID_INIT_PARAMETER);
         require(_collateralTokens.length <= MAX_COLLATERAL_TOKENS, ERROR_INVALID_INIT_PARAMETER);
 
@@ -148,26 +127,27 @@ contract BancorCurve is EtherTokenConstant, IsContract, /*ITokenController, IFor
         // require(_reserveRatios.length >= 0, ERROR_INVALID_INIT_PARAMETER);
 
 
-        // uint256 len = _collateralTokens.length;
-        // require(
-        //     len == _virtualSupplies.length &&
-        //     len == _virtualBalances.length &&
-        //     len == _reserveRatios.length, ERROR_INVALID_INIT_PARAMETER);
+        uint256 len = _collateralTokens.length;
+        require(
+            len == _virtualSupplies.length &&
+            len == _virtualBalances.length &&
+            len == _reserveRatios.length, ERROR_INVALID_INIT_PARAMETER);
         
-        // controller = _controller;
-        // pool = Pool(_controller.pool());
-        // batchBlocks = _batchBlocks;
+        controller = _controller;
+        formula = _formula;
+        pool = Pool(_controller.pool());
 
-        // for (uint256 i = 0; i < _collateralTokens.length; i++) {
-        //     _addCollateralToken(_collateralTokens[i], _virtualSupplies[i], _virtualBalances[i], _reserveRatios[i]);
-        // }
+        batchBlocks = _batchBlocks;
+
+        for (uint256 i = 0; i < _collateralTokens.length; i++) {
+            _addCollateralToken(_collateralTokens[i], _virtualSupplies[i], _virtualBalances[i], _reserveRatios[i]);
+        }
     }
 
     /***** external functions *****/
 
     /**
         @dev updateReserveRatio() This function let's you update the reserve ratio for a specific collateral token.
-
         @param collateralToken The address of the collateral token used.
         @param reserveRatioPPM The new reserve ratio to be used for that collateral token.
     */
@@ -183,12 +163,12 @@ contract BancorCurve is EtherTokenConstant, IsContract, /*ITokenController, IFor
         @param _collateralToken The address of the collateral token used.
         @param _value The amount of collateral token the user would like to spend.
     */
-    // function addBuy(address _buyer, address _collateralToken, uint256 _value) external auth(CREATE_BUY_ORDER_ROLE) {
-    //     require(isCollateralToken[_collateralToken], ERROR_NOT_COLLATERAL_TOKEN);
-    //     require(_value != 0, ERROR_BUY_VALUE_ZERO);
+    function createBuyOrder(address _buyer, address _collateralToken, uint256 _value) external auth(CREATE_BUY_ORDER_ROLE) {
+        require(isCollateralToken[_collateralToken], ERROR_NOT_COLLATERAL_TOKEN);
+        require(_value != 0, ERROR_BUY_VALUE_ZERO);
 
-    //     _addBuy(_buyer, _collateralToken, _value);
-    // }
+        _createBuyOrder(_buyer, _collateralToken, _value);
+    }
 
     // /**
     //     @dev addSell() This function allows you to enter a sell order into the current batch.
@@ -203,7 +183,7 @@ contract BancorCurve is EtherTokenConstant, IsContract, /*ITokenController, IFor
     // */
     // function addSell(address _seller, address _collateralToken, uint256 _amount) external auth(SELL_ROLE) {
     //     require(token.balanceOf(_seller) >= _amount, ERROR_INSUFFICIENT_FUNDS);
-    //     require(_amount != 0, ERROR_SELL_VALUE_ZERO);
+    //     require(_amount != 0, ERROR_SELL_AMOUNT_ZERO);
 
     //     _addSell(_seller, _collateralToken, _amount);
     // }
@@ -366,9 +346,9 @@ contract BancorCurve is EtherTokenConstant, IsContract, /*ITokenController, IFor
         @return uint256 The number of tokens that would be purchased in this scenario.
     */
     function getBuy(address collateralToken, uint256 _totalSupply, uint256 _poolBalance, uint256 buyValue) public view returns (uint256) {
-        return calculatePurchaseReturn(
-            safeAdd(_totalSupply, virtualSupplies[collateralToken]),
-            safeAdd(_poolBalance, virtualBalances[collateralToken]),
+        return formula.calculatePurchaseReturn(
+            _totalSupply.add(virtualSupplies[collateralToken]),
+            _poolBalance.add(virtualBalances[collateralToken]),
             reserveRatios[collateralToken],
             buyValue);
     }
@@ -384,7 +364,7 @@ contract BancorCurve is EtherTokenConstant, IsContract, /*ITokenController, IFor
         @return uint256 The number of collateral tokens that would be returned in this scenario.
     */
     function getSell(address collateralToken, uint256 _totalSupply, uint256 _poolBalance, uint256 sellAmount) public view returns (uint256) {
-        return calculateSaleReturn(safeAdd(_totalSupply, virtualSupplies[collateralToken]), safeAdd(_poolBalance, virtualBalances[collateralToken]), reserveRatios[collateralToken], sellAmount);
+        return formula.calculateSaleReturn(_totalSupply.add(virtualSupplies[collateralToken]), _poolBalance.add(virtualBalances[collateralToken]), reserveRatios[collateralToken], sellAmount);
     }
 
     // /***** public functions *****/
@@ -442,19 +422,19 @@ contract BancorCurve is EtherTokenConstant, IsContract, /*ITokenController, IFor
         return batch;
     }
 
-    // function _addBuy(address _buyer, address _collateralToken, uint256 _value) internal {
-    //     uint256 batchId = getCurrentBatchBlock();
-    //     Batch storage batch = _getInitializedBatch(_collateralToken, batchId);
+    function _createBuyOrder(address _buyer, address _collateralToken, uint256 _value) internal {
+        uint256 batchId = getCurrentBatchBlock();
+        Batch storage batch = _getInitializedBatch(_collateralToken, batchId);
 
-    //     require(ERC20(_collateralToken).safeTransferFrom(_buyer, address(pool), _value), ERROR_TRANSFERFROM_FAILED);
-    //     batch.totalBuySpend = batch.totalBuySpend.add(_value);
-    //     if (batch.buyers[_buyer] == 0) {
-    //         addressToBlocksByCollateralToken[_collateralToken][_buyer].push(batchId);
-    //     }
-    //     batch.buyers[_buyer] = batch.buyers[_buyer].add(_value);
+        require(ERC20(_collateralToken).safeTransferFrom(_buyer, address(pool), _value), ERROR_TRANSFERFROM_FAILED);
+        batch.totalBuySpend = batch.totalBuySpend.add(_value);
+        if (batch.buyers[_buyer] == 0) {
+            addressToBlocksByCollateralToken[_collateralToken][_buyer].push(batchId);
+        }
+        batch.buyers[_buyer] = batch.buyers[_buyer].add(_value);
 
-    //     emit AddBuy(_buyer, _collateralToken, _value);
-    // }
+        emit NewBuyOrder(_buyer, _collateralToken, _value);
+    }
 
     // function _addSell(address _seller, address _collateralToken, uint256 _amount) internal {
     //     uint256 batchId = getCurrentBatchId();
