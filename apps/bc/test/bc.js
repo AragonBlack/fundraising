@@ -1,125 +1,178 @@
-const Agent = artifacts.require('Agent')
-
-const {
-  assertRevert,
-  assertInvalidOpcode
-} = require('@aragon/test-helpers/assertThrow')
-const { hash: namehash } = require('eth-ens-namehash')
-const ethUtil = require('ethereumjs-util')
+/* eslint-disable no-undef */
+const { assertRevert } = require('@aragon/test-helpers/assertThrow')
 const getBalance = require('@aragon/test-helpers/balance')(web3)
-const web3Call = require('@aragon/test-helpers/call')(web3)
-const web3Sign = require('@aragon/test-helpers/sign')(web3)
-
 const assertEvent = require('@aragon/test-helpers/assertEvent')
-const ethABI = new (require('web3-eth-abi')).AbiCoder()
+const timeTravel = require('@aragon/test-helpers/timeTravel')(web3)
+const { hash } = require('eth-ens-namehash')
+
 const getEvent = (receipt, event, arg) => {
-  return receipt.logs.filter(l => l.event == event)[0].args[arg]
+  return receipt.logs.filter(l => l.event === event)[0].args[arg]
+}
+const getTimestamp = receipt => {
+  return web3.eth.getBlock(receipt.receipt.blockNumber).timestamp
 }
 
+const Kernel = artifacts.require('Kernel')
 const ACL = artifacts.require('ACL')
-const AppProxyUpgradeable = artifacts.require('AppProxyUpgradeable')
 const EVMScriptRegistryFactory = artifacts.require('EVMScriptRegistryFactory')
 const DAOFactory = artifacts.require('DAOFactory')
-const Kernel = artifacts.require('Kernel')
-const KernelProxy = artifacts.require('KernelProxy')
-
+const MiniMeToken = artifacts.require('MiniMeToken')
+const Pool = artifacts.require('Pool')
+const Controller = artifacts.require('SimpleMarketMakerController')
+const BancorCurve = artifacts.require('BancorCurve')
 const EtherTokenConstantMock = artifacts.require('EtherTokenConstantMock')
-const DestinationMock = artifacts.require('DestinationMock')
-const KernelDepositableMock = artifacts.require('KernelDepositableMock')
+const TokenMock = artifacts.require('TokenMock')
+const ForceSendETH = artifacts.require('ForceSendETH')
 
-const NULL_ADDRESS = '0x00'
+const NULL_ADDRESS = '0x0000000000000000000000000000000000000000'
 
-contract('BC app', accounts => {
-  let daoFact, agentBase, dao, acl, agent, agentAppId
 
-  let ETH,
-    ANY_ENTITY,
-    APP_MANAGER_ROLE,
-    EXECUTE_ROLE,
-    RUN_SCRIPT_ROLE,
-    ADD_PRESIGNED_HASH_ROLE,
-    DESIGNATE_SIGNER_ROLE,
-    ERC1271_INTERFACE_ID
+contract('BancorCurve app', accounts => {
+  let factory, dao, acl, token, pBase, cBase, bBase, pool, controller, curve, token1, token2
+  let ETH, APP_MANAGER_ROLE, CREATE_BUY_ORDER_ROLE, CREATE_SELL_ORDER_ROLE, TRANSFER_ROLE
+  
+  // let UPDATE_VAULT_ROLE, UPDATE_POOL_ROLE, ADD_TOKEN_TAP_ROLE, REMOVE_TOKEN_TAP_ROLE, UPDATE_TOKEN_TAP_ROLE, WITHDRAW_ROLE, TRANSFER_ROLE
+
+  const POOL_ID = hash('pool.aragonpm.eth')
+  const CONTROLLER_ID = hash('controller.aragonpm.eth')
+  const BANCOR_CURVE_ID = hash('vault.aragonpm.eth')
+  
+  const INITIAL_ETH_BALANCE = 500
+  const INITIAL_TOKEN_BALANCE = 1000
+
+  const VIRTUAL_SUPPLIES = [2, 3, 4]
+  const VIRTUAL_BALANCES = [1, 2, 3]
+  const RESERVE_RATIOS = [200000, 300000, 500000]
 
   const root = accounts[0]
+  const authorized = accounts[1]
+  const unauthorized = accounts[2]
+  const user = accounts[3]
+
+  const initialize = async _ => {
+    // DAO
+    const dReceipt = await factory.newDAO(root)
+    dao = await Kernel.at(getEvent(dReceipt, 'DeployDAO', 'dao'))
+    acl = await ACL.at(await dao.acl())
+    await acl.createPermission(root, dao.address, APP_MANAGER_ROLE, root, { from: root })
+    // token
+    token = await MiniMeToken.new(NULL_ADDRESS, NULL_ADDRESS, 0, 'Bond', 18, 'BON', false)
+    // pool
+    const pReceipt = await dao.newAppInstance(POOL_ID, pBase.address, '0x', false)
+    pool = await Pool.at(getEvent(pReceipt, 'NewAppProxy', 'proxy'))
+    // controller
+    const cReceipt = await dao.newAppInstance(CONTROLLER_ID, cBase.address, '0x', false)
+    controller = await Controller.at(getEvent(cReceipt, 'NewAppProxy', 'proxy'))
+    // bancor-curve
+    const bReceipt = await dao.newAppInstance(BANCOR_CURVE_ID, bBase.address, '0x', false)
+    curve = await BancorCurve.at(getEvent(bReceipt, 'NewAppProxy', 'proxy'))
+    // permissions
+    await acl.createPermission(curve.address, pool.address, TRANSFER_ROLE, root, { from: root })
+    await acl.createPermission(authorized, curve.address, CREATE_BUY_ORDER_ROLE, root, { from: root })
+    await acl.createPermission(authorized, curve.address, CREATE_SELL_ORDER_ROLE, root, { from: root })
+    // collaterals
+    await forceSendETH(user, INITIAL_ETH_BALANCE)
+    token1 = await TokenMock.new(user, INITIAL_TOKEN_BALANCE)
+    token2 = await TokenMock.new(user, INITIAL_TOKEN_BALANCE)
+    // initializations
+    await token.changeController(curve.address)
+    await pool.initialize()
+    await controller.initialize(pool.address)
+    await curve.initialize(controller.address, token.address, true, 1, [ETH, token1.address, token2.address], VIRTUAL_SUPPLIES, VIRTUAL_BALANCES, RESERVE_RATIOS)    
+  }
+
+  const forceSendETH = async (to, value) => {
+    // Using this contract ETH will be send by selfdestruct which always succeeds
+    const forceSend = await ForceSendETH.new()
+    return forceSend.sendByDying(to, { value })
+  }
 
   before(async () => {
-    const kernelBase = await Kernel.new(true) // petrify immediately
-    const aclBase = await ACL.new()
-    const regFact = await EVMScriptRegistryFactory.new()
-    daoFact = await DAOFactory.new(
-      kernelBase.address,
-      aclBase.address,
-      regFact.address
-    )
-    agentBase = await Agent.new()
-
-    // Setup constants
-    ANY_ENTITY = await aclBase.ANY_ENTITY()
-    APP_MANAGER_ROLE = await kernelBase.APP_MANAGER_ROLE()
-    EXECUTE_ROLE = await agentBase.EXECUTE_ROLE()
-    RUN_SCRIPT_ROLE = await agentBase.RUN_SCRIPT_ROLE()
-    ADD_PRESIGNED_HASH_ROLE = await agentBase.ADD_PRESIGNED_HASH_ROLE()
-    DESIGNATE_SIGNER_ROLE = await agentBase.DESIGNATE_SIGNER_ROLE()
-    ERC1271_INTERFACE_ID = await agentBase.ERC1271_INTERFACE_ID()
-
-    const ethConstant = await EtherTokenConstantMock.new()
-    ETH = await ethConstant.getETHConstant()
+    // factory
+    const kBase = await Kernel.new(true) // petrify immediately
+    const aBase = await ACL.new()
+    const rFact = await EVMScriptRegistryFactory.new()
+    factory = await DAOFactory.new(kBase.address, aBase.address, rFact.address)
+    // base contracts
+    pBase = await Pool.new()
+    cBase = await Controller.new()
+    bBase = await BancorCurve.new()
+    // constants
+    ETH = await (await EtherTokenConstantMock.new()).getETHConstant()
+    APP_MANAGER_ROLE = await kBase.APP_MANAGER_ROLE()
+    TRANSFER_ROLE = await pBase.TRANSFER_ROLE()
+    CREATE_BUY_ORDER_ROLE = await cBase.CREATE_BUY_ORDER_ROLE()
+    CREATE_SELL_ORDER_ROLE = await cBase.CREATE_SELL_ORDER_ROLE()
   })
 
   beforeEach(async () => {
-    const r = await daoFact.newDAO(root)
-    dao = Kernel.at(getEvent(r, 'DeployDAO', 'dao'))
-    acl = ACL.at(await dao.acl())
+    await initialize()
+  })
 
-    await acl.createPermission(root, dao.address, APP_MANAGER_ROLE, root, {
-      from: root
+  context('> #initialize', () => {
+    context('> initialization parameters are correct', () => {
+      it('it should initialize contract', async () => {
+        assert.equal(await curve.pool(), pool.address)
+        assert.equal(await curve.token(), token.address)
+        assert.equal(await token.transfersEnabled(), true)
+        assert.equal(await curve.batchBlocks(), 1)
+        assert.equal(await curve.collateralTokensLength(), 3)
+        assert.equal(await curve.collateralTokens(1), ETH)
+        assert.equal(await curve.collateralTokens(2), token1.address)
+        assert.equal(await curve.collateralTokens(3), token2.address)
+        assert.equal(await curve.isCollateralToken(ETH), true)
+        assert.equal(await curve.isCollateralToken(token1.address), true)
+        assert.equal(await curve.isCollateralToken(token2.address), true)
+        assert.equal(await curve.virtualSupplies(ETH), VIRTUAL_SUPPLIES[0])
+        assert.equal(await curve.virtualSupplies(token1.address), VIRTUAL_SUPPLIES[1])
+        assert.equal(await curve.virtualSupplies(token2.address), VIRTUAL_SUPPLIES[2])
+        assert.equal(await curve.virtualBalances(ETH), VIRTUAL_BALANCES[0])
+        assert.equal(await curve.virtualBalances(token1.address), VIRTUAL_BALANCES[1])
+        assert.equal(await curve.virtualBalances(token2.address), VIRTUAL_BALANCES[2])
+        assert.equal(await curve.reserveRatios(ETH), RESERVE_RATIOS[0])
+        assert.equal(await curve.reserveRatios(token1.address), RESERVE_RATIOS[1])
+        assert.equal(await curve.reserveRatios(token2.address), RESERVE_RATIOS[2])
+      })
     })
 
-    // bc
-    bcAppId = namehash('fundraising-bc.aragonpm.test')
+    context('> initialization parameters are not correct', () => {
+      it('it should revert', async () => {
+  
+      })
+    })
 
-    const agentReceipt = await dao.newAppInstance(
-      agentAppId,
-      agentBase.address,
-      '0x',
-      false
-    )
-    const agentProxyAddress = getEvent(agentReceipt, 'NewAppProxy', 'proxy')
-    agent = Agent.at(agentProxyAddress)
-
-    await agent.initialize()
+    it('it should revert on re-initialization', async () => {
+      await assertRevert(() => curve.initialize(pool.address, token.address, true, 1, [ETH, token1.address, token2.address], VIRTUAL_SUPPLIES, VIRTUAL_BALANCES, RESERVE_RATIOS, { from: root }))
+    })
   })
-})
 
-// contract("BC", accounts => {
-//   context("initialize", () => {
-//     it("should initialize BC rate, collateral pool and vault", async () => {});
-//
-//     it("should revert on re-initialization", async () => {});
-//   });
-//
-//   context("withdraw", () => {
-//     context("ETH", () => {
-//       it("should transfer a BC-defined amount of ETH from the collateral pool to the vault", async () => {});
-//     });
-//
-//     context("ERC20", () => {
-//       it("should transfer a BC-defined amount of ERC20 from the collateral pool to the vault", async () => {});
-//     });
-//
-//     it("it should revert if sender does not have 'WITHDRAW_ROLE'", async () => {});
-//   });
-//
-//   context("updateBC", () => {
-//     it("should update BC rate", async () => {});
-//   });
-//
-//   context("updateVault", () => {
-//     it("should update vault address", async () => {});
-//   });
-//
-//   context("updateCollateralPool", () => {
-//     it("should update collateral pool address", async () => {});
-//   });
-// });
+  // context('> #createBuyOrder', () => {
+  //   context('> sender has CREATE_BUY_ORDER_ROLE', () => {
+  //     context('> and collateral is whitelisted', () => {
+  //       context('> and value is not zero', () => {
+  //         it('it should create buy order', async () => {
+            
+  //         })
+  //       })
+
+  //       context('> but value is zero', () => {
+  //         it('it should revert', async () => {
+            
+  //         })
+  //       })
+  //     })
+  //     context('> but collateral is not whitelisted', () => {
+  //       it('it should revert', async () => {
+          
+  //       })
+  //     })
+
+  //   })
+  //   context('> sender does not have CREATE_BUY_ORDER_ROLE', () => {
+  //     it('it should revert', async () => {
+        
+  //     })
+  //   })
+  // })
+
+})

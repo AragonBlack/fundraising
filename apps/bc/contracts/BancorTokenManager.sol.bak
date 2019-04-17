@@ -15,7 +15,7 @@ import "@aragon/apps-shared-minime/contracts/ITokenController.sol";
 import "@aragon/apps-shared-minime/contracts/MiniMeToken.sol";
 
 
-contract TokenManager is ITokenController, IForwarder, AragonApp {
+contract BancorTokenManager is ITokenController, IForwarder {
     using SafeMath for uint256;
 
     bytes32 public constant MINT_ROLE = keccak256("MINT_ROLE");
@@ -54,17 +54,17 @@ contract TokenManager is ITokenController, IForwarder, AragonApp {
     * @param _token MiniMeToken address for the managed token (Bonding Curve Token Manager instance must be already set as the token controller).
     * @param _transferable whether the token can be transferred by holders.
     */
-    function initialize(MiniMeToken _token, bool _transferable) external onlyInit {
-        initialized();
+    // function initialize(MiniMeToken _token, bool _transferable) external onlyInit {
+    //     initialized();
 
-        require(_token.controller() == address(this), ERROR_TOKEN_CONTROLLER);
+    //     require(_token.controller() == address(this), ERROR_TOKEN_CONTROLLER);
 
-        token = _token;
+    //     token = _token;
 
-        if (token.transfersEnabled() != _transferable) {
-            token.enableTransfers(_transferable);
-        }
-    }
+    //     if (token.transfersEnabled() != _transferable) {
+    //         token.enableTransfers(_transferable);
+    //     }
+    // }
 
     /***** ITokenController functions  *****/ 
     /**
@@ -144,10 +144,16 @@ contract TokenManager is ITokenController, IForwarder, AragonApp {
 
     /***** internal functions *****/
 
+     
     function _mint(address _receiver, uint256 _amount) internal {
         token.generateTokens(_receiver, _amount); // minime.generateTokens() never returns false
     }
 
+    /**
+        @notice Burn `@tokenAmount(self.token(): address, _amount, false)` tokens from `_holder`.
+        @param _holder Holder of tokens being burned.
+        @param _amount Number of tokens being burned.
+    */
     function _burn(address _holder, uint256 _amount) internal {
         token.destroyTokens(_holder, _amount); // minime.destroyTokens() never returns false, only reverts on failure
     }
