@@ -17,6 +17,7 @@ const ACL = artifacts.require('ACL')
 const EVMScriptRegistryFactory = artifacts.require('EVMScriptRegistryFactory')
 const DAOFactory = artifacts.require('DAOFactory')
 const MiniMeToken = artifacts.require('MiniMeToken')
+const TokenManager = artifacts.require('TokenManager')
 const Pool = artifacts.require('Pool')
 const Controller = artifacts.require('SimpleMarketMakerController')
 const Formula = artifacts.require('BancorFormula.sol')
@@ -29,12 +30,13 @@ const NULL_ADDRESS = '0x0000000000000000000000000000000000000000'
 
 
 contract('BancorCurve app', accounts => {
-  let factory, dao, acl, token, pBase, cBase, bBase, pool, controller, formula, curve, token1, token2, token3
-  let ETH, APP_MANAGER_ROLE, CREATE_BUY_ORDER_ROLE, CREATE_SELL_ORDER_ROLE, TRANSFER_ROLE
+  let factory, dao, acl, token, pBase, cBase, bBase, tBase, pool, tokenManager, controller, formula, curve, token1, token2, token3
+  let ETH, APP_MANAGER_ROLE, MINT_ROLE, BURN_ROLE, CREATE_BUY_ORDER_ROLE, CREATE_SELL_ORDER_ROLE, TRANSFER_ROLE
   
   // let UPDATE_VAULT_ROLE, UPDATE_POOL_ROLE, ADD_TOKEN_TAP_ROLE, REMOVE_TOKEN_TAP_ROLE, UPDATE_TOKEN_TAP_ROLE, WITHDRAW_ROLE, TRANSFER_ROLE
 
   const POOL_ID = hash('pool.aragonpm.eth')
+  const TOKEN_MANAGER_ID = hash('token-manager.aragonpm.eth')
   const CONTROLLER_ID = hash('controller.aragonpm.eth')
   const BANCOR_CURVE_ID = hash('vault.aragonpm.eth')
   
@@ -49,6 +51,18 @@ contract('BancorCurve app', accounts => {
   const authorized = accounts[1]
   const unauthorized = accounts[2]
 
+  // bytes32 public constant MINT_ROLE = keccak256("MINT_ROLE");
+  // bytes32 public constant ISSUE_ROLE = keccak256("ISSUE_ROLE");
+  // bytes32 public constant ASSIGN_ROLE = keccak256("ASSIGN_ROLE");
+  // bytes32 public constant REVOKE_VESTINGS_ROLE = keccak256("REVOKE_VESTINGS_ROLE");
+  // bytes32 public constant BURN_ROLE = keccak256("BURN_ROLE");
+
+//   function initialize(
+//     MiniMeToken _token,
+//     bool _transferable,
+//     uint256 _maxAccountTokens
+// )
+
   const initialize = async _ => {
     // DAO
     const dReceipt = await factory.newDAO(root)
@@ -60,14 +74,19 @@ contract('BancorCurve app', accounts => {
     // pool
     const pReceipt = await dao.newAppInstance(POOL_ID, pBase.address, '0x', false)
     pool = await Pool.at(getEvent(pReceipt, 'NewAppProxy', 'proxy'))
-    // controller
+    // market maker controller
     const cReceipt = await dao.newAppInstance(CONTROLLER_ID, cBase.address, '0x', false)
     controller = await Controller.at(getEvent(cReceipt, 'NewAppProxy', 'proxy'))
+    // token manager
+    const tReceipt = await dao.newAppInstance(TOKEN_MANAGER_ID, tBase.address, '0x', false)
+    tokenManager = await TokenManager.at(getEvent(tReceipt, 'NewAppProxy', 'proxy'))
     // bancor-curve
     const bReceipt = await dao.newAppInstance(BANCOR_CURVE_ID, bBase.address, '0x', false)
     curve = await BancorCurve.at(getEvent(bReceipt, 'NewAppProxy', 'proxy'))
     // permissions
     await acl.createPermission(curve.address, pool.address, TRANSFER_ROLE, root, { from: root })
+    await acl.createPermission(curve.address, tokenManager.address, MINT_ROLE, root, { from: root })
+    await acl.createPermission(curve.address, tokenManager.address, BURN_ROLE, root, { from: root })
     await acl.createPermission(authorized, curve.address, CREATE_BUY_ORDER_ROLE, root, { from: root })
     await acl.createPermission(authorized, curve.address, CREATE_SELL_ORDER_ROLE, root, { from: root })
     // collaterals
@@ -80,10 +99,11 @@ contract('BancorCurve app', accounts => {
     await token2.approve(curve.address, INITIAL_TOKEN_BALANCE, { from: authorized })
     await token3.approve(curve.address, INITIAL_TOKEN_BALANCE, { from: unauthorized })
     // initializations
-    await token.changeController(curve.address)
+    await token.changeController(tokenManager.address)
+    await tokenManager.initialize(token.address, true, 0)
     await pool.initialize()
     await controller.initialize(pool.address)
-    await curve.initialize(controller.address, formula.address, token.address, true, 1, [ETH, token1.address, token2.address], VIRTUAL_SUPPLIES, VIRTUAL_BALANCES, RESERVE_RATIOS)    
+    await curve.initialize(controller.address, tokenManager.address, formula.address, 1, [ETH, token1.address, token2.address], VIRTUAL_SUPPLIES, VIRTUAL_BALANCES, RESERVE_RATIOS)    
   }
 
   const forceSendETH = async (to, value) => {
@@ -103,11 +123,14 @@ contract('BancorCurve app', accounts => {
     // base contracts
     pBase = await Pool.new()
     cBase = await Controller.new()
+    tBase = await TokenManager.new()
     bBase = await BancorCurve.new()
     // constants
     ETH = await (await EtherTokenConstantMock.new()).getETHConstant()
     APP_MANAGER_ROLE = await kBase.APP_MANAGER_ROLE()
     TRANSFER_ROLE = await pBase.TRANSFER_ROLE()
+    MINT_ROLE = await tBase.MINT_ROLE()
+    BURN_ROLE = await tBase.BURN_ROLE()
     CREATE_BUY_ORDER_ROLE = await bBase.CREATE_BUY_ORDER_ROLE()
     CREATE_SELL_ORDER_ROLE = await bBase.CREATE_SELL_ORDER_ROLE()
   })
@@ -149,7 +172,7 @@ contract('BancorCurve app', accounts => {
     })
 
     it('it should revert on re-initialization', async () => {
-      await assertRevert(() => curve.initialize(controller.address, formula.address, token.address, true, 1, [ETH, token1.address, token2.address], VIRTUAL_SUPPLIES, VIRTUAL_BALANCES, RESERVE_RATIOS, { from: root }))
+      await assertRevert(() => curve.initialize(controller.address, tokenManager.address, formula.address, 1, [ETH, token1.address, token2.address], VIRTUAL_SUPPLIES, VIRTUAL_BALANCES, RESERVE_RATIOS, { from: root }))
     })
   })
 

@@ -6,20 +6,17 @@ pragma solidity 0.4.24;
 
 import "@aragon/os/contracts/apps/AragonApp.sol";
 import "@aragon/os/contracts/common/EtherTokenConstant.sol";
-import "@aragon/os/contracts/common/IForwarder.sol";
 import "@aragon/os/contracts/common/IsContract.sol";
 import "@aragon/os/contracts/lib/math/SafeMath.sol";
 import "@aragon/os/contracts/common/SafeERC20.sol";
 import "@aragon/os/contracts/lib/token/ERC20.sol";
-import "@aragon/apps-shared-minime/contracts/ITokenController.sol";
-import "@aragon/apps-shared-minime/contracts/MiniMeToken.sol";
 
+import "@aragon/apps-token-manager/contracts/TokenManager.sol";
 import "@aragonblack/fundraising-core/contracts/IMarketMakerController.sol";
 import "@aragonblack/fundraising-formulas-bancor/contracts/IBancorFormula.sol";
-import "@aragonblack/fundraising-pool/contracts/Pool.sol";
 
 
-contract BancorCurve is EtherTokenConstant, IsContract, /*ITokenController, IForwarder ,*/ AragonApp {
+contract BancorCurve is EtherTokenConstant, IsContract, AragonApp {
     using SafeERC20 for ERC20;
     using SafeMath for uint256;
 
@@ -27,9 +24,6 @@ contract BancorCurve is EtherTokenConstant, IsContract, /*ITokenController, IFor
     bytes32 public constant CREATE_SELL_ORDER_ROLE = keccak256("CREATE_SELL_ORDER_ROLE");
     bytes32 public constant UPDATE_RESERVE_RATIO_ROLE = keccak256("UPDATE_RESERVE_RATIO_ROLE");
 
-    string private constant ERROR_TOKEN_CONTROLLER = "BC_TOKEN_CONTROLLER";
-    string private constant ERROR_CALLER_NOT_TOKEN = "BC_CALLER_NOT_TOKEN";
-    string private constant ERROR_CAN_NOT_FORWARD = "BC_CAN_NOT_FORWARD";
     string private constant ERROR_NOT_CONTRACT = "BC_NOT_CONTRACT";
     string private constant ERROR_INVALID_INIT_PARAMETER = "BC_INVALID_INIT_PARAMETER";
     string private constant ERROR_NOT_COLLATERAL_TOKEN = "BC_NOT_COLLATERAL_TOKEN";
@@ -37,8 +31,7 @@ contract BancorCurve is EtherTokenConstant, IsContract, /*ITokenController, IFor
     string private constant ERROR_TRANSFER_FAILED = "BC_TRANSER_FAILED";
     string private constant ERROR_BATCH_NOT_CLEARED = "BC_BATCH_NOT_CLEARED";
     string private constant ERROR_ALREADY_CLAIMED = "BC_ALREADY_CLAIMED";
-    string private constant ERROR_BUY_VALUE_ZERO = "BC_BUY_VALUE_ZERO";
-    string private constant ERROR_SELL_AMOUNT_ZERO = "BC_SELL_AMOUNT_ZERO";
+    string private constant ERROR_BUY_OR_SELL_ZERO = "BC_BUY_OR_SELL_ZERO";
     string private constant ERROR_INSUFFICIENT_FUNDS = "BC_INSUFFICIENT_FUNDS";
 
     uint256 public constant MAX_COLLATERAL_TOKENS = 5;
@@ -59,17 +52,18 @@ contract BancorCurve is EtherTokenConstant, IsContract, /*ITokenController, IFor
     }
 
     IMarketMakerController public controller;
+    TokenManager tokenManager;
+    ERC20 public token;
     IBancorFormula formula;
-    Pool public pool;
-    MiniMeToken public token;
-
+    address public pool;
+    
     uint32 public ppm = 1000000;
     uint256 public batchBlocks;
     uint256 public waitingClear;
 
     uint256 public collateralTokensLength;
-    mapping(uint256 => address) public collateralTokens;
     mapping(address => bool) public isCollateralToken;
+    mapping(uint256 => address) public collateralTokens;
     mapping(address => uint256) public virtualSupplies;
     mapping(address => uint256) public virtualBalances;
     mapping(address => uint32) public reserveRatios;    
@@ -83,16 +77,11 @@ contract BancorCurve is EtherTokenConstant, IsContract, /*ITokenController, IFor
     event ReturnBuy(address indexed buyer, address indexed collateralToken, uint256 amount);
     event ReturnSell(address indexed seller, address indexed collateralToken, uint256 value);
 
-    modifier onlyToken() {
-        require(msg.sender == address(token), ERROR_CALLER_NOT_TOKEN);
-        _;
-    }
 
     function initialize(
         IMarketMakerController _controller,
+        TokenManager _tokenManager,
         IBancorFormula _formula,
-        MiniMeToken _token,
-        bool _transferable,
         uint256 _batchBlocks,
         address[] _collateralTokens,
         uint256[] _virtualSupplies,
@@ -102,17 +91,9 @@ contract BancorCurve is EtherTokenConstant, IsContract, /*ITokenController, IFor
 
         initialized();
 
-        // TokenManager related initialization
-        require(_token.controller() == address(this), ERROR_TOKEN_CONTROLLER);
-        token = _token;
-        if (token.transfersEnabled() != _transferable) {
-            token.enableTransfers(_transferable);
-        }
-        // end
-  
         require(isContract(_controller), ERROR_NOT_CONTRACT);
+        require(isContract(_tokenManager), ERROR_NOT_CONTRACT);
         require(isContract(_formula), ERROR_NOT_CONTRACT);
-        require(isContract(_controller.pool()), ERROR_NOT_CONTRACT);
         require(_batchBlocks > 0, ERROR_INVALID_INIT_PARAMETER);
         require(_collateralTokens.length <= MAX_COLLATERAL_TOKENS, ERROR_INVALID_INIT_PARAMETER);
 
@@ -122,7 +103,6 @@ contract BancorCurve is EtherTokenConstant, IsContract, /*ITokenController, IFor
         // require(_virtualBalances.length >= 0, ERROR_INVALID_INIT_PARAMETER);
         // require(_reserveRatios.length >= 0, ERROR_INVALID_INIT_PARAMETER);
 
-
         uint256 len = _collateralTokens.length;
         require(
             len == _virtualSupplies.length &&
@@ -130,9 +110,10 @@ contract BancorCurve is EtherTokenConstant, IsContract, /*ITokenController, IFor
             len == _reserveRatios.length, ERROR_INVALID_INIT_PARAMETER);
         
         controller = _controller;
+        tokenManager = _tokenManager;
+        token = ERC20(tokenManager.token());
         formula = _formula;
-        pool = Pool(_controller.pool());
-
+        pool = _controller.pool();
         batchBlocks = _batchBlocks;
 
         for (uint256 i = 0; i < _collateralTokens.length; i++) {
@@ -163,7 +144,7 @@ contract BancorCurve is EtherTokenConstant, IsContract, /*ITokenController, IFor
     */
     function createBuyOrder(address _buyer, address _collateralToken, uint256 _value) external auth(CREATE_BUY_ORDER_ROLE) {
         require(isCollateralToken[_collateralToken], ERROR_NOT_COLLATERAL_TOKEN);
-        require(_value != 0, ERROR_BUY_VALUE_ZERO);
+        require(_value != 0, ERROR_BUY_OR_SELL_ZERO);
 
         _createBuyOrder(_buyer, _collateralToken, _value);
     }
@@ -177,14 +158,13 @@ contract BancorCurve is EtherTokenConstant, IsContract, /*ITokenController, IFor
         @param _amount The amount of tokens to be sold.
     */
     function createSellOrder(address _seller, address _collateralToken, uint256 _amount) external auth(CREATE_SELL_ORDER_ROLE) {
-        require(token.balanceOf(_seller) >= _amount, ERROR_INSUFFICIENT_FUNDS);
+        require(token.staticBalanceOf(_seller) >= _amount, ERROR_INSUFFICIENT_FUNDS);
         require(isCollateralToken[_collateralToken], ERROR_NOT_COLLATERAL_TOKEN);
-        require(_amount != 0, ERROR_SELL_AMOUNT_ZERO);
+        require(_amount != 0, ERROR_BUY_OR_SELL_ZERO);
 
         _createSellOrder(_seller, _collateralToken, _amount);
     }
 
-    // Is there a reason to keep this function as external ? Shouldn't it be an internal function ?
     /**
         @notice Clear the last batch of orders if it has not yet been cleared.
     */
@@ -225,69 +205,6 @@ contract BancorCurve is EtherTokenConstant, IsContract, /*ITokenController, IFor
 
         _claimSell(_seller, _collateralToken, _batchId);
     }
-
-    /* ITokenController external functions  */ 
-    /**
-        `onTransfer()`, `onApprove()`, and `proxyPayment()` are callbacks from the MiniMe token
-        contract and are only meant to be called through the managed MiniMe token that gets assigned
-        during initialization.
-    */
-
-    /**
-        @dev Notifies the controller about a token transfer allowing the controller to decide whether
-             to allow it or react if desired (only callable from the token).
-             Initialization check is implicitly provided by `onlyToken()`.
-        @param _from The origin of the transfer
-        @param _to The destination of the transfer
-        @param _amount The amount of the transfer
-        @return False if the controller does not authorize the transfer
-    */
-    function onTransfer(address _from, address _to, uint256 _amount) external onlyToken returns (bool) {
-        return true; // MiniMeToken already checks whether transfers are enable or not
-    }
-
-    /**
-         @dev Notifies the controller about an approval allowing the controller to react if desired.
-              Initialization check is implicitly provided by `onlyToken()`.
-         @return False if the controller does not authorize the approval.
-    */
-    function onApprove(address, address, uint) external onlyToken returns (bool) {
-        return true;
-    }
-
-    /**
-        * @dev Called when ether is sent to the MiniMe Token contract
-        *      Initialization check is implicitly provided by `onlyToken()`.
-        * @return True if the ether is accepted, false for it to throw
-    */
-    function proxyPayment(address) external payable onlyToken returns (bool) {
-        return false;
-    }
-
-     /* IForwarder external functions */
-
-    // function isForwarder() external pure returns (bool) {
-    //     return true;
-    // }
-
-    /**
-        @notice Execute desired action as a token holder.
-              TODO:  CHECK IF WE SHOULD ALLOW FORWARDING ACTIONS. IT COULD ALLOW USERS TO EMPTY THE POOL SO WE SHOULD ADD THE POOL ADDRESS TO THE BLACKLIST.
-        @dev IForwarder interface conformance. Forwards any token holder action.
-        @param _evmScript Script being executed
-    */
-    // function forward(bytes _evmScript) public {
-    //     require(canForward(msg.sender, _evmScript), ERROR_CAN_NOT_FORWARD);
-    //     bytes memory input = new bytes(0); // TODO: Consider input for this
-
-    //     // Add the managed token to the blacklist to disallow a token holder from executing actions
-    //     // on the token controller's (this contract) behalf
-    //     address[] memory blacklist = new address[](1);
-    //     blacklist[0] = address(token);
-
-    //     runScript(_evmScript, input, blacklist);
-    // }
-
 
     /***** public view functions *****/
 
@@ -342,20 +259,6 @@ contract BancorCurve is EtherTokenConstant, IsContract, /*ITokenController, IFor
             _sellAmount);
     }
 
-    /* IForwarder public view functions */
-    
-    function canForward(address _sender, bytes) public view returns (bool) {
-        return hasInitialized() && token.balanceOf(_sender) > 0;
-    }
-
-    /**
-        @dev Disable recovery escape hatch for own token, as the it has the concept of issuing tokens without assigning them
-             TODO: CHECK THAT FUNCTION DEEPER
-    */
-    function allowRecoverability(address _token) public view returns (bool) {
-        return _token != address(token);
-    }
-
     /***** internal functions *****/
 
     function _updateReserveRatio(address _collateralToken, uint32 _reserveRatio) internal {
@@ -398,7 +301,7 @@ contract BancorCurve is EtherTokenConstant, IsContract, /*ITokenController, IFor
             addressToBlocksByCollateralToken[_collateralToken][_seller].push(batchId);
         }
         batch.sellers[_seller] = batch.sellers[_seller].add(_amount);
-        _burn(_seller, _amount);
+        tokenManager.burn(_seller, _amount);
 
         emit NewSellOrder(_seller, _collateralToken, _amount);
     }
@@ -408,8 +311,8 @@ contract BancorCurve is EtherTokenConstant, IsContract, /*ITokenController, IFor
         uint256 buyReturn = (batch.buyers[_buyer].mul(batch.totalBuyReturn)).div(batch.totalBuySpend);
 
         batch.sellers[_buyer] = 0;
-        _burn(address(pool), buyReturn);
-        _mint(_buyer, buyReturn);
+        tokenManager.burn(address(pool), buyReturn);
+        tokenManager.mint(_buyer, buyReturn);
         
         emit ReturnBuy(_buyer, _collateralToken, buyReturn);
     }
@@ -464,7 +367,7 @@ contract BancorCurve is EtherTokenConstant, IsContract, /*ITokenController, IFor
         // The totalSupply was decremented when _burns took place as the sell orders came in. Now
         // the totalSupply needs to be incremented by totalBuyReturn, the resulting tokens are
         // held by this contract until collected by the buyers.
-        _mint(address(pool), cb.totalBuyReturn);
+        tokenManager.mint(address(pool), cb.totalBuyReturn);
         cb.cleared = true;
         waitingClear = 0;
     }
@@ -558,25 +461,4 @@ contract BancorCurve is EtherTokenConstant, IsContract, /*ITokenController, IFor
             cb.buysCleared = true;
         }
     }
-
-    /* token manager related internal function */
-    
-    /**
-        @dev Mint `_amount` tokens assigned to `_receiver`.
-        @param _receiver Receiver of tokens being minted.
-        @param _amount Number of tokens being minted.
-    */
-    function _mint(address _receiver, uint256 _amount) internal {
-        token.generateTokens(_receiver, _amount); // minime.generateTokens() never returns false
-    }
-
-    /**
-        @notice Burn `_amount` tokens from `_holder`.
-        @param _holder Holder of tokens being burned.
-        @param _amount Number of tokens being burned.
-    */
-    function _burn(address _holder, uint256 _amount) internal {
-        token.destroyTokens(_holder, _amount); // minime.destroyTokens() never returns false
-    }
-
 }
