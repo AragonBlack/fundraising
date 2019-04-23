@@ -131,6 +131,12 @@ contract('BancorCurve app', accounts => {
     await initialize()
   })
 
+  context('> #deploy', () => {
+    it('> it should deploy', async () => {
+      await BancorCurve.new()
+    })
+  })
+
   context('> #initialize', () => {
     context('> initialization parameters are correct', () => {
       it('it should initialize contract', async () => {

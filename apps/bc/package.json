@@ -51,6 +51,7 @@
     "eslint-plugin-prettier": "^3.0.1",
     "eslint-plugin-promise": "^4.0.1",
     "eslint-plugin-standard": "^4.0.0",
+    "eth-gas-reporter": "^0.1.1",
     "ethlint": "^1.2.3",
     "ganache-cli": "^6.0.3",
     "prettier": "^1.16.4",
