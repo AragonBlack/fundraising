@@ -28,40 +28,27 @@ const ForceSendETH = artifacts.require('ForceSendETH')
 
 const NULL_ADDRESS = '0x0000000000000000000000000000000000000000'
 
-
 contract('BancorCurve app', accounts => {
   let factory, dao, acl, token, pBase, cBase, bBase, tBase, pool, tokenManager, controller, formula, curve, token1, token2, token3
-  let ETH, APP_MANAGER_ROLE, MINT_ROLE, BURN_ROLE, CREATE_BUY_ORDER_ROLE, CREATE_SELL_ORDER_ROLE, TRANSFER_ROLE
-  
+  let ETH, APP_MANAGER_ROLE, MINT_ROLE, BURN_ROLE, ADD_COLLATERAL_TOKEN_ROLE, CREATE_BUY_ORDER_ROLE, CREATE_SELL_ORDER_ROLE, TRANSFER_ROLE
+
   // let UPDATE_VAULT_ROLE, UPDATE_POOL_ROLE, ADD_TOKEN_TAP_ROLE, REMOVE_TOKEN_TAP_ROLE, UPDATE_TOKEN_TAP_ROLE, WITHDRAW_ROLE, TRANSFER_ROLE
 
   const POOL_ID = hash('pool.aragonpm.eth')
   const TOKEN_MANAGER_ID = hash('token-manager.aragonpm.eth')
   const CONTROLLER_ID = hash('controller.aragonpm.eth')
   const BANCOR_CURVE_ID = hash('vault.aragonpm.eth')
-  
+
   const INITIAL_ETH_BALANCE = 500
   const INITIAL_TOKEN_BALANCE = 1000
 
   const VIRTUAL_SUPPLIES = [2, 3, 4]
-  const VIRTUAL_BALANCES = [1, 2, 3]
+  const VIRTUAL_BALANCES = [1, 3, 3]
   const RESERVE_RATIOS = [200000, 300000, 500000]
 
   const root = accounts[0]
   const authorized = accounts[1]
   const unauthorized = accounts[2]
-
-  // bytes32 public constant MINT_ROLE = keccak256("MINT_ROLE");
-  // bytes32 public constant ISSUE_ROLE = keccak256("ISSUE_ROLE");
-  // bytes32 public constant ASSIGN_ROLE = keccak256("ASSIGN_ROLE");
-  // bytes32 public constant REVOKE_VESTINGS_ROLE = keccak256("REVOKE_VESTINGS_ROLE");
-  // bytes32 public constant BURN_ROLE = keccak256("BURN_ROLE");
-
-//   function initialize(
-//     MiniMeToken _token,
-//     bool _transferable,
-//     uint256 _maxAccountTokens
-// )
 
   const initialize = async _ => {
     // DAO
@@ -87,6 +74,7 @@ contract('BancorCurve app', accounts => {
     await acl.createPermission(curve.address, pool.address, TRANSFER_ROLE, root, { from: root })
     await acl.createPermission(curve.address, tokenManager.address, MINT_ROLE, root, { from: root })
     await acl.createPermission(curve.address, tokenManager.address, BURN_ROLE, root, { from: root })
+    await acl.createPermission(authorized, curve.address, ADD_COLLATERAL_TOKEN_ROLE, root, { from: root })
     await acl.createPermission(authorized, curve.address, CREATE_BUY_ORDER_ROLE, root, { from: root })
     await acl.createPermission(authorized, curve.address, CREATE_SELL_ORDER_ROLE, root, { from: root })
     // collaterals
@@ -103,7 +91,10 @@ contract('BancorCurve app', accounts => {
     await tokenManager.initialize(token.address, true, 0)
     await pool.initialize()
     await controller.initialize(pool.address)
-    await curve.initialize(controller.address, tokenManager.address, formula.address, 1, [ETH, token1.address, token2.address], VIRTUAL_SUPPLIES, VIRTUAL_BALANCES, RESERVE_RATIOS)    
+    await curve.initialize(controller.address, tokenManager.address, formula.address, 1)
+    await curve.addCollateralToken(ETH, VIRTUAL_SUPPLIES[0], VIRTUAL_BALANCES[0], RESERVE_RATIOS[0], { from: authorized })
+    await curve.addCollateralToken(token1.address, VIRTUAL_SUPPLIES[1], VIRTUAL_BALANCES[1], RESERVE_RATIOS[1], { from: authorized })
+    await curve.addCollateralToken(token2.address, VIRTUAL_SUPPLIES[2], VIRTUAL_BALANCES[2], RESERVE_RATIOS[2], { from: authorized })
   }
 
   const forceSendETH = async (to, value) => {
@@ -131,6 +122,7 @@ contract('BancorCurve app', accounts => {
     TRANSFER_ROLE = await pBase.TRANSFER_ROLE()
     MINT_ROLE = await tBase.MINT_ROLE()
     BURN_ROLE = await tBase.BURN_ROLE()
+    ADD_COLLATERAL_TOKEN_ROLE = await bBase.ADD_COLLATERAL_TOKEN_ROLE()
     CREATE_BUY_ORDER_ROLE = await bBase.CREATE_BUY_ORDER_ROLE()
     CREATE_SELL_ORDER_ROLE = await bBase.CREATE_SELL_ORDER_ROLE()
   })
@@ -165,50 +157,101 @@ contract('BancorCurve app', accounts => {
       })
     })
 
-    context('> initialization parameters are not correct', () => {
-      it('it should revert', async () => {
-  
-      })
-    })
+    //   context('> initialization parameters are not correct', () => {
+    //     it('it should revert', async () => {
 
-    it('it should revert on re-initialization', async () => {
-      await assertRevert(() => curve.initialize(controller.address, tokenManager.address, formula.address, 1, [ETH, token1.address, token2.address], VIRTUAL_SUPPLIES, VIRTUAL_BALANCES, RESERVE_RATIOS, { from: root }))
-    })
+    //     })
+    //   })
+
+    //   it('it should revert on re-initialization', async () => {
+    //     await assertRevert(() => curve.initialize(controller.address, tokenManager.address, formula.address, 1, { from: root }))
+    //   })
   })
 
-  context('> #createBuyOrder', () => {
-    context('> sender has CREATE_BUY_ORDER_ROLE', () => {
-      context('> and collateral is whitelisted', () => {
-        context('> and value is not zero', () => {
-          it('it should create buy order', async () => {
-            const receipt = await curve.createBuyOrder(authorized, token1.address, 10, { from: authorized })
+  // context('> #createBuyOrder', () => {
+  //   context('> sender has CREATE_BUY_ORDER_ROLE', () => {
+  //     context('> and collateral is whitelisted', () => {
+  //       context('> and value is not zero', () => {
+  //         it('it should create buy order', async () => {
+  //           const receipt = await curve.createBuyOrder(authorized, token1.address, 10, { from: authorized })
 
-            assertEvent(receipt, 'NewBuyOrder')
-            // tons of others assert stuff here
-          })
-        })
+  //           assertEvent(receipt, 'NewBuyOrder')
+  //           // tons of others assert stuff here
+  //         })
+  //       })
 
-        context('> but value is zero', () => {
-          it('it should revert', async () => {
-            await assertRevert(() => curve.createBuyOrder(authorized, token1.address, 0, { from: authorized }))
-          })
-        })
-      })
-      context('> but collateral is not whitelisted', () => {
-        it('it should revert', async () => {
-          const unlisted = await TokenMock.new(authorized, INITIAL_TOKEN_BALANCE)
-          await unlisted.approve(curve.address, INITIAL_TOKEN_BALANCE, { from: authorized })
-          
-          await assertRevert(() => curve.createBuyOrder(authorized, unlisted.address, 10, { from: authorized }))
-        })
-      })
+  //       context('> but value is zero', () => {
+  //         it('it should revert', async () => {
+  //           await assertRevert(() => curve.createBuyOrder(authorized, token1.address, 0, { from: authorized }))
+  //         })
+  //       })
+  //     })
+  //     context('> but collateral is not whitelisted', () => {
+  //       it('it should revert', async () => {
+  //         const unlisted = await TokenMock.new(authorized, INITIAL_TOKEN_BALANCE)
+  //         await unlisted.approve(curve.address, INITIAL_TOKEN_BALANCE, { from: authorized })
 
-    })
-    context('> sender does not have CREATE_BUY_ORDER_ROLE', () => {
-      it('it should revert', async () => {
-        await assertRevert(() => curve.createBuyOrder(unauthorized, token3.address, 10, { from: unauthorized }))
-      })
+  //         await assertRevert(() => curve.createBuyOrder(authorized, unlisted.address, 10, { from: authorized }))
+  //       })
+  //     })
+
+  //   })
+  //   context('> sender does not have CREATE_BUY_ORDER_ROLE', () => {
+  //     it('it should revert', async () => {
+  //       await assertRevert(() => curve.createBuyOrder(unauthorized, token3.address, 10, { from: unauthorized }))
+  //     })
+  //   })
+  // })
+
+  // context('> #createSellOrder', () => {
+  //   context('> sender has CREATE_SELL_ORDER_ROLE', () => {
+  //     context('> and collateral is whitelisted', () => {
+  //       context('> and amount is not zero', () => {
+  //         context('> and sender has sufficient funds', () => {
+  //           it('it should create sell order', async () => {
+
+  //             // assertEvent(receipt, 'NewSellOrder')
+  //             // tons of others assert stuff here
+  //           })
+  //         })
+
+  //         context('> but sender does not have sufficient funds', () => {
+  //           it('it should revert', async () => {
+  //           })
+  //         })
+  //       })
+
+  //       context('> but amount is zero', () => {
+  //         it('it should revert', async () => {
+  //         })
+  //       })
+  //     })
+  //     context('> but collateral is not whitelisted', () => {
+  //       it('it should revert', async () => {
+
+  //       })
+  //     })
+
+  //   })
+  //   context('> sender does not have CREATE_SELL_ORDER_ROLE', () => {
+  //     it('it should revert', async () => {
+  //     })
+  //   })
+  // })
+
+  context('> #claimBuyOrder', () => {
+    it('it should return claimed buy order', async () => {
+      const receipt1 = await curve.createBuyOrder(authorized, token1.address, 10, { from: authorized })
+      // const receipt2 = await curve.createBuyOrder(authorized, token1.address, 10, { from: authorized })
+
+      const batchId = receipt1.logs[0].args.batchId
+
+      await curve.clearBatches()
+
+      // throw new Error()
+
+      // assertEvent(receipt, 'NewBuyOrder')
+      // tons of others assert stuff here
     })
   })
-
 })

@@ -8,7 +8,7 @@ import "@aragon/os/contracts/apps/AragonApp.sol";
 import "@aragon/os/contracts/common/SafeERC20.sol";
 import "@aragon/os/contracts/lib/token/ERC20.sol";
 
-import "@aragonblack/fundraising-core/contracts/IMarketMakerController.sol";
+import "@ablack/fundraising-interfaces/contracts/IMarketMakerController.sol";
 import "@aragonblack/fundraising-pool/contracts/Pool.sol";
 
 contract SimpleMarketMakerController is IMarketMakerController, AragonApp {

@@ -52,7 +52,6 @@ contract Tap is EtherTokenConstant, IsContract, AragonApp {
     event UpdateTokenTap(address indexed token, uint256 tap);
     event Withdraw(address indexed token, uint256 amount);
 
-
     function initialize(Vault _vault, Pool _pool, uint256 _maxMonthlyTapIncreaseRate) external onlyInit {
         require(isContract(_vault), ERROR_VAULT_NOT_CONTRACT);
         require(isContract(_pool), ERROR_POOL_NOT_CONTRACT);
