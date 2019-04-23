@@ -32,8 +32,8 @@ contract BancorCurve is EtherTokenConstant, IsContract, AragonApp {
     string private constant ERROR_ALREADY_CLAIMED = "BC_ALREADY_CLAIMED";
     string private constant ERROR_BUY_OR_SELL_ZERO = "BC_BUY_OR_SELL_ZERO";
     string private constant ERROR_INSUFFICIENT_FUNDS = "BC_INSUFFICIENT_FUNDS";
-    string private constant ERROR_GAS_COST_BUY_INSUFFICIENT = "BC_GAS_COST_BUY_INSUFFICIENT"
-    string private constant ERROR_GAS_COST_SELL_INSUFFICIENT = "BC_GAS_COST_SELL_INSUFFICIENT"
+    string private constant ERROR_GAS_COST_BUY_INSUFFICIENT = "BC_GAS_COST_BUY_INSUFFICIENT";
+    string private constant ERROR_GAS_COST_SELL_INSUFFICIENT = "BC_GAS_COST_SELL_INSUFFICIENT";
 
     uint256 public constant MAX_COLLATERAL_TOKENS = 5;
 
@@ -185,7 +185,7 @@ contract BancorCurve is EtherTokenConstant, IsContract, AragonApp {
         require(batch.buyers[_buyer] != 0, ERROR_ALREADY_CLAIMED); // ALREADY_CLAIMED_OR_JUST_POSSIBLY_EMPTY?
 
         _claimBuy(_buyer, _collateralToken, _batchId);
-        payable(msg.sender).send(GAS_COST_BUY_ORDER);
+        msg.sender.send(GAS_COST_BUY_ORDER);
     }
 
     /**
@@ -202,7 +202,7 @@ contract BancorCurve is EtherTokenConstant, IsContract, AragonApp {
         require(batch.sellers[_seller] != 0, ERROR_ALREADY_CLAIMED); // ALREADY_CLAIMED_OR_JUST_POSSIBLY_EMPTY?
 
         _claimSell(_seller, _collateralToken, _batchId);
-        payable(msg.sender).send(GAS_COST_SELL_ORDER);
+        msg.sender.send(GAS_COST_SELL_ORDER);
     }
 
     /***** public view functions *****/
