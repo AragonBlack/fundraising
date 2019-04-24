@@ -3,6 +3,7 @@
   "private": true,
   "scripts": {
     "bootstrap": "lerna bootstrap",
+    "fix": "rm -rf **/websocket/.git",
     "clean": "rm -rf apps/bc/node_modules apps/bc/package-lock.json apps/tap/node_modules apps/tap/package-lock.json apps/pool/node_modules apps/pool/package-lock.json"
   },
   "devDependencies": {
