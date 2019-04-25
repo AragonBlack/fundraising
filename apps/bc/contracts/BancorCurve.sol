@@ -235,6 +235,11 @@ contract BancorCurve is EtherTokenConstant, IsContract, AragonApp {
 
      /**
         @dev Get the current exact price [with no slippage] of the token with respect to a specific collateral token [returned as parts per million for precision].
+        
+        price = collateral / (tokenSupply * CW)
+        price = collateral / (tokenSupply * CW/ppm)
+        price = collateral*ppw / tokenSupply*CW
+
         @param _collateralToken The address of the collateral token used.
         @param _totalSupply The token supply to be used in the calculation.
         @param _poolBalance The collateral pool balance to be used in the calculation.

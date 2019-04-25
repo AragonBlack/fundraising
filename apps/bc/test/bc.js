@@ -42,8 +42,8 @@ contract('BancorCurve app', accounts => {
   const INITIAL_ETH_BALANCE = 500
   const INITIAL_TOKEN_BALANCE = 1000
 
-  const VIRTUAL_SUPPLIES = [2, 3, 4]
-  const VIRTUAL_BALANCES = [1, 3, 3]
+  const VIRTUAL_SUPPLIES = [200000, 300000, 400000]
+  const VIRTUAL_BALANCES = [100000, 300000, 300000]
   const RESERVE_RATIOS = [200000, 300000, 500000]
 
   const root = accounts[0]
@@ -174,40 +174,40 @@ contract('BancorCurve app', accounts => {
     //   })
   })
 
-  // context('> #createBuyOrder', () => {
-  //   context('> sender has CREATE_BUY_ORDER_ROLE', () => {
-  //     context('> and collateral is whitelisted', () => {
-  //       context('> and value is not zero', () => {
-  //         it('it should create buy order', async () => {
-  //           const receipt = await curve.createBuyOrder(authorized, token1.address, 10, { from: authorized })
+  context('> #createBuyOrder', () => {
+    context('> sender has CREATE_BUY_ORDER_ROLE', () => {
+      context('> and collateral is whitelisted', () => {
+        context('> and value is not zero', () => {
+          it('it should create buy order', async () => {
+            const receipt = await curve.createBuyOrder(authorized, token1.address, 10, { from: authorized })
 
-  //           assertEvent(receipt, 'NewBuyOrder')
-  //           // tons of others assert stuff here
-  //         })
-  //       })
+            assertEvent(receipt, 'NewBuyOrder')
+            // tons of others assert stuff here
+          })
+        })
 
-  //       context('> but value is zero', () => {
-  //         it('it should revert', async () => {
-  //           await assertRevert(() => curve.createBuyOrder(authorized, token1.address, 0, { from: authorized }))
-  //         })
-  //       })
-  //     })
-  //     context('> but collateral is not whitelisted', () => {
-  //       it('it should revert', async () => {
-  //         const unlisted = await TokenMock.new(authorized, INITIAL_TOKEN_BALANCE)
-  //         await unlisted.approve(curve.address, INITIAL_TOKEN_BALANCE, { from: authorized })
+        context('> but value is zero', () => {
+          it('it should revert', async () => {
+            await assertRevert(() => curve.createBuyOrder(authorized, token1.address, 0, { from: authorized }))
+          })
+        })
+      })
+      context('> but collateral is not whitelisted', () => {
+        it('it should revert', async () => {
+          const unlisted = await TokenMock.new(authorized, INITIAL_TOKEN_BALANCE)
+          await unlisted.approve(curve.address, INITIAL_TOKEN_BALANCE, { from: authorized })
 
-  //         await assertRevert(() => curve.createBuyOrder(authorized, unlisted.address, 10, { from: authorized }))
-  //       })
-  //     })
+          await assertRevert(() => curve.createBuyOrder(authorized, unlisted.address, 10, { from: authorized }))
+        })
+      })
 
-  //   })
-  //   context('> sender does not have CREATE_BUY_ORDER_ROLE', () => {
-  //     it('it should revert', async () => {
-  //       await assertRevert(() => curve.createBuyOrder(unauthorized, token3.address, 10, { from: unauthorized }))
-  //     })
-  //   })
-  // })
+    })
+    context('> sender does not have CREATE_BUY_ORDER_ROLE', () => {
+      it('it should revert', async () => {
+        await assertRevert(() => curve.createBuyOrder(unauthorized, token3.address, 10, { from: unauthorized }))
+      })
+    })
+  })
 
   // context('> #createSellOrder', () => {
   //   context('> sender has CREATE_SELL_ORDER_ROLE', () => {
@@ -250,13 +250,14 @@ contract('BancorCurve app', accounts => {
       const receipt1 = await curve.createBuyOrder(authorized, token1.address, 10, { from: authorized })
       // const receipt2 = await curve.createBuyOrder(authorized, token1.address, 10, { from: authorized })
 
-      const batchId = receipt1.logs[0].args.batchId
+      // const batchId = receipt1.logs[0].args.batchId
 
-      await curve.clearBatches()
+      const cleared1 = await curve.clearBatches()
 
       // throw new Error()
 
-      // assertEvent(receipt, 'NewBuyOrder')
+      assertEvent(receipt1, 'NewBuyOrder')
+      assertEvent(cleared1, 'NewClearOrder')
       // tons of others assert stuff here
     })
   })
