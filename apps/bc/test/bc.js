@@ -42,8 +42,8 @@ contract('BancorCurve app', accounts => {
   const INITIAL_ETH_BALANCE = 500
   const INITIAL_TOKEN_BALANCE = 1000
 
-  const VIRTUAL_SUPPLIES = [200000, 300000, 400000]
-  const VIRTUAL_BALANCES = [100000, 300000, 300000]
+  const VIRTUAL_SUPPLIES = [2, 3, 4]
+  const VIRTUAL_BALANCES = [1, 3, 3]
   const RESERVE_RATIOS = [200000, 300000, 500000]
 
   const root = accounts[0]
@@ -90,6 +90,7 @@ contract('BancorCurve app', accounts => {
     await token.changeController(tokenManager.address)
     await tokenManager.initialize(token.address, true, 0)
     await pool.initialize()
+
     await controller.initialize(pool.address, curve.address)
     await curve.initialize(controller.address, tokenManager.address, formula.address, 1)
     await curve.addCollateralToken(ETH, VIRTUAL_SUPPLIES[0], VIRTUAL_BALANCES[0], RESERVE_RATIOS[0], { from: authorized })
@@ -140,6 +141,7 @@ contract('BancorCurve app', accounts => {
   context('> #initialize', () => {
     context('> initialization parameters are correct', () => {
       it('it should initialize contract', async () => {
+
         assert.equal(await curve.pool(), pool.address)
         assert.equal(await curve.token(), token.address)
         assert.equal(await token.transfersEnabled(), true)
@@ -148,18 +150,18 @@ contract('BancorCurve app', accounts => {
         assert.equal(await curve.collateralTokens(1), ETH)
         assert.equal(await curve.collateralTokens(2), token1.address)
         assert.equal(await curve.collateralTokens(3), token2.address)
-        // assert.equal(await curve.isCollateralToken(ETH), true)
-        // assert.equal(await curve.isCollateralToken(token1.address), true)
-        // assert.equal(await curve.isCollateralToken(token2.address), true)
-        // assert.equal(await curve.virtualSupplies(ETH), VIRTUAL_SUPPLIES[0])
-        // assert.equal(await curve.virtualSupplies(token1.address), VIRTUAL_SUPPLIES[1])
-        // assert.equal(await curve.virtualSupplies(token2.address), VIRTUAL_SUPPLIES[2])
-        // assert.equal(await curve.virtualBalances(ETH), VIRTUAL_BALANCES[0])
-        // assert.equal(await curve.virtualBalances(token1.address), VIRTUAL_BALANCES[1])
-        // assert.equal(await curve.virtualBalances(token2.address), VIRTUAL_BALANCES[2])
-        // assert.equal(await curve.reserveRatios(ETH), RESERVE_RATIOS[0])
-        // assert.equal(await curve.reserveRatios(token1.address), RESERVE_RATIOS[1])
-        // assert.equal(await curve.reserveRatios(token2.address), RESERVE_RATIOS[2])
+        assert.equal(await controller.isCollateralToken(ETH), true)
+        assert.equal(await controller.isCollateralToken(token1.address), true)
+        assert.equal(await controller.isCollateralToken(token2.address), true)
+        assert.equal(await controller.virtualSupply(ETH), VIRTUAL_SUPPLIES[0])
+        assert.equal(await controller.virtualSupply(token1.address), VIRTUAL_SUPPLIES[1])
+        assert.equal(await controller.virtualSupply(token2.address), VIRTUAL_SUPPLIES[2])
+        assert.equal(await controller.virtualBalance(ETH), VIRTUAL_BALANCES[0])
+        assert.equal(await controller.virtualBalance(token1.address), VIRTUAL_BALANCES[1])
+        assert.equal(await controller.virtualBalance(token2.address), VIRTUAL_BALANCES[2])
+        assert.equal(await controller.reserveRatio(ETH), RESERVE_RATIOS[0])
+        assert.equal(await controller.reserveRatio(token1.address), RESERVE_RATIOS[1])
+        assert.equal(await controller.reserveRatio(token2.address), RESERVE_RATIOS[2])
       })
     })
 

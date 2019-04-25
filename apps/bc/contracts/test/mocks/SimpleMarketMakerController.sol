@@ -22,6 +22,7 @@ contract SimpleMarketMakerController is IMarketMakerController, AragonApp {
     function initialize(Pool __pool, BancorCurve __curve) external onlyInit {
         _pool = __pool;
         _curve = __curve;
+        initialized();
     }
 
     // uint256 public collateralTokensLength;
@@ -36,23 +37,27 @@ contract SimpleMarketMakerController is IMarketMakerController, AragonApp {
     //     mapping(address=>uint256[]) addressToBlocks;
     // }
 
-    function reserveRatio(address _collateralToken) public view returns (uint32 _reserveRatio) {
+    function isCollateralToken(address _collateralToken) public view isInitialized returns (bool _exists) {
+        (_exists, , , ) = _curve.collateralTokenInfo(_collateralToken);
+    }
+
+    function reserveRatio(address _collateralToken) public view isInitialized returns (uint32 _reserveRatio) {
         (, _reserveRatio, ,) = _curve.collateralTokenInfo(_collateralToken);
     }
 
-    function virtualSupply(address _collateralToken) public view returns (uint256 _virtualSupply) {
+    function virtualSupply(address _collateralToken) public view isInitialized returns (uint256 _virtualSupply) {
         (, ,_virtualSupply,) = _curve.collateralTokenInfo(_collateralToken);
     }
 
-    function virtualBalance(address _collateralToken) public view returns (uint256 _virtualBalance) {
+    function virtualBalance(address _collateralToken) public view isInitialized returns (uint256 _virtualBalance) {
         (, , , _virtualBalance) = _curve.collateralTokenInfo(_collateralToken);
     }
 
-    function pool() public view returns (address) {
+    function pool() public view isInitialized returns (address) {
         return address(_pool);
     }
     
-    function poolBalance(address _collateralToken) public returns (uint256) {
+    function poolBalance(address _collateralToken) public isInitialized returns (uint256) {
         return ERC20(_collateralToken).staticBalanceOf(address(_pool));
     }
 }
