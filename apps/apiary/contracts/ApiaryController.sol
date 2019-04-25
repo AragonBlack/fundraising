@@ -19,22 +19,32 @@ contract ApiaryController is EtherTokenConstant, IsContract, IMarketMakerControl
 
     Pool public _pool;
     IBancorCurve public curve;
-    ITap tap;
+    ITap public tap;
 
 
-    function initialize(IBancorCurve _curve, ITap _tap) {
+    function initialize(IBancorCurve _curve, ITap _tap, Pool __pool) {
+        // should we turn the initialize function into a deploying
+        // function installing all the relevant apps
         initialized();
         tap   = _tap;
         curve = _curve;
+        _pool = __pool;
     }
 
     function addCollateralToken(address _token, uint256 _virtualSupply, uint256 _virtualBalance, uint32 _reserveRatio, uint256 _tap) external auth(ADD_COLLATERAL_TOKEN_ROLE) {
-        // curve.addCollateralToken(_token, _virtualSupply, _virtualBalance, _reserveRatio);
-        // tap.addTokenTap(_token, _tap);
+        // input checks are already performed by the marketMaker and tap contracts
+        curve.addCollateralToken(_token, _virtualSupply, _virtualBalance, _reserveRatio);
+        tap.addTokenTap(_token, _tap);
+        // events are already emitted by the marketMaker and tap contracts
+
     }
 
-    function updateTokenTap() external auth(UPDATE_TOKEN_TAP_ROLE) {
+    function updateTokenTap(address _token, uint256 _tap) external auth(UPDATE_TOKEN_TAP_ROLE) {
+        tap.updateTokenTap(_token, _tap);
+    }
 
+    function updateReserveRatio(address _collateralToken, uint32 _reserveRatio)  external auth(UPDATE_RESERVE_RATIO) {
+        
     }
 
     function createBuyOrder() external auth(CREATE_BUY_ORDER_ROLE) {
@@ -45,7 +55,7 @@ contract ApiaryController is EtherTokenConstant, IsContract, IMarketMakerControl
 
     }
 
-    function pool() public returns (address) {
+    function pool() public view returns (address) {
         return address(_pool);
     }
 

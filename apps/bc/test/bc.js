@@ -90,7 +90,7 @@ contract('BancorCurve app', accounts => {
     await token.changeController(tokenManager.address)
     await tokenManager.initialize(token.address, true, 0)
     await pool.initialize()
-    await controller.initialize(pool.address)
+    await controller.initialize(pool.address, curve.address)
     await curve.initialize(controller.address, tokenManager.address, formula.address, 1)
     await curve.addCollateralToken(ETH, VIRTUAL_SUPPLIES[0], VIRTUAL_BALANCES[0], RESERVE_RATIOS[0], { from: authorized })
     await curve.addCollateralToken(token1.address, VIRTUAL_SUPPLIES[1], VIRTUAL_BALANCES[1], RESERVE_RATIOS[1], { from: authorized })
@@ -173,6 +173,19 @@ contract('BancorCurve app', accounts => {
     //     await assertRevert(() => curve.initialize(controller.address, tokenManager.address, formula.address, 1, { from: root }))
     //   })
   })
+  context('> #test', () => {
+    it('it should work', async () => {
+      assert.equal(await controller.reserveRatio(ETH), RESERVE_RATIOS[0])
+      assert.equal(await controller.reserveRatio(token1.address), RESERVE_RATIOS[1])
+      assert.equal(await controller.reserveRatio(token2.address), RESERVE_RATIOS[2])
+      assert.equal(await controller.virtualSupply(ETH), VIRTUAL_SUPPLIES[0])
+      assert.equal(await controller.virtualSupply(token1.address), VIRTUAL_SUPPLIES[1])
+      assert.equal(await controller.virtualSupply(token2.address), VIRTUAL_SUPPLIES[2])
+      assert.equal(await controller.virtualBalance(ETH), VIRTUAL_BALANCES[0])
+      assert.equal(await controller.virtualBalance(token1.address), VIRTUAL_BALANCES[1])
+      assert.equal(await controller.virtualBalance(token2.address), VIRTUAL_BALANCES[2])
+    })
+  })
 
   context('> #createBuyOrder', () => {
     context('> sender has CREATE_BUY_ORDER_ROLE', () => {
@@ -200,7 +213,6 @@ contract('BancorCurve app', accounts => {
           await assertRevert(() => curve.createBuyOrder(authorized, unlisted.address, 10, { from: authorized }))
         })
       })
-
     })
     context('> sender does not have CREATE_BUY_ORDER_ROLE', () => {
       it('it should revert', async () => {
@@ -257,7 +269,6 @@ contract('BancorCurve app', accounts => {
       // throw new Error()
 
       assertEvent(receipt1, 'NewBuyOrder')
-      assertEvent(cleared1, 'NewClearOrder')
       // tons of others assert stuff here
     })
   })

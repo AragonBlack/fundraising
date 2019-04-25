@@ -4,10 +4,27 @@ const getBalance = require('@aragon/test-helpers/balance')(web3)
 const assertEvent = require('@aragon/test-helpers/assertEvent')
 const timeTravel = require('@aragon/test-helpers/timeTravel')(web3)
 const { hash } = require('eth-ens-namehash')
+const sha3 = require('js-sha3').keccak_256
 
 const getEvent = (receipt, event, arg) => {
   return receipt.logs.filter(l => l.event === event)[0].args[arg]
 }
+
+const assertExternalEvent = (tx, eventName, instances = 1) => {
+  const events = tx.receipt.logs.filter(l => {
+    return l.topics[0] == '0x' + sha3(eventName)
+  })
+  assert.equal(events.length, instances, `'${eventName}' event should have been fired ${instances} times`)
+  return events
+}
+
+// const sha3 = require('js-sha3').keccak_256
+// ...
+
+// const tx = await instance.someFunction(();
+// let event = tx.receipt.logs.some(l => { return l.topics[0] == '0x' + sha3("Stored()") });
+// assert.ok(event, "Stored event not emitted");
+
 const getTimestamp = receipt => {
   return web3.eth.getBlock(receipt.receipt.blockNumber).timestamp
 }
@@ -44,6 +61,9 @@ contract('ApiaryController app', accounts => {
     MM_UPDATE_RESERVE_RATIO_ROLE,
     MM_CREATE_BUY_ORDER_ROLE,
     MM_CREATE_SELL_ORDER_ROLE,
+    TAP_ADD_TOKEN_TAP_ROLE,
+    TAP_UPDATE_TOKEN_TAP_ROLE,
+    TAP_WITHDRAW_ROLE,
     CONTROLLER_ADD_COLLATERAL_TOKEN_ROLE,
     CONTROLLER_UPDATE_RESERVE_RATIO_ROLE,
     CONTROLLER_UPDATE_TOKEN_TAP_ROLE,
@@ -61,6 +81,7 @@ contract('ApiaryController app', accounts => {
 
   const INITIAL_ETH_BALANCE = 500
   const INITIAL_TOKEN_BALANCE = 1000
+  const MAX_MONTHLY_TAP_INCREASE_RATE = 50 * Math.pow(10, 16)
 
   const VIRTUAL_SUPPLIES = [2, 3, 4]
   const VIRTUAL_BALANCES = [1, 3, 3]
@@ -97,9 +118,12 @@ contract('ApiaryController app', accounts => {
     const acReceipt = await dao.newAppInstance(APIARY_CONTROLLER_ID, acBase.address, '0x', false)
     apiary = await ApiaryController.at(getEvent(acReceipt, 'NewAppProxy', 'proxy'))
     // permissions
-    await acl.createPermission(marketMaker.address, pool.address, POOL_TRANSFER_ROLE, root, { from: root })
     await acl.createPermission(marketMaker.address, tokenManager.address, TM_MINT_ROLE, root, { from: root })
     await acl.createPermission(marketMaker.address, tokenManager.address, TM_BURN_ROLE, root, { from: root })
+    await acl.createPermission(marketMaker.address, pool.address, POOL_TRANSFER_ROLE, root, { from: root })
+    await acl.createPermission(apiary.address, tap.address, TAP_ADD_TOKEN_TAP_ROLE, root, { from: root })
+    await acl.createPermission(apiary.address, tap.address, TAP_UPDATE_TOKEN_TAP_ROLE, root, { from: root })
+    await acl.createPermission(apiary.address, tap.address, TAP_WITHDRAW_ROLE, root, { from: root })
     await acl.createPermission(apiary.address, marketMaker.address, MM_ADD_COLLATERAL_TOKEN_ROLE, root, { from: root })
     await acl.createPermission(apiary.address, marketMaker.address, MM_UPDATE_RESERVE_RATIO_ROLE, root, { from: root })
     await acl.createPermission(apiary.address, marketMaker.address, MM_CREATE_BUY_ORDER_ROLE, root, { from: root })
@@ -123,7 +147,9 @@ contract('ApiaryController app', accounts => {
     await tokenManager.initialize(token.address, true, 0)
     await vault.initialize()
     await pool.initialize()
+    await tap.initialize(vault.address, pool.address, MAX_MONTHLY_TAP_INCREASE_RATE)
     await marketMaker.initialize(apiary.address, tokenManager.address, formula.address, 1)
+    await apiary.initialize(marketMaker.address, tap.address, pool.address)
   }
 
   const forceSendETH = async (to, value) => {
@@ -152,6 +178,9 @@ contract('ApiaryController app', accounts => {
     TM_MINT_ROLE = await tmBase.MINT_ROLE()
     TM_BURN_ROLE = await tmBase.BURN_ROLE()
     POOL_TRANSFER_ROLE = await pBase.TRANSFER_ROLE()
+    TAP_ADD_TOKEN_TAP_ROLE = await tBase.ADD_TOKEN_TAP_ROLE()
+    TAP_UPDATE_TOKEN_TAP_ROLE = await tBase.UPDATE_TOKEN_TAP_ROLE()
+    TAP_WITHDRAW_ROLE = await tBase.WITHDRAW_ROLE()
     MM_UPDATE_RESERVE_RATIO_ROLE = await bcBase.UPDATE_RESERVE_RATIO_ROLE()
     MM_ADD_COLLATERAL_TOKEN_ROLE = await bcBase.ADD_COLLATERAL_TOKEN_ROLE()
     MM_CREATE_BUY_ORDER_ROLE = await bcBase.CREATE_BUY_ORDER_ROLE()
@@ -167,66 +196,69 @@ contract('ApiaryController app', accounts => {
     await initialize()
   })
 
-  context('> #initialize', () => {
-    context('> initialization parameters are correct', () => {
-      it('it should initialize contract', async () => {
-        // assert.equal(await curve.pool(), pool.address)
-        // assert.equal(await curve.token(), token.address)
-        // assert.equal(await token.transfersEnabled(), true)
-        // assert.equal(await curve.batchBlocks(), 1)
-        // assert.equal(await curve.collateralTokensLength(), 3)
-        // assert.equal(await curve.collateralTokens(1), ETH)
-        // assert.equal(await curve.collateralTokens(2), token1.address)
-        // assert.equal(await curve.collateralTokens(3), token2.address)
-        // assert.equal(await curve.isCollateralToken(ETH), true)
-        // assert.equal(await curve.isCollateralToken(token1.address), true)
-        // assert.equal(await curve.isCollateralToken(token2.address), true)
-        // assert.equal(await curve.virtualSupplies(ETH), VIRTUAL_SUPPLIES[0])
-        // assert.equal(await curve.virtualSupplies(token1.address), VIRTUAL_SUPPLIES[1])
-        // assert.equal(await curve.virtualSupplies(token2.address), VIRTUAL_SUPPLIES[2])
-        // assert.equal(await curve.virtualBalances(ETH), VIRTUAL_BALANCES[0])
-        // assert.equal(await curve.virtualBalances(token1.address), VIRTUAL_BALANCES[1])
-        // assert.equal(await curve.virtualBalances(token2.address), VIRTUAL_BALANCES[2])
-        // assert.equal(await curve.reserveRatios(ETH), RESERVE_RATIOS[0])
-        // assert.equal(await curve.reserveRatios(token1.address), RESERVE_RATIOS[1])
-        // assert.equal(await curve.reserveRatios(token2.address), RESERVE_RATIOS[2])
-      })
-    })
+  // context('> #initialize', () => {
+  //   context('> initialization parameters are correct', () => {
+  //     it('it should initialize contract', async () => {
+  //       assert.equal(await apiary.tap(), tap.address)
+  //       assert.equal(await apiary.curve(), marketMaker.address)
+  //       assert.equal(await apiary.pool(), pool.address)
+  //     })
+  //   })
 
-    context('> initialization parameters are not correct', () => {
-      it('it should revert', async () => {})
-    })
+  //   context('> initialization parameters are not correct', () => {
+  //     it('it should revert', async () => {})
+  //   })
 
-    it('it should revert on re-initialization', async () => {
-      // await assertRevert(() =>
-      //   curve.initialize(
-      //     controller.address,
-      //     tokenManager.address,
-      //     formula.address,
-      //     1,
-      //     [ETH, token1.address, token2.address],
-      //     VIRTUAL_SUPPLIES,
-      //     VIRTUAL_BALANCES,
-      //     RESERVE_RATIOS,
-      //     { from: root }
-      //   )
-      // )
-    })
-  })
+  //   it('it should revert on re-initialization', async () => {
+  //     await assertRevert(() => apiary.initialize(marketMaker.address, tap.address, pool.address, { from: root }))
+  //   })
+  // })
 
-  // context('> #claimBuyOrder', () => {
-  //   it('it should return claimed buy order', async () => {
-  //     const receipt1 = await curve.createBuyOrder(authorized, token1.address, 10, { from: authorized })
-  //     // const receipt2 = await curve.createBuyOrder(authorized, token1.address, 10, { from: authorized })
+  // context('> #addCollateralToken', () => {
+  //   context('> sender has ADD_COLLATERAL_TOKEN_ROLE', () => {
+  //     it('it should add collateral token', async () => {
+  //       const receipt1 = await apiary.addCollateralToken(ETH, 1, 2, 200000, 10, { from: authorized })
+  //       const receipt2 = await apiary.addCollateralToken(token1.address, 2, 1, 300000, 5, { from: authorized })
 
-  //     const batchId = receipt1.logs[0].args.batchId
+  //       assertExternalEvent(receipt1, 'AddCollateralToken(address,uint256,uint256,uint32)')
+  //       assertExternalEvent(receipt1, 'AddTokenTap(address,uint256)')
+  //       assertExternalEvent(receipt2, 'AddCollateralToken(address,uint256,uint256,uint32)')
+  //       assertExternalEvent(receipt2, 'AddTokenTap(address,uint256)')
+  //     })
+  //   })
 
-  //     await curve.clearBatches()
+  //   context('> sender does not have ADD_COLLATERAL_TOKEN_ROLE', () => {
+  //     it('it should revert', async () => {
+  //       await assertRevert(() => apiary.addCollateralToken(ETH, 1, 2, 200000, 10, { from: unauthorized }))
+  //       await assertRevert(() => apiary.addCollateralToken(token1.address, 2, 1, 300000, 5, { from: unauthorized }))
+  //     })
+  //   })
+  // })
 
-  //     throw (new Error())
+  // context('> #updateTokenTap', () => {
+  //   context('> sender has UPDATE_TOKEN_TAP_ROLE', () => {
+  //     it('it should update token tap', async () => {
+  //       await apiary.addCollateralToken(ETH, 1, 2, 200000, 10, { from: authorized })
+  //       await apiary.addCollateralToken(token1.address, 2, 1, 300000, 5, { from: authorized })
+  //       await timeTravel(2592000) // 1 month = 2592000 seconds
 
-  //     // assertEvent(receipt, 'NewBuyOrder')
-  //     // tons of others assert stuff here
+  //       const receipt1 = await apiary.updateTokenTap(ETH, 14, { from: authorized })
+  //       const receipt2 = await apiary.updateTokenTap(token1.address, 7, { from: authorized })
+
+  //       assertExternalEvent(receipt1, 'UpdateTokenTap(address,uint256)')
+  //       assertExternalEvent(receipt2, 'UpdateTokenTap(address,uint256)')
+  //     })
+  //   })
+
+  //   context('> sender does not have UPDATE_TOKEN_TAP_ROLE', () => {
+  //     it('it should revert', async () => {
+  //       await apiary.addCollateralToken(ETH, 1, 2, 200000, 10, { from: authorized })
+  //       await apiary.addCollateralToken(token1.address, 2, 1, 300000, 5, { from: authorized })
+  //       await timeTravel(2592000) // 1 month = 2592000 seconds
+
+  //       await assertRevert(() => apiary.updateTokenTap(ETH, 14, { from: unauthorized }))
+  //       await assertRevert(() => apiary.updateTokenTap(token1.address, 7, { from: unauthorized }))
+  //     })
   //   })
   // })
 })

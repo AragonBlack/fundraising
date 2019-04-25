@@ -27,7 +27,6 @@
     "@ablack/fundraising-market-makers-bancor": "^0.1.0"
   },
   "devDependencies": {
-    "@aragonblack/fundraising-tap": "^0.1.0",
     "@ablack/eslint-config-tests": "^1.0.0",
     "@aragon/apps-agent": "^1.0.1",
     "@aragon/apps-shared-migrations": "^1.0.0",
@@ -37,6 +36,7 @@
     "@aragon/test-helpers": "^1.1.0",
     "@aragonblack/fundraising-formulas-bancor": "^0.1.0",
     "@aragonblack/fundraising-pool": "^0.1.0",
+    "@aragonblack/fundraising-tap": "^0.1.0",
     "eslint": "^5.16.0",
     "eslint-config-prettier": "^3.0.1",
     "eslint-config-standard": "^12.0.0",
@@ -48,6 +48,7 @@
     "eth-ens-namehash": "^2.0.8",
     "ethlint": "^1.2.3",
     "ganache-cli": "^6.0.3",
+    "js-sha3": "^0.8.0",
     "prettier": "^1.8.2",
     "truffle": "4.1.14"
   }
