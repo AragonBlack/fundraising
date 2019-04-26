@@ -3,6 +3,7 @@ const { assertRevert } = require('@aragon/test-helpers/assertThrow')
 const getBalance = require('@aragon/test-helpers/balance')(web3)
 const assertEvent = require('@aragon/test-helpers/assertEvent')
 const timeTravel = require('@aragon/test-helpers/timeTravel')(web3)
+const blockNumber = require('@aragon/test-helpers/blockNumber')(web3)
 const { hash } = require('eth-ens-namehash')
 
 const getEvent = (receipt, event, arg) => {
@@ -30,7 +31,16 @@ const NULL_ADDRESS = '0x0000000000000000000000000000000000000000'
 
 contract('BancorCurve app', accounts => {
   let factory, dao, acl, token, pBase, cBase, bBase, tBase, pool, tokenManager, controller, formula, curve, token1, token2, token3
-  let ETH, APP_MANAGER_ROLE, MINT_ROLE, BURN_ROLE, UPDATE_FEE_ROLE, ADD_COLLATERAL_TOKEN_ROLE, CREATE_BUY_ORDER_ROLE, CREATE_SELL_ORDER_ROLE, TRANSFER_ROLE
+  let ETH,
+    APP_MANAGER_ROLE,
+    MINT_ROLE,
+    BURN_ROLE,
+    UPDATE_FEE_ROLE,
+    UPDATE_GAS_ROLE,
+    ADD_COLLATERAL_TOKEN_ROLE,
+    CREATE_BUY_ORDER_ROLE,
+    CREATE_SELL_ORDER_ROLE,
+    TRANSFER_ROLE
 
   // let UPDATE_VAULT_ROLE, UPDATE_POOL_ROLE, ADD_TOKEN_TAP_ROLE, REMOVE_TOKEN_TAP_ROLE, UPDATE_TOKEN_TAP_ROLE, WITHDRAW_ROLE, TRANSFER_ROLE
 
@@ -45,6 +55,11 @@ contract('BancorCurve app', accounts => {
   const VIRTUAL_SUPPLIES = [2, 3, 4]
   const VIRTUAL_BALANCES = [1, 3, 3]
   const RESERVE_RATIOS = [200000, 300000, 500000]
+  const FEE_PERCENT = 10000
+  const BUY_GAS = 0
+  const SELL_GAS = 0
+  const BLOCKS_IN_BATCH = 10
+  const PPM = 1000000
 
   const root = accounts[0]
   const authorized = accounts[1]
@@ -74,6 +89,7 @@ contract('BancorCurve app', accounts => {
     await acl.createPermission(curve.address, pool.address, TRANSFER_ROLE, root, { from: root })
     await acl.createPermission(curve.address, tokenManager.address, MINT_ROLE, root, { from: root })
     await acl.createPermission(curve.address, tokenManager.address, BURN_ROLE, root, { from: root })
+    await acl.createPermission(authorized, curve.address, UPDATE_GAS_ROLE, root, { from: root })
     await acl.createPermission(authorized, curve.address, UPDATE_FEE_ROLE, root, { from: root })
     await acl.createPermission(authorized, curve.address, ADD_COLLATERAL_TOKEN_ROLE, root, { from: root })
     await acl.createPermission(authorized, curve.address, CREATE_BUY_ORDER_ROLE, root, { from: root })
@@ -93,7 +109,9 @@ contract('BancorCurve app', accounts => {
     await pool.initialize()
 
     await controller.initialize(pool.address, curve.address)
-    await curve.initialize(controller.address, tokenManager.address, formula.address, 1)
+    await curve.initialize(controller.address, tokenManager.address, formula.address, BLOCKS_IN_BATCH)
+    await curve.updateFee(FEE_PERCENT, { from: authorized })
+    await curve.updateGas(BUY_GAS, SELL_GAS, { from: authorized })
     await curve.addCollateralToken(ETH, VIRTUAL_SUPPLIES[0], VIRTUAL_BALANCES[0], RESERVE_RATIOS[0], { from: authorized })
     await curve.addCollateralToken(token1.address, VIRTUAL_SUPPLIES[1], VIRTUAL_BALANCES[1], RESERVE_RATIOS[1], { from: authorized })
     await curve.addCollateralToken(token2.address, VIRTUAL_SUPPLIES[2], VIRTUAL_BALANCES[2], RESERVE_RATIOS[2], { from: authorized })
@@ -124,6 +142,7 @@ contract('BancorCurve app', accounts => {
     TRANSFER_ROLE = await pBase.TRANSFER_ROLE()
     MINT_ROLE = await tBase.MINT_ROLE()
     BURN_ROLE = await tBase.BURN_ROLE()
+    UPDATE_GAS_ROLE = await bBase.UPDATE_GAS_ROLE()
     UPDATE_FEE_ROLE = await bBase.UPDATE_FEE_ROLE()
     ADD_COLLATERAL_TOKEN_ROLE = await bBase.ADD_COLLATERAL_TOKEN_ROLE()
     CREATE_BUY_ORDER_ROLE = await bBase.CREATE_BUY_ORDER_ROLE()
@@ -143,11 +162,10 @@ contract('BancorCurve app', accounts => {
   context('> #initialize', () => {
     context('> initialization parameters are correct', () => {
       it('it should initialize contract', async () => {
-
         assert.equal(await curve.pool(), pool.address)
         assert.equal(await curve.token(), token.address)
         assert.equal(await token.transfersEnabled(), true)
-        assert.equal(await curve.batchBlocks(), 1)
+        assert.equal(await curve.batchBlocks(), BLOCKS_IN_BATCH)
         assert.equal(await curve.collateralTokensLength(), 3)
         assert.equal(await curve.collateralTokens(1), ETH)
         assert.equal(await curve.collateralTokens(2), token1.address)
@@ -196,15 +214,46 @@ contract('BancorCurve app', accounts => {
       context('> and collateral is whitelisted', () => {
         context('> and value is not zero', () => {
           it('it should create buy order', async () => {
+            let currentBlock = await blockNumber()
+            console.log({ currentBlock })
+            let currentBatchId = await curve.getCurrentBatchId()
+            console.log({ currentBatchId: currentBatchId.toNumber(10) })
+            // await stopMining()
             const receipt = await curve.createBuyOrder(authorized, token1.address, 10, { from: authorized })
-
+            // await startMining()
+            // console.log(receipt)
+            // console.log(receipt.logs)
             assertEvent(receipt, 'NewBuyOrder')
+
+            NewBuyOrder = receipt.logs.find(l => l.event === 'NewBuyOrder')
+            let batchNumber = NewBuyOrder ? NewBuyOrder.args.batchId.toNumber() : new Error('No Buy Order')
+            console.log({ batchNumber })
+            // currentBlock = await blockNumber()
+            // console.log({ currentBlock })
+
+            await increaseBlocks(BLOCKS_IN_BATCH)
+
+            await printBatch(curve, batchNumber)
+
+            const _receipt = await curve.createBuyOrder(authorized, token1.address, 10, { from: authorized })
+            // console.log(_receipt)
+            // console.log(_receipt.logs)
+
+            NewBuyOrder = _receipt.logs.find(l => l.event === 'NewBuyOrder')
+            let _batchNumber = NewBuyOrder ? NewBuyOrder.args.batchId.toNumber() : new Error('No Buy Order')
+            console.log({ _batchNumber })
+
+            assertEvent(_receipt, 'NewBuyOrder')
+
+            // const batch = await curve.getBatch(token1.address, batchNumber)
+            // console.log({ batch })
+
+            const claim = await curve.claimBuy(authorized, token1.address, batchNumber)
+            // console.log(claim)
+            // console.log(claim.logs)
+            assertEvent(claim, 'ReturnBuy')
+
             // tons of others assert stuff here
-
-
-
-
-
           })
         })
 
@@ -282,3 +331,111 @@ contract('BancorCurve app', accounts => {
     })
   })
 })
+
+async function printBatch(curve, batchNumber) {
+  const tokens = await curve.collateralTokensLength()
+  await _printBatch(curve, batchNumber, tokens.toNumber())
+}
+
+async function _printBatch(curve, batchNumber, len, key = 0) {
+  const PPM = 1000000
+  console.log({ len, key })
+  if (key === len) return
+  const tokenAddress = await curve.collateralTokens(key)
+  let [
+    init,
+    buysCleared,
+    sellsCleared,
+    cleared,
+    poolBalance,
+    totalSupply,
+    totalBuySpend,
+    totalBuyReturn,
+    totalSellSpend,
+    totalSellReturn,
+  ] = await curve.getBatch(tokenAddress, batchNumber)
+  console.log({
+    tokenAddress,
+    init,
+    buysCleared,
+    sellsCleared,
+    cleared,
+    poolBalance,
+    totalSupply,
+    totalBuySpend,
+    totalBuyReturn,
+    totalSellSpend,
+    totalSellReturn,
+  })
+  let staticPrice = await curve.getPricePPM(tokenAddress, totalSupply, poolBalance)
+  console.log({ staticPrice: staticPrice.toNumber() })
+  let resultOfSell = totalSellSpend.mul(staticPrice).div(PPM)
+  console.log({ resultOfSell: resultOfSell.toString(10) })
+  let resultOfBuy = totalBuySpend.mul(PPM).div(staticPrice)
+  console.log({ resultOfBuy: resultOfBuy.toString(10) })
+  let remainingBuy = totalBuySpend.sub(resultOfSell)
+  console.log({ remainingBuy: remainingBuy.toString(10) })
+
+  await _printBatch(curve, batchNumber, len, key + 1)
+}
+
+function increaseBlocks(blocks) {
+  return new Promise((resolve, reject) => {
+    increaseBlock().then(() => {
+      blocks -= 1
+      if (blocks === 0) {
+        resolve()
+      } else {
+        increaseBlocks(blocks).then(resolve)
+      }
+    })
+  })
+}
+
+function stopMining() {
+  return new Promise((resolve, reject) => {
+    web3.currentProvider.sendAsync(
+      {
+        jsonrpc: '2.0',
+        method: 'miner_stop',
+        id: 12346,
+      },
+      (err, result) => {
+        if (err) reject(err)
+        resolve(result)
+      }
+    )
+  })
+}
+
+function startMining() {
+  return new Promise((resolve, reject) => {
+    web3.currentProvider.sendAsync(
+      {
+        jsonrpc: '2.0',
+        method: 'miner_start',
+        id: 12347,
+      },
+      (err, result) => {
+        if (err) reject(err)
+        resolve(result)
+      }
+    )
+  })
+}
+
+function increaseBlock() {
+  return new Promise((resolve, reject) => {
+    web3.currentProvider.sendAsync(
+      {
+        jsonrpc: '2.0',
+        method: 'evm_mine',
+        id: 12345,
+      },
+      (err, result) => {
+        if (err) reject(err)
+        resolve(result)
+      }
+    )
+  })
+}

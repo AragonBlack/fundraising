@@ -19,6 +19,7 @@ contract SimpleMarketMakerController is IMarketMakerController, AragonApp {
     Pool private _pool;
     BancorCurve private _curve;
 
+
     function initialize(Pool __pool, BancorCurve __curve) external onlyInit {
         _pool = __pool;
         _curve = __curve;
@@ -35,6 +36,14 @@ contract SimpleMarketMakerController is IMarketMakerController, AragonApp {
     //     uint256 virtualBalance;
     //     mapping(uint256=>Batch) batches;
     //     mapping(address=>uint256[]) addressToBlocks;
+    // }
+
+    // function getBatchCleared(address _collateralToken, uint _batchId) public view isInitialized returns(bool) {
+    //     // BancorCurve.Collateral result;
+    //     mapping(uint256=>BancorCurve.Batch) batches;
+    //     ( , , , , batches, ) = _curve.collateralTokenInfo(_collateralToken);
+    //     require(batches[_batchId].init, "This batch was never initialized");
+    //     return batches[_batchId].cleared;
     // }
 
     function isCollateralToken(address _collateralToken) public view isInitialized returns (bool _exists) {
