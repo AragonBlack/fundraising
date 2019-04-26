@@ -30,7 +30,7 @@ const NULL_ADDRESS = '0x0000000000000000000000000000000000000000'
 
 contract('BancorCurve app', accounts => {
   let factory, dao, acl, token, pBase, cBase, bBase, tBase, pool, tokenManager, controller, formula, curve, token1, token2, token3
-  let ETH, APP_MANAGER_ROLE, MINT_ROLE, BURN_ROLE, ADD_COLLATERAL_TOKEN_ROLE, CREATE_BUY_ORDER_ROLE, CREATE_SELL_ORDER_ROLE, TRANSFER_ROLE
+  let ETH, APP_MANAGER_ROLE, MINT_ROLE, BURN_ROLE, UPDATE_FEE_ROLE, ADD_COLLATERAL_TOKEN_ROLE, CREATE_BUY_ORDER_ROLE, CREATE_SELL_ORDER_ROLE, TRANSFER_ROLE
 
   // let UPDATE_VAULT_ROLE, UPDATE_POOL_ROLE, ADD_TOKEN_TAP_ROLE, REMOVE_TOKEN_TAP_ROLE, UPDATE_TOKEN_TAP_ROLE, WITHDRAW_ROLE, TRANSFER_ROLE
 
@@ -74,6 +74,7 @@ contract('BancorCurve app', accounts => {
     await acl.createPermission(curve.address, pool.address, TRANSFER_ROLE, root, { from: root })
     await acl.createPermission(curve.address, tokenManager.address, MINT_ROLE, root, { from: root })
     await acl.createPermission(curve.address, tokenManager.address, BURN_ROLE, root, { from: root })
+    await acl.createPermission(authorized, curve.address, UPDATE_FEE_ROLE, root, { from: root })
     await acl.createPermission(authorized, curve.address, ADD_COLLATERAL_TOKEN_ROLE, root, { from: root })
     await acl.createPermission(authorized, curve.address, CREATE_BUY_ORDER_ROLE, root, { from: root })
     await acl.createPermission(authorized, curve.address, CREATE_SELL_ORDER_ROLE, root, { from: root })
@@ -123,6 +124,7 @@ contract('BancorCurve app', accounts => {
     TRANSFER_ROLE = await pBase.TRANSFER_ROLE()
     MINT_ROLE = await tBase.MINT_ROLE()
     BURN_ROLE = await tBase.BURN_ROLE()
+    UPDATE_FEE_ROLE = await bBase.UPDATE_FEE_ROLE()
     ADD_COLLATERAL_TOKEN_ROLE = await bBase.ADD_COLLATERAL_TOKEN_ROLE()
     CREATE_BUY_ORDER_ROLE = await bBase.CREATE_BUY_ORDER_ROLE()
     CREATE_SELL_ORDER_ROLE = await bBase.CREATE_SELL_ORDER_ROLE()
@@ -198,6 +200,11 @@ contract('BancorCurve app', accounts => {
 
             assertEvent(receipt, 'NewBuyOrder')
             // tons of others assert stuff here
+
+
+
+
+
           })
         })
 
