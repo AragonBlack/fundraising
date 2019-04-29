@@ -126,12 +126,12 @@ contract BancorCurve is EtherTokenConstant, IsContract, AragonApp {
     function addCollateralToken(address _collateralToken, uint256 _virtualSupply, uint256 _virtualBalance, uint32 _reserveRatio) external auth(ADD_COLLATERAL_TOKEN_ROLE) {
         require(!collateralTokenInfo[_collateralToken].exists, "CollateralToken Already Exists");
         // add checks here
-        collateralTokensLength = collateralTokensLength + 1;
         collateralTokens[collateralTokensLength] = _collateralToken;
         collateralTokenInfo[_collateralToken].exists = true;
         collateralTokenInfo[_collateralToken].virtualSupply = _virtualSupply;
         collateralTokenInfo[_collateralToken].virtualBalance = _virtualBalance;
         collateralTokenInfo[_collateralToken].reserveRatio = _reserveRatio;
+        collateralTokensLength = collateralTokensLength + 1;
 
         emit AddCollateralToken(_collateralToken, _virtualSupply, _virtualBalance, _reserveRatio);
     }

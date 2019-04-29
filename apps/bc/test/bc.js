@@ -167,12 +167,15 @@ contract('BancorCurve app', accounts => {
         assert.equal(await token.transfersEnabled(), true)
         assert.equal(await curve.batchBlocks(), BLOCKS_IN_BATCH)
         assert.equal(await curve.collateralTokensLength(), 3)
-        assert.equal(await curve.collateralTokens(1), ETH)
-        assert.equal(await curve.collateralTokens(2), token1.address)
-        assert.equal(await curve.collateralTokens(3), token2.address)
+
+        assert.equal(await curve.collateralTokens(0), ETH)
+        assert.equal(await curve.collateralTokens(1), token1.address)
+        assert.equal(await curve.collateralTokens(2), token2.address)
+
         assert.equal(await controller.isCollateralToken(ETH), true)
         assert.equal(await controller.isCollateralToken(token1.address), true)
         assert.equal(await controller.isCollateralToken(token2.address), true)
+
         assert.equal(await controller.virtualSupply(ETH), VIRTUAL_SUPPLIES[0])
         assert.equal(await controller.virtualSupply(token1.address), VIRTUAL_SUPPLIES[1])
         assert.equal(await controller.virtualSupply(token2.address), VIRTUAL_SUPPLIES[2])
