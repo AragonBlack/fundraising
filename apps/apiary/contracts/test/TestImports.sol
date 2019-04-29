@@ -13,7 +13,7 @@ import "@aragon/test-helpers/contracts/TokenMock.sol";
 import "@aragonblack/fundraising-tap/contracts/Tap.sol";
 
 
-import "@ablack/fundraising-market-makers-bancor/contracts/BancorCurve.sol";
+import {BancorCurve} from "@ablack/fundraising-market-makers-bancor/contracts/BancorCurve.sol";
 
 import "@aragonblack/fundraising-formulas-bancor/contracts/BancorFormula.sol";
 

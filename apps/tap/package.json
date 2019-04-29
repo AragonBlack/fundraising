@@ -1,5 +1,5 @@
 {
-  "name": "@aragonblack/fundraising-tap",
+  "name": "@ablack/fundraising-tap",
   "version": "0.1.0",
   "description": "",
   "author": "Aragon Black <contact@aragon.black>",
@@ -30,7 +30,7 @@
   ],
   "dependencies": {
     "@aragon/os": "4.1.0",
-    "@aragonblack/fundraising-pool": "^0.1.0"
+    "@ablack/fundraising-pool": "^0.1.0"
   },
   "devDependencies": {
     "@aragon/apps-agent": "1.0.1",

@@ -52,7 +52,7 @@ contract SimpleMarketMakerController is IMarketMakerController, AragonApp {
         return address(_pool);
     }
     
-    function poolBalance(address _collateralToken) public returns (uint256) {
+    function poolBalance(address _collateralToken) public view returns (uint256) {
         return ERC20(_collateralToken).staticBalanceOf(address(_pool));
     }
 }

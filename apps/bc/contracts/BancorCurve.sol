@@ -15,7 +15,7 @@ import "@aragon/apps-token-manager/contracts/TokenManager.sol";
 import "@ablack/fundraising-interfaces/contracts/IMarketMakerController.sol";
 import "@aragonblack/fundraising-formulas-bancor/contracts/IBancorFormula.sol";
 
-import "../../pool/contracts/Pool.sol";
+import "@ablack/fundraising-pool/contracts/Pool.sol";
 
 contract BancorCurve is EtherTokenConstant, IsContract, AragonApp {
     using SafeERC20 for ERC20;

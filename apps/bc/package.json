@@ -33,7 +33,7 @@
     "@aragon/os": "^4.1.0",
     "@ablack/fundraising-interfaces": "^0.1.0",
     "@aragonblack/fundraising-formulas-bancor": "^0.1.0",
-    "@aragonblack/fundraising-pool": "^0.1.0"
+    "@ablack/fundraising-pool": "^0.1.0"
   },
   "devDependencies": {
     "@ablack/eslint-config-tests": "^1.0.0",
