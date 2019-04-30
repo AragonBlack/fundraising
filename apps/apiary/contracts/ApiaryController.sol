@@ -52,8 +52,10 @@ contract ApiaryController is EtherTokenConstant, IsContract, IMarketMakerControl
         curve.updateReserveRatio(_collateralToken, _reserveRatio);
     }
 
-    function createBuyOrder(address _collateralToken, uint256 _value) external auth(CREATE_BUY_ORDER_ROLE) {
-        curve.createBuyOrder(msg.sender, _collateralToken, _value);
+    function createBuyOrder(address _collateralToken, uint256 _value) payable external auth(CREATE_BUY_ORDER_ROLE) {
+        curve.call.value(msg.value)(bytes4(keccak256("createBuyOrder(address,address,uint256)")), msg.sender, _collateralToken, _value);
+        // curve.createBuyOrder.call.value(msg.value)(msg.sender, _collateralToken, _value);
+
 
     }
 

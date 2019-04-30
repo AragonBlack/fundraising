@@ -150,8 +150,8 @@ contract('ApiaryController app', accounts => {
     await vault.initialize()
     await pool.initialize()
     await tap.initialize(vault.address, pool.address, MAX_MONTHLY_TAP_INCREASE_RATE)
-    await marketMaker.initialize(apiary.address, tokenManager.address, formula.address, 1)
     await apiary.initialize(marketMaker.address, tap.address, pool.address)
+    await marketMaker.initialize(apiary.address, tokenManager.address, formula.address, 1)
   }
 
   const forceSendETH = async (to, value) => {
@@ -198,71 +198,71 @@ contract('ApiaryController app', accounts => {
     await initialize()
   })
 
-  // context('> #initialize', () => {
-  //   context('> initialization parameters are correct', () => {
-  //     it('it should initialize contract', async () => {
-  //       assert.equal(await apiary.tap(), tap.address)
-  //       assert.equal(await apiary.curve(), marketMaker.address)
-  //       assert.equal(await apiary.pool(), pool.address)
-  //     })
-  //   })
+  context('> #initialize', () => {
+    context('> initialization parameters are correct', () => {
+      it('it should initialize contract', async () => {
+        assert.equal(await apiary.tap(), tap.address)
+        assert.equal(await apiary.curve(), marketMaker.address)
+        assert.equal(await apiary.pool(), pool.address)
+      })
+    })
 
-  //   context('> initialization parameters are not correct', () => {
-  //     it('it should revert', async () => {})
-  //   })
+    context('> initialization parameters are not correct', () => {
+      it('it should revert', async () => {})
+    })
 
-  //   it('it should revert on re-initialization', async () => {
-  //     await assertRevert(() => apiary.initialize(marketMaker.address, tap.address, pool.address, { from: root }))
-  //   })
-  // })
+    it('it should revert on re-initialization', async () => {
+      await assertRevert(() => apiary.initialize(marketMaker.address, tap.address, pool.address, { from: root }))
+    })
+  })
 
-  // context('> #addCollateralToken', () => {
-  //   context('> sender has ADD_COLLATERAL_TOKEN_ROLE', () => {
-  //     it('it should add collateral token', async () => {
-  //       const receipt1 = await apiary.addCollateralToken(ETH, 1, 2, 200000, 10, { from: authorized })
-  //       const receipt2 = await apiary.addCollateralToken(token1.address, 2, 1, 300000, 5, { from: authorized })
+  context('> #addCollateralToken', () => {
+    context('> sender has ADD_COLLATERAL_TOKEN_ROLE', () => {
+      it('it should add collateral token', async () => {
+        const receipt1 = await apiary.addCollateralToken(ETH, 1, 2, 200000, 10, { from: authorized })
+        const receipt2 = await apiary.addCollateralToken(token1.address, 2, 1, 300000, 5, { from: authorized })
 
-  //       assertExternalEvent(receipt1, 'AddCollateralToken(address,uint256,uint256,uint32)')
-  //       assertExternalEvent(receipt1, 'AddTokenTap(address,uint256)')
-  //       assertExternalEvent(receipt2, 'AddCollateralToken(address,uint256,uint256,uint32)')
-  //       assertExternalEvent(receipt2, 'AddTokenTap(address,uint256)')
-  //     })
-  //   })
+        assertExternalEvent(receipt1, 'AddCollateralToken(address,uint256,uint256,uint32)')
+        assertExternalEvent(receipt1, 'AddTokenTap(address,uint256)')
+        assertExternalEvent(receipt2, 'AddCollateralToken(address,uint256,uint256,uint32)')
+        assertExternalEvent(receipt2, 'AddTokenTap(address,uint256)')
+      })
+    })
 
-  //   context('> sender does not have ADD_COLLATERAL_TOKEN_ROLE', () => {
-  //     it('it should revert', async () => {
-  //       await assertRevert(() => apiary.addCollateralToken(ETH, 1, 2, 200000, 10, { from: unauthorized }))
-  //       await assertRevert(() => apiary.addCollateralToken(token1.address, 2, 1, 300000, 5, { from: unauthorized }))
-  //     })
-  //   })
-  // })
+    context('> sender does not have ADD_COLLATERAL_TOKEN_ROLE', () => {
+      it('it should revert', async () => {
+        await assertRevert(() => apiary.addCollateralToken(ETH, 1, 2, 200000, 10, { from: unauthorized }))
+        await assertRevert(() => apiary.addCollateralToken(token1.address, 2, 1, 300000, 5, { from: unauthorized }))
+      })
+    })
+  })
 
-  // context('> #updateTokenTap', () => {
-  //   context('> sender has UPDATE_TOKEN_TAP_ROLE', () => {
-  //     it('it should update token tap', async () => {
-  //       await apiary.addCollateralToken(ETH, 1, 2, 200000, 10, { from: authorized })
-  //       await apiary.addCollateralToken(token1.address, 2, 1, 300000, 5, { from: authorized })
-  //       await timeTravel(2592000) // 1 month = 2592000 seconds
+  context('> #updateTokenTap', () => {
+    context('> sender has UPDATE_TOKEN_TAP_ROLE', () => {
+      it('it should update token tap', async () => {
+        await apiary.addCollateralToken(ETH, 1, 2, 200000, 10, { from: authorized })
+        await apiary.addCollateralToken(token1.address, 2, 1, 300000, 5, { from: authorized })
+        await timeTravel(2592000) // 1 month = 2592000 seconds
 
-  //       const receipt1 = await apiary.updateTokenTap(ETH, 14, { from: authorized })
-  //       const receipt2 = await apiary.updateTokenTap(token1.address, 7, { from: authorized })
+        const receipt1 = await apiary.updateTokenTap(ETH, 14, { from: authorized })
+        const receipt2 = await apiary.updateTokenTap(token1.address, 7, { from: authorized })
 
-  //       assertExternalEvent(receipt1, 'UpdateTokenTap(address,uint256)')
-  //       assertExternalEvent(receipt2, 'UpdateTokenTap(address,uint256)')
-  //     })
-  //   })
+        assertExternalEvent(receipt1, 'UpdateTokenTap(address,uint256)')
+        assertExternalEvent(receipt2, 'UpdateTokenTap(address,uint256)')
+      })
+    })
 
-  //   context('> sender does not have UPDATE_TOKEN_TAP_ROLE', () => {
-  //     it('it should revert', async () => {
-  //       await apiary.addCollateralToken(ETH, 1, 2, 200000, 10, { from: authorized })
-  //       await apiary.addCollateralToken(token1.address, 2, 1, 300000, 5, { from: authorized })
-  //       await timeTravel(2592000) // 1 month = 2592000 seconds
+    context('> sender does not have UPDATE_TOKEN_TAP_ROLE', () => {
+      it('it should revert', async () => {
+        await apiary.addCollateralToken(ETH, 1, 2, 200000, 10, { from: authorized })
+        await apiary.addCollateralToken(token1.address, 2, 1, 300000, 5, { from: authorized })
+        await timeTravel(2592000) // 1 month = 2592000 seconds
 
-  //       await assertRevert(() => apiary.updateTokenTap(ETH, 14, { from: unauthorized }))
-  //       await assertRevert(() => apiary.updateTokenTap(token1.address, 7, { from: unauthorized }))
-  //     })
-  //   })
-  // })
+        await assertRevert(() => apiary.updateTokenTap(ETH, 14, { from: unauthorized }))
+        await assertRevert(() => apiary.updateTokenTap(token1.address, 7, { from: unauthorized }))
+      })
+    })
+  })
 
   context('> #createBuyOrder', () => {
     context('> sender has CREATE_BUY_ORDER_ROLE', () => {
@@ -270,73 +270,71 @@ contract('ApiaryController app', accounts => {
         await apiary.addCollateralToken(ETH, 1, 2, RESERVE_RATIOS[0], 10, { from: authorized })
         await apiary.addCollateralToken(token1.address, 2, 1, RESERVE_RATIOS[1], 5, { from: authorized })
 
-        // const receipt1 = await apiary.createBuyOrder(ETH, 25, { from: authorized })
-        console.log((await token1.balanceOf(authorized)).toNumber())
-        console.log((await token1.allowance(authorized, apiary.address)).toNumber())
-
+        const receipt1 = await apiary.createBuyOrder(ETH, 25, { from: authorized, value: 25 })
         const receipt2 = await apiary.createBuyOrder(token1.address, 1, { from: authorized })
 
-        // assertExternalEvent(receipt1, 'NewBuyOrder(address,address,uint256)')
-        // assertExternalEvent(receipt2, 'NewBuyOrder(address,address,uint256)')
+        assertExternalEvent(receipt1, 'NewBuyOrder(address,address,uint256,uint256)')
+        assertExternalEvent(receipt2, 'NewBuyOrder(address,address,uint256,uint256)')
       })
     })
 
     context('> sender does not have CREATE_BUY_ORDER_ROLE', () => {
       it('it should revert', async () => {
-        // await apiary.addCollateralToken(ETH, 1, 2, RESERVE_RATIOS[0], 10, { from: authorized })
-        // await apiary.addCollateralToken(token1.address, 2, 1, RESERVE_RATIOS[1], 5, { from: authorized })
-        // await assertRevert(() => apiary.updateReserveRatio(ETH, RESERVE_RATIOS[0] + 10000, { from: unauthorized }))
-        // await assertRevert(() => apiary.updateReserveRatio(token1.address, RESERVE_RATIOS[1] + 10000, { from: unauthorized }))
+        await apiary.addCollateralToken(ETH, 1, 2, RESERVE_RATIOS[0], 10, { from: authorized })
+        await apiary.addCollateralToken(token1.address, 2, 1, RESERVE_RATIOS[1], 5, { from: authorized })
+
+        await assertRevert(() => apiary.createBuyOrder(ETH, 25, { from: unauthorized, value: 25 }))
+        await assertRevert(() => apiary.createBuyOrder(token1.address, 1, { from: unauthorized }))
       })
     })
   })
 
-  // context('> #updateReserveRatio', () => {
-  //   context('> sender has UPDATE_RESERVE_RATIO_ROLE', () => {
-  //     it('it should update reserve ratio', async () => {
-  //       await apiary.addCollateralToken(ETH, 1, 2, RESERVE_RATIOS[0], 10, { from: authorized })
-  //       await apiary.addCollateralToken(token1.address, 2, 1, RESERVE_RATIOS[1], 5, { from: authorized })
+  context('> #updateReserveRatio', () => {
+    context('> sender has UPDATE_RESERVE_RATIO_ROLE', () => {
+      it('it should update reserve ratio', async () => {
+        await apiary.addCollateralToken(ETH, 1, 2, RESERVE_RATIOS[0], 10, { from: authorized })
+        await apiary.addCollateralToken(token1.address, 2, 1, RESERVE_RATIOS[1], 5, { from: authorized })
 
-  //       const receipt1 = await apiary.updateReserveRatio(ETH, RESERVE_RATIOS[0] + 10000, { from: authorized })
-  //       const receipt2 = await apiary.updateReserveRatio(token1.address, RESERVE_RATIOS[1] + 10000, { from: authorized })
+        const receipt1 = await apiary.updateReserveRatio(ETH, RESERVE_RATIOS[0] + 10000, { from: authorized })
+        const receipt2 = await apiary.updateReserveRatio(token1.address, RESERVE_RATIOS[1] + 10000, { from: authorized })
 
-  //       assertExternalEvent(receipt1, 'UpdateReserveRatio(address,uint32)')
-  //       assertExternalEvent(receipt2, 'UpdateReserveRatio(address,uint32)')
-  //     })
-  //   })
+        assertExternalEvent(receipt1, 'UpdateReserveRatio(address,uint32)')
+        assertExternalEvent(receipt2, 'UpdateReserveRatio(address,uint32)')
+      })
+    })
 
-  //   context('> sender does not have UPDATE_RESERVE_RATIO_ROLE', () => {
-  //     it('it should revert', async () => {
-  //       await apiary.addCollateralToken(ETH, 1, 2, RESERVE_RATIOS[0], 10, { from: authorized })
-  //       await apiary.addCollateralToken(token1.address, 2, 1, RESERVE_RATIOS[1], 5, { from: authorized })
+    context('> sender does not have UPDATE_RESERVE_RATIO_ROLE', () => {
+      it('it should revert', async () => {
+        await apiary.addCollateralToken(ETH, 1, 2, RESERVE_RATIOS[0], 10, { from: authorized })
+        await apiary.addCollateralToken(token1.address, 2, 1, RESERVE_RATIOS[1], 5, { from: authorized })
 
-  //       await assertRevert(() => apiary.updateReserveRatio(ETH, RESERVE_RATIOS[0] + 10000, { from: unauthorized }))
-  //       await assertRevert(() => apiary.updateReserveRatio(token1.address, RESERVE_RATIOS[1] + 10000, { from: unauthorized }))
-  //     })
-  //   })
-  // })
+        await assertRevert(() => apiary.updateReserveRatio(ETH, RESERVE_RATIOS[0] + 10000, { from: unauthorized }))
+        await assertRevert(() => apiary.updateReserveRatio(token1.address, RESERVE_RATIOS[1] + 10000, { from: unauthorized }))
+      })
+    })
+  })
 
-  // context('> #poolBalance', () => {
-  //   context('> ETH', () => {
-  //     it('it should return available pool balance', async () => {
-  //       await forceSendETH(pool.address, INITIAL_ETH_BALANCE)
+  context('> #poolBalance', () => {
+    context('> ETH', () => {
+      it('it should return available pool balance', async () => {
+        await forceSendETH(pool.address, INITIAL_ETH_BALANCE)
 
-  //       await apiary.addCollateralToken(ETH, 1, 2, RESERVE_RATIOS[0], 5, { from: authorized })
-  //       await timeTravel(10)
+        await apiary.addCollateralToken(ETH, 1, 2, RESERVE_RATIOS[0], 5, { from: authorized })
+        await timeTravel(10)
 
-  //       assert.equal(await apiary.poolBalance(ETH), 450)
-  //     })
-  //   })
+        assert.equal(await apiary.poolBalance(ETH), 450)
+      })
+    })
 
-  //   context('> ERC20', () => {
-  //     it('it should return available pool balance', async () => {
-  //       const collateral = await TokenMock.new(pool.address, INITIAL_TOKEN_BALANCE)
+    context('> ERC20', () => {
+      it('it should return available pool balance', async () => {
+        const collateral = await TokenMock.new(pool.address, INITIAL_TOKEN_BALANCE)
 
-  //       await apiary.addCollateralToken(collateral.address, 1, 2, RESERVE_RATIOS[0], 20, { from: authorized })
-  //       await timeTravel(10)
+        await apiary.addCollateralToken(collateral.address, 1, 2, RESERVE_RATIOS[0], 20, { from: authorized })
+        await timeTravel(10)
 
-  //       assert.equal(await apiary.poolBalance(collateral.address), INITIAL_TOKEN_BALANCE - 20 * 10)
-  //     })
-  //   })
-  // })
+        assert.equal(await apiary.poolBalance(collateral.address), INITIAL_TOKEN_BALANCE - 20 * 10)
+      })
+    })
+  })
 })

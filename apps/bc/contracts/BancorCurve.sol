@@ -97,6 +97,7 @@ contract BancorCurve is EtherTokenConstant, IsContract, AragonApp {
     event ReturnBuy(address indexed buyer, address indexed collateralToken, uint256 amount);
     event ReturnSell(address indexed seller, address indexed collateralToken, uint256 value);
 
+    event Test(address pool);
     function initialize(
         IMarketMakerController _controller,
         TokenManager _tokenManager,
@@ -118,6 +119,9 @@ contract BancorCurve is EtherTokenConstant, IsContract, AragonApp {
         formula = _formula;
         pool = Pool(_controller.pool());
         batchBlocks = _batchBlocks;
+
+        GAS_COST_BUY_ORDER = 0;
+        GAS_COST_SELL_ORDER = 0;
     }
 
     /***** external functions *****/
@@ -134,6 +138,7 @@ contract BancorCurve is EtherTokenConstant, IsContract, AragonApp {
         collateralTokensLength = collateralTokensLength + 1;
 
         emit AddCollateralToken(_collateralToken, _virtualSupply, _virtualBalance, _reserveRatio);
+        emit Test(pool);
     }
 
     /**
