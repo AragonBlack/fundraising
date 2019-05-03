@@ -217,6 +217,19 @@ contract('Tap app', accounts => {
               assert.equal(await tap.lastTapUpdates(token1.address), timestamp2)
               assert.equal(await tap.lastTapUpdates(token2.address), timestamp3)
             })
+
+            it('it should re-add tap token that has been removed', async () => {
+              const receipt1 = await tap.addTokenTap(token1.address, 50, { from: authorized })
+
+              const timestamp1 = getTimestamp(receipt1)
+              assertEvent(receipt1, 'AddTokenTap')
+              assert.equal(await tap.taps(token1.address), 50)
+
+              assert.equal(await tap.lastWithdrawals(token1.address), timestamp1)
+              assert.equal(await tap.lastTapUpdates(token1.address), timestamp1)
+
+              const receipt2 = await tap.removeTokenTap(token1.address, { from: authorized })
+            })
           })
 
           context('> but tap is zero', () => {
