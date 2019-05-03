@@ -22,7 +22,6 @@
     "publish": "npm run publish:major:devchain"
   },
   "files": [
-    "/abi",
     "/arapp.json",
     "/build",
     "/contracts",
