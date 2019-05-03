@@ -1,8 +1,9 @@
-import { AppView, Main, TabBar, observe } from '@aragon/ui'
+import { AppView, Main, TabBar, Button, SidePanel, observe } from '@aragon/ui'
 import { first, map } from 'rxjs/operators'
-
+import styled from 'styled-components'
 import React from 'react'
 import AppLayout from './components/AppLayout'
+import NewOrderSidePanel from './components/NewOrderSidePanel'
 // import NewRepositoryIcon from './components/NewRepositoryIcon'
 import Orders from './screens/Orders'
 import Overview from './screens/Overview'
@@ -12,6 +13,8 @@ const tabs = ['Overview', 'Buys / Sells', 'Settings']
 class App extends React.Component {
   static defaultProps = {
     repos: [],
+    amount: '',
+    token: ''
   }
 
   constructor(props) {
@@ -19,13 +22,13 @@ class App extends React.Component {
     // this.state = { repos: props.repos, sidePanelOpen: false }
 
     this.handleMenuPanelOpen = this.handleMenuPanelOpen.bind(this)
-    this.handleSidePanelOpen = this.handleSidePanelOpen.bind(this)
-    this.handleSidePanelClose = this.handleSidePanelClose.bind(this)
+    this.handleOrderSidePanelOpen = this.handleOrderSidePanelOpen.bind(this)
+    this.handleOrderSidePanelClose = this.handleOrderSidePanelClose.bind(this)
     this.handleCreateRepository = this.handleCreateRepository.bind(this)
 
     this.state = {
       tabIndex: 0,
-      updateInformationsSidePanelOpen: false,
+      updateOrderSidePanelOpen: false,
     }
   }
 
@@ -89,34 +92,54 @@ class App extends React.Component {
     this.props.sendMessageToWrapper('menuPanel', true)
   }
 
-  handleSidePanelOpen() {
-    this.setState({ sidePanelOpen: true })
+  handleOrderSidePanelOpen() {
+    this.setState({ updateOrderSidePanelOpen: true })
   }
 
-  handleSidePanelClose() {
-    this.setState({ sidePanelOpen: false })
+  handleOrderSidePanelClose() {
+    this.setState({ updateOrderSidePanelOpen: false })
   }
 
   handleCreateRepository(name, description) {
     this.props.app.createRepository(name, description)
   }
 
+  handleUpdateOrder(amount, token) {
+    //this.props.app.createOrder(amount, token)
+  }
+
   render() {
-    const { tabIndex } = this.state
+    const { tabIndex, updateOrderSidePanelOpen, amount, token } = this.state
     const currentTab = tabs[tabIndex]
 
     return (
       <div css="min-width: 320px">
         <Main>
+          <NewOrder><Button mode="strong" onClick={this.handleOrderSidePanelOpen}>New Order</Button></NewOrder>
           <AppView title="Apiary" tabs={<TabBar items={tabs} selected={tabIndex} onChange={tabIndex => this.setState({ tabIndex })} />}>
             {currentTab === 'Overview' && <Overview />}
             {currentTab === 'Buys / Sells' && <Orders />}
           </AppView>
         </Main>
+        <NewOrderSidePanel
+            amount={amount}
+            token={token}
+            price={"300.00"}
+            opened={updateOrderSidePanelOpen}
+            onClose={this.handleOrderSidePanelClose}
+            onSubmit={this.handleUpdateOrder}
+          />
       </div>
     )
   }
 }
+
+const NewOrder = styled.h1`
+  position: absolute;
+  z-index: 3;
+  padding:20px;
+  right: 0;
+`
 
 export default observe(
   observable =>
