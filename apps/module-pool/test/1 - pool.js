@@ -15,7 +15,6 @@ const EtherTokenConstantMock = artifacts.require('EtherTokenConstantMock')
 const TokenMock = artifacts.require('TokenMock')
 const DestinationMock = artifacts.require('DestinationMock')
 const ExecutionTarget = artifacts.require('ExecutionTarget')
-
 const getEvent = (receipt, event, arg) => {
   return receipt.logs.filter(l => l.event === event)[0].args[arg]
 }

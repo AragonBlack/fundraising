@@ -40,12 +40,8 @@ contract Pool is Agent {
 
         for (uint256 i = 0; i < collateralTokensLength; i++) {
             address token = collateralTokens[i + 1];
-
-            // we don't care if token is ETH as it can't be spent
-            if (token != ETH && token == _target) {
-              revert(ERROR_TARGET_IS_GUARDED);
-            }
-
+            // we don't care if target is ETH [0x00...] as it can't be spent anyhow and users may will to burn non-guarded tokens for some reason ...
+            require(token == ETH || token != _target, ERROR_TARGET_IS_GUARDED);
             balances[i] = balance(token);
         }
 

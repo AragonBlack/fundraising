@@ -1,7 +1,7 @@
 pragma solidity 0.4.24;
 
-import "../../standards/IERC165.sol";
-import "../../standards/ERC1271.sol";
+import "@aragon/apps-agent/contracts/standards/IERC165.sol";
+import "@aragon/apps-agent/contracts/standards/ERC1271.sol";
 
 
 contract DesignatedSigner /* is IERC165, ERC1271 */ {
