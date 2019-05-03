@@ -1,10 +1,10 @@
 {
-  "name": "@ablack/fundraising-tap",
+  "name": "@ablack/fundraising-module-tap",
   "version": "0.1.0",
-  "description": "",
   "author": "Aragon Black <contact@aragon.black>",
   "contributors": [
-    "Olivier Sarrouy <olivier@aragon.black>"
+    "Olivier Sarrouy <olivier@aragon.black>",
+    "Cory Dickson <cory@aragon.black>"
   ],
   "repository": "github:AragonBlack/fundraising",
   "homepage": "https://github.com/AragonBlack/fundraising",
@@ -29,22 +29,21 @@
     "/test"
   ],
   "dependencies": {
-    "@aragon/os": "4.1.0",
-    "@ablack/fundraising-pool": "^0.1.0"
+    "@aragon/os": "4.2.0",
+    "@aragon/apps-vault": "4.1.0"
   },
   "devDependencies": {
-    "@aragon/apps-agent": "1.0.1",
+    "@ablack/eslint-config-tests": "^1.0.0",
+    "@aragon/apps-agent": "1.1.1",
     "@aragon/apps-shared-migrations": "1.0.0",
-    "@aragon/apps-vault": "4.0.0",
     "@aragon/cli": "^5.2.1",
     "@aragon/test-helpers": "^1.0.1",
-    "eslint": "^5.14.1",
-    "eslint-config-prettier": "^4.1.0",
-    "eslint-config-prettier-standard": "^2.0.0",
+    "eslint": "^5.16.0",
+    "eslint-config-prettier": "^3.0.1",
     "eslint-config-standard": "^12.0.0",
     "eslint-plugin-import": "^2.16.0",
     "eslint-plugin-node": "^8.0.1",
-    "eslint-plugin-prettier": "^3.0.1",
+    "eslint-plugin-prettier": "^2.3.1",
     "eslint-plugin-promise": "^4.0.1",
     "eslint-plugin-standard": "^4.0.0",
     "eth-gas-reporter": "^0.1.1",

@@ -10,9 +10,7 @@ import "@aragon/os/contracts/common/IsContract.sol";
 import "@aragon/os/contracts/common/SafeERC20.sol";
 import "@aragon/os/contracts/lib/token/ERC20.sol";
 import "@aragon/os/contracts/lib/math/SafeMath.sol";
-
 import "@aragon/apps-vault/contracts/Vault.sol";
-import "@aragonblack/fundraising-pool/contracts/Pool.sol";
 
 
 contract Tap is EtherTokenConstant, IsContract, AragonApp {
@@ -21,15 +19,14 @@ contract Tap is EtherTokenConstant, IsContract, AragonApp {
 
     uint64 public constant PCT_BASE = 10 ** 18; // 0% = 0; 1% = 10^16; 100% = 10^18
 
-    bytes32 public constant UPDATE_VAULT_ROLE = keccak256("UPDATE_VAULT_ROLE");
-    bytes32 public constant UPDATE_POOL_ROLE = keccak256("UPDATE_POOL_ROLE");
+    bytes32 public constant UPDATE_RESERVE_ROLE = keccak256("UPDATE_RESERVE_ROLE");
+    bytes32 public constant UPDATE_BENEFICIARY_ROLE = keccak256("UPDATE_BENEFICIARY_ROLE");
     bytes32 public constant ADD_TOKEN_TAP_ROLE = keccak256("ADD_TOKEN_TAP_ROLE");
     bytes32 public constant REMOVE_TOKEN_TAP_ROLE = keccak256("REMOVE_TOKEN_TAP_ROLE");
     bytes32 public constant UPDATE_TOKEN_TAP_ROLE = keccak256("UPDATE_TOKEN_TAP_ROLE");
     bytes32 public constant WITHDRAW_ROLE = keccak256("WITHDRAW_ROLE");
 
-    string private constant ERROR_VAULT_NOT_CONTRACT = "TAP_VAULT_NOT_CONTRACT";
-    string private constant ERROR_POOL_NOT_CONTRACT = "TAP_POOL_NOT_CONTRACT";
+    string private constant ERROR_RESERVE_NOT_CONTRACT = "TAP_RESERVE_NOT_CONTRACT";
     string private constant ERROR_TOKEN_NOT_ETH_OR_CONTRACT = "TAP_TOKEN_NOT_ETH_OR_CONTRACT";
     string private constant ERROR_TOKEN_TAP_ALREADY_EXISTS = "TAP_TOKEN_TAP_ALREADY_EXISTS";
     string private constant ERROR_TOKEN_TAP_DOES_NOT_EXIST = "TAP_TOKEN_TAP_DOES_NOT_EXIST";
@@ -37,58 +34,55 @@ contract Tap is EtherTokenConstant, IsContract, AragonApp {
     string private constant ERROR_TAP_INCREASE_EXCEEDS_LIMIT = "TAP_TAP_INCREASE_EXCEEDS_LIMIT";
     string private constant ERROR_WITHDRAWAL_AMOUNT_ZERO = "TAP_WITHDRAWAL_AMOUNT_ZERO";
 
-    Vault public vault;
-    Pool public pool;
-
+    Vault public reserve;
+    address public beneficiary;
+    uint256 public maxMonthlyTapIncreaseRate;
+    
     mapping (address => uint256) public taps;
     mapping (address => uint256) public lastWithdrawals;
     mapping (address => uint256) public lastTapUpdates;
-    uint256 public maxMonthlyTapIncreaseRate;
-
-    event UpdateVault(address vault);
-    event UpdatePool(address pool);
+    
+    event UpdateReserve(address reserve);
+    event UpdateBeneficiary(address beneficiary);
     event AddTokenTap(address indexed token, uint256 tap);
     event RemoveTokenTap(address indexed token);
     event UpdateTokenTap(address indexed token, uint256 tap);
     event Withdraw(address indexed token, uint256 amount);
 
-    function initialize(Vault _vault, Pool _pool, uint256 _maxMonthlyTapIncreaseRate) external onlyInit {
-        require(isContract(_vault), ERROR_VAULT_NOT_CONTRACT);
-        require(isContract(_pool), ERROR_POOL_NOT_CONTRACT);
-
-        initialized();
-
-        pool = _pool;
-        vault = _vault;
-        maxMonthlyTapIncreaseRate = _maxMonthlyTapIncreaseRate;
-    }
 
     /***** external function *****/
 
     // add ability to update maxMonthlyTapIncreaseRate ?
 
-    /**
-    * @notice Update vault to `_vault`
-    * @param _vault Address of the new vault
-    */
-    function updateVault(Vault _vault) external auth(UPDATE_VAULT_ROLE) {
-        require(isContract(_vault), ERROR_VAULT_NOT_CONTRACT);
-
-        _updateVault(_vault);
+    function initialize(Vault _reserve, address _beneficiary, uint256 _maxMonthlyTapIncreaseRate) external onlyInit {
+        require(isContract(_reserve), ERROR_RESERVE_NOT_CONTRACT);
+        
+        initialized();
+        reserve = _reserve;
+        beneficiary = _beneficiary;
+        maxMonthlyTapIncreaseRate = _maxMonthlyTapIncreaseRate;
     }
 
     /**
-    * @notice Update pool to `_pool`
-    * @param _pool Address of the new pool
+    * @notice Update reserve to `_reserve`
+    * @param _reserve Address of the new reserve
     */
-    function updatePool(Pool _pool) external auth(UPDATE_POOL_ROLE) {
-        require(isContract(_pool), ERROR_POOL_NOT_CONTRACT);
+    function updateReserve(Vault _reserve) external auth(UPDATE_RESERVE_ROLE) {
+        require(isContract(_reserve), ERROR_RESERVE_NOT_CONTRACT);
 
-        _updatePool(_pool);
+        _updateReserve(_reserve);
     }
 
     /**
-    * @notice Add a tap for `_token.symbol(): string` at the pace of `@tokenAmount(_token, _tap)` per second
+    * @notice Update beneficiary to `_beneficiary`
+    * @param _beneficiary Address of the new beneficiary
+    */
+    function updateBeneficiary(address _beneficiary) external auth(UPDATE_BENEFICIARY_ROLE) {
+        _updateBeneficiary(_beneficiary);
+    }
+
+    /**
+    * @notice Add tap for `_token.symbol(): string` at the pace of `@tokenAmount(_token, _tap)` per second
     * @param _token Address of the tapped token
     * @param _tap Tap applied to the token (in wei / second)
     */
@@ -124,8 +118,8 @@ contract Tap is EtherTokenConstant, IsContract, AragonApp {
     }
 
     /**
-    * @notice Withdraw maximum `_token.symbol(): string` amount from pool
-    * @param _token Address of the token to withdraw from pool
+    * @notice Transfer about `@tokenAmount(_token, self.getMaxWithdrawal(_token))` from `self.reserve()` to `self.beneficiary()`
+    * @param _token Address of the token to transfer from reserve to beneficiary
     */
     function withdraw(address _token) external auth(WITHDRAW_ROLE) {
         require(taps[_token] > 0, ERROR_TOKEN_TAP_DOES_NOT_EXIST);
@@ -138,31 +132,43 @@ contract Tap is EtherTokenConstant, IsContract, AragonApp {
     /***** public functions *****/
 
     function isMonthlyTapIncreaseValid(address _token, uint256 _tap) public view isInitialized returns (bool) {
-        if (_tap < taps[_token])
+        if (_tap <= taps[_token])
             return true;
 
         uint256 time = (now).sub(lastWithdrawals[_token]);
         uint256 diff = _tap.sub(taps[_token]);
-        uint256 rate = maxMonthlyTapIncreaseRate.div(uint256(30).mul(uint256(1 days)));
+        uint256 maxRate = maxMonthlyTapIncreaseRate.mul(time).div(uint256(30).mul(uint256(1 days)));
 
-        return !_isValuePct(diff, taps[_token], rate.mul(time));
-    }
-
-    function poolBalance(address _token) public view isInitialized returns (uint256) {
-        if (_token == ETH) {
-            return address(pool).balance;
-        } else {
-            return ERC20(_token).staticBalanceOf(pool);
-        }
+        return !_isValuePct(diff, taps[_token], maxRate);
     }
 
     function getMaxWithdrawal(address _token) public view isInitialized returns (uint256) {
-        uint256 balance = poolBalance(_token);
+        uint256 balance = balanceOfReserve(_token);
         uint256 tapped = (now.sub(lastWithdrawals[_token])).mul(taps[_token]);
         return tapped > balance ? balance : tapped;
     }
 
+    function balanceOfReserve(address _token) public view isInitialized returns (uint256) {
+        if (_token == ETH) {
+            return address(reserve).balance;
+        } else {
+            return ERC20(_token).staticBalanceOf(reserve);
+        }
+    }
+
     /***** internal functions *****/
+
+     function _updateReserve(Vault _reserve) internal {
+        reserve = _reserve;
+
+        emit UpdateReserve(address(_reserve));
+    }
+
+    function _updateBeneficiary(address _beneficiary) internal {
+        beneficiary = _beneficiary;
+
+        emit UpdateBeneficiary(_beneficiary);
+    }
 
     function _addTokenTap(address _token, uint256 _tap) internal {
         taps[_token] = _tap;
@@ -173,7 +179,7 @@ contract Tap is EtherTokenConstant, IsContract, AragonApp {
     }
 
     function _removeTokenTap(address _token) internal {
-        taps[_token] = uint256(0); // no need to re-initialize other data as they will be updated if the token is re-added
+        taps[_token] = uint256(0); // no need to re-initialize other data as they will be re-initialized if the token is re-added
 
         emit RemoveTokenTap(_token);
     }
@@ -185,28 +191,16 @@ contract Tap is EtherTokenConstant, IsContract, AragonApp {
         emit UpdateTokenTap(_token, _tap);
     }
 
-    function _updatePool(Pool _pool) internal {
-        pool = _pool;
-
-        emit UpdatePool(address(_pool));
-    }
-
-    function _updateVault(Vault _vault) internal {
-        vault = _vault;
-
-        emit UpdateVault(address(_vault));
-    }
-
     function _withdraw(address _token, uint256 _amount) internal {
         lastWithdrawals[_token] = now;
-        pool.transfer(_token, vault, _amount); // pool / agent / vault contacts transfer method already throws on error
+        reserve.transfer(_token, beneficiary, _amount); // vault contract's transfer method already reverts on error
 
         emit Withdraw(_token, _amount);
     }
 
     /**
-    * https://github.com/aragon/aragon-apps/blob/98c1e387c82e634da47ea7cefde5ffdf54a5b432/apps/voting/contracts/Voting.sol#L344
     * @dev Calculates whether `_value` is more than a percentage `_pct` of `_total`
+    * https://github.com/aragon/aragon-apps/blob/98c1e387c82e634da47ea7cefde5ffdf54a5b432/apps/voting/contracts/Voting.sol#L344
     */
     function _isValuePct(uint256 _value, uint256 _total, uint256 _pct) internal pure returns (bool) {
         if (_total == 0) {
