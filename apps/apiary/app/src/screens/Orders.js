@@ -13,8 +13,6 @@ const orders = [
 ]
 
 export default class Orders extends React.Component {
-
-
   render() {
     const getOrderStyles = (order) => {
       let background, foreground, sign, type = ''
