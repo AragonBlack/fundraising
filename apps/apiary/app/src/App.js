@@ -7,8 +7,9 @@ import NewOrderSidePanel from './components/NewOrderSidePanel'
 // import NewRepositoryIcon from './components/NewRepositoryIcon'
 import Orders from './screens/Orders'
 import Overview from './screens/Overview'
+import CollateralSettings from './screens/CollateralSettings'
 
-const tabs = ['Overview', 'Buys / Sells', 'Settings']
+const tabs = ['Overview', 'Buys / Sells', 'Collateral Settings']
 
 class App extends React.Component {
   static defaultProps = {
@@ -119,6 +120,7 @@ class App extends React.Component {
           <AppView title="Apiary" tabs={<TabBar items={tabs} selected={tabIndex} onChange={tabIndex => this.setState({ tabIndex })} />}>
             {currentTab === 'Overview' && <Overview />}
             {currentTab === 'Buys / Sells' && <Orders />}
+            {currentTab === 'Collateral Settings' && <CollateralSettings />}
           </AppView>
         </Main>
         <NewOrderSidePanel
