@@ -37,11 +37,11 @@ contract Tap is EtherTokenConstant, IsContract, AragonApp {
     Vault public reserve;
     address public beneficiary;
     uint256 public maxMonthlyTapIncreaseRate;
-    
+
     mapping (address => uint256) public taps;
     mapping (address => uint256) public lastWithdrawals;
     mapping (address => uint256) public lastTapUpdates;
-    
+
     event UpdateReserve(address reserve);
     event UpdateBeneficiary(address beneficiary);
     event AddTokenTap(address indexed token, uint256 tap);
@@ -56,7 +56,7 @@ contract Tap is EtherTokenConstant, IsContract, AragonApp {
 
     function initialize(Vault _reserve, address _beneficiary, uint256 _maxMonthlyTapIncreaseRate) external onlyInit {
         require(isContract(_reserve), ERROR_RESERVE_NOT_CONTRACT);
-        
+
         initialized();
         reserve = _reserve;
         beneficiary = _beneficiary;
