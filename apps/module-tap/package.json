@@ -34,7 +34,6 @@
   },
   "devDependencies": {
     "@ablack/eslint-config-tests": "^1.0.0",
-    "@aragon/apps-agent": "1.1.1",
     "@aragon/apps-shared-migrations": "1.0.0",
     "@aragon/cli": "^5.2.1",
     "@aragon/test-helpers": "^1.0.1",
