@@ -19,13 +19,13 @@
   },
   "roles": [
     {
-      "name": "Update vault address",
-      "id": "UPDATE_VAULT_ROLE",
+      "name": "Update reserve address",
+      "id": "UPDATE_RESERVE_ROLE",
       "params": []
     },
     {
-      "name": "Update pool address",
-      "id": "UPDATE_POOL_ROLE",
+      "name": "Update beneficiary address",
+      "id": "UPDATE_BENEFICIARY_ROLE",
       "params": []
     },
     {
