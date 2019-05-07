@@ -1,0 +1,4 @@
+{
+  "name": "Pool",
+  "description": "Hold assets and perform actions on behalf of market makers"
+}
