@@ -1,19 +1,19 @@
 {
-  "name": "@aragonblack/fundraising-formulas-bancor",
+  "name": "@aragonblack/fundraising-formula-bancor",
   "version": "0.1.0",
   "author": "Aragon Black <contact@aragon.black>",
   "contributors": [
-    "Billy Rennekamp <billy@bin.am>"
+    "Billy Rennekamp <billy@bin.am>",
+    "Olivier Sarrouy <olivier@aragon.black>"
   ],
   "repository": "github:AragonBlack/fundraising",
   "homepage": "https://github.com/AragonBlack/fundraising",
   "bugs": "https://github.com/AragonBlack/fundraising/issues",
   "license": "(GPL-3.0-or-later OR MIT)",
   "scripts": {
-    "lint": "solium --dir ./contracts",
     "compile": "truffle compile",
-    "publish:devchain": "aragon apm publish major --files ./app/build --environment default",
-    "publish": "npm run publish:devchain"
+    "publish:major:devchain": "aragon apm publish major --files ./app/build --environment default",
+    "publish": "npm run publish:major:devchain"
   },
   "files": [
     "/arapp.json",
@@ -23,7 +23,6 @@
   "dependencies": {},
   "devDependencies": {
     "@aragon/cli": "^5.2.1",
-    "ethlint": "^1.2.3",
     "truffle": "4.1.14"
   }
 }
