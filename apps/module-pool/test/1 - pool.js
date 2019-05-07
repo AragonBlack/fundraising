@@ -15,6 +15,7 @@ const EtherTokenConstantMock = artifacts.require('EtherTokenConstantMock')
 const TokenMock = artifacts.require('TokenMock')
 const DestinationMock = artifacts.require('DestinationMock')
 const ExecutionTarget = artifacts.require('ExecutionTarget')
+
 const getEvent = (receipt, event, arg) => {
   return receipt.logs.filter(l => l.event === event)[0].args[arg]
 }
@@ -68,6 +69,12 @@ contract('Pool app', accounts => {
     await initialize()
   })
 
+  context('> #deploy', () => {
+    it('it should deploy', async () => {
+      await Pool.new()
+    })
+  })
+
   context('> #initialize', () => {
     it('it should revert on re-initialization', async () => {
       await assertRevert(() => pool.initialize({ from: authorized }))
@@ -78,32 +85,27 @@ contract('Pool app', accounts => {
     context('> sender has ADD_COLLATERAL_TOKEN_ROLE', () => {
       context('> and token is ETH or ERC20', () => {
         context('> and token does not already exist', () => {
-          it('it should add collateral token in mapping', async () => {
-            const token2 = await TokenMock.new(authorized, 10000)
-            const token3 = await TokenMock.new(authorized, 10000)
+          it('it should add collateral token', async () => {
+            const token2 = await TokenMock.new(pool.address, 10000)
+            const token3 = await TokenMock.new(pool.address, 10000)
 
             const receipt1 = await pool.addCollateralToken(ETH, { from: authorized })
             const receipt2 = await pool.addCollateralToken(token2.address, { from: authorized })
             const receipt3 = await pool.addCollateralToken(token3.address, { from: authorized })
 
-            const collateralTokensLength = await pool.collateralTokensLength()
-            const address1 = await pool.collateralTokens(1)
-            const address2 = await pool.collateralTokens(2)
-            const address3 = await pool.collateralTokens(3)
-
             assertEvent(receipt1, 'AddCollateralToken')
             assertEvent(receipt2, 'AddCollateralToken')
             assertEvent(receipt3, 'AddCollateralToken')
-            assert.equal(collateralTokensLength, 3)
-            assert.equal(ETH, address1)
-            assert.equal(token2.address, address2)
-            assert.equal(token3.address, address3)
+            assert.equal(await pool.collateralTokensLength(), 3)
+            assert.equal(await pool.collateralTokens(1), ETH)
+            assert.equal(await pool.collateralTokens(2), token2.address)
+            assert.equal(await pool.collateralTokens(3), token3.address)
           })
         })
 
         context('> but token already exists', () => {
           it('it should revert', async () => {
-            const token = await TokenMock.new(authorized, 10000)
+            const token = await TokenMock.new(pool.address, 10000)
             await pool.addCollateralToken(token.address, { from: authorized })
 
             await assertRevert(() => pool.addCollateralToken(token.address, { from: authorized }))
@@ -120,7 +122,7 @@ contract('Pool app', accounts => {
 
     context('> sender does not have ADD_COLLATERAL_TOKEN_ROLE', () => {
       it('it should revert', async () => {
-        const token = await TokenMock.new(authorized, 10000)
+        const token = await TokenMock.new(pool.address, 10000)
 
         await assertRevert(() => pool.addCollateralToken(token.address, { from: unauthorized }))
       })
@@ -130,7 +132,7 @@ contract('Pool app', accounts => {
   context('> #removeCollateralToken', () => {
     context('> sender has REMOVE_COLLATERAL_TOKEN_ROLE', () => {
       context('> and token already exists', () => {
-        it('it should remove collateral token from mapping', async () => {
+        it('it should remove collateral token', async () => {
           const token2 = await TokenMock.new(authorized, 10000)
           const token3 = await TokenMock.new(authorized, 10000)
 
@@ -141,11 +143,9 @@ contract('Pool app', accounts => {
           const receipt1 = await pool.removeCollateralToken(token3.address, { from: authorized })
           const receipt2 = await pool.removeCollateralToken(ETH, { from: authorized })
 
-          const collateralTokensLength = await pool.collateralTokensLength()
-
           assertEvent(receipt1, 'RemoveCollateralToken')
           assertEvent(receipt2, 'RemoveCollateralToken')
-          assert.equal(collateralTokensLength, 1)
+          assert.equal(await pool.collateralTokensLength(), 1)
           assert.equal(await pool.collateralTokens(1), token2.address)
           assert.equal(await pool.collateralTokens(2), '0x0000000000000000000000000000000000000000')
           assert.equal(await pool.collateralTokens(3), '0x0000000000000000000000000000000000000000')
@@ -154,8 +154,8 @@ contract('Pool app', accounts => {
 
       context('> but token does not already exist', () => {
         it('it should revert', async () => {
-          const token1 = await TokenMock.new(authorized, 10000)
-          const token2 = await TokenMock.new(authorized, 10000)
+          const token1 = await TokenMock.new(pool.address, 10000)
+          const token2 = await TokenMock.new(pool.address, 10000)
           await pool.addCollateralToken(token1.address, { from: authorized })
 
           await assertRevert(() => pool.removeCollateralToken(token2.address, { from: authorized }))
@@ -165,7 +165,7 @@ contract('Pool app', accounts => {
 
     context('> sender does not have REMOVE_COLLATERAL_TOKEN_ROLE', () => {
       it('it should revert', async () => {
-        const token = await TokenMock.new(authorized, 10000)
+        const token = await TokenMock.new(pool.address, 10000)
         await pool.addCollateralToken(token.address, { from: authorized })
 
         await assertRevert(() => pool.removeCollateralToken(token.address, { from: unauthorized }))
@@ -252,7 +252,7 @@ contract('Pool app', accounts => {
           // ExecutionTarget.execute() increments the counter by 1
           assert.equal(ethABI.decodeParameter('uint256', returnData), 1)
         })
-        //
+
         it('it should revert if executed action reverts', async () => {
           // TODO: Check revert data was correctly forwarded
           // ganache currently doesn't support fetching this data
