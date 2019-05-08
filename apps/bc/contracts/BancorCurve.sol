@@ -14,19 +14,15 @@ import "@aragon/os/contracts/lib/token/ERC20.sol";
 import "@aragon/apps-token-manager/contracts/TokenManager.sol";
 import "@ablack/fundraising-interfaces/contracts/IMarketMakerController.sol";
 import "@aragonblack/fundraising-formulas-bancor/contracts/IBancorFormula.sol";
-
 import "@ablack/fundraising-pool/contracts/Pool.sol";
 
 contract BancorCurve is EtherTokenConstant, IsContract, AragonApp {
     using SafeERC20 for ERC20;
     using SafeMath for uint256;
 
-    bytes32 public constant ADD_COLLATERAL_TOKEN_ROLE = keccak256("ADD_COLLATERAL_TOKEN_ROLE");
-    bytes32 public constant UPDATE_RESERVE_RATIO_ROLE = keccak256("UPDATE_RESERVE_RATIO_ROLE");
-    bytes32 public constant UPDATE_FEE_ROLE = keccak256("UPDATE_FEE_ROLE");
     bytes32 public constant CREATE_BUY_ORDER_ROLE = keccak256("CREATE_BUY_ORDER_ROLE");
     bytes32 public constant CREATE_SELL_ORDER_ROLE = keccak256("CREATE_SELL_ORDER_ROLE");
-    bytes32 public constant UPDATE_GAS_ROLE = keccak256("UPDATE_GAS_ROLE");
+    bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
 
     // string private constant ERROR_INVALID_INIT_PARAMETER = "1";
     // string private constant ERROR_NOT_COLLATERAL_TOKEN = "2";
@@ -47,8 +43,6 @@ contract BancorCurve is EtherTokenConstant, IsContract, AragonApp {
 
     struct Batch {
         bool init;
-        bool buysCleared;
-        bool sellsCleared;
         bool cleared;
         uint256 poolBalance;
         uint256 totalSupply;
@@ -82,10 +76,10 @@ contract BancorCurve is EtherTokenConstant, IsContract, AragonApp {
         mapping(address=>uint256[]) addressToBlocks;
     }
 
-    function getBatch(address _collateralToken, uint256 _batchId) public view returns(bool, bool, bool, bool, uint256, uint256, uint256, uint256, uint256, uint256) {
+    function getBatch(address _collateralToken, uint256 _batchId) public view returns(bool, bool, uint256, uint256, uint256, uint256, uint256, uint256) {
         Batch batch;
         batch = collateralTokenInfo[_collateralToken].batches[_batchId];
-        return (batch.init, batch.buysCleared, batch.sellsCleared, batch.cleared, batch.poolBalance, batch.totalSupply, batch.totalBuySpend, batch.totalBuyReturn, batch.totalSellSpend, batch.totalSellReturn);
+        return (batch.init, batch.cleared, batch.poolBalance, batch.totalSupply, batch.totalBuySpend, batch.totalBuyReturn, batch.totalSellSpend, batch.totalSellReturn);
     }
 
     event AddCollateralToken(address indexed collateralToken, uint256 virtualSupply, uint256 virtualBalance, uint32 reserveRatio);
@@ -97,13 +91,13 @@ contract BancorCurve is EtherTokenConstant, IsContract, AragonApp {
     event ReturnBuy(address indexed buyer, address indexed collateralToken, uint256 amount);
     event ReturnSell(address indexed seller, address indexed collateralToken, uint256 value);
 
-    event Test(address pool);
     function initialize(
         IMarketMakerController _controller,
         TokenManager _tokenManager,
         IBancorFormula _formula,
         uint256 _batchBlocks
-        ) external onlyInit {
+        ) external onlyInit
+    {
 
         initialized();
 
@@ -114,20 +108,19 @@ contract BancorCurve is EtherTokenConstant, IsContract, AragonApp {
             _batchBlocks > 0); // ERROR_INVALID_INIT_PARAMETER
 
         controller = _controller;
+        pool = Pool(_controller.pool());
+
         tokenManager = _tokenManager;
         token = ERC20(tokenManager.token());
-        formula = _formula;
-        pool = Pool(_controller.pool());
-        batchBlocks = _batchBlocks;
 
-        GAS_COST_BUY_ORDER = 0;
-        GAS_COST_SELL_ORDER = 0;
+        formula = _formula;
+        batchBlocks = _batchBlocks;
     }
 
     /***** external functions *****/
 
 
-    function addCollateralToken(address _collateralToken, uint256 _virtualSupply, uint256 _virtualBalance, uint32 _reserveRatio) external auth(ADD_COLLATERAL_TOKEN_ROLE) {
+    function addCollateralToken(address _collateralToken, uint256 _virtualSupply, uint256 _virtualBalance, uint32 _reserveRatio) external auth(ADMIN_ROLE) {
         require(!collateralTokenInfo[_collateralToken].exists, "CollateralToken Already Exists");
         // add checks here
         collateralTokens[collateralTokensLength] = _collateralToken;
@@ -138,7 +131,6 @@ contract BancorCurve is EtherTokenConstant, IsContract, AragonApp {
         collateralTokensLength = collateralTokensLength + 1;
 
         emit AddCollateralToken(_collateralToken, _virtualSupply, _virtualBalance, _reserveRatio);
-        emit Test(pool);
     }
 
     /**
@@ -146,7 +138,7 @@ contract BancorCurve is EtherTokenConstant, IsContract, AragonApp {
         @param _collateralToken The address of the collateral token used.
         @param _reserveRatio The new reserve ratio to be used for that collateral token [in PPM].
     */
-    function updateReserveRatio(address _collateralToken, uint32 _reserveRatio) external auth(UPDATE_RESERVE_RATIO_ROLE) {
+    function updateReserveRatio(address _collateralToken, uint32 _reserveRatio) external auth(ADMIN_ROLE) {
         require(collateralTokenInfo[_collateralToken].exists); // ERROR_NOT_COLLATERAL_TOKEN
         // _updateReserveRatio(_collateralToken, _reserveRatio); 
         collateralTokenInfo[_collateralToken].reserveRatio = _reserveRatio;
@@ -160,9 +152,7 @@ contract BancorCurve is EtherTokenConstant, IsContract, AragonApp {
         @param _sellGas The new sell gas amount to be used.
     */
 
-    function updateGas(uint256 _buyGas, uint256 _sellGas) external auth(UPDATE_GAS_ROLE) {
-        // _updateGas(_buyGas, _sellGas);
-
+    function updateGas(uint256 _buyGas, uint256 _sellGas) external auth(ADMIN_ROLE) {
         GAS_COST_BUY_ORDER = _buyGas;
         GAS_COST_SELL_ORDER = _sellGas;
 
@@ -173,8 +163,7 @@ contract BancorCurve is EtherTokenConstant, IsContract, AragonApp {
         @notice Update the fee percentage removed from all buy and sells.
         @param _fee The new fee to be used [in PPM].
     */
-    function updateFee(uint256 _fee) external auth(UPDATE_FEE_ROLE) {
-        // _updateFee(_fee); 
+    function updateFee(uint256 _fee) external auth(ADMIN_ROLE) {
         FEE_PERCENT_PPM = _fee;
         emit UpdateFee(_fee);
     }
@@ -215,7 +204,7 @@ contract BancorCurve is EtherTokenConstant, IsContract, AragonApp {
     /**
         @notice Clear the last batch of orders if it has not yet been cleared.
     */
-    function clearBatches() external isInitialized {
+    function clearBatches() external {
         for (uint256 i = 1; i <= collateralTokensLength; i++) {
             _clearBatch(collateralTokens[i]);
         }
@@ -227,7 +216,7 @@ contract BancorCurve is EtherTokenConstant, IsContract, AragonApp {
         @param _collateralToken The address of the collateral token used.
         @param _batchId The id of the batch used.
     */
-    function claimBuy(address _buyer, address _collateralToken, uint256 _batchId) external isInitialized  {
+    function claimBuy(address _buyer, address _collateralToken, uint256 _batchId) external {
         require(collateralTokenInfo[_collateralToken].exists); // ERROR_NOT_COLLATERAL_TOKEN
         Batch storage batch = collateralTokenInfo[_collateralToken].batches[_batchId];
         require(batch.cleared, "4"); // ERROR_BATCH_NOT_CLEARED
@@ -243,7 +232,7 @@ contract BancorCurve is EtherTokenConstant, IsContract, AragonApp {
         @param _collateralToken The address of the collateral token used.
         @param _batchId The id of the batch used.
     */
-    function claimSell(address _seller, address _collateralToken, uint256 _batchId) external isInitialized  {
+    function claimSell(address _seller, address _collateralToken, uint256 _batchId) external {
         require(collateralTokenInfo[_collateralToken].exists); // ERROR_NOT_COLLATERAL_TOKEN
         Batch storage batch = collateralTokenInfo[_collateralToken].batches[_batchId];
         require(batch.cleared, "4"); // ERROR_BATCH_NOT_CLEARED
@@ -278,7 +267,7 @@ contract BancorCurve is EtherTokenConstant, IsContract, AragonApp {
         @param _poolBalance The collateral pool balance to be used in the calculation.
         @return The current exact price in parts per million as collateral over token.
     */
-    function getPricePPM(address _collateralToken, uint256 _totalSupply, uint256 _poolBalance) public view isInitialized returns (uint256) {
+    function getPricePPM(address _collateralToken, uint256 _totalSupply, uint256 _poolBalance) public view returns (uint256) {
         // return uint256(ppm).mul(_poolBalance) / _totalSupply.mul(collateralTokenInfo[_collateralToken].reserveRatio);
         return uint256(ppm).mul( _poolBalance.add( collateralTokenInfo[_collateralToken].virtualBalance ) ) / ( ( _totalSupply.add( collateralTokenInfo[_collateralToken].virtualSupply ) ).mul( collateralTokenInfo[_collateralToken].reserveRatio ) );
     }
@@ -287,7 +276,7 @@ contract BancorCurve is EtherTokenConstant, IsContract, AragonApp {
         @dev Get the id [i.e. block number] attached to the current batch of orders.
         @return The id the current batch of orders.
     */
-    function getCurrentBatchId() public view isInitialized returns (uint256) {
+    function getCurrentBatchId() public view returns (uint256) {
         return (block.number / batchBlocks).mul(batchBlocks);
     }
 
@@ -299,7 +288,7 @@ contract BancorCurve is EtherTokenConstant, IsContract, AragonApp {
         @param _buyValue The amount of collateral token to be spent in the purchase.
         @return The number of tokens that would be purchased in this scenario.
     */
-    function getBuy(address _collateralToken, uint256 _totalSupply, uint256 _poolBalance, uint256 _buyValue) public view isInitialized returns (uint256) {
+    function getBuy(address _collateralToken, uint256 _totalSupply, uint256 _poolBalance, uint256 _buyValue) public view returns (uint256) {
         return formula.calculatePurchaseReturn(
             _totalSupply.add(collateralTokenInfo[_collateralToken].virtualSupply),
             _poolBalance.add(collateralTokenInfo[_collateralToken].virtualBalance),
@@ -315,7 +304,7 @@ contract BancorCurve is EtherTokenConstant, IsContract, AragonApp {
         @param _sellAmount The amount of tokens to be sold in the transaction.
         @return The number of collateral tokens that would be returned in this scenario.
     */
-    function getSell(address _collateralToken, uint256 _totalSupply, uint256 _poolBalance, uint256 _sellAmount) public view isInitialized returns (uint256) {
+    function getSell(address _collateralToken, uint256 _totalSupply, uint256 _poolBalance, uint256 _sellAmount) public view returns (uint256) {
         return formula.calculateSaleReturn(
             _totalSupply.add(collateralTokenInfo[_collateralToken].virtualSupply),
             _poolBalance.add(collateralTokenInfo[_collateralToken].virtualBalance),
@@ -324,24 +313,6 @@ contract BancorCurve is EtherTokenConstant, IsContract, AragonApp {
     }
 
     /***** internal functions *****/
-
-    // function _updateReserveRatio(address _collateralToken, uint32 _reserveRatio) internal {
-    //     collateralTokenInfo[_collateralToken].reserveRatio = _reserveRatio;
-    //     emit UpdateReserveRatio(_collateralToken, _reserveRatio);
-    // }
-
-    // function _updateFee(uint256 _fee) internal {
-    //     FEE_PERCENT_PPM = _fee;
-    //     emit UpdateFee(_fee);
-    // }
-
-    // function _updateGas(uint256 _buyGas, uint256 _sellGas) internal {
-
-    //     GAS_COST_BUY_ORDER = _buyGas;
-    //     GAS_COST_SELL_ORDER = _sellGas;
-
-    //     emit UpdateGas(_buyGas, _sellGas);
-    // }
 
     function _createBuyOrder(address _buyer, address _collateralToken, uint256 _value) internal {
         uint256 batchId = getCurrentBatchId();
@@ -414,7 +385,7 @@ contract BancorCurve is EtherTokenConstant, IsContract, AragonApp {
         @param _batchId The block number of the batch being initialized.
     */
     function _initBatch(uint256 _batchId) internal {
-        address collateralToken ;
+        address collateralToken;
         uint256 i;
         for (i = 0; i < collateralTokensLength; i++) {
             collateralToken = collateralTokens[i];
@@ -477,17 +448,16 @@ contract BancorCurve is EtherTokenConstant, IsContract, AragonApp {
         // and the remaining sales can go back to the original bonding
         // curve scenario.
         
-        // more sells than buys
+        // if more sells than buys
         if (resultOfSell >= cb.totalBuySpend) {
             // total number of tokens created as a result of all of the buys being executed at the
             // current exact price (tokens = collateral / price). staticPrice is in ppm, to avoid
             // overflows it has been re-arranged.
             cb.totalBuyReturn = cb.totalBuySpend.mul(ppm) / staticPrice;
-            cb.buysCleared = true;
 
             // there are some tokens left over to be sold. these should be the difference between
             // the original total sell order, and the result of executing all of the buys
-            uint256 remainingSell = cb.totalSellSpend.sub(resultOfSell);
+            uint256 remainingSell = cb.totalSellSpend.sub(cb.totalBuyReturn);
 
             // now that we know how many tokens are left to be sold we can get the amount of collateral
             // generated by selling them through a normal bonding curve execution, based on the
@@ -495,9 +465,9 @@ contract BancorCurve is EtherTokenConstant, IsContract, AragonApp {
             // order was just smaller than originally thought).
             uint256 remainingSellReturn = getSell(collateralToken, cb.totalSupply, cb.poolBalance, remainingSell);
 
-            // totalSellReturn becomes the result of selling out to the buy orders
+            // totalSellReturn becomes the result of matching the buy orders
             // plus the getSell() return from selling the remaining tokens
-            cb.totalSellReturn = resultOfSell.add(remainingSellReturn);
+            cb.totalSellReturn = cb.totalBuySpend.add(remainingSellReturn);
 
             // TotalSupply doesn't need to be changed (keep it commented out). It only needs to be changed
             // by clearSales or clearBuys scenario so that the subsequent clearSales/clearBuys
@@ -506,7 +476,6 @@ contract BancorCurve is EtherTokenConstant, IsContract, AragonApp {
 
             // poolBalance is ultimately only affected by the net difference between the buys and sells
             // cb.poolBalance = cb.poolBalance.sub(remainingSellReturn);
-            cb.sellsCleared = true;
 
             // if the collateral resulting from the sells is LESS THAN
             // the total amount of collateral to be spent during all buys
@@ -517,7 +486,6 @@ contract BancorCurve is EtherTokenConstant, IsContract, AragonApp {
         // more buys than sells
         } else {
             cb.totalSellReturn = resultOfSell;
-            cb.sellsCleared = true;
 
             // there is some collateral left over to be spent. this should be the difference between
             // the original total buy order, and the result of executing all of the sells.
@@ -527,7 +495,7 @@ contract BancorCurve is EtherTokenConstant, IsContract, AragonApp {
             // C * t / (ppm*c). The collateral denoms cancel out so you get t/ppm. To find out the
             // actual t value you need to also cancel out the ppm by multiplying it to get just t.
             // re-order this for rounding purposes and you get C*ppm/p
-            uint256 resultOfBuy = cb.totalBuySpend.mul(ppm) / staticPrice;
+            // uint256 resultOfBuy = cb.totalBuySpend.mul(ppm) / staticPrice;
             uint256 remainingBuy = cb.totalBuySpend.sub(resultOfSell);
 
             // now that we know how much collateral is left to be spent we can get the amount of tokens
@@ -543,11 +511,10 @@ contract BancorCurve is EtherTokenConstant, IsContract, AragonApp {
             // TotalSupply doesn't need to be changed (keep it commented out). It only needs to be changed
             // by clearSales or clearBuys scenario so that the subsequent clearSales/clearBuys
             // can correctly calculate the purchaseReturn/saleReturn.
-            cb.totalSupply = cb.totalSupply.add(remainingBuyReturn);
+            // cb.totalSupply = cb.totalSupply.add(remainingBuyReturn);
 
             // poolBalance is ultimately only affected by the net difference between the buys and sells
-            cb.poolBalance = cb.poolBalance.add(remainingBuyReturn);
-            cb.buysCleared = true;
+            // cb.poolBalance = cb.poolBalance.add(remainingBuy);
         }
     }
 }
