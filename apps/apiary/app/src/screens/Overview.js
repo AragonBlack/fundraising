@@ -1,9 +1,9 @@
-import { Table, TableCell, TableRow, Text } from '@aragon/ui'
-import React from 'react'
-import styled from 'styled-components'
-import antImage from '../assets/ant.png'
-import ethImage from '../assets/eth.png'
-import Chart from '../components/Chart'
+import { Text } from '@aragon/ui';
+import React from 'react';
+import styled from 'styled-components';
+import antImage from '../assets/ant.png';
+import daiImage from '../assets/dai.png';
+import Chart from '../components/Chart';
 
 export default class Repositories extends React.Component {
   render() {
@@ -13,51 +13,39 @@ export default class Repositories extends React.Component {
           <h1 className="title">
             <Text>Token balances</Text>
           </h1>
-          <Table>
-            <TableRow>
-              <TableCell>
-                <div className="cell-content">
-                  <p className="title">Bonded token supply</p>
-                  <p className="number">5600</p>
-                  <p className="sub-number">$123,600,923.82</p>
-                </div>
-              </TableCell>
-              <TableCell>
-                <div className="cell-content">
-                  <div className="title">
-                    <img src={ethImage} />
-                    <p>ETH Collateral</p>
-                  </div>
-                  <p className="number">103,039.39</p>
-                  <p className="sub-number">$76,600,923.82</p>
-                </div>
-              </TableCell>
-              <TableCell>
-                <div className="cell-content">
-                  <div className="title">
-                    <img src={antImage} />
-                    <p>ANT Collateral</p>
-                  </div>
-                  <p className="number">2,934.45</p>
-                  <p className="sub-number">$17,586.27</p>
-                </div>
-              </TableCell>
-              <TableCell>
-                <div className="cell-content">
-                  <p className="title">Total balance USD</p>
-                  <p className="number">$23,699,746.32</p>
-                  <p className="sub-number">$123,600,923.82</p>
-                </div>
-              </TableCell>
-              <TableCell>
-                <div className="cell-content">
-                  <p className="title">Tap rate</p>
-                  <p className="number">11,340</p>
-                  <p className="sub-number">$25,500.82</p>
-                </div>
-              </TableCell>
-            </TableRow>
-          </Table>
+          <ul>
+            <li>
+              <p className="title">Bonded token supply</p>
+              <p className="number">5600</p>
+              <p className="sub-number">$123,600,923.82</p>
+            </li>
+            <li>
+              <div className="title">
+                <img src={daiImage} />
+                <p>DAI Collateral</p>
+              </div>
+              <p className="number">103,039.39</p>
+              <p className="sub-number">$76,600,923.82</p>
+            </li>
+            <li>
+              <div className="title">
+                <img src={antImage} />
+                <p>ANT Collateral</p>
+              </div>
+              <p className="number">2,934.45</p>
+              <p className="sub-number">$17,586.27</p>
+            </li>
+            <li>
+              <p className="title">Total balance USD</p>
+              <p className="number">$23,699,746.32</p>
+              <p className="sub-number">$123,600,923.82</p>
+            </li>
+            <li>
+              <p className="title">Tap rate</p>
+              <p className="number">11,340</p>
+              <p className="sub-number">$25,500.82</p>
+            </li>
+          </ul>
         </TokenBalances>
         <Chart />
       </div>
@@ -68,16 +56,25 @@ export default class Repositories extends React.Component {
 const TokenBalances = styled.div`
   margin-bottom: 2rem;
 
-  table {
-    box-shadow: 0px 6px 14px rgba(0, 0, 0, 0.06);
-  }
-
   .title {
     margin-bottom: 1rem;
     font-weight: 600;
   }
 
-  .cell-content {
+  ul {
+    display: flex;
+    justify-content: space-between;
+    padding: 2rem;
+    background: #fff;
+    border: 1px solid rgba(209, 209, 209, 0.5);
+    box-sizing: border-box;
+    border-radius: 3px;
+    box-shadow: 0px 6px 14px rgba(0, 0, 0, 0.06);
+  }
+
+  li {
+    list-style-type: none;
+
     img {
       display: inline-block;
       height: 16px;
@@ -101,6 +98,19 @@ const TokenBalances = styled.div`
 
     .sub-number {
       color: #b5b5b5;
+    }
+  }
+
+  @media only screen and (max-width: 1000px) {
+    ul {
+      display: flex;
+      flex-direction: column;
+      padding: 0;
+    }
+
+    li {
+      padding: 2rem;
+      border-bottom: 1px solid rgba(209, 209, 209, 0.5);
     }
   }
 `

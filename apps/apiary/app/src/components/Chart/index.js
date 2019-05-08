@@ -3,6 +3,7 @@ import { format } from 'date-fns'
 import React, { useState } from 'react'
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import styled from 'styled-components'
+import DateRangeInput from '../DateRange/DateRangeInput'
 
 const bondingCurveData = [...Array(24).keys()].map(idx => ({
   tokens: idx + 1,
@@ -18,8 +19,8 @@ const bondingCurveData = [...Array(24).keys()].map(idx => ({
 
 const historyChartData = [...Array(100).keys()]
   .map(idx => ({
-    tokens: Math.random() * 140 + 60,
-    date: format(new Date(new Date().getTime() - (idx * 8000000 + 10000000)), 'D MMM'),
+    Price: Math.random() * 140 + 60,
+    date: format(new Date(new Date().getTime() - (idx * 8000000 + 10000000)), 'd MMM', { awareOfUnicodeTokens: true }),
   }))
   .reverse()
 
@@ -34,25 +35,28 @@ export default () => {
       <div className="navbar">
         {activeItem === 1 ? (
           <div className="timeline">
-            <div className={activeNavItem === 0 ? 'item active' : 'item'} onClick={() => setActiveNavItem(0)}>
-              <span>1</span>
-              <span>H</span>
+            <div>
+              <div className={activeNavItem === 0 ? 'item active' : 'item'} onClick={() => setActiveNavItem(0)}>
+                <span>1</span>
+                <span>H</span>
+              </div>
+              <div className={activeNavItem === 1 ? 'item active' : 'item'} onClick={() => setActiveNavItem(1)}>
+                <span>1</span>
+                <span>D</span>
+              </div>
+              <div className={activeNavItem === 2 ? 'item active' : 'item'} onClick={() => setActiveNavItem(2)}>
+                <span>1</span>
+                <span>M</span>
+              </div>
+              <div className={activeNavItem === 3 ? 'item active' : 'item'} onClick={() => setActiveNavItem(3)}>
+                <span>1</span>
+                <span>Y</span>
+              </div>
+              <span className={activeNavItem === 4 ? 'item active' : 'item'} onClick={() => setActiveNavItem(4)}>
+                ALL
+              </span>
             </div>
-            <div className={activeNavItem === 1 ? 'item active' : 'item'} onClick={() => setActiveNavItem(1)}>
-              <span>1</span>
-              <span>D</span>
-            </div>
-            <div className={activeNavItem === 2 ? 'item active' : 'item'} onClick={() => setActiveNavItem(2)}>
-              <span>1</span>
-              <span>M</span>
-            </div>
-            <div className={activeNavItem === 3 ? 'item active' : 'item'} onClick={() => setActiveNavItem(3)}>
-              <span>1</span>
-              <span>Y</span>
-            </div>
-            <span className={activeNavItem === 4 ? 'item active' : 'item'} onClick={() => setActiveNavItem(4)}>
-              ALL
-            </span>
+            <DateRangeInput startDate={new Date(new Date().getTime() - 1000000000)} endDate={new Date()} onChange={test => console.log(test)} />
           </div>
         ) : (
           <div />
@@ -75,7 +79,7 @@ export default () => {
             <XAxis type="number" dataKey="tokens" hide={false} interval="preserveStartEnd" tickMargin={25} tickLine={false} axisLine={false} tickCount={5} />
             <YAxis tickMargin={25} tickLine={false} axisLine={false} />
             <Tooltip labelFormatter={value => 'Bonded tokens: ' + value} />
-            <Area strokeWidth={2} type="monotone" dataKey="Price" stroke="#109CF1" fillOpacity={1} fill="url(#colorBlue)" />
+            <Area isAnimationActive={true} strokeWidth={2} type="monotone" dataKey="Price" stroke="#109CF1" fillOpacity={1} fill="url(#colorBlue)" />
           </AreaChart>
         </ResponsiveContainer>
       )}
@@ -85,7 +89,8 @@ export default () => {
             <CartesianGrid strokeDasharray="8 8" vertical={false} />
             <XAxis dataKey="date" minTickGap={100} interval="preserveStartEnd" tickMargin={25} tickLine={false} axisLine={false} />
             <YAxis tickMargin={25} tickLine={false} axisLine={false} />
-            <Bar dataKey="tokens" fill="#109CF1" />
+            <Bar isAnimationActive={true} dataKey="Price" fill="#109CF1" />
+            <Tooltip />
           </BarChart>
         </ResponsiveContainer>
       )}
@@ -108,9 +113,13 @@ const Chart = styled.div`
 
     .timeline {
       display: flex;
-      align-items: center;
-      font-weight: bold;
-      font-size: 16px;
+
+      & > div:nth-child(1) {
+        display: flex;
+        align-items: center;
+        font-weight: bold;
+        font-size: 16px;
+      }
 
       .item {
         margin-right: 1.5rem;
@@ -143,6 +152,43 @@ const Chart = styled.div`
       opacity: 0.7;
       text-transform: uppercase;
       margin-right: 1rem;
+      flex-wrap: nowrap;
+    }
+  }
+
+  @media only screen and (max-width: 1050px) {
+    .navbar {
+      margin-left: 6rem;
+    }
+  }
+
+  @media only screen and (max-width: 920px) {
+    .navbar {
+      margin-left: 6rem;
+      flex-direction: column-reverse;
+      align-items: flex-end;
+
+      .timeline {
+        margin-top: 2rem;
+      }
+
+      .chart-view {
+        justify-content: flex-start;
+      }
+    }
+  }
+
+  @media only screen and (max-width: 700px) {
+    .timeline {
+      flex-direction: column-reverse;
+
+      & > div:nth-child(1) {
+        margin-top: 2rem;
+        justify-content: flex-end;
+      }
+      .item:last-child {
+        margin-right: 0;
+      }
     }
   }
 `
