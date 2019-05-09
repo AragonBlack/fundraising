@@ -208,6 +208,7 @@ contract BancorCurve is EtherTokenConstant, IsContract, AragonApp {
         for (uint256 i = 1; i <= collateralTokensLength; i++) {
             _clearBatch(collateralTokens[i]);
         }
+        waitingClear = 0;
     }
 
     /**
