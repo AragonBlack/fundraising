@@ -215,6 +215,24 @@ contract('BancorCurve app', accounts => {
       context('> and collateral is whitelisted', () => {
         context('> and value is not zero', () => {
           context('> and begins by creating an order', () => {
+            it('it should create buy order', async () => {
+              const receipt = await curve.createBuyOrder(authorized, token1.address, 10, { from: authorized })
+              assertEvent(receipt, 'NewBuyOrder')
+  
+              let NewBuyOrder = receipt.logs.find(l => l.event === 'NewBuyOrder')
+              let batchNumber = NewBuyOrder ? NewBuyOrder.args.batchId.toNumber() : new Error('No Buy Order')
+  
+              await increaseBlocks(BLOCKS_IN_BATCH)
+  
+              if (DEBUG) await printBatch(batchNumber)
+  
+              const _receipt = await curve.createBuyOrder(authorized, token1.address, 10, { from: authorized })
+              assertEvent(_receipt, 'NewBuyOrder')
+  
+              const claim = await curve.claimBuy(authorized, token1.address, batchNumber)
+              assertEvent(claim, 'ReturnBuy')
+            })
+
             let firstBatch, secondBatch, balance1, balance2
 
             beforeEach(async () => {
