@@ -179,9 +179,11 @@ contract('BancorCurve app', accounts => {
         assert.equal(await controller.virtualSupply(ETH), VIRTUAL_SUPPLIES[0])
         assert.equal(await controller.virtualSupply(token1.address), VIRTUAL_SUPPLIES[1])
         assert.equal(await controller.virtualSupply(token2.address), VIRTUAL_SUPPLIES[2])
+
         assert.equal(await controller.virtualBalance(ETH), VIRTUAL_BALANCES[0])
         assert.equal(await controller.virtualBalance(token1.address), VIRTUAL_BALANCES[1])
         assert.equal(await controller.virtualBalance(token2.address), VIRTUAL_BALANCES[2])
+
         assert.equal(await controller.reserveRatio(ETH), RESERVE_RATIOS[0])
         assert.equal(await controller.reserveRatio(token1.address), RESERVE_RATIOS[1])
         assert.equal(await controller.reserveRatio(token2.address), RESERVE_RATIOS[2])
@@ -216,53 +218,65 @@ contract('BancorCurve app', accounts => {
     context('> sender has CREATE_BUY_ORDER_ROLE', () => {
       context('> and collateral is whitelisted', () => {
         context('> and value is not zero', () => {
-          it('it should create buy order', async () => {
-            let currentBlock = await blockNumber()
-            console.log({ currentBlock })
-            let currentBatchId = await curve.getCurrentBatchId()
-            console.log({ currentBatchId: currentBatchId.toNumber(10) })
-            // await stopMining()
-            const receipt = await curve.createBuyOrder(authorized, token1.address, 10, { from: authorized })
-            // await startMining()
-            // console.log(receipt)
-            // console.log(receipt.logs)
-            assertEvent(receipt, 'NewBuyOrder')
+          context('> and begins by creating an order', () => {
+            let firstBatch, secondBatch, balance1, balance2
 
-            NewBuyOrder = receipt.logs.find(l => l.event === 'NewBuyOrder')
-            let batchNumber = NewBuyOrder ? NewBuyOrder.args.batchId.toNumber() : new Error('No Buy Order')
-            console.log({ batchNumber })
-            // currentBlock = await blockNumber()
-            // console.log({ currentBlock })
+            beforeEach(async () => {
+              balance1 = await token.balanceOf(authorized)
+              const receipt1 = await curve.createBuyOrder(authorized, token1.address, 10, { from: authorized, value: BUY_GAS })
+              assertEvent(receipt1, 'NewBuyOrder')
+              NewBuyOrder = receipt1.logs.find(l => l.event === 'NewBuyOrder')
+              firstBatch = NewBuyOrder ? NewBuyOrder.args.batchId.toNumber() : new Error('No Buy Order')
+              // await printBatch(curve, firstBatch)
+            })
 
-            await increaseBlocks(BLOCKS_IN_BATCH)
+            it('it should progress til next batch and clear first batch with new buy order, then progress and clear with clearBatches', async () => {
+              await increaseBlocks(BLOCKS_IN_BATCH)
 
-            await printBatch(curve, batchNumber)
+              const receipt2 = await curve.createBuyOrder(authorized, token1.address, 10, { from: authorized, value: BUY_GAS })
+              assertEvent(receipt2, 'NewBuyOrder')
+              NewBuyOrder = receipt2.logs.find(l => l.event === 'NewBuyOrder')
+              secondBatch = NewBuyOrder ? NewBuyOrder.args.batchId.toNumber() : new Error('No Buy Order')
 
-            const _receipt = await curve.createBuyOrder(authorized, token1.address, 10, { from: authorized })
-            // console.log(_receipt)
-            // console.log(_receipt.logs)
+              const { cleared } = await getBatch(curve, token1.address, firstBatch)
+              assert(cleared, `Batch ${firstBatch} didn't clear`)
 
-            NewBuyOrder = _receipt.logs.find(l => l.event === 'NewBuyOrder')
-            let _batchNumber = NewBuyOrder ? NewBuyOrder.args.batchId.toNumber() : new Error('No Buy Order')
-            console.log({ _batchNumber })
+              await increaseBlocks(BLOCKS_IN_BATCH)
+              await curve.clearBatches()
 
-            assertEvent(_receipt, 'NewBuyOrder')
+              const { cleared2 } = await getBatch(curve, token1.address, secondBatch)
+              assert(cleared2, `Batch ${secondBatch} didn't clear`)
+            })
 
-            // const batch = await curve.getBatch(token1.address, batchNumber)
-            // console.log({ batch })
+            it('it should progress til next batch and clear first batch with clearBatches', async () => {
+              await increaseBlocks(BLOCKS_IN_BATCH)
 
-            const claim = await curve.claimBuy(authorized, token1.address, batchNumber)
-            // console.log(claim)
-            // console.log(claim.logs)
-            assertEvent(claim, 'ReturnBuy')
+              await curve.clearBatches()
 
-            // tons of others assert stuff here
+              let { cleared } = await getBatch(curve, token1.address, firstBatch)
+              assert(cleared, `Batch ${firstBatch} didn't clear`)
+            })
+
+            it('it should fail claiming the batch before it cleared', async () => {
+              await assertRevert(() => curve.claimBuy(authorized, token1.address, firstBatch))
+            })
+
+            it('it should succeed claiming the batch after it is cleared', async () => {
+              await increaseBlocks(BLOCKS_IN_BATCH)
+
+              await curve.clearBatches()
+
+              const claim1 = await curve.claimBuy(authorized, token1.address, firstBatch)
+              assertEvent(claim1, 'ReturnBuy')
+
+              balance2 = await token.balanceOf(authorized)
+              assert(balance2.gt(balance1), `balance2 (${balance2.toString(10)}) is not greater than balance1 (${balance1.toString(10)})`)
+            })
           })
         })
-
         context('> but value is zero', () => {
           it('it should revert', async () => {
-            await assertRevert(() => curve.createBuyOrder(authorized, token1.address, 0, { from: authorized }))
+            await assertRevert(() => curve.createBuyOrder(authorized, token1.address, 0, { from: authorized, value: BUY_GAS }))
           })
         })
       })
@@ -271,13 +285,94 @@ contract('BancorCurve app', accounts => {
           const unlisted = await TokenMock.new(authorized, INITIAL_TOKEN_BALANCE)
           await unlisted.approve(curve.address, INITIAL_TOKEN_BALANCE, { from: authorized })
 
-          await assertRevert(() => curve.createBuyOrder(authorized, unlisted.address, 10, { from: authorized }))
+          await assertRevert(() => curve.createBuyOrder(authorized, unlisted.address, 10, { from: authorized, value: BUY_GAS }))
         })
       })
     })
+
     context('> sender does not have CREATE_BUY_ORDER_ROLE', () => {
       it('it should revert', async () => {
-        await assertRevert(() => curve.createBuyOrder(unauthorized, token3.address, 10, { from: unauthorized }))
+        await assertRevert(() => curve.createBuyOrder(unauthorized, token3.address, 10, { from: unauthorized, value: BUY_GAS }))
+      })
+    })
+  })
+  context('> #createSellOrder', () => {
+    context('> sender has CREATE_SELL_ORDER_ROLE', () => {
+      context('> and collateral is whitelisted', () => {
+        context('> and value is not zero', () => {
+          context('> and begins by completing a buy order and then starting a sell order', () => {
+            let firstBatch, secondBatch, balance1, balance2
+
+            beforeEach(async () => {
+              const receipt1 = await curve.createBuyOrder(authorized, token1.address, 10, { from: authorized, value: BUY_GAS })
+              assertEvent(receipt1, 'NewBuyOrder')
+              NewBuyOrder = receipt1.logs.find(l => l.event === 'NewBuyOrder')
+              const zeroBatch = NewBuyOrder ? NewBuyOrder.args.batchId.toNumber() : new Error('No Buy Order')
+              await increaseBlocks(BLOCKS_IN_BATCH)
+              await curve.clearBatches()
+              await curve.claimBuy(authorized, token1.address, zeroBatch)
+              balance1 = await token.balanceOf(authorized)
+
+              const receipt2 = await curve.createSellOrder(authorized, token1.address, balance1, { from: authorized, value: SELL_GAS })
+              assertEvent(receipt2, 'NewSellOrder')
+              NewSellOrder = receipt2.logs.find(l => l.event === 'NewSellOrder')
+              firstBatch = NewSellOrder ? NewSellOrder.args.batchId.toNumber() : new Error('No Sell Order')
+              // await printBatch(curve, firstBatch)
+            })
+
+            it('it should progress til next batch and clear first batch with new sell order, then progress and clear with clearBatches', async () => {
+              // await increaseBlocks(BLOCKS_IN_BATCH)
+              // const receipt2 = await curve.createBuyOrder(authorized, token1.address, 10, { from: authorized })
+              // assertEvent(receipt2, 'NewBuyOrder')
+              // NewBuyOrder = receipt2.logs.find(l => l.event === 'NewBuyOrder')
+              // secondBatch = NewBuyOrder ? NewBuyOrder.args.batchId.toNumber() : new Error('No Buy Order')
+              // const { cleared } = await getBatch(curve, token1.address, firstBatch)
+              // assert(cleared, `Batch ${firstBatch} didn't clear`)
+              // await increaseBlocks(BLOCKS_IN_BATCH)
+              // await curve.clearBatches()
+              // const { cleared2 } = await getBatch(curve, token1.address, secondBatch)
+              // assert(cleared2, `Batch ${secondBatch} didn't clear`)
+            })
+
+            it('it should progress til next batch and clear first batch with clearBatches', async () => {
+              // await increaseBlocks(BLOCKS_IN_BATCH)
+              // await curve.clearBatches()
+              // let { cleared } = await getBatch(curve, token1.address, firstBatch)
+              // assert(cleared, `Batch ${firstBatch} didn't clear`)
+            })
+
+            it('it should fail claiming the batch before it cleared', async () => {
+              // await assertRevert(() => curve.claimBuy(authorized, token1.address, firstBatch))
+            })
+
+            it('it should succeed claiming the batch after it is cleared', async () => {
+              // await increaseBlocks(BLOCKS_IN_BATCH)
+              // await curve.clearBatches()
+              // const claim1 = await curve.claimBuy(authorized, token1.address, firstBatch)
+              // assertEvent(claim1, 'ReturnBuy')
+              // balance2 = await token.balanceOf(authorized)
+              // assert(balance2.gt(balance1), `balance2 (${balance2.toString(10)}) is not greater than balance1 (${balance1.toString(10)})`)
+            })
+          })
+        })
+        context('> but value is zero', () => {
+          it('it should revert', async () => {
+            // await assertRevert(() => curve.createBuyOrder(authorized, token1.address, 0, { from: authorized }))
+          })
+        })
+      })
+      context('> but collateral is not whitelisted', () => {
+        it('it should revert', async () => {
+          // const unlisted = await TokenMock.new(authorized, INITIAL_TOKEN_BALANCE)
+          // await unlisted.approve(curve.address, INITIAL_TOKEN_BALANCE, { from: authorized })
+          // await assertRevert(() => curve.createBuyOrder(authorized, unlisted.address, 10, { from: authorized }))
+        })
+      })
+    })
+
+    context('> sender does not have CREATE_SELL_ORDER_ROLE', () => {
+      it('it should revert', async () => {
+        // await assertRevert(() => curve.createBuyOrder(unauthorized, token3.address, 10, { from: unauthorized }))
       })
     })
   })
@@ -318,33 +413,24 @@ contract('BancorCurve app', accounts => {
   //   })
   // })
 
-  context('> #claimBuyOrder', () => {
-    it('it should return claimed buy order', async () => {
-      const receipt1 = await curve.createBuyOrder(authorized, token1.address, 10, { from: authorized })
-      // const receipt2 = await curve.createBuyOrder(authorized, token1.address, 10, { from: authorized })
+  // context('> #claimBuyOrder', () => {
+  //   it('it should return claimed buy order', async () => {
+  //     const receipt1 = await curve.createBuyOrder(authorized, token1.address, 10, { from: authorized })
+  //     // const receipt2 = await curve.createBuyOrder(authorized, token1.address, 10, { from: authorized })
 
-      // const batchId = receipt1.logs[0].args.batchId
+  //     // const batchId = receipt1.logs[0].args.batchId
 
-      const cleared1 = await curve.clearBatches()
+  //     const cleared1 = await curve.clearBatches()
 
-      // throw new Error()
+  //     // throw new Error()
 
-      assertEvent(receipt1, 'NewBuyOrder')
-      // tons of others assert stuff here
-    })
-  })
+  //     assertEvent(receipt1, 'NewBuyOrder')
+  //     // tons of others assert stuff here
+  //   })
+  // })
 })
 
-async function printBatch(curve, batchNumber) {
-  const tokens = await curve.collateralTokensLength()
-  await _printBatch(curve, batchNumber, tokens.toNumber())
-}
-
-async function _printBatch(curve, batchNumber, len, key = 0) {
-  const PPM = 1000000
-  console.log({ len, key })
-  if (key === len) return
-  const tokenAddress = await curve.collateralTokens(key)
+async function getBatch(curve, token, batchNumber) {
   let [
     init,
     buysCleared,
@@ -356,9 +442,8 @@ async function _printBatch(curve, batchNumber, len, key = 0) {
     totalBuyReturn,
     totalSellSpend,
     totalSellReturn,
-  ] = await curve.getBatch(tokenAddress, batchNumber)
-  console.log({
-    tokenAddress,
+  ] = await curve.getBatch(token, batchNumber)
+  return {
     init,
     buysCleared,
     sellsCleared,
@@ -369,15 +454,46 @@ async function _printBatch(curve, batchNumber, len, key = 0) {
     totalBuyReturn,
     totalSellSpend,
     totalSellReturn,
-  })
-  let staticPrice = await curve.getPricePPM(tokenAddress, totalSupply, poolBalance)
-  console.log({ staticPrice: staticPrice.toNumber() })
-  let resultOfSell = totalSellSpend.mul(staticPrice).div(PPM)
-  console.log({ resultOfSell: resultOfSell.toString(10) })
-  let resultOfBuy = totalBuySpend.mul(PPM).div(staticPrice)
-  console.log({ resultOfBuy: resultOfBuy.toString(10) })
-  let remainingBuy = totalBuySpend.sub(resultOfSell)
-  console.log({ remainingBuy: remainingBuy.toString(10) })
+  }
+}
+
+async function printBatch(curve, batchNumber) {
+  const tokens = await curve.collateralTokensLength()
+  await _printBatch(curve, batchNumber, tokens.toNumber())
+}
+
+async function _printBatch(curve, batchNumber, len, key = 0) {
+  // const PPM = 1000000
+  if (key === len) return
+  const tokenAddress = await curve.collateralTokens(key)
+  let { init, buysCleared, sellsCleared, cleared, poolBalance, totalSupply, totalBuySpend, totalBuyReturn, totalSellSpend, totalSellReturn } = await getBatch(
+    curve,
+    tokenAddress,
+    batchNumber
+  )
+  if (totalBuySpend.gt(0) || totalSellSpend.gt(0)) {
+    console.log({
+      tokenAddress,
+      init,
+      buysCleared,
+      sellsCleared,
+      cleared,
+      poolBalance: poolBalance.toString(10),
+      totalSupply: totalSupply.toString(10),
+      totalBuySpend: totalBuySpend.toString(10),
+      totalBuyReturn: totalBuyReturn.toString(10),
+      totalSellSpend: totalSellSpend.toString(10),
+      totalSellReturn: totalSellReturn.toString(10),
+    })
+  }
+  // let staticPrice = await curve.getPricePPM(tokenAddress, totalSupply, poolBalance)
+  // console.log({ staticPrice: staticPrice.toNumber() })
+  // let resultOfSell = totalSellSpend.mul(staticPrice).div(PPM)
+  // console.log({ resultOfSell: resultOfSell.toString(10) })
+  // let resultOfBuy = totalBuySpend.mul(PPM).div(staticPrice)
+  // console.log({ resultOfBuy: resultOfBuy.toString(10) })
+  // let remainingBuy = totalBuySpend.sub(resultOfSell)
+  // console.log({ remainingBuy: remainingBuy.toString(10) })
 
   await _printBatch(curve, batchNumber, len, key + 1)
 }

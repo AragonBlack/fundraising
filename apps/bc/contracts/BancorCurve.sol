@@ -214,6 +214,7 @@ contract BancorCurve is EtherTokenConstant, IsContract, AragonApp {
         for (uint256 i = 1; i <= collateralTokensLength; i++) {
             _clearBatch(collateralTokens[i]);
         }
+        waitingClear = 0;
     }
 
     /**
@@ -516,13 +517,7 @@ contract BancorCurve is EtherTokenConstant, IsContract, AragonApp {
 
             // there is some collateral left over to be spent. this should be the difference between
             // the original total buy order, and the result of executing all of the sells.
-            // result of buy is collateral spent divided by price. Price = collateral per token (or c/t) but actually including,
-            // ppm it is price times ppm (or ppm*c/t). When you take the totalBuySpend of collateral you need to divide it by the price
-            // to result in a number of tokens returned from the purchase (t = C / p). Since p = ppm*c/t the result becomes
-            // C * t / (ppm*c). The collateral denoms cancel out so you get t/ppm. To find out the
-            // actual t value you need to also cancel out the ppm by multiplying it to get just t.
-            // re-order this for rounding purposes and you get C*ppm/p
-            uint256 resultOfBuy = cb.totalBuySpend.mul(ppm) / staticPrice;
+            // uint256 resultOfBuy = cb.totalBuySpend.mul(ppm) / staticPrice;
             uint256 remainingBuy = cb.totalBuySpend.sub(resultOfSell);
 
             // now that we know how much collateral is left to be spent we can get the amount of tokens
