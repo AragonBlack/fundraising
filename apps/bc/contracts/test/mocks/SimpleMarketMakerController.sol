@@ -9,7 +9,7 @@ import "@aragon/os/contracts/common/SafeERC20.sol";
 import "@aragon/os/contracts/lib/token/ERC20.sol";
 
 import "@ablack/fundraising-interfaces/contracts/IMarketMakerController.sol";
-import "@aragonblack/fundraising-pool/contracts/Pool.sol";
+import "@ablack/fundraising-module-pool/contracts/Pool.sol";
 import { BancorCurve } from "../../BancorCurve.sol";
 
 
@@ -35,6 +35,10 @@ contract SimpleMarketMakerController is IMarketMakerController, AragonApp {
     //     mapping(uint256=>Batch) batches;
     //     mapping(address=>uint256[]) addressToBlocks;
     // }
+
+    function isCollateralToken(address _collateralToken) external view returns (bool exists) {
+        (exists, , , ) = _curve.collateralTokenInfo(_collateralToken);
+    }
 
     function reserveRatio(address _collateralToken) public view returns (uint32 _reserveRatio) {
         (, _reserveRatio, ,) = _curve.collateralTokenInfo(_collateralToken);

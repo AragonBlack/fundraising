@@ -9,7 +9,7 @@ import "@aragon/apps-shared-migrations/contracts/Migrations.sol";
 import "@aragon/test-helpers/contracts/EtherTokenConstantMock.sol";
 import "@aragon/test-helpers/contracts/TokenMock.sol";
 
-import "@aragonblack/fundraising-formulas-bancor/contracts/BancorFormula.sol";
+import "@ablack/fundraising-formula-bancor/contracts/BancorFormula.sol";
 
 
 // You might think this file is a bit odd, but let me explain.

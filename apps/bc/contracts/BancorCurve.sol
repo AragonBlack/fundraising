@@ -13,8 +13,8 @@ import "@aragon/os/contracts/lib/token/ERC20.sol";
 
 import "@aragon/apps-token-manager/contracts/TokenManager.sol";
 import "@ablack/fundraising-interfaces/contracts/IMarketMakerController.sol";
-import "@aragonblack/fundraising-formulas-bancor/contracts/IBancorFormula.sol";
-import "@ablack/fundraising-pool/contracts/Pool.sol";
+import "@ablack/fundraising-formula-bancor/contracts/BancorFormula.sol";
+import "@ablack/fundraising-module-pool/contracts/Pool.sol";
 
 contract BancorCurve is EtherTokenConstant, IsContract, AragonApp {
     using SafeERC20 for ERC20;
@@ -139,7 +139,7 @@ contract BancorCurve is EtherTokenConstant, IsContract, AragonApp {
         @param _reserveRatio The new reserve ratio to be used for that collateral token [in PPM].
     */
     function updateReserveRatio(address _collateralToken, uint32 _reserveRatio) external auth(ADMIN_ROLE) {
-        require(collateralTokenInfo[_collateralToken].exists); // ERROR_NOT_COLLATERAL_TOKEN
+        require(collateralTokenInfo[_collateralToken].exists, "2"); // ERROR_NOT_COLLATERAL_TOKEN
         // _updateReserveRatio(_collateralToken, _reserveRatio); 
         collateralTokenInfo[_collateralToken].reserveRatio = _reserveRatio;
         emit UpdateReserveRatio(_collateralToken, _reserveRatio);
@@ -176,7 +176,7 @@ contract BancorCurve is EtherTokenConstant, IsContract, AragonApp {
         @param _value The amount of collateral token the user would like to spend.
     */
     function createBuyOrder(address _buyer, address _collateralToken, uint256 _value) payable external auth(CREATE_BUY_ORDER_ROLE) {
-        require(collateralTokenInfo[_collateralToken].exists); // ERROR_NOT_COLLATERAL_TOKEN
+        require(collateralTokenInfo[_collateralToken].exists, "2"); // ERROR_NOT_COLLATERAL_TOKEN
         require(_value != 0, "6"); // ERROR_BUY_OR_SELL_ZERO
         require(msg.value >= GAS_COST_BUY_ORDER, "8"); // ERROR_GAS_COST_BUY_INSUFFICIENT
         if (_collateralToken == ETH) {
@@ -194,7 +194,7 @@ contract BancorCurve is EtherTokenConstant, IsContract, AragonApp {
     */
     function createSellOrder(address _seller, address _collateralToken, uint256 _amount) payable external auth(CREATE_SELL_ORDER_ROLE) {
         require(token.staticBalanceOf(_seller) >= _amount, "7"); // ERROR_INSUFFICIENT_FUNDS
-        require(collateralTokenInfo[_collateralToken].exists); // ERROR_NOT_COLLATERAL_TOKEN
+        require(collateralTokenInfo[_collateralToken].exists, "2"); // ERROR_NOT_COLLATERAL_TOKEN
         require(_amount != 0, "6"); // ERROR_BUY_OR_SELL_ZERO
         require(msg.value >= GAS_COST_SELL_ORDER, "9"); // ERROR_GAS_COST_SELL_INSUFFICIENT
 
@@ -217,7 +217,7 @@ contract BancorCurve is EtherTokenConstant, IsContract, AragonApp {
         @param _batchId The id of the batch used.
     */
     function claimBuy(address _buyer, address _collateralToken, uint256 _batchId) external {
-        require(collateralTokenInfo[_collateralToken].exists); // ERROR_NOT_COLLATERAL_TOKEN
+        require(collateralTokenInfo[_collateralToken].exists, "2"); // ERROR_NOT_COLLATERAL_TOKEN
         Batch storage batch = collateralTokenInfo[_collateralToken].batches[_batchId];
         require(batch.cleared, "4"); // ERROR_BATCH_NOT_CLEARED
         require(batch.buyers[_buyer] != 0, "5"); // ALREADY_CLAIMED_OR_JUST_POSSIBLY_EMPTY? // ERROR_ALREADY_CLAIMED
@@ -233,7 +233,7 @@ contract BancorCurve is EtherTokenConstant, IsContract, AragonApp {
         @param _batchId The id of the batch used.
     */
     function claimSell(address _seller, address _collateralToken, uint256 _batchId) external {
-        require(collateralTokenInfo[_collateralToken].exists); // ERROR_NOT_COLLATERAL_TOKEN
+        require(collateralTokenInfo[_collateralToken].exists, "2"); // ERROR_NOT_COLLATERAL_TOKEN
         Batch storage batch = collateralTokenInfo[_collateralToken].batches[_batchId];
         require(batch.cleared, "4"); // ERROR_BATCH_NOT_CLEARED
         require(batch.sellers[_seller] != 0, "5"); // ALREADY_CLAIMED_OR_JUST_POSSIBLY_EMPTY? // ERROR_ALREADY_CLAIMED
