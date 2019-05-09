@@ -244,6 +244,23 @@ contract('Tap app', accounts => {
             assert(await tap.getWithdrawalValue(token2.address))
             assert(await tap.getWithdrawalValue(token3.address))
           })
+          it('it should re-add tap token that has been removed', async () => {
+            const receipt1 = await tap.addTokenTap(token1.address, 50, { from: authorized })
+
+            const timestamp1 = getTimestamp(receipt1)
+            assertEvent(receipt1, 'AddTokenTap')
+            assert.equal(await tap.taps(token1.address), 50)
+
+            assert.equal(await tap.lastWithdrawals(token1.address), timestamp1)
+            assert.equal(await tap.lastTapUpdates(token1.address), timestamp1)
+
+            const receipt2 = await tap.removeTokenTap(token1.address, { from: authorized })
+
+            const receipt3 = await tap.addTokenTap(token1.address, 50, { from: authorized })
+            const timestamp2 = getTimestamp(receipt3)
+            assertEvent(receipt3, 'AddTokenTap')
+            assert.equal(await tap.taps(token1.address), 50)
+          })
         })
         context('but token already exists in mapping', () => {
           it('it should revert', async () => {
