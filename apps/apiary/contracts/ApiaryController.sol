@@ -42,6 +42,15 @@ contract ApiaryController is EtherTokenConstant, IsContract, IMarketMakerControl
 
     }
 
+    /**
+    @dev Get whether a collateral token exists
+    @param _collateralToken The address of the collateral token used.
+    @return Whether or not the collateral token exists.
+    */
+    function isCollateralToken(address _collateralToken) external view returns (bool exists) {
+        (exists, , , ) = curve.collateralTokenInfo(_collateralToken);
+    }
+
     // function updateMaxTapRateIncrease
 
     function updateTokenTap(address _token, uint256 _tap) external auth(UPDATE_TOKEN_TAP_ROLE) {
