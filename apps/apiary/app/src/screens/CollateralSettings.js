@@ -1,4 +1,4 @@
-import { Title, Button, Badge, Table, TableCell, TableHeader, TableRow, Text, DropDown } from '@aragon/ui';
+import { Title, theme, Button, Badge, Table, TableCell, TableHeader, TableRow, Text, DropDown } from '@aragon/ui';
 import React from 'react';
 import styled from 'styled-components'
 
@@ -15,7 +15,7 @@ export default class CollateralSettings extends React.Component  {
         this.handleTapRateChange = this.handleTapRateChange.bind(this)
         this.state = {
             activeItem: 0,
-            //tapRate: props.tapRate,
+            tapRate: tapRateInterval[0],
             updateCollateralSidePanelOpen: false
         }
     }
@@ -26,24 +26,26 @@ export default class CollateralSettings extends React.Component  {
         this.setState({ updateCollateralSidePanelOpen: false })
     }
     handleTapRateChange(index) {
-        const tapRate = collateralTokens[index];
+        const tapRate = tapRateInterval[index];
         this.setState({ activeItem: index })
     }
     render() {
         const { appToken } = this.props
         const { activeItem } = this.state
+        const tableRowStyle = { height: '2rem' }
         return (
             <div>
                 <CollateralTitle>
                     <Text>Collateralize and generate</Text>
                     <Badge style={{ marginLeft: '10px'}}>{appToken}</Badge>
                 </CollateralTitle>
-                <Table header={
-                    <TableRow>
-                        <TableHeader title="Collateral Ratio" />
-                        <TableHeader title="Token" />
-                    </TableRow>
-                }>
+                <TableContainer>
+                  <Table header={
+                      <TableRow>
+                          <TableHeader title="Collateral Ratio" />
+                          <TableHeader title="Token" />
+                      </TableRow>
+                  } style={{ float: 'left', width: '65%' }}>
                     <TableRow>
                         <TableCell>
                             <Text>0.00</Text>
@@ -52,17 +54,35 @@ export default class CollateralSettings extends React.Component  {
                             <Text>ETH</Text>
                         </TableCell>
                     </TableRow>
-                    <TableRow>
-                        <Button>Add Collateral Token</Button>
-                    </TableRow>
-                    <Table noSideBorders={true}>
-                        <TableRow>
-                            <Text>Bonding Curve Supply</Text>
-                            <Text>0.00</Text>
-                            <Text>ETH</Text>
-                        </TableRow>
-                    </Table>    
-                </Table>
+                    <Button style={{ marginTop: '2rem' }}>Add Collateral Token</Button>
+                  </Table>
+                  <Table noSideBorders={true} style={{ padding: '1rem', float: 'left', width: '35%'}}>
+                      <TableRow style={tableRowStyle}>
+                          <Text>Bonding Curve Supply</Text>
+                      </TableRow>
+                      <TableRow style={tableRowStyle}>
+                          <Text color={theme.textSecondary}>Collateral Ratio</Text>
+                          <Text style={{ float: 'right' }}>$199,333.88</Text>
+                      </TableRow>
+                      <TableRow style={tableRowStyle}>
+                          <Text color={theme.textSecondary}>Tap rate (per month)</Text>
+                          <Text style={{ float: 'right' }}>$9,222.81</Text>
+                      </TableRow>
+                      <hr style={{ color: theme.contentBorderActive }}/>
+                      <TableRow style={tableRowStyle}>
+                          <Text color={theme.textSecondary}>Total</Text>
+                          <Text style={{ float: 'right' }}>$33,333.88</Text>
+                      </TableRow>
+                      <TableRow style={tableRowStyle}>
+                          <Text color={theme.textSecondary}>Token gains</Text>
+                          <Text style={{ float: 'right' }}>$103,211,689.44</Text>
+                      </TableRow>
+                      <TableRow style={{ height: '16rem' }}>
+                          <Text color={theme.textSecondary} style={{ marginRight: '1rem'}}>Tap</Text>
+                          <DropDown items={tapRateInterval} active={activeItem} onChange={this.handleTapRateChange}/>
+                      </TableRow>
+                  </Table>
+                </TableContainer>
             </div>
         )
     }
@@ -73,4 +93,9 @@ const CollateralTitle = styled.h1`
   font-weight: 600;
   display: flex;
   justify-content: normal;
+`
+
+const TableContainer = styled.div`
+  width: 100%;
+  overflow:hidden;
 `
