@@ -29,6 +29,7 @@ contract('Tap app', accounts => {
     TRANSFER_ROLE,
     UPDATE_RESERVE_ROLE,
     UPDATE_BENEFICIARY_ROLE,
+    UPDATE_MONTHLY_TAP_INCREASE_ROLE,
     ADD_TOKEN_TAP_ROLE,
     REMOVE_TOKEN_TAP_ROLE,
     UPDATE_TOKEN_TAP_ROLE,
@@ -70,6 +71,7 @@ contract('Tap app', accounts => {
     await acl.createPermission(tap.address, reserve.address, TRANSFER_ROLE, root, { from: root })
     await acl.createPermission(authorized, tap.address, UPDATE_RESERVE_ROLE, root, { from: root })
     await acl.createPermission(authorized, tap.address, UPDATE_BENEFICIARY_ROLE, root, { from: root })
+    await acl.createPermission(authorized, tap.address, UPDATE_MONTHLY_TAP_INCREASE_ROLE, root, { from: root })
     await acl.createPermission(authorized, tap.address, ADD_TOKEN_TAP_ROLE, root, { from: root })
     await acl.createPermission(authorized, tap.address, REMOVE_TOKEN_TAP_ROLE, root, { from: root })
     await acl.createPermission(authorized, tap.address, UPDATE_TOKEN_TAP_ROLE, root, { from: root })
@@ -99,6 +101,7 @@ contract('Tap app', accounts => {
     TRANSFER_ROLE = await vBase.TRANSFER_ROLE()
     UPDATE_RESERVE_ROLE = await tBase.UPDATE_RESERVE_ROLE()
     UPDATE_BENEFICIARY_ROLE = await tBase.UPDATE_BENEFICIARY_ROLE()
+    UPDATE_MONTHLY_TAP_INCREASE_ROLE = await tBase.UPDATE_MONTHLY_TAP_INCREASE_ROLE()
     ADD_TOKEN_TAP_ROLE = await tBase.ADD_TOKEN_TAP_ROLE()
     REMOVE_TOKEN_TAP_ROLE = await tBase.REMOVE_TOKEN_TAP_ROLE()
     UPDATE_TOKEN_TAP_ROLE = await tBase.UPDATE_TOKEN_TAP_ROLE()
@@ -185,6 +188,23 @@ contract('Tap app', accounts => {
       it('it should revert', async () => {
         const newBeneficiary = await Vault.new()
         await assertRevert(() => tap.updateBeneficiary(newBeneficiary.address, { from: unauthorized }))
+      })
+    })
+  })
+
+  context('> #updateMaxMonthlyTapIncreaseRate', () => {
+    context('> sender has UPDATE_MONTHLY_TAP_INCREASE_ROLE', () => {
+      it('it should update maximum monthly tap increase rate', async () => {
+        const receipt = await tap.updateMaxMonthlyTapIncreaseRate(70 * Math.pow(10, 16), { from: authorized })
+
+        assertEvent(receipt, 'UpdateMaxMonthlyTapIncreaseRate')
+        assert.equal(await tap.maxMonthlyTapIncreaseRate(), 70 * Math.pow(10, 16))
+      })
+    })
+
+    context('> sender does not have UPDATE_MONTHLY_TAP_INCREASE_ROLE', () => {
+      it('it should revert', async () => {
+        await assertRevert(() => tap.updateMaxMonthlyTapIncreaseRate(70 * Math.pow(10, 16), { from: unauthorized }))
       })
     })
   })

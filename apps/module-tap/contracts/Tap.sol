@@ -21,6 +21,7 @@ contract Tap is EtherTokenConstant, IsContract, AragonApp {
 
     bytes32 public constant UPDATE_RESERVE_ROLE = keccak256("UPDATE_RESERVE_ROLE");
     bytes32 public constant UPDATE_BENEFICIARY_ROLE = keccak256("UPDATE_BENEFICIARY_ROLE");
+    bytes32 public constant UPDATE_MONTHLY_TAP_INCREASE_ROLE = keccak256("UPDATE_MONTHLY_TAP_INCREASE_ROLE");
     bytes32 public constant ADD_TOKEN_TAP_ROLE = keccak256("ADD_TOKEN_TAP_ROLE");
     bytes32 public constant REMOVE_TOKEN_TAP_ROLE = keccak256("REMOVE_TOKEN_TAP_ROLE");
     bytes32 public constant UPDATE_TOKEN_TAP_ROLE = keccak256("UPDATE_TOKEN_TAP_ROLE");
@@ -44,6 +45,7 @@ contract Tap is EtherTokenConstant, IsContract, AragonApp {
 
     event UpdateReserve(address reserve);
     event UpdateBeneficiary(address beneficiary);
+    event UpdateMaxMonthlyTapIncreaseRate(uint256 maxMonthlyTapIncreaseRate);
     event AddTokenTap(address indexed token, uint256 tap);
     event RemoveTokenTap(address indexed token);
     event UpdateTokenTap(address indexed token, uint256 tap);
@@ -79,6 +81,14 @@ contract Tap is EtherTokenConstant, IsContract, AragonApp {
     */
     function updateBeneficiary(address _beneficiary) external auth(UPDATE_BENEFICIARY_ROLE) {
         _updateBeneficiary(_beneficiary);
+    }
+
+    /**
+    * @notice Update maximum monthly tap increase rate to `_maxMonthlyTapIncreaseRate`
+    * @param _maxMonthlyTapIncreaseRate New maximum monthly tap increase rate
+    */
+    function updateMaxMonthlyTapIncreaseRate(uint256 _maxMonthlyTapIncreaseRate) external auth(UPDATE_MONTHLY_TAP_INCREASE_ROLE) {
+        _updateMaxMonthlyTapIncreaseRate(_maxMonthlyTapIncreaseRate);
     }
 
     /**
@@ -158,7 +168,7 @@ contract Tap is EtherTokenConstant, IsContract, AragonApp {
 
     /***** internal functions *****/
 
-     function _updateReserve(Vault _reserve) internal {
+    function _updateReserve(Vault _reserve) internal {
         reserve = _reserve;
 
         emit UpdateReserve(address(_reserve));
@@ -168,6 +178,12 @@ contract Tap is EtherTokenConstant, IsContract, AragonApp {
         beneficiary = _beneficiary;
 
         emit UpdateBeneficiary(_beneficiary);
+    }
+
+    function _updateMaxMonthlyTapIncreaseRate(uint256 _maxMonthlyTapIncreaseRate) internal {
+        maxMonthlyTapIncreaseRate = _maxMonthlyTapIncreaseRate;
+
+        emit UpdateMaxMonthlyTapIncreaseRate(_maxMonthlyTapIncreaseRate);
     }
 
     function _addTokenTap(address _token, uint256 _tap) internal {
