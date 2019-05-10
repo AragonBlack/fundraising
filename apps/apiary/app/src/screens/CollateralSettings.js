@@ -1,5 +1,4 @@
 import { Title, theme, Button, Badge, Table, TableCell, TableHeader, TableRow, Text, DropDown } from '@aragon/ui';
-import AddCollateralSidePanel from '../components/AddCollateralSidePanel'
 import React from 'react';
 import styled from 'styled-components'
 
@@ -7,30 +6,25 @@ const tapRateIntervals = ['Monthly', 'Quarterly', 'Yearly']
 
 export default class CollateralSettings extends React.Component  {
     static defaultProps = {
-        appToken: 'ATL'
+        appToken: 'ATL',
+        collateralTokens: [],
+        handleSidePanel: () => {}
     }
     constructor(props) {
         super(props)
-        this.handleCollateralSidePanelOpen = this.handleCollateralSidePanelOpen.bind(this)
-        this.handleCollateralSidePanelClose = this.handleCollateralSidePanelClose.bind(this)
         this.handleTapRateChange = this.handleTapRateChange.bind(this)
+        this.handleSidePanel = this.props.handleSidePanel.bind(this)
+	//TODO: when we wire up the contracts this could only have a single state which is the collateral list. It would retreve and render from the data supplied by the app cache
+	// Ideally, the side panel could also be a pure component that just executes the tx and then updates this components array of collateralized assets
+	// Then block the user from adding anymore once there is size(tokens) < 5
         this.state = {
             activeItem: 0,
-            tapRateInterval: tapRateIntervals[0],
-	    newTapRate: 0,
-	    newCollateralRatio: 0,
-	    newTokenAddress: '',
-            updateCollateralSidePanelOpen: false
+            tapRateInterval: '',
         }
     }
-    handleCollateralSidePanelOpen() {
-        this.setState({ updateCollateralSidePanelOpen: true })
-    }
-    handleCollateralSidePanelClose() {
-        this.setState({ updateCollateralSidePanelOpen: false })
-    }
     handleTapRateChange(index) {
-        const tapRate = tapRateInterval[index];
+        const tapRate = tapRateIntervals[index];
+        //caculate rate
         this.setState({ activeItem: index })
     }
     handleUpdateCollateralSettings(tokenAddress, collateralRatio, tapRate) {
@@ -38,7 +32,7 @@ export default class CollateralSettings extends React.Component  {
     }
     render() {
         const { appToken } = this.props
-        const { activeItem, updateCollateralSidePanelOpen, newTokenAddress, newCollateralRatio, newTapRate } = this.state
+        const { activeItem } = this.state
         const tableRowStyle = { height: '2rem' }
         return (
             <div>
@@ -47,21 +41,22 @@ export default class CollateralSettings extends React.Component  {
                     <Badge style={{ marginLeft: '10px'}}>{appToken}</Badge>
                 </CollateralTitle>
                 <TableContainer>
-                  <Table header={
-                      <TableRow>
-                          <TableHeader title="Collateral Ratio" />
-                          <TableHeader title="Token" />
-                      </TableRow>
-                  } style={{ float: 'left', width: '65%' }}>
-                    <TableRow>
-                        <TableCell>
-                            <Text>0.00</Text>
-                        </TableCell>
-                        <TableCell>
-                            <Text>ETH</Text>
-                        </TableCell>
-                    </TableRow>
-                    <Button style={{ marginTop: '2rem' }}>Add Collateral Token</Button>
+                  <Table style={{ float: 'left', width: '65%' }}>
+                        <Column>
+                            <TableHeader title="Collateral Ratio" />
+                            <Cell>
+                                <Text>0.00</Text>
+                                <Text style={{ float: 'right'}}>ETH</Text>
+                            </Cell>
+                        </Column>
+                        <Column>
+                            <TableHeader title="Token" />
+                            <Cell>
+                                <Text>0.00</Text>
+                                <Text style={{ float: 'right'}}>{appToken}</Text>
+                            </Cell>
+                        </Column>
+                    <Button onClick={this.handleSidePanel} style={{ margin: '20px' }}>Add Collateral Token</Button>
                   </Table>
                   <Table noSideBorders={true} style={{ padding: '1rem', float: 'left', width: '35%'}}>
                       <TableRow style={tableRowStyle}>
@@ -90,21 +85,28 @@ export default class CollateralSettings extends React.Component  {
                       </TableRow>
                   </Table>
                 </TableContainer>
-		<AddCollateralSidePanel
-		    tokenAddress={newTokenAddress}
-		    collateralRatio={newCollateralRatio}
-		    tapRate={newTapRate}
-		    opened={updateCollateralSidePanelOpen}
-		    onClose={this.handleCollateralSidePanelClose}
-		    onSubmit={this.handleUpdateOrder}
-		  />
             </div>
         )
     }
 }
 
+const Column = styled.div`
+  width: 50%;
+  float: left;
+`
+
+const Cell = styled.div`
+  margin: 10px 0;
+  background: ${theme.contentBackground};
+  width: 95%;
+  border: 1px solid ${theme.secondaryBackground};
+  text-align: left;
+  margin: 10px 20px;
+  padding: 10px 20px;
+`
+
 const CollateralTitle = styled.h1`
-  margin: 20px 0;
+  margin: 20px;
   font-weight: 600;
   display: flex;
   justify-content: normal;
