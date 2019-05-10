@@ -1,6 +1,6 @@
 import React from 'react'
 import styled from 'styled-components'
-import { Info, Table, TableRow, Text, Button, SidePanel, TextInput, Field } from '@aragon/ui'
+import { Info, Table, TableRow, Button, SidePanel, TextInput, Field } from '@aragon/ui'
 
 export default class AddCollateralSidePanel extends React.Component {
     static defaultProps = {
@@ -71,6 +71,7 @@ export default class AddCollateralSidePanel extends React.Component {
               <TableRow>
                 <Field style={{ float: 'left', display:'inline-flex'}} label="Collateral Ratio">
                     <TextInput
+                      type="number"
                       ref={collateralRatio => (this.collateralRatioInput = collateralRatio )}
                       value={collateralRatio}
                       onChange={this.handleCollateralRatioChange}
@@ -79,6 +80,7 @@ export default class AddCollateralSidePanel extends React.Component {
                   </Field>
                   <Field style={{ float: 'right', display:'inline-flex'}} label="Tap Rate">
                     <TextInput
+                      type="number"
                       ref={tapRate => (this.tapRateInput = tapRate )}
                       value={tapRate}
                       onChange={this.handleTapRateChange}

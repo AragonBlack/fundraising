@@ -1,8 +1,27 @@
-import { Title, theme, Button, Badge, Table, TableCell, TableHeader, TableRow, Text, DropDown } from '@aragon/ui';
+import { theme, Button, Badge, Table, TableHeader, TableRow, Text, DropDown } from '@aragon/ui';
 import React from 'react';
 import styled from 'styled-components'
 
 const tapRateIntervals = ['Monthly', 'Quarterly', 'Yearly']
+
+const tableInfo = [
+    {
+        name: 'Collateral Ratio',
+        data: '$199,333.88'
+    },
+    {
+        name: 'Tap rate (per month)',
+        data: '$9,222.81'
+    },
+    {
+        name: 'Total',
+        data: '$33,333.88'
+    },
+    {
+        name: 'Token gains',
+        data: '$103,211,689.44'
+    }
+]
 
 export default class CollateralSettings extends React.Component  {
     static defaultProps = {
@@ -30,6 +49,7 @@ export default class CollateralSettings extends React.Component  {
     handleUpdateCollateralSettings(tokenAddress, collateralRatio, tapRate) {
       //this.props.app.addToken(tokenAddress, collateralRatio, tapRate)
     }
+
     render() {
         const { appToken } = this.props
         const { activeItem } = this.state
@@ -62,23 +82,16 @@ export default class CollateralSettings extends React.Component  {
                       <TableRow style={tableRowStyle}>
                           <Text>Bonding Curve Supply</Text>
                       </TableRow>
-                      <TableRow style={tableRowStyle}>
-                          <Text color={theme.textSecondary}>Collateral Ratio</Text>
-                          <Text style={{ float: 'right' }}>$199,333.88</Text>
-                      </TableRow>
-                      <TableRow style={tableRowStyle}>
-                          <Text color={theme.textSecondary}>Tap rate (per month)</Text>
-                          <Text style={{ float: 'right' }}>$9,222.81</Text>
-                      </TableRow>
-                      <hr style={{ color: theme.contentBorderActive }}/>
-                      <TableRow style={tableRowStyle}>
-                          <Text color={theme.textSecondary}>Total</Text>
-                          <Text style={{ float: 'right' }}>$33,333.88</Text>
-                      </TableRow>
-                      <TableRow style={tableRowStyle}>
-                          <Text color={theme.textSecondary}>Token gains</Text>
-                          <Text style={{ float: 'right' }}>$103,211,689.44</Text>
-                      </TableRow>
+                      {tableInfo.map((row, i) => {
+                        return (
+                                <TableRow key={i} style={tableRowStyle}>
+                                    <Text color={theme.textSecondary}>{row.name}</Text>
+                                    <Text style={{ float: 'right' }}>{row.data}</Text>
+                                    {i == 1 ? <hr style={{ color: theme.contentBorderActive }}/> : null} 
+                                </TableRow>
+                            )
+                        })
+                      }           
                       <TableRow style={{ height: '16rem' }}>
                           <Text color={theme.textSecondary} style={{ marginRight: '1rem'}}>Tap</Text>
                           <DropDown items={tapRateIntervals} active={activeItem} onChange={this.handleTapRateChange}/>
