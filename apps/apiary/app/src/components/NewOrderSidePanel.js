@@ -14,17 +14,17 @@ export default class NewOrderSidePanel extends React.Component {
       onClose: () => {},
       onSubmit: () => {},
     }
-  
     constructor(props) {
       super(props)
-  
       this.state = {
         activeItem: 0,
         amount: props.amount,
         token: props.token,
+        price: props.price
       }
 
       this.handleTokenChange = this.handleTokenChange.bind(this)
+      this.handleAmountChange = this.handleAmountChange.bind(this)
     }
 
     componentWillReceiveProps({ opened, amount, token, price }) {
@@ -35,7 +35,7 @@ export default class NewOrderSidePanel extends React.Component {
         this.amountInput && setTimeout(() => this.amountInput.focus(), 0)
       }
     }
-  
+
     handleAmountChange = event => {
       this.setState({ amount: event.target.value })
     }
@@ -44,26 +44,26 @@ export default class NewOrderSidePanel extends React.Component {
       const token = collateralTokens[index]
       this.setState({ activeItem: index})
     }
-  
+
     handleSubmit = event => {
       event.preventDefault()
       this.props.onSubmit(this.state.amount.trim(), this.state.token.trim())
     }
-  
+
     render() {
       const { amount, token, activeItem } = this.state
       const { opened, onClose, onSubmit, price} = this.props
-  
+
       return (
         <SidePanel title="New Order" opened={opened} onClose={onClose}>
           <Text size={'small'}>Price: {"$" + price}</Text>
           <Form onSubmit={this.handleSubmit}>
             <Field label="Amount">
-              <TextInput type='number' 
-                ref={amount => (this.amountInput = amount)} 
-                value={amount} 
-                onChange={this.handleAmountChange} 
-                required wide 
+              <TextInput type='number'
+                ref={amount => (this.amountInput = amount)}
+                value={amount}
+                onChange={this.handleAmountChange}
+                required wide
               />
             </Field>
             <Field label="Collateral Token">

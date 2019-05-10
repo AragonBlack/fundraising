@@ -1,8 +1,9 @@
 import { Title, theme, Button, Badge, Table, TableCell, TableHeader, TableRow, Text, DropDown } from '@aragon/ui';
+import AddCollateralSidePanel from '../components/AddCollateralSidePanel'
 import React from 'react';
 import styled from 'styled-components'
 
-const tapRateInterval = ['Monthly', 'Quarterly', 'Yearly']
+const tapRateIntervals = ['Monthly', 'Quarterly', 'Yearly']
 
 export default class CollateralSettings extends React.Component  {
     static defaultProps = {
@@ -15,7 +16,10 @@ export default class CollateralSettings extends React.Component  {
         this.handleTapRateChange = this.handleTapRateChange.bind(this)
         this.state = {
             activeItem: 0,
-            tapRate: tapRateInterval[0],
+            tapRateInterval: tapRateIntervals[0],
+	    newTapRate: 0,
+	    newCollateralRatio: 0,
+	    newTokenAddress: '',
             updateCollateralSidePanelOpen: false
         }
     }
@@ -29,9 +33,12 @@ export default class CollateralSettings extends React.Component  {
         const tapRate = tapRateInterval[index];
         this.setState({ activeItem: index })
     }
+    handleUpdateCollateralSettings(tokenAddress, collateralRatio, tapRate) {
+      //this.props.app.addToken(tokenAddress, collateralRatio, tapRate)
+    }
     render() {
         const { appToken } = this.props
-        const { activeItem } = this.state
+        const { activeItem, updateCollateralSidePanelOpen, newTokenAddress, newCollateralRatio, newTapRate } = this.state
         const tableRowStyle = { height: '2rem' }
         return (
             <div>
@@ -79,10 +86,18 @@ export default class CollateralSettings extends React.Component  {
                       </TableRow>
                       <TableRow style={{ height: '16rem' }}>
                           <Text color={theme.textSecondary} style={{ marginRight: '1rem'}}>Tap</Text>
-                          <DropDown items={tapRateInterval} active={activeItem} onChange={this.handleTapRateChange}/>
+                          <DropDown items={tapRateIntervals} active={activeItem} onChange={this.handleTapRateChange}/>
                       </TableRow>
                   </Table>
                 </TableContainer>
+		<AddCollateralSidePanel
+		    tokenAddress={newTokenAddress}
+		    collateralRatio={newCollateralRatio}
+		    tapRate={newTapRate}
+		    opened={updateCollateralSidePanelOpen}
+		    onClose={this.handleCollateralSidePanelClose}
+		    onSubmit={this.handleUpdateOrder}
+		  />
             </div>
         )
     }
