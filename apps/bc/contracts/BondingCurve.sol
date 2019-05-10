@@ -16,7 +16,7 @@ import "@ablack/fundraising-interfaces/contracts/IMarketMakerController.sol";
 import "@ablack/fundraising-formula-bancor/contracts/BancorFormula.sol";
 import "@ablack/fundraising-module-pool/contracts/Pool.sol";
 
-contract BancorCurve is EtherTokenConstant, IsContract, AragonApp {
+contract BondingCurve is EtherTokenConstant, IsContract, AragonApp {
     using SafeERC20 for ERC20;
     using SafeMath for uint256;
 
@@ -270,7 +270,7 @@ contract BancorCurve is EtherTokenConstant, IsContract, AragonApp {
     */
     function getPricePPM(address _collateralToken, uint256 _totalSupply, uint256 _poolBalance) public view returns (uint256) {
         // return uint256(ppm).mul(_poolBalance) / _totalSupply.mul(collateralTokenInfo[_collateralToken].reserveRatio);
-        return uint256(ppm).mul( _poolBalance.add( collateralTokenInfo[_collateralToken].virtualBalance ) ) / ( ( _totalSupply.add( collateralTokenInfo[_collateralToken].virtualSupply ) ).mul( collateralTokenInfo[_collateralToken].reserveRatio ) );
+        return uint256(ppm).mul( _poolBalance.add( collateralTokenInfo[_collateralToken].virtualBalance ) ).div( ( _totalSupply.add( collateralTokenInfo[_collateralToken].virtualSupply ) ).mul( collateralTokenInfo[_collateralToken].reserveRatio ) );
     }
 
     /**
@@ -365,9 +365,11 @@ contract BancorCurve is EtherTokenConstant, IsContract, AragonApp {
         uint256 buyReturn = (batch.buyers[_buyer].mul(batch.totalBuyReturn)) / batch.totalBuySpend;
 
         batch.buyers[_buyer] = 0;
-        tokenManager.burn(address(pool), buyReturn);
-        tokenManager.mint(_buyer, buyReturn);
-        
+        if (buyReturn > 0) {
+            tokenManager.burn(address(pool), buyReturn);
+            tokenManager.mint(_buyer, buyReturn);
+        }
+
         emit ReturnBuy(_buyer, _collateralToken, buyReturn);
     }
 
@@ -376,7 +378,9 @@ contract BancorCurve is EtherTokenConstant, IsContract, AragonApp {
         uint256 sellReturn = (batch.totalSellReturn.mul(batch.sellers[_seller])) / batch.totalSellSpend;
         
         batch.sellers[_seller] = 0;
-        pool.transfer(_collateralToken, _seller, sellReturn);
+        if (sellReturn > 0) {
+            pool.transfer(_collateralToken, _seller, sellReturn);
+        }
 
         emit ReturnSell(_seller, _collateralToken, sellReturn);
     }
@@ -425,7 +429,9 @@ contract BancorCurve is EtherTokenConstant, IsContract, AragonApp {
         // The totalSupply was decremented when _burns took place as the sell orders came in. Now
         // the totalSupply needs to be incremented by totalBuyReturn, the resulting tokens are
         // held by this contract until collected by the buyers.
-        tokenManager.mint(address(pool), cb.totalBuyReturn);
+        if (cb.totalBuyReturn > 0) {
+            tokenManager.mint(address(pool), cb.totalBuyReturn);
+        }
         cb.cleared = true;
     }
 
@@ -454,7 +460,7 @@ contract BancorCurve is EtherTokenConstant, IsContract, AragonApp {
             // total number of tokens created as a result of all of the buys being executed at the
             // current exact price (tokens = collateral / price). staticPrice is in ppm, to avoid
             // overflows it has been re-arranged.
-            cb.totalBuyReturn = cb.totalBuySpend.mul(ppm) / staticPrice;
+            cb.totalBuyReturn = cb.totalBuySpend.mul(ppm).div(staticPrice);
 
             // there are some tokens left over to be sold. these should be the difference between
             // the original total sell order, and the result of executing all of the buys

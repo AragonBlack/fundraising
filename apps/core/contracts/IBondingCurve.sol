@@ -5,7 +5,7 @@
 pragma solidity 0.4.24;
 
 
-contract IBancorCurve {
+contract IBondingCurve {
     function addCollateralToken(address _collateralToken, uint256 _virtualSupply, uint256 _virtualBalance, uint32 _reserveRatio) external;
     function updateReserveRatio(address _collateralToken, uint32 _reserveRatio) external;
     function createBuyOrder(address _buyer, address _collateralToken, uint256 _value) external;

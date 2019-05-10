@@ -8,7 +8,7 @@ import "@aragon/os/contracts/lib/token/ERC20.sol";
 import "@aragon/os/contracts/lib/math/SafeMath.sol";
 
 import "@ablack/fundraising-interfaces/contracts/IMarketMakerController.sol";
-import "@ablack/fundraising-interfaces/contracts/IBancorCurve.sol";
+import "@ablack/fundraising-interfaces/contracts/IBondingCurve.sol";
 import "@ablack/fundraising-interfaces/contracts/ITap.sol";
 
 
@@ -23,11 +23,11 @@ contract ApiaryController is EtherTokenConstant, IsContract, IMarketMakerControl
     bytes32 public constant CREATE_SELL_ORDER_ROLE = keccak256("CREATE_SELL_ORDER_ROLE");
 
     Pool public _pool;
-    IBancorCurve public curve;
+    IBondingCurve public curve;
     ITap public tap;
 
 
-    function initialize(IBancorCurve _curve, ITap _tap, Pool __pool) {
+    function initialize(IBondingCurve _curve, ITap _tap, Pool __pool) {
         initialized();
         tap   = _tap;
         curve = _curve;
