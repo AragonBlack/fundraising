@@ -62,7 +62,7 @@ contract BondingCurve is EtherTokenConstant, IsContract, AragonApp {
     
     uint32 private constant ppm = 1000000;
     uint256 public batchBlocks;
-    uint256 private waitingClear;
+    uint256 public waitingClear;
 
     uint256 public collateralTokensLength;
     mapping(uint256 => address) public collateralTokens;
@@ -90,6 +90,7 @@ contract BondingCurve is EtherTokenConstant, IsContract, AragonApp {
     event NewSellOrder(address indexed seller, address indexed collateralToken, uint256 amount, uint256 batchId);
     event ReturnBuy(address indexed buyer, address indexed collateralToken, uint256 amount);
     event ReturnSell(address indexed seller, address indexed collateralToken, uint256 value);
+    event BatchCleared(address indexed collateralToken, uint256 batchId);
 
     function initialize(
         IMarketMakerController _controller,
@@ -268,9 +269,12 @@ contract BondingCurve is EtherTokenConstant, IsContract, AragonApp {
         @param _poolBalance The collateral pool balance to be used in the calculation.
         @return The current exact price in parts per million as collateral over token.
     */
-    function getPricePPM(address _collateralToken, uint256 _totalSupply, uint256 _poolBalance) public view returns (uint256) {
+    function getPricePPM(address _collateralToken, uint256 _totalSupply, uint256 _poolBalance) public view returns (uint256 price) {
         // return uint256(ppm).mul(_poolBalance) / _totalSupply.mul(collateralTokenInfo[_collateralToken].reserveRatio);
-        return uint256(ppm).mul( _poolBalance.add( collateralTokenInfo[_collateralToken].virtualBalance ) ).div( ( _totalSupply.add( collateralTokenInfo[_collateralToken].virtualSupply ) ).mul( collateralTokenInfo[_collateralToken].reserveRatio ) );
+        price = uint256(ppm).mul( _poolBalance.add( collateralTokenInfo[_collateralToken].virtualBalance ) ).div( ( _totalSupply.add( collateralTokenInfo[_collateralToken].virtualSupply ) ).mul( collateralTokenInfo[_collateralToken].reserveRatio ) );
+        if (price == 0) {
+            price = 1;
+        }
     }
 
     /**
@@ -432,6 +436,7 @@ contract BondingCurve is EtherTokenConstant, IsContract, AragonApp {
         if (cb.totalBuyReturn > 0) {
             tokenManager.mint(address(pool), cb.totalBuyReturn);
         }
+        emit BatchCleared(collateralToken, waitingClear);
         cb.cleared = true;
     }
 
@@ -442,6 +447,10 @@ contract BondingCurve is EtherTokenConstant, IsContract, AragonApp {
     function _clearMatching(address collateralToken) internal {
         Batch storage cb = collateralTokenInfo[collateralToken].batches[waitingClear]; // clearing batch
 
+        // Do nothing if there were no orders
+        if( cb.totalSellSpend == 0 && cb.totalBuySpend == 0) {
+            return;
+        }
         // The static price is the current exact price in collateral per token.
         uint256 staticPrice = getPricePPM(collateralToken, cb.totalSupply, cb.poolBalance);
 

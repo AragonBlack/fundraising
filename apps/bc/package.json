@@ -29,17 +29,18 @@
     "/test"
   ],
   "dependencies": {
+    "@ablack/fundraising-formula-bancor": "^0.1.0",
+    "@ablack/fundraising-interfaces": "^0.1.0",
+    "@ablack/fundraising-module-pool": "^0.1.0",
     "@aragon/apps-token-manager": "^2.0.0",
     "@aragon/os": "^4.1.0",
-    "@ablack/fundraising-interfaces": "^0.1.0",
-    "@ablack/fundraising-formula-bancor": "^0.1.0",
-    "@ablack/fundraising-module-pool": "^0.1.0"
+    "decimal.js": "^10.2.0"
   },
   "devDependencies": {
     "@ablack/eslint-config-tests": "^1.0.0",
     "@aragon/apps-agent": "^1.0.1",
-    "@aragon/apps-vault": "^4.0.0",
     "@aragon/apps-shared-migrations": "1.0.0",
+    "@aragon/apps-vault": "^4.0.0",
     "@aragon/cli": "^5.2.1",
     "@aragon/test-helpers": "^1.1.0",
     "eslint": "6.0.0-alpha.0",
