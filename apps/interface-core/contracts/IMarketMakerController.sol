@@ -6,7 +6,7 @@ pragma solidity 0.4.24;
 
 
 contract IMarketMakerController {
-    address pool;
+    address public pool;
 
 
     // function pool() public view returns (address);
