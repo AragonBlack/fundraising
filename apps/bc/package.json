@@ -31,7 +31,7 @@
   "dependencies": {
     "@aragon/apps-token-manager": "^2.0.0",
     "@aragon/os": "^4.1.0",
-    "@ablack/fundraising-interfaces": "^0.1.0",
+    "@ablack/fundraising-interface-core": "^0.1.0",
     "@aragonblack/fundraising-formula-bancor": "^0.1.0",
     "@ablack/fundraising-module-pool": "^0.1.0"
   },

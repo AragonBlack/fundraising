@@ -23,7 +23,7 @@
   },
   "dependencies": {
     "@aragon/os": "^4.1.0",
-    "@ablack/fundraising-interfaces": "^0.1.0",
+    "@ablack/fundraising-interface-core": "^0.1.0",
     "@ablack/fundraising-market-makers-bancor": "^0.1.0"
   },
   "devDependencies": {

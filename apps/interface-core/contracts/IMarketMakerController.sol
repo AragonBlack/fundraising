@@ -6,6 +6,9 @@ pragma solidity 0.4.24;
 
 
 contract IMarketMakerController {
-    function pool() public view returns (address);
+    address pool;
+
+
+    // function pool() public view returns (address);
     function poolBalance(address _collateralToken) public view returns (uint256);
 }

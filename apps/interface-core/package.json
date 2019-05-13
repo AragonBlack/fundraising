@@ -1,6 +1,5 @@
 {
-  "name": "@ablack/fundraising-interfaces",
-  "description": "",
+  "name": "@ablack/fundraising-interface-core",
   "version": "0.1.0",
   "author": "Aragon Black <contact@aragon.black>",
   "contributors": [
