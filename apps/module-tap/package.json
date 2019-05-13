@@ -29,8 +29,8 @@
     "/test"
   ],
   "dependencies": {
-    "@aragon/os": "4.2.0",
-    "@aragon/apps-vault": "4.1.0"
+    "@aragon/apps-vault": "4.1.0",
+    "@aragon/os": "4.2.0"
   },
   "devDependencies": {
     "@ablack/eslint-config-tests": "^1.0.0",
@@ -45,8 +45,8 @@
     "eslint-plugin-prettier": "^2.3.1",
     "eslint-plugin-promise": "^4.0.1",
     "eslint-plugin-standard": "^4.0.0",
-    "eth-gas-reporter": "^0.1.1",
     "eth-ens-namehash": "^2.0.8",
+    "eth-gas-reporter": "^0.1.1",
     "ganache-cli": "^6.1.0",
     "prettier": "^1.16.4",
     "solidity-coverage": "0.5.11",

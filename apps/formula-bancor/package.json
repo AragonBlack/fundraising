@@ -1,5 +1,5 @@
 {
-  "name": "@aragonblack/fundraising-formula-bancor",
+  "name": "@ablack/fundraising-formula-bancor",
   "version": "0.1.0",
   "author": "Aragon Black <contact@aragon.black>",
   "contributors": [
@@ -20,7 +20,9 @@
     "/build",
     "/contracts"
   ],
-  "dependencies": {},
+  "dependencies": {
+    "@aragon/os": "^4.1.0"
+  },
   "devDependencies": {
     "@aragon/cli": "^5.2.1",
     "truffle": "4.1.14"

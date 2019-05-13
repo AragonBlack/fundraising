@@ -39,7 +39,7 @@ const Vault = artifacts.require('Vault.sol')
 const Pool = artifacts.require('Pool')
 const Tap = artifacts.require('Tap.sol')
 const Formula = artifacts.require('BancorFormula.sol')
-const BancorCurve = artifacts.require('BancorCurve')
+const BondingCurve = artifacts.require('BondingCurve')
 const ApiaryController = artifacts.require('ApiaryController.sol')
 
 const EtherTokenConstantMock = artifacts.require('EtherTokenConstantMock')
@@ -113,7 +113,7 @@ contract('ApiaryController app', accounts => {
     tap = await Tap.at(getEvent(tReceipt, 'NewAppProxy', 'proxy'))
     // bancor market-maker
     const bcReceipt = await dao.newAppInstance(BANCOR_CURVE_ID, bcBase.address, '0x', false)
-    marketMaker = await BancorCurve.at(getEvent(bcReceipt, 'NewAppProxy', 'proxy'))
+    marketMaker = await BondingCurve.at(getEvent(bcReceipt, 'NewAppProxy', 'proxy'))
     // apiary controller
     const acReceipt = await dao.newAppInstance(APIARY_CONTROLLER_ID, acBase.address, '0x', false)
     apiary = await ApiaryController.at(getEvent(acReceipt, 'NewAppProxy', 'proxy'))
@@ -172,7 +172,7 @@ contract('ApiaryController app', accounts => {
     pBase = await Pool.new()
     tBase = await Tap.new()
     formula = await Formula.new()
-    bcBase = await BancorCurve.new()
+    bcBase = await BondingCurve.new()
     acBase = await ApiaryController.new()
     // constants
     ETH = await (await EtherTokenConstantMock.new()).getETHConstant()
