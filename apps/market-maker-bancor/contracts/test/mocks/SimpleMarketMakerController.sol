@@ -8,7 +8,7 @@ import "@aragon/os/contracts/apps/AragonApp.sol";
 import "@aragon/os/contracts/common/SafeERC20.sol";
 import "@aragon/os/contracts/lib/token/ERC20.sol";
 
-import "@ablack/fundraising-interfaces/contracts/IMarketMakerController.sol";
+import "@ablack/fundraising-interface-core/contracts/IMarketMakerController.sol";
 import "@ablack/fundraising-module-pool/contracts/Pool.sol";
 import { BondingCurve } from "../../BondingCurve.sol";
 
@@ -16,11 +16,11 @@ import { BondingCurve } from "../../BondingCurve.sol";
 contract SimpleMarketMakerController is IMarketMakerController, AragonApp {
     using SafeERC20 for ERC20;
 
-    Pool private _pool;
+    // Pool private _pool;
     BondingCurve private _curve;
 
     function initialize(Pool __pool, BondingCurve __curve) external onlyInit {
-        _pool = __pool;
+        pool = __pool;
         _curve = __curve;
     }
 
@@ -52,11 +52,11 @@ contract SimpleMarketMakerController is IMarketMakerController, AragonApp {
         (, , , _virtualBalance) = _curve.collateralTokenInfo(_collateralToken);
     }
 
-    function pool() public view returns (address) {
-        return address(_pool);
-    }
+    // function pool() public view returns (address) {
+    //     return address(_pool);
+    // }
     
     function poolBalance(address _collateralToken) public view returns (uint256) {
-        return ERC20(_collateralToken).staticBalanceOf(address(_pool));
+        return ERC20(_collateralToken).staticBalanceOf(address(pool));
     }
 }

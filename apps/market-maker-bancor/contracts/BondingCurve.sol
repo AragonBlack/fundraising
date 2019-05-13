@@ -12,7 +12,7 @@ import "@aragon/os/contracts/common/SafeERC20.sol";
 import "@aragon/os/contracts/lib/token/ERC20.sol";
 
 import "@aragon/apps-token-manager/contracts/TokenManager.sol";
-import "@ablack/fundraising-interfaces/contracts/IMarketMakerController.sol";
+import "@ablack/fundraising-interface-core/contracts/IMarketMakerController.sol";
 import "@ablack/fundraising-formula-bancor/contracts/BancorFormula.sol";
 import "@ablack/fundraising-module-pool/contracts/Pool.sol";
 
@@ -77,8 +77,7 @@ contract BondingCurve is EtherTokenConstant, IsContract, AragonApp {
     }
 
     function getBatch(address _collateralToken, uint256 _batchId) public view returns(bool, bool, uint256, uint256, uint256, uint256, uint256, uint256) {
-        Batch batch;
-        batch = collateralTokenInfo[_collateralToken].batches[_batchId];
+        Batch storage batch = collateralTokenInfo[_collateralToken].batches[_batchId];
         return (batch.init, batch.cleared, batch.poolBalance, batch.totalSupply, batch.totalBuySpend, batch.totalBuyReturn, batch.totalSellSpend, batch.totalSellReturn);
     }
 
