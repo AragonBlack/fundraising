@@ -134,9 +134,7 @@ contract('BondingCurve app', accounts => {
     token1 = await TokenMock.new(authorized, INITIAL_TOKEN_BALANCE)
     token2 = await TokenMock.new(authorized, INITIAL_TOKEN_BALANCE)
 
-    await token1.transfer(authorized2, INITIAL_TOKEN_BALANCE / 2, {
-      from: authorized
-    })
+    await token1.transfer(authorized2, INITIAL_TOKEN_BALANCE / 2, { from: authorized })
     await token2.transfer(authorized2, INITIAL_TOKEN_BALANCE / 2, {
       from: authorized
     })
