@@ -20,6 +20,7 @@ const blockNumber = require('@aragon/test-helpers/blockNumber')(web3)
 const {
   hash
 } = require('eth-ens-namehash')
+const gasCost = new web3.BigNumber(15000000001)
 
 const getEvent = (receipt, event, arg) => {
   return receipt.logs.filter(l => l.event === event)[0].args[arg]
@@ -67,9 +68,6 @@ contract('BondingCurve app', accounts => {
   if (DEBUG) console.log({RESERVE_RATIOS})
 
 
-  VIRTUAL_SUPPLIES = [ 2868, 8041, 6315 ]
-  VIRTUAL_BALANCES = [ 6852, 5450, 8333 ]
-  RESERVE_RATIOS = [ 907549, 591959, 577361 ]
 
   const FEE_PERCENT = 10000
   const BUY_GAS = 0
@@ -812,9 +810,22 @@ contract('BondingCurve app', accounts => {
           } else {
             collateralBalanceBefore_1 = await _token.balanceOf(authorized)
           }
-          let {firstApprove, secondApprove, sellReceipt} = await sellHalfAsMuchAsPossible({
+
+
+          // Seller 2
+          let collateralBalanceBefore_2
+          if (collateralToken === ETH) {
+            collateralBalanceBefore_2 = await getBalance(authorized2)
+          } else {
+            collateralBalanceBefore_2 = await _token.balanceOf(authorized2)
+          }
+
+          // Seller 1
+
+          let {firstApprove, secondApprove, sellReceipt} = await sellSomeAmount({
             address: authorized,
-            collateralToken
+            collateralToken,
+            amount: firstAmount.toString(10)
           })
           const firstApprove_1 = firstApprove
           const secondApprove_1 = secondApprove
@@ -828,17 +839,12 @@ contract('BondingCurve app', accounts => {
           let sellBatchNumber = NewSellOrder_1 ? NewSellOrder_1.args.batchId.toNumber() : new Error('No Buy Order')
 
           // Seller 2
-          let collateralBalanceBefore_2
-          if (collateralToken === ETH) {
-            collateralBalanceBefore_2 = await getBalance(authorized2)
-          } else {
-            collateralBalanceBefore_2 = await _token.balanceOf(authorized2)
-          }
 
           const {firstApprove_2, secondApprove_2, sellReceipt_2} = await (async () => {
-            let {firstApprove, secondApprove, sellReceipt} = await sellHalfAsMuchAsPossible({
+            let {firstApprove, secondApprove, sellReceipt} = await sellSomeAmount({
               address: authorized2,
-              collateralToken
+              collateralToken,
+              amount: secondAmount.toString(10)
             })
             return {
               firstApprove_2: firstApprove,
@@ -852,7 +858,7 @@ contract('BondingCurve app', accounts => {
           assert(sellReceipt_1.tx !== sellReceipt_2.tx, "txs shouldn't match (3)")
           
           const firstApproveGas_2 = new web3.BigNumber(firstApprove_2.receipt.gasUsed)
-          const secondApproveGas_2 = new web3.BigNumber(firstApprove_2.receipt.gasUsed)
+          const secondApproveGas_2 = new web3.BigNumber(secondApprove_2.receipt.gasUsed)
           const sellGas_2 = new web3.BigNumber(sellReceipt_2.receipt.gasUsed)
 
           let NewSellOrder_2 = sellReceipt_2.logs.find(l => l.event === 'NewSellOrder')
@@ -875,46 +881,30 @@ contract('BondingCurve app', accounts => {
           balance = balance.add(actualBalance.toString(10))
           const marginOfError = getMarginOfError({totalSupply, balance})
 
-          let gasCost = new web3.BigNumber(15000000001)
 
           // Seller 1
           let collateralBalanceAfter_1
           if (collateralToken === ETH) {
-            // console.log({sellGas_1: sellGas_1.toString(10)})
-            // console.log({firstApproveGas_1: firstApproveGas_1.toString(10)})
-            // console.log({secondApproveGas_1: secondApproveGas_1.toString(10)})
-
             let gasSpent_1 = sellGas_1.add(firstApproveGas_1).add(secondApproveGas_1)
             collateralBalanceAfter_1 = await getBalance(authorized)
-            // console.log('seller1 gas costs', gasSpent_1.mul(gasCost).toString(10))
             collateralBalanceAfter_1 = collateralBalanceAfter_1.add(gasSpent_1.mul(gasCost))
           } else {
             collateralBalanceAfter_1 = await _token.balanceOf(authorized)
           }
           const netGain_1 = collateralBalanceAfter_1.sub(collateralBalanceBefore_1)
-          // console.log({estimatedFirstReturn})
-          // console.log({netGain_1: netGain_1.toString(10)})
           assert(estimatedFirstReturn.sub(netGain_1.toString(10)).abs().lt(marginOfError), `Didn't receive as many tokens as predicted from collateralTokenIndex ${collateralTokenIndex} for seller 1 ${netGain_1.toString(10)} ${estimatedFirstReturn.toString(10)}`)
 
           // Seller 2
           let collateralBalanceAfter_2
           if (collateralToken === ETH) {
-            // console.log({sellGas_2: sellGas_2.toString(10)})
-            // console.log({firstApproveGas_2: firstApproveGas_2.toString(10)})
-            // console.log({secondApproveGas_2: secondApproveGas_2.toString(10)})
-
             let gasSpent_2 = sellGas_2.add(firstApproveGas_2).add(secondApproveGas_2)
             collateralBalanceAfter_2 = await getBalance(authorized2)
-            // console.log('seller2 gas costs', gasSpent_2.mul(gasCost).toString(10))
             collateralBalanceAfter_2 = collateralBalanceAfter_2.add(gasSpent_2.mul(gasCost))
           } else {
             collateralBalanceAfter_2 = await _token.balanceOf(authorized2)
           }
           const netGain_2 = collateralBalanceAfter_2.sub(collateralBalanceBefore_2)
-          // console.log({estimatedSecondReturn})
-          // console.log({netGain_2: netGain_2.toString(10)})
-          // TODO: FIGURE OUT WHY THIS ISN'T WORKING
-          // assert(estimatedSecondReturn.sub(netGain_2.toString(10)).abs().lt(marginOfError), `Didn't receive as many tokens as predicted from collateralTokenIndex ${collateralTokenIndex} for seller 2 ${netGain_2.toString(10)} ${estimatedSecondReturn.toString(10)}`)
+          assert(estimatedSecondReturn.sub(netGain_2.toString(10)).abs().lt(marginOfError), `Didn't receive as many tokens as predicted from collateralTokenIndex ${collateralTokenIndex} for seller 2 ${netGain_2.toString(10)} ${estimatedSecondReturn.toString(10)}`)
         })
       })
     })
@@ -1012,7 +1002,30 @@ contract('BondingCurve app', accounts => {
       secondApprove,
       sellReceipt
     }
-  }
+  }  
+    async function sellSomeAmount({
+      address,
+      collateralToken,
+      amount
+    }) {
+      let firstApprove = await token.approve(curve.address, 0, {
+        from: address,
+        gasCost
+      })
+      let secondApprove = await token.approve(curve.address, amount, {
+        from: address,
+        gasCost
+      })
+      const sellReceipt = await curve.createSellOrder(address, collateralToken, amount, {
+        from: address,
+        gasCost
+      })
+      return {
+        firstApprove,
+        secondApprove,
+        sellReceipt
+      }
+    }
 
   // TODO: make it easier than double approve
   async function sellHalfAsMuchAsPossible({
