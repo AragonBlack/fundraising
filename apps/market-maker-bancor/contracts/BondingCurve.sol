@@ -121,7 +121,7 @@ contract BondingCurve is EtherTokenConstant, IsContract, AragonApp {
 
 
     function addCollateralToken(address _collateralToken, uint256 _virtualSupply, uint256 _virtualBalance, uint32 _reserveRatio) external auth(ADMIN_ROLE) {
-        require(!collateralTokenInfo[_collateralToken].exists, "CollateralToken Already Exists");
+        require(!collateralTokenInfo[_collateralToken].exists);
         // add checks here
         collateralTokens[collateralTokensLength] = _collateralToken;
         collateralTokenInfo[_collateralToken].exists = true;
@@ -218,10 +218,10 @@ contract BondingCurve is EtherTokenConstant, IsContract, AragonApp {
         @param _batchId The id of the batch used.
     */
     function claimBuy(address _buyer, address _collateralToken, uint256 _batchId) external {
-        require(collateralTokenInfo[_collateralToken].exists, "2"); // ERROR_NOT_COLLATERAL_TOKEN
+        require(collateralTokenInfo[_collateralToken].exists); // ERROR_NOT_COLLATERAL_TOKEN
         Batch storage batch = collateralTokenInfo[_collateralToken].batches[_batchId];
-        require(batch.cleared, "4"); // ERROR_BATCH_NOT_CLEARED
-        require(batch.buyers[_buyer] != 0, "5"); // ALREADY_CLAIMED_OR_JUST_POSSIBLY_EMPTY? // ERROR_ALREADY_CLAIMED
+        require(batch.cleared); // ERROR_BATCH_NOT_CLEARED
+        require(batch.buyers[_buyer] != 0); // ALREADY_CLAIMED_OR_JUST_POSSIBLY_EMPTY? // ERROR_ALREADY_CLAIMED
 
         _claimBuy(_buyer, _collateralToken, _batchId);
         msg.sender.transfer(GAS_COST_BUY_ORDER);
@@ -234,10 +234,10 @@ contract BondingCurve is EtherTokenConstant, IsContract, AragonApp {
         @param _batchId The id of the batch used.
     */
     function claimSell(address _seller, address _collateralToken, uint256 _batchId) external {
-        require(collateralTokenInfo[_collateralToken].exists, "2"); // ERROR_NOT_COLLATERAL_TOKEN
+        require(collateralTokenInfo[_collateralToken].exists); // ERROR_NOT_COLLATERAL_TOKEN
         Batch storage batch = collateralTokenInfo[_collateralToken].batches[_batchId];
-        require(batch.cleared, "4"); // ERROR_BATCH_NOT_CLEARED
-        require(batch.sellers[_seller] != 0, "5"); // ALREADY_CLAIMED_OR_JUST_POSSIBLY_EMPTY? // ERROR_ALREADY_CLAIMED
+        require(batch.cleared); // ERROR_BATCH_NOT_CLEARED
+        require(batch.sellers[_seller] != 0); // ALREADY_CLAIMED_OR_JUST_POSSIBLY_EMPTY? // ERROR_ALREADY_CLAIMED
 
         _claimSell(_seller, _collateralToken, _batchId);
         msg.sender.transfer(GAS_COST_SELL_ORDER);
@@ -322,16 +322,29 @@ contract BondingCurve is EtherTokenConstant, IsContract, AragonApp {
         uint256 batchId = getCurrentBatchId();
         Batch storage batch = _getInitializedBatch(_collateralToken, batchId);
 
-        // Alternatively this but more gas expensive:
-        // Pool(pool).deposit(_collateralToken, _value); // ETH needs value attached to it...
-        if (_collateralToken == ETH) {
-            address(pool).transfer(_value);
-        } else {
-            require(ERC20(_collateralToken).safeTransferFrom(_buyer, address(pool), _value), "3"); // ERROR_TRANSFER_FAILED
-        }
-
         uint256 fee = _value.mul(FEE_PERCENT_PPM) / ppm;
         uint256 valueAfterFee = _value.sub(fee);
+
+
+
+        // Alternatively this but more gas expensive:
+        // Pool(pool).deposit(_collateralToken, _value); // ETH needs value attached to it...
+        if (fee > 0) { // avoid VAULT_TRANSFER_VALUE_ZERO error
+            if (_collateralToken == ETH) {
+                controller.beneficiary().transfer(fee);
+            } else {
+                require(ERC20(_collateralToken).safeTransferFrom(_buyer, controller.beneficiary(), fee), "9"); // ERROR_TRANSFER_FAILED
+            }
+        }
+        
+
+        if (_collateralToken == ETH) {
+            address(pool).transfer(valueAfterFee);
+        } else {
+            require(ERC20(_collateralToken).safeTransferFrom(_buyer, address(pool), valueAfterFee), "3"); // ERROR_TRANSFER_FAILED
+        }
+
+        
 
         batch.totalBuySpend = batch.totalBuySpend.add(valueAfterFee);
         if (batch.buyers[_buyer] == 0) {
@@ -350,6 +363,17 @@ contract BondingCurve is EtherTokenConstant, IsContract, AragonApp {
     
         uint256 fee = _amount.mul(FEE_PERCENT_PPM) / ppm;
         uint256 amounAtfterFee = _amount.sub(fee);
+        // uint256 amounAtfterFee = _amount;
+
+
+        // if (fee > 0) {// avoid VAULT_TRANSFER_VALUE_ZERO error
+        //     if (_collateralToken == ETH) {
+        //         controller.beneficiary().transfer(fee);
+        //     } else {
+        //         require(ERC20(tokenManager.token()).safeTransferFrom(_seller, controller.beneficiary(), fee), "9"); // ERROR_TRANSFER_FAILED
+        //     }
+        // }
+    
 
         batch.totalSellSpend = batch.totalSellSpend.add(amounAtfterFee);
         if (batch.sellers[msg.sender] == 0) {
@@ -357,10 +381,12 @@ contract BondingCurve is EtherTokenConstant, IsContract, AragonApp {
         }
         batch.sellers[_seller] = batch.sellers[_seller].add(amounAtfterFee);
         tokenManager.burn(_seller, _amount);
-        tokenManager.mint(address(pool), fee); // TODO: Make sure this is the most efficient way to do this
+        tokenManager.mint(controller.beneficiary(), fee); // TODO: Make sure this is the most efficient way to do this
 
-        //TODO: Should the event show the amount sent or the amount after the fee? 
+        // TODO: Should the event show the amount sent or the amount after the fee? 
         emit NewSellOrder(_seller, _collateralToken, amounAtfterFee, batchId);
+        // emit NewSellOrder(_seller, _collateralToken, 0, batchId);
+
     }
 
     function _claimBuy(address _buyer, address _collateralToken, uint256 _batchId) internal {
@@ -532,4 +558,5 @@ contract BondingCurve is EtherTokenConstant, IsContract, AragonApp {
             // cb.poolBalance = cb.poolBalance.add(remainingBuy);
         }
     }
+
 }
