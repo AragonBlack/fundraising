@@ -18,10 +18,12 @@ contract SimpleMarketMakerController is IMarketMakerController, AragonApp {
 
     // Pool private _pool;
     BondingCurve private _curve;
+    address public beneficiary;
 
-    function initialize(Pool __pool, BondingCurve __curve) external onlyInit {
+    function initialize(Pool __pool, BondingCurve __curve, address _beneficiary) external onlyInit {
         pool = __pool;
         _curve = __curve;
+        beneficiary = _beneficiary;
     }
 
     // uint256 public collateralTokensLength;
@@ -57,6 +59,11 @@ contract SimpleMarketMakerController is IMarketMakerController, AragonApp {
     // }
     
     function poolBalance(address _collateralToken) public view returns (uint256) {
-        return ERC20(_collateralToken).staticBalanceOf(address(pool));
+        if (_collateralToken == ETH) {
+            return address(pool).balance;
+        } else {
+            return ERC20(_collateralToken).staticBalanceOf(address(pool));
+        }
     }
+
 }
