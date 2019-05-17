@@ -205,6 +205,8 @@ contract BondingCurve is EtherTokenConstant, IsContract, AragonApp {
         @notice Clear the last batch of orders if it has not yet been cleared.
     */
     function clearBatches() external {
+        require(waitingClear < getCurrentBatchId());
+
         for (uint256 i = 1; i <= collateralTokensLength; i++) {
             _clearBatch(collateralTokens[i]);
         }
@@ -473,7 +475,7 @@ contract BondingCurve is EtherTokenConstant, IsContract, AragonApp {
         Batch storage cb = collateralTokenInfo[collateralToken].batches[waitingClear]; // clearing batch
 
         // Do nothing if there were no orders
-        if( cb.totalSellSpend == 0 && cb.totalBuySpend == 0) {
+        if (cb.totalSellSpend == 0 && cb.totalBuySpend == 0) {
             return;
         }
         // The static price is the current exact price in collateral per token.
