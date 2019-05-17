@@ -601,97 +601,84 @@ contract('BondingCurve app', accounts => {
   // #endregion
 
   // #region clearBatches
-  // context('> #clearBatches', () => {
-  //   it('it should clear pending batches for all collateral tokens', async () => {
-  //     // compute random amounts
-  //     const amountETH1 = randomETHAmount()
-  //     const amountETH2 = randomETHAmount()
-  //     const amountToken11 = randomTokenAmount()
-  //     const amountToken12 = randomTokenAmount()
-  //     const amountToken21 = randomTokenAmount()
-  //     const amountToken22 = randomTokenAmount()
-  //     // create and claim some buy orders
-  //     await createAndClaimBuyOrder({ address: authorized, collateralToken: ETH, amount: amountETH1 })
-  //     const balance1 = await createAndClaimBuyOrder({ address: authorized, collateralToken: token1.address, amount: amountToken11 })
-  //     const balance2 = await createAndClaimBuyOrder({ address: authorized2, collateralToken: token2.address, amount: amountToken22 })
-  //     // move to next batch
-  //     await progressToNextBatch()
-  //     // create some buy and sell orders
-  //     const third = balance1.div(3).round(0)
-  //     const receipt1 = await curve.createSellOrder(authorized, token1.address, third, { from: authorized })
-  //     const receipt2 = await curve.createSellOrder(authorized, ETH, third, { from: authorized })
-  //     const receipt3 = await curve.createBuyOrder(authorized, token2.address, amountToken21, { from: authorized })
-  //     const receipt4 = await curve.createSellOrder(authorized2, token2.address, balance2, { from: authorized2 })
-  //     const receipt5 = await curve.createBuyOrder(authorized2, token1.address, amountToken12, { from: authorized2 })
-  //     const receipt6 = await curve.createBuyOrder(authorized2, ETH, amountETH2, { from: authorized2, value: amountETH2 })
-  //     // clear batches
-  //     const receipt = await curve.clearBatches()
-  //     // assert that the orders are all in the same batch
-  //     const batchId1 = getSellOrderBatchId(receipt1)
-  //     const batchId2 = getSellOrderBatchId(receipt2)
-  //     const batchId3 = getBuyOrderBatchId(receipt3)
-  //     const batchId4 = getSellOrderBatchId(receipt4)
-  //     const batchId5 = getBuyOrderBatchId(receipt5)
-  //     const batchId6 = getBuyOrderBatchId(receipt6)
-  //     assert.equal(batchId1, batchId2)
-  //     assert.equal(batchId1, batchId3)
-  //     assert.equal(batchId1, batchId4)
-  //     assert.equal(batchId1, batchId5)
-  //     assert.equal(batchId1, batchId6)
-  //     // assert that the BatchCleared event has been fired for each token batch
-  //     assertEvent(receipt, 'BatchCleared', 3)
-  //     // assert that ETH batch has been cleared
-  //     const batchETH = await getBatch(ETH, batchId1)
-  //     assert.equal(batchETH.cleared, true)
-  //     // assert that token1 batch has been cleared
-  //     const batch1 = await getBatch(token1.address, batchId1)
-  //     assert.equal(batch1.cleared, true)
-  //     // assert that token2 batch has been cleared
-  //     const batch2 = await getBatch(token2.address, batchId1)
-  //     assert.equal(batch2.cleared, true)
-  //     // assert that waitingClear has been re-initialized
-  //     assert.equal(await curve.waitingClear(), 0)
-  //   })
+  context('> #clearBatches', () => {
+    context('> batch period is over', () => {
+      it('it should clear pending batches for all collateral tokens', async () => {
+        // compute random amounts
+        const amountETH1 = randomETHAmount()
+        const amountETH2 = randomETHAmount()
+        const amountToken11 = randomTokenAmount()
+        const amountToken12 = randomTokenAmount()
+        const amountToken21 = randomTokenAmount()
+        const amountToken22 = randomTokenAmount()
+        // create and claim some buy orders
+        await createAndClaimBuyOrder({ address: authorized, collateralToken: ETH, amount: amountETH1 })
+        const balance1 = await createAndClaimBuyOrder({ address: authorized, collateralToken: token1.address, amount: amountToken11 })
+        const balance2 = await createAndClaimBuyOrder({ address: authorized2, collateralToken: token2.address, amount: amountToken22 })
+        // move to next batch
+        await progressToNextBatch()
+        // create some buy and sell orders
+        const third = balance1.div(3).round(0)
+        const receipt1 = await curve.createSellOrder(authorized, token1.address, third, { from: authorized })
+        const receipt2 = await curve.createSellOrder(authorized, ETH, third, { from: authorized })
+        const receipt3 = await curve.createBuyOrder(authorized, token2.address, amountToken21, { from: authorized })
+        const receipt4 = await curve.createSellOrder(authorized2, token2.address, balance2, { from: authorized2 })
+        const receipt5 = await curve.createBuyOrder(authorized2, token1.address, amountToken12, { from: authorized2 })
+        const receipt6 = await curve.createBuyOrder(authorized2, ETH, amountETH2, { from: authorized2, value: amountETH2 })
+        // move to next batch
+        await progressToNextBatch()
+        // clear batches
+        const receipt = await curve.clearBatches()
+        // assert that the orders are all in the same batch
+        const batchId1 = getSellOrderBatchId(receipt1)
+        const batchId2 = getSellOrderBatchId(receipt2)
+        const batchId3 = getBuyOrderBatchId(receipt3)
+        const batchId4 = getSellOrderBatchId(receipt4)
+        const batchId5 = getBuyOrderBatchId(receipt5)
+        const batchId6 = getBuyOrderBatchId(receipt6)
+        assert.equal(batchId1, batchId2)
+        assert.equal(batchId1, batchId3)
+        assert.equal(batchId1, batchId4)
+        assert.equal(batchId1, batchId5)
+        assert.equal(batchId1, batchId6)
+        // assert that the BatchCleared event has been fired for each token batch
+        assertEvent(receipt, 'BatchCleared', 3)
+        // assert that ETH batch has been cleared
+        const batchETH = await getBatch(ETH, batchId1)
+        assert.equal(batchETH.cleared, true)
+        // assert that token1 batch has been cleared
+        const batch1 = await getBatch(token1.address, batchId1)
+        assert.equal(batch1.cleared, true)
+        // assert that token2 batch has been cleared
+        const batch2 = await getBatch(token2.address, batchId1)
+        assert.equal(batch2.cleared, true)
+        // assert that waitingClear has been re-initialized
+        assert.equal(await curve.waitingClear(), 0)
+      })
 
-  //   it('it should not revert if there is no pending batch', async () => {
-  //     await curve.clearBatches()
-  //   })
-  // })
+      //   it('it should not revert if there is no pending batch', async () => {
+      //     await curve.clearBatches()
+      //   })
+    })
+    context('> batch period is not over', () => {
+      it('it should revert', async () => {
+        await progressToNextBatch()
+        const amount = randomTokenAmount()
+        await curve.createBuyOrder(authorized, ETH, amount, { from: authorized, value: amount })
+
+        await assertRevert(() => curve.clearBatches())
+      })
+    })
+  })
   // #endregion
 
   // #region claimBuy
-  // function claimBuy(address _buyer, address _collateralToken, uint256 _batchId) external {
-  // require(collateralTokenInfo[_collateralToken].exists); // ERROR_NOT_COLLATERAL_TOKEN
-  //     Batch storage batch = collateralTokenInfo[_collateralToken].batches[_batchId];
-  //     require(batch.cleared); // ERROR_BATCH_NOT_CLEARED
-  //     require(batch.buyers[_buyer] != 0); // ALREADY_CLAIMED_OR_JUST_POSSIBLY_EMPTY? // ERROR_ALREADY_CLAIMED
-  context('#claimBuy', () => {
+  context('> #claimBuy', () => {
     context('> collateral is whitelisted', () => {
-      context('> and batch is cleared', () => {
-        context('> and there are bonds to claim', () => {
-          context('> ETH', () => {
-            it('it should return bonds', async () => {
-              const oldBalance = await token.balanceOf(authorized)
-              const amount = randomTokenAmount()
-              const receipt1 = await curve.createBuyOrder(authorized, ETH, amount, { from: authorized, value: amount })
-              const batchId = getBuyOrderBatchId(receipt1)
-
-              await progressToNextBatch()
-              await curve.clearBatches()
-
-              const receipt2 = await curve.claimBuy(authorized, ETH, batchId)
-              const batch = await getBatch(ETH, batchId)
-              const newbalance = await token.balanceOf(authorized)
-
-              assertEvent(receipt2, 'ReturnBuy')
-              assert.isAbove(batch.totalBuyReturn.toNumber(), 0)
-              assert.isAbove(newbalance.toNumber(), oldBalance.toNumber())
-            })
-          })
-        })
-
-        context('> but there are no tokens to claim', () => {
-          it('it should revert', async () => {
+      context('> and there are bonds to claim', () => {
+        context('> and batch has been cleared through #clearBatches', () => {
+          it('it should return bonds [ETH]', async () => {
+            const oldBalance = await token.balanceOf(authorized)
             const amount = randomTokenAmount()
             const receipt1 = await curve.createBuyOrder(authorized, ETH, amount, { from: authorized, value: amount })
             const batchId = getBuyOrderBatchId(receipt1)
@@ -710,24 +697,93 @@ contract('BondingCurve app', accounts => {
         })
       })
 
-      context('> but batch is not cleared', () => {
-        context('> ETH', () => {
-          it('it should revert', async () => {
+      context('> but there are no tokens to claim', () => {
+        context('> because address has no pending buy order at all', () => {
+          it('it should revert [ETH]', async () => {
             const amount = randomTokenAmount()
-            const receipt = await curve.createBuyOrder(authorized, ETH, amount, { from: authorized, value: amount })
-            const batchId = getBuyOrderBatchId(receipt)
+            const receipt1 = await curve.createBuyOrder(authorized, ETH, amount, { from: authorized, value: amount })
+            const batchId = getBuyOrderBatchId(receipt1)
 
-            await assertRevert(() => curve.claimBuy(authorized, ETH, batchId))
+            await progressToNextBatch()
+            await curve.clearBatches()
+
+            await assertRevert(() => curve.claimBuy(authorized2, ETH, batchId))
           })
-        })
 
-        context('> ERC20', () => {
-          it('it should revert', async () => {
+          it('it should revert [ERC20]', async () => {
             const receipt = await curve.createBuyOrder(authorized, token1.address, randomTokenAmount(), { from: authorized })
             const batchId = getBuyOrderBatchId(receipt)
 
+            await progressToNextBatch()
+            await curve.clearBatches()
+
+            await assertRevert(() => curve.claimBuy(authorized2, token1.address, batchId))
+          })
+        })
+
+        context('> because address has a pending buy order but created through another collateral token', () => {
+          it('it should revert [ETH]', async () => {
+            const amount = randomTokenAmount()
+            const receipt1 = await curve.createBuyOrder(authorized, ETH, amount, { from: authorized, value: amount })
+            const batchId = getBuyOrderBatchId(receipt1)
+
+            await progressToNextBatch()
+            await curve.clearBatches()
+
             await assertRevert(() => curve.claimBuy(authorized, token1.address, batchId))
           })
+
+          it('it should revert [ERC20]', async () => {
+            const receipt = await curve.createBuyOrder(authorized, token1.address, randomTokenAmount(), { from: authorized })
+            const batchId = getBuyOrderBatchId(receipt)
+
+            await progressToNextBatch()
+            await curve.clearBatches()
+
+            await assertRevert(() => curve.claimBuy(authorized, token2.address, batchId))
+          })
+        })
+
+        context('> because buy order has already been claimed', () => {
+          it('it should revert [ETH]', async () => {
+            const amount = randomTokenAmount()
+            const receipt1 = await curve.createBuyOrder(authorized, ETH, amount, { from: authorized, value: amount })
+            const batchId = getBuyOrderBatchId(receipt1)
+
+            await progressToNextBatch()
+            await curve.clearBatches()
+            await curve.claimBuy(authorized, ETH, batchId)
+
+            await assertRevert(() => curve.claimBuy(authorized, ETH, batchId))
+          })
+
+          it('it should revert [ERC20]', async () => {
+            const receipt1 = await curve.createBuyOrder(authorized, token1.address, randomTokenAmount(), { from: authorized })
+            const batchId = getBuyOrderBatchId(receipt1)
+
+            await progressToNextBatch()
+            await curve.clearBatches()
+            await curve.claimBuy(authorized, token1.address, batchId)
+
+            await assertRevert(() => curve.claimBuy(authorized, token1.address, batchId))
+          })
+        })
+      })
+
+      context('> but batch is not cleared', () => {
+        it('it should revert [ETH]', async () => {
+          const amount = randomTokenAmount()
+          const receipt = await curve.createBuyOrder(authorized, ETH, amount, { from: authorized, value: amount })
+          const batchId = getBuyOrderBatchId(receipt)
+
+          await assertRevert(() => curve.claimBuy(authorized, ETH, batchId))
+        })
+
+        it('it should revert [ERC20]', async () => {
+          const receipt = await curve.createBuyOrder(authorized, token1.address, randomTokenAmount(), { from: authorized })
+          const batchId = getBuyOrderBatchId(receipt)
+
+          await assertRevert(() => curve.claimBuy(authorized, token1.address, batchId))
         })
       })
     })
@@ -746,122 +802,6 @@ contract('BondingCurve app', accounts => {
       })
     })
   })
-  // #endregion
-
-  // #region oldClearAndClaim
-  // CLEAR AND CLAIM OLD
-  // it('it should create buy order and claim it by clearing batches', async () => {
-  //   const receipt = await curve.createBuyOrder(authorized, token1.address, 10, {
-  //     from: authorized,
-  //   })
-  //   let NewBuyOrder = receipt.logs.find(l => l.event === 'NewBuyOrder')
-  //   let batchNumber = NewBuyOrder ? NewBuyOrder.args.batchId.toNumber() : new Error('No Buy Order')
-  //   await increaseBlocks(BLOCKS_IN_BATCH)
-  //   await curve.clearBatches()
-  //   let { cleared } = await getBatch(token1.address, batchNumber)
-  //   assert(cleared, `Batch ${batchNumber} didn't clear`)
-  //   const claim = await curve.claimBuy(authorized, token1.address, batchNumber)
-  //   assertEvent(claim, 'ReturnBuy')
-  // })
-
-  // it('it should create buy order and fail claiming it before has cleared', async () => {
-  //   const receipt = await curve.createBuyOrder(authorized, token1.address, 10, {
-  //     from: authorized,
-  //   })
-  //   let NewBuyOrder = receipt.logs.find(l => l.event === 'NewBuyOrder')
-  //   let batchNumber = NewBuyOrder ? NewBuyOrder.args.batchId.toNumber() : new Error('No Buy Order')
-  //   await assertRevert(() => curve.claimBuy(authorized, token1.address, batchNumber))
-  // })
-  // it('it should create buy order and claim it after it has cleared', async () => {
-  //   const balance1 = await token.balanceOf(authorized)
-  //   const receipt = await curve.createBuyOrder(authorized, token1.address, 10, {
-  //     from: authorized,
-  //   })
-  //   let NewBuyOrder = receipt.logs.find(l => l.event === 'NewBuyOrder')
-  //   let batchNumber = NewBuyOrder ? NewBuyOrder.args.batchId.toNumber() : new Error('No Buy Order')
-  //   await increaseBlocks(BLOCKS_IN_BATCH)
-  //   await curve.clearBatches()
-  //   const claim1 = await curve.claimBuy(authorized, token1.address, batchNumber)
-  //   assertEvent(claim1, 'ReturnBuy')
-  //   balance2 = await token.balanceOf(authorized)
-  //   assert(balance2.gt(balance1), `balance2 (${balance2.toString(10)}) is not greater than balance1 (${balance1.toString(10)})`)
-  // })
-
-  // context('> #clearBatches', () => {
-  //   it('it should create buy order and claim it by clearing batches', async () => {
-  //     const receipt = await curve.createBuyOrder(authorized, token1.address, 10, { from: authorized })
-  //     let NewBuyOrder = receipt.logs.find(l => l.event === 'NewBuyOrder')
-  //     let batchNumber = NewBuyOrder ? NewBuyOrder.args.batchId.toNumber() : new Error('No Buy Order')
-  //     await increaseBlocks(BLOCKS_IN_BATCH)
-  //     await curve.clearBatches()
-  //     let { cleared } = await getBatch(token1.address, batchNumber)
-  //     assert(cleared, `Batch ${batchNumber} didn't clear`)
-  //     const claim = await curve.claimBuy(authorized, token1.address, batchNumber)
-  //     assertEvent(claim, 'ReturnBuy')
-  //   })
-  // })
-  // #endregion
-
-  // #region createSellOrderOld
-  // context('> #createSellOrder', () => {
-  //   context('> sender has CREATE_SELL_ORDER_ROLE', () => {
-  //     context('> and collateral is whitelisted', () => {
-  //       context('> and amount is not zero', () => {
-  //         context('> and sender has sufficient funds', () => {
-  //           beforeEach(async () => {
-  //             await buyAndClaimTokens({
-  //               address: authorized,
-  //               collateralToken: token1.address,
-  //               amount: 10
-  //             })
-  //           })
-  //
-  //           it('it should create sell order and clear it by clearing batches', async () => {
-  //             const {sellReceipt} = await sellAsMuchAsPossible({
-  //               address: authorized,
-  //               collateralToken: token1.address
-  //             })
-  //             let NewSellOrder = sellReceipt.logs.find(l => l.event === 'NewSellOrder')
-  //             let batchNumber = NewSellOrder ? NewSellOrder.args.batchId.toNumber() : new Error('No Sell Order')
-  //             await increaseBlocks(BLOCKS_IN_BATCH)
-  //             await curve.clearBatches()
-  //             // if (DEBUG) await printBatch(batchNumber)
-  //             let {
-  //               cleared
-  //             } = await getBatch(token1.address, batchNumber)
-  //             assert(cleared, `Batch ${batchNumber} didn't clear`)
-  //           })
-
-  //           it('it should create sell order and fail claiming it before has cleared', async () => {
-  //             const {sellReceipt} = await sellAsMuchAsPossible({
-  //               address: authorized,
-  //               collateralToken: token1.address
-  //             })
-  //             let NewSellOrder = sellReceipt.logs.find(l => l.event === 'NewSellOrder')
-  //             let batchNumber = NewSellOrder ? NewSellOrder.args.batchId.toNumber() : new Error('No Sell Order')
-  //             await assertRevert(() => curve.claimSell(authorized, token1.address, batchNumber))
-  //           })
-  //           it('it should create sell order and claim it after it has cleared', async () => {
-  //             const {sellReceipt} = await sellAsMuchAsPossible({
-  //               address: authorized,
-  //               collateralToken: token1.address
-  //             })
-  //             let NewSellOrder = sellReceipt.logs.find(l => l.event === 'NewSellOrder')
-  //             let batchNumber = NewSellOrder ? NewSellOrder.args.batchId.toNumber() : new Error('No Sell Order')
-  //             await increaseBlocks(BLOCKS_IN_BATCH)
-  //             await curve.clearBatches()
-  //             const claim = await curve.claimSell(authorized, token1.address, batchNumber)
-  //             assertEvent(claim, 'ReturnSell')
-  //           })
-  //         })
-  //
-  //       })
-  //
-  //     })
-  //
-  //   })
-  //
-  // })
   // #endregion
 
   // #region checkMath
