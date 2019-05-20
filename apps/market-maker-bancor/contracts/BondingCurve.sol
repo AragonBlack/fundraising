@@ -73,12 +73,17 @@ contract BondingCurve is EtherTokenConstant, IsContract, AragonApp {
         uint256 virtualSupply;
         uint256 virtualBalance;
         mapping(uint256=>Batch) batches;
-        mapping(address=>uint256[]) addressToBlocks;
     }
 
     function getBatch(address _collateralToken, uint256 _batchId) public view returns(bool, bool, uint256, uint256, uint256, uint256, uint256, uint256) {
         Batch storage batch = collateralTokenInfo[_collateralToken].batches[_batchId];
         return (batch.init, batch.cleared, batch.poolBalance, batch.totalSupply, batch.totalBuySpend, batch.totalBuyReturn, batch.totalSellSpend, batch.totalSellReturn);
+    }
+
+    function getCollateralTokenInfo(address _collateralToken) public view returns (bool, uint256, uint256, uint32) {
+        Collateral storage collateral = collateralTokenInfo[_collateralToken];
+
+        return (collateral.exists, collateral.virtualSupply, collateral.virtualBalance, collateral.reserveRatio);
     }
 
     event AddCollateralToken(address indexed collateralToken, uint256 virtualSupply, uint256 virtualBalance, uint32 reserveRatio);
@@ -98,14 +103,9 @@ contract BondingCurve is EtherTokenConstant, IsContract, AragonApp {
         uint256 _batchBlocks
         ) external onlyInit
     {
-
         initialized();
 
-        require(
-            isContract(_controller) &&
-            isContract(_tokenManager) &&
-            isContract(_formula) &&
-            _batchBlocks > 0); // ERROR_INVALID_INIT_PARAMETER
+        require(isContract(_controller) && isContract(_tokenManager) && isContract(_formula) && _batchBlocks > 0);
 
         controller = _controller;
         pool = Pool(_controller.pool());
@@ -119,10 +119,10 @@ contract BondingCurve is EtherTokenConstant, IsContract, AragonApp {
 
     /***** external functions *****/
 
-
     function addCollateralToken(address _collateralToken, uint256 _virtualSupply, uint256 _virtualBalance, uint32 _reserveRatio) external auth(ADMIN_ROLE) {
         require(!collateralTokenInfo[_collateralToken].exists);
-        // add checks here
+        require(_collateralToken == ETH || isContract(_collateralToken));
+
         collateralTokens[collateralTokensLength] = _collateralToken;
         collateralTokenInfo[_collateralToken].exists = true;
         collateralTokenInfo[_collateralToken].virtualSupply = _virtualSupply;
@@ -134,24 +134,22 @@ contract BondingCurve is EtherTokenConstant, IsContract, AragonApp {
     }
 
     /**
-        @notice Update the reserve ratio of `_collateralToken.symbol(): string` to `_reserveRatio` PPM.
-        @param _collateralToken The address of the collateral token used.
-        @param _reserveRatio The new reserve ratio to be used for that collateral token [in PPM].
+     * @notice Update the reserve ratio of `_collateralToken.symbol(): string` to `_reserveRatio` PPM
+     * @param _collateralToken The address of the collateral token whose reserve ratio is to be updated
+     * @param _reserveRatio The new reserve ratio to be used for that collateral token [in PPM]
     */
     function updateReserveRatio(address _collateralToken, uint32 _reserveRatio) external auth(ADMIN_ROLE) {
-        require(collateralTokenInfo[_collateralToken].exists, "2"); // ERROR_NOT_COLLATERAL_TOKEN
-        // _updateReserveRatio(_collateralToken, _reserveRatio); 
+        require(collateralTokenInfo[_collateralToken].exists);
+
         collateralTokenInfo[_collateralToken].reserveRatio = _reserveRatio;
         emit UpdateReserveRatio(_collateralToken, _reserveRatio);
     }
-
 
     /**
         @notice Update the _buyGas and _sellGas to be included with buys and sells.
         @param _buyGas The new buy gas amount to be used.
         @param _sellGas The new sell gas amount to be used.
     */
-
     function updateGas(uint256 _buyGas, uint256 _sellGas) external auth(ADMIN_ROLE) {
         GAS_COST_BUY_ORDER = _buyGas;
         GAS_COST_SELL_ORDER = _sellGas;
@@ -169,47 +167,47 @@ contract BondingCurve is EtherTokenConstant, IsContract, AragonApp {
     }
 
     /**
-        @dev Create a buy order into the current batch.
-             NOTICE: totalSupply remains the same and balance remains the same [although collateral has been collected and is being held by pool].
-        @param _buyer The address of the buyer.
-        @param _collateralToken The address of the collateral token used.
-        @param _value The amount of collateral token the user would like to spend.
+     * @dev    Create a buy order into the current batch. NOTICE: totalSupply and balance remain the same [although collateral has been collected and is being held by the pool].
+     * @notice Create a buy order worth `@tokenAmount(_collateralToken, _value)`
+     * @param _buyer The address of the buyer
+     * @param _collateralToken The address of the collateral token to be spent
+     * @param _value The amount of collateral token to be spent
     */
-    function createBuyOrder(address _buyer, address _collateralToken, uint256 _value) payable external auth(CREATE_BUY_ORDER_ROLE) {
-        require(collateralTokenInfo[_collateralToken].exists, "2"); // ERROR_NOT_COLLATERAL_TOKEN
-        require(_value != 0, "6"); // ERROR_BUY_OR_SELL_ZERO
-        require(msg.value >= GAS_COST_BUY_ORDER, "8"); // ERROR_GAS_COST_BUY_INSUFFICIENT
-        if (_collateralToken == ETH) {
-            require(msg.value >= GAS_COST_BUY_ORDER.add(_value), "8"); // ERROR_GAS_COST_BUY_INSUFFICIENT
-        }
+    function createBuyOrder(address _buyer, address _collateralToken, uint256 _value) external payable auth(CREATE_BUY_ORDER_ROLE) {
+        require(collateralTokenInfo[_collateralToken].exists);
+        require(_value != 0);
+        require(msg.value >= (_collateralToken == ETH ? GAS_COST_BUY_ORDER.add(_value) : GAS_COST_BUY_ORDER));
+
         _createBuyOrder(_buyer, _collateralToken, _value);
     }
 
     /**
-        @dev Create a sell order into the current batch.
-             NOTICE: totalSupply is decremented but the pool balance remains the same.
-        @param _seller The address of the seller.
-        @param _collateralToken The address of the collateral token used.
-        @param _amount The amount of tokens to be sold.
+     * @dev    Create a sell order into the current batch. NOTICE: totalSupply is decremented but balance and pool balance remains the same.
+     * @notice Create a sell order worth `@tokenAmount(token, _amount)`
+     * @param _seller The address of the seller
+     * @param _collateralToken The address of the collateral token to be returned
+     * @param _amount The amount of bonded token to be spent
     */
-    function createSellOrder(address _seller, address _collateralToken, uint256 _amount) payable external auth(CREATE_SELL_ORDER_ROLE) {
-        require(token.staticBalanceOf(_seller) >= _amount, "7"); // ERROR_INSUFFICIENT_FUNDS
-        require(collateralTokenInfo[_collateralToken].exists, "2"); // ERROR_NOT_COLLATERAL_TOKEN
-        require(_amount != 0, "6"); // ERROR_BUY_OR_SELL_ZERO
-        require(msg.value >= GAS_COST_SELL_ORDER, "9"); // ERROR_GAS_COST_SELL_INSUFFICIENT
+    function createSellOrder(address _seller, address _collateralToken, uint256 _amount) external payable auth(CREATE_SELL_ORDER_ROLE) {
+        require(collateralTokenInfo[_collateralToken].exists);
+        require(_amount != 0);
+        require(token.staticBalanceOf(_seller) >= _amount);
+        require(msg.value >= GAS_COST_SELL_ORDER);
 
         _createSellOrder(_seller, _collateralToken, _amount);
     }
 
     /**
-        @notice Clear the last batch of orders if it has not yet been cleared.
+     * @notice Clear the last batch of orders [if it has not yet been cleared]
     */
     function clearBatches() external {
-        require(waitingClear < getCurrentBatchId());
+        require(waitingClear != 0); // require that batch has not yet been cleared
+        require(waitingClear < getCurrentBatchId()); // require current batch to be over
 
-        for (uint256 i = 1; i <= collateralTokensLength; i++) {
+        for (uint256 i = 0; i < collateralTokensLength; i++) {
             _clearBatch(collateralTokens[i]);
         }
+
         waitingClear = 0;
     }
 
@@ -245,20 +243,10 @@ contract BondingCurve is EtherTokenConstant, IsContract, AragonApp {
         msg.sender.transfer(GAS_COST_SELL_ORDER);
     }
 
-    /***** external view functions *****/
-
-    // /**
-    //     @dev Get whether a collateral token exists
-    //     @param _collateralToken The address of the collateral token used.
-    //     @return Whether or not the collateral token exists.
-    // */
-    // function isCollateralToken(address _collateralToken) external view returns (bool) {
-    //     return collateralTokenInfo[_collateralToken].exists;
-    // }
 
     /***** public view functions *****/
 
-     /**
+    /**
         @dev Get the current exact price [with no slippage] of the token with respect to a specific collateral token [returned as parts per million for precision].
         
         price = collateral / (tokenSupply * CW)
@@ -320,75 +308,65 @@ contract BondingCurve is EtherTokenConstant, IsContract, AragonApp {
 
     /***** internal functions *****/
 
-    function _createBuyOrder(address _buyer, address _collateralToken, uint256 _value) internal {
-        uint256 batchId = getCurrentBatchId();
-        Batch storage batch = _getInitializedBatch(_collateralToken, batchId);
+    function _initializeBatch(uint256 _batchId) internal {
+        uint256 i;
+        address collateralToken;
 
-        uint256 fee = _value.mul(FEE_PERCENT_PPM) / ppm;
+        // clear previous batch
+        for (i = 0; i < collateralTokensLength; i++) {
+            collateralToken = collateralTokens[i];
+            _clearBatch(collateralToken);
+        }
+
+        // initialize new batch
+        for (i = 0; i < collateralTokensLength; i++) {
+            collateralToken = collateralTokens[i];
+            collateralTokenInfo[collateralToken].batches[_batchId].poolBalance = controller.poolBalance(collateralToken);
+            collateralTokenInfo[collateralToken].batches[_batchId].totalSupply = token.totalSupply();
+            collateralTokenInfo[collateralToken].batches[_batchId].init = true;
+        }
+
+        // reset waitingClear;
+        waitingClear = _batchId;
+    }
+
+    function _getInitializedBatch(address _collateralToken) internal returns (uint256, Batch storage) {
+        uint256 batchId = getCurrentBatchId();
+        Batch storage batch = collateralTokenInfo[_collateralToken].batches[batchId];
+
+        if (!batch.init) _initializeBatch(batchId);
+
+        return (batchId, batch);
+    }
+
+    function _createBuyOrder(address _buyer, address _collateralToken, uint256 _value) internal {
+        (uint256 batchId, Batch storage batch) = _getInitializedBatch(_collateralToken);
+
+        uint256 fee = _value.mul(FEE_PERCENT_PPM).div(ppm);
         uint256 valueAfterFee = _value.sub(fee);
 
-
-
-        // Alternatively this but more gas expensive:
-        // Pool(pool).deposit(_collateralToken, _value); // ETH needs value attached to it...
-        if (fee > 0) { // avoid VAULT_TRANSFER_VALUE_ZERO error
-            if (_collateralToken == ETH) {
-                controller.beneficiary().transfer(fee);
-            } else {
-                require(ERC20(_collateralToken).safeTransferFrom(_buyer, controller.beneficiary(), fee), "9"); // ERROR_TRANSFER_FAILED
-            }
-        }
+        _transfer(_buyer, address(pool), _collateralToken, valueAfterFee);
+        if (fee > 0) _transfer(_buyer, controller.beneficiary(), _collateralToken, fee);
         
-
-        if (_collateralToken == ETH) {
-            address(pool).transfer(valueAfterFee);
-        } else {
-            require(ERC20(_collateralToken).safeTransferFrom(_buyer, address(pool), valueAfterFee), "3"); // ERROR_TRANSFER_FAILED
-        }
-
-        
-
         batch.totalBuySpend = batch.totalBuySpend.add(valueAfterFee);
-        if (batch.buyers[_buyer] == 0) {
-            collateralTokenInfo[_collateralToken].addressToBlocks[_buyer].push(batchId);
-        }
         batch.buyers[_buyer] = batch.buyers[_buyer].add(valueAfterFee);
 
-        //TODO: Should the event show the value sent or the value after the fee?
         emit NewBuyOrder(_buyer, _collateralToken, valueAfterFee, batchId);
     }
 
-    // TODO: Should the fee on the sell be in bc token or the collateral token?
     function _createSellOrder(address _seller, address _collateralToken, uint256 _amount) internal {
-        uint256 batchId = getCurrentBatchId();
-        Batch storage batch = _getInitializedBatch(_collateralToken, batchId);
+        (uint256 batchId, Batch storage batch) = _getInitializedBatch(_collateralToken);
     
-        uint256 fee = _amount.mul(FEE_PERCENT_PPM) / ppm;
-        uint256 amounAtfterFee = _amount.sub(fee);
-        // uint256 amounAtfterFee = _amount;
-
-
-        // if (fee > 0) {// avoid VAULT_TRANSFER_VALUE_ZERO error
-        //     if (_collateralToken == ETH) {
-        //         controller.beneficiary().transfer(fee);
-        //     } else {
-        //         require(ERC20(tokenManager.token()).safeTransferFrom(_seller, controller.beneficiary(), fee), "9"); // ERROR_TRANSFER_FAILED
-        //     }
-        // }
+        uint256 fee = _amount.mul(FEE_PERCENT_PPM).div(ppm);
+        uint256 amountAfterFee = _amount.sub(fee);
     
-
-        batch.totalSellSpend = batch.totalSellSpend.add(amounAtfterFee);
-        if (batch.sellers[msg.sender] == 0) {
-            collateralTokenInfo[_collateralToken].addressToBlocks[_seller].push(batchId);
-        }
-        batch.sellers[_seller] = batch.sellers[_seller].add(amounAtfterFee);
         tokenManager.burn(_seller, _amount);
-        tokenManager.mint(controller.beneficiary(), fee); // TODO: Make sure this is the most efficient way to do this
+        tokenManager.mint(controller.beneficiary(), fee);
 
-        // TODO: Should the event show the amount sent or the amount after the fee? 
-        emit NewSellOrder(_seller, _collateralToken, amounAtfterFee, batchId);
-        // emit NewSellOrder(_seller, _collateralToken, 0, batchId);
+        batch.totalSellSpend = batch.totalSellSpend.add(amountAfterFee);
+        batch.sellers[_seller] = batch.sellers[_seller].add(amountAfterFee);
 
+        emit NewSellOrder(_seller, _collateralToken, amountAfterFee, batchId);
     }
 
     function _claimBuy(address _buyer, address _collateralToken, uint256 _batchId) internal {
@@ -416,55 +394,22 @@ contract BondingCurve is EtherTokenConstant, IsContract, AragonApp {
         emit ReturnSell(_seller, _collateralToken, sellReturn);
     }
 
-    /**
-        @dev _initBatch() Initialize a new batch of orders, recording the current token supply and pool balance per collateral token.
-        @param _batchId The block number of the batch being initialized.
-    */
-    function _initBatch(uint256 _batchId) internal {
-        address collateralToken;
-        uint256 i;
-        for (i = 0; i < collateralTokensLength; i++) {
-            collateralToken = collateralTokens[i];
-            _clearBatch(collateralToken);
-        }
-        for (i = 0; i < collateralTokensLength; i++) {
-            collateralToken = collateralTokens[i];
-            collateralTokenInfo[collateralToken].batches[_batchId].poolBalance = controller.poolBalance(collateralToken);
-            collateralTokenInfo[collateralToken].batches[_batchId].totalSupply = token.totalSupply();
-            collateralTokenInfo[collateralToken].batches[_batchId].init = true;
-        }
-        waitingClear = _batchId;
-    }
-
-    function _getInitializedBatch(address _collateralToken, uint256 _batchId) internal returns (Batch storage) {
-        Batch storage batch = collateralTokenInfo[_collateralToken].batches[_batchId];
-
-        if (!batch.init)
-            _initBatch(_batchId);
-
-        return batch;
-    }
-
-    /**
-        @dev _clearBatch() This function closes the currently opened batch and records the total amount spent on buys and the total amount of tokens sold. These numbers are used recorded in a way that the buyers and sellers can withdraw the amounts asynchronously. It also prepares the contract to begin the next batch of orders.
-        @param collateralToken The address of the collateral token used.
-    */
-    function _clearBatch(address collateralToken) internal {
+    function _clearBatch(address _collateralToken) internal {
+        Batch storage batch = collateralTokenInfo[_collateralToken].batches[waitingClear];
+        
         if (waitingClear == 0) return;
+        if (batch.cleared) return;
 
-        Batch storage cb = collateralTokenInfo[collateralToken].batches[waitingClear]; // clearing batch
+        _clearMatching(_collateralToken);
 
-        if (cb.cleared) return;
-        _clearMatching(collateralToken);
+        // sell orders already burned their bonded tokens
+        // now buy orders bonded tokens need to be minted
+        // the resulting tokens are held by this contract until collected by the buyers
+        if (batch.totalBuyReturn > 0) tokenManager.mint(address(pool), batch.totalBuyReturn);
 
-        // The totalSupply was decremented when _burns took place as the sell orders came in. Now
-        // the totalSupply needs to be incremented by totalBuyReturn, the resulting tokens are
-        // held by this contract until collected by the buyers.
-        if (cb.totalBuyReturn > 0) {
-            tokenManager.mint(address(pool), cb.totalBuyReturn);
-        }
-        emit BatchCleared(collateralToken, waitingClear);
-        cb.cleared = true;
+        batch.cleared = true;
+
+        emit BatchCleared(_collateralToken, waitingClear);
     }
 
     /**
@@ -561,4 +506,13 @@ contract BondingCurve is EtherTokenConstant, IsContract, AragonApp {
         }
     }
 
+    function _transfer(address _from, address _to, address _collateralToken, uint256 _amount) internal {
+        if (_collateralToken == ETH) {
+            _to.transfer(_amount);
+        } else {
+            require(ERC20(_collateralToken).safeTransferFrom(_from, _to, _amount));
+        }
+    }
+
+    
 }
