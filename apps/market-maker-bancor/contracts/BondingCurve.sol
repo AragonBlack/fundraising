@@ -7,8 +7,8 @@ pragma solidity 0.4.24;
 import "@aragon/os/contracts/apps/AragonApp.sol";
 import "@aragon/os/contracts/common/EtherTokenConstant.sol";
 import "@aragon/os/contracts/common/IsContract.sol";
-import "@aragon/os/contracts/lib/math/SafeMath.sol";
 import "@aragon/os/contracts/common/SafeERC20.sol";
+import "@aragon/os/contracts/lib/math/SafeMath.sol";
 import "@aragon/os/contracts/lib/token/ERC20.sol";
 
 import "@aragon/apps-token-manager/contracts/TokenManager.sol";
@@ -16,7 +16,6 @@ import "@aragon/apps-vault/contracts/Vault.sol";
 
 import "@ablack/fundraising-interface-core/contracts/IMarketMakerController.sol";
 import "@ablack/fundraising-formula-bancor/contracts/BancorFormula.sol";
-import "@ablack/fundraising-module-pool/contracts/Pool.sol";
 
 contract BondingCurve is EtherTokenConstant, IsContract, AragonApp {
     using SafeERC20 for ERC20;
