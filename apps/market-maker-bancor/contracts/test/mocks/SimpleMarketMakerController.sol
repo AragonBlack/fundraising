@@ -43,15 +43,15 @@ contract SimpleMarketMakerController is IMarketMakerController, AragonApp {
     }
 
     function reserveRatio(address _collateralToken) public view returns (uint32 _reserveRatio) {
-        (, _reserveRatio, ,) = _curve.collateralTokenInfo(_collateralToken);
+        (, , , _reserveRatio) = _curve.collateralTokenInfo(_collateralToken);
     }
 
     function virtualSupply(address _collateralToken) public view returns (uint256 _virtualSupply) {
-        (, ,_virtualSupply,) = _curve.collateralTokenInfo(_collateralToken);
+        (, _virtualSupply, ,) = _curve.collateralTokenInfo(_collateralToken);
     }
 
     function virtualBalance(address _collateralToken) public view returns (uint256 _virtualBalance) {
-        (, , , _virtualBalance) = _curve.collateralTokenInfo(_collateralToken);
+        (, ,_virtualBalance,) = _curve.collateralTokenInfo(_collateralToken);
     }
 
     // function pool() public view returns (address) {
