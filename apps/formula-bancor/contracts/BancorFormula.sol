@@ -1,6 +1,6 @@
 pragma solidity 0.4.24;
 import './interfaces/IBancorFormula.sol';
-import './utility/SafeMath.sol';
+import "@aragon/os/contracts/lib/math/SafeMath.sol";
 import './utility/Utils.sol';
 
 contract BancorFormula is IBancorFormula, Utils {

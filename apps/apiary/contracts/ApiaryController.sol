@@ -8,7 +8,7 @@ import "@aragon/os/contracts/lib/token/ERC20.sol";
 import "@aragon/os/contracts/lib/math/SafeMath.sol";
 
 import "@ablack/fundraising-interfaces/contracts/IMarketMakerController.sol";
-import "@ablack/fundraising-interfaces/contracts/IBancorCurve.sol";
+import "@ablack/fundraising-interfaces/contracts/IBondingCurve.sol";
 import "@ablack/fundraising-interfaces/contracts/ITap.sol";
 
 
@@ -24,7 +24,7 @@ contract ApiaryController is EtherTokenConstant, IsContract, IMarketMakerControl
     bytes32 public constant CREATE_SELL_ORDER_ROLE = keccak256("CREATE_SELL_ORDER_ROLE");
 
     Pool public _pool;
-    IBancorCurve public curve;
+    IBondingCurve public curve;
     ITap public tap;
 
     /***** external functions *****/
@@ -55,11 +55,21 @@ contract ApiaryController is EtherTokenConstant, IsContract, IMarketMakerControl
     }
 
     /**
+
+
     * @notice Update maximum monthly tap increase rate to `_maxMonthlyTapIncreaseRate` (percentage ppt)
     * @param _maxMonthlyTapIncreaseRate New maximum monthly tap increase rate
     */
     function updateMaxMonthlyTapIncreaseRate(uint256 _maxMonthlyTapIncreaseRate) external auth(UPDATE_MONTHLY_TAP_INCREASE_ROLE) {
         tap.updateMaxMonthlyTapIncreaseRate(_maxMonthlyTapIncreaseRate);
+    }
+
+    @dev Get whether a collateral token exists
+    @param _collateralToken The address of the collateral token used.
+    @return Whether or not the collateral token exists.
+    */
+    function isCollateralToken(address _collateralToken) external view returns (bool exists) {
+        (exists, , , ) = curve.collateralTokenInfo(_collateralToken);
     }
 
     /**

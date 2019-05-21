@@ -4,19 +4,10 @@ import "@aragon/os/contracts/kernel/Kernel.sol";
 import "@aragon/os/contracts/acl/ACL.sol";
 import "@aragon/os/contracts/factory/DAOFactory.sol";
 import "@aragon/apps-shared-minime/contracts/MiniMeToken.sol";
-import "@aragon/apps-token-manager/contracts/TokenManager.sol";
 
 import "@aragon/apps-shared-migrations/contracts/Migrations.sol";
 import "@aragon/test-helpers/contracts/EtherTokenConstantMock.sol";
 import "@aragon/test-helpers/contracts/TokenMock.sol";
-
-import "@aragonblack/fundraising-tap/contracts/Tap.sol";
-
-
-import {BondingCurve} from "@ablack/fundraising-market-makers-bancor/contracts/BondingCurve.sol";
-
-import "@aragonblack/fundraising-formulas-bancor/contracts/BancorFormula.sol";
-
 
 // You might think this file is a bit odd, but let me explain.
 // We only use some contracts in our tests, which means Truffle
