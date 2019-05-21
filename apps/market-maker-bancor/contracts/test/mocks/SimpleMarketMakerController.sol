@@ -9,7 +9,6 @@ import "@aragon/os/contracts/common/SafeERC20.sol";
 import "@aragon/os/contracts/lib/token/ERC20.sol";
 
 import "@ablack/fundraising-interface-core/contracts/IMarketMakerController.sol";
-import "@ablack/fundraising-module-pool/contracts/Pool.sol";
 import { BancorMarketMaker } from "../../BancorMarketMaker.sol";
 
 

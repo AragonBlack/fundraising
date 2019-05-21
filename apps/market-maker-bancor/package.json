@@ -1,7 +1,6 @@
 {
   "name": "@ablack/fundraising-market-maker-bancor",
   "version": "0.1.0",
-  "keywords": [],
   "author": "Aragon Black <contact@aragon.black>",
   "contributors": [
     "Billy Rennekamp <billy@bin.am>",
@@ -30,17 +29,17 @@
     "/test"
   ],
   "dependencies": {
-    "@aragon/apps-token-manager": "^2.0.0",
-    "@aragon/os": "^4.1.0",
-    "@ablack/fundraising-interface-core": "^0.1.0",
     "@ablack/fundraising-formula-bancor": "^0.1.0",
-    "@ablack/fundraising-module-pool": "^0.1.0"
+    "@ablack/fundraising-interface-core": "^0.1.0",
+    "@aragon/apps-token-manager": "^2.0.0",
+    "@aragon/os": "4.2.0"
   },
   "devDependencies": {
     "@ablack/eslint-config-tests": "^1.0.0",
-    "@aragon/apps-agent": "^1.0.1",
+    "@ablack/fundraising-module-pool": "^0.1.0",
+    "@aragon/apps-agent": "1.1.1",
     "@aragon/apps-shared-migrations": "1.0.0",
-    "@aragon/apps-vault": "^4.0.0",
+    "@aragon/apps-vault": "4.1.0",
     "@aragon/cli": "^5.2.1",
     "@aragon/test-helpers": "^1.1.0",
     "decimal.js": "^10.2.0",
@@ -52,10 +51,12 @@
     "eslint-plugin-prettier": "^2.3.1",
     "eslint-plugin-promise": "^4.0.1",
     "eslint-plugin-standard": "^4.0.0",
+    "eth-ens-namehash": "^2.0.8",
     "eth-gas-reporter": "^0.1.1",
-    "ethlint": "^1.2.3",
-    "ganache-cli": "^6.0.3",
+    "ganache-cli": "^6.1.0",
     "prettier": "^1.16.4",
+    "solidity-coverage": "0.5.11",
+    "solium": "^1.2.3",
     "truffle": "4.1.14"
   }
 }
