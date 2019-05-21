@@ -355,7 +355,7 @@ contract BancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
             // initialize new batch
             for (uint i = 0; i < collateralTokensLength; i++) {
                 address collateralToken = collateralTokens[i];
-                collateralTokenInfo[collateralToken].batches[batchId].poolBalance = controller.poolBalance(collateralToken);
+                collateralTokenInfo[collateralToken].batches[batchId].poolBalance = controller.balanceOf(address(pool), collateralToken);
                 collateralTokenInfo[collateralToken].batches[batchId].totalSupply = token.totalSupply();
                 collateralTokenInfo[collateralToken].batches[batchId].initialized = true;
             }
@@ -374,7 +374,7 @@ contract BancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
 
         _transfer(_buyer, address(pool), _collateralToken, valueAfterFee);
         if (fee > 0)
-            _transfer(_buyer, controller.beneficiary(), _collateralToken, fee);
+            _transfer(_buyer, beneficiary, _collateralToken, fee);
 
         batch.totalBuySpend = batch.totalBuySpend.add(valueAfterFee);
         batch.buyers[_buyer] = batch.buyers[_buyer].add(valueAfterFee);
@@ -389,7 +389,7 @@ contract BancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
         uint256 amountAfterFee = _amount.sub(fee);
 
         tokenManager.burn(_seller, _amount);
-        tokenManager.mint(controller.beneficiary(), fee);
+        tokenManager.mint(beneficiary, fee);
 
         batch.totalSellSpend = batch.totalSellSpend.add(amountAfterFee);
         batch.sellers[_seller] = batch.sellers[_seller].add(amountAfterFee);

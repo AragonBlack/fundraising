@@ -16,54 +16,15 @@ import { BancorMarketMaker } from "../../BancorMarketMaker.sol";
 contract SimpleMarketMakerController is IMarketMakerController, AragonApp {
     using SafeERC20 for ERC20;
 
-    // Pool private _pool;
-    BancorMarketMaker private _curve;
-    address public beneficiary;
-
-    function initialize(Pool __pool, BancorMarketMaker __curve, address _beneficiary) external onlyInit {
-        pool = __pool;
-        _curve = __curve;
-        beneficiary = _beneficiary;
+    function initialize() external onlyInit {
+        initialized();
     }
 
-    // uint256 public collateralTokensLength;
-    // mapping(uint256 => address) public collateralTokens;
-    // mapping(address => Collateral) public collateralTokenInfo;
-    // struct Collateral {
-    //     bool exists;
-    //     uint32 reserveRatio;
-    //     uint256 virtualSupply;
-    //     uint256 virtualBalance;
-    //     mapping(uint256=>Batch) batches;
-    //     mapping(address=>uint256[]) addressToBlocks;
-    // }
-
-    function isCollateralToken(address _collateralToken) external view returns (bool exists) {
-        (exists, , , ) = _curve.collateralTokenInfo(_collateralToken);
-    }
-
-    function reserveRatio(address _collateralToken) public view returns (uint32 _reserveRatio) {
-        (, , , _reserveRatio) = _curve.collateralTokenInfo(_collateralToken);
-    }
-
-    function virtualSupply(address _collateralToken) public view returns (uint256 _virtualSupply) {
-        (, _virtualSupply, ,) = _curve.collateralTokenInfo(_collateralToken);
-    }
-
-    function virtualBalance(address _collateralToken) public view returns (uint256 _virtualBalance) {
-        (, ,_virtualBalance,) = _curve.collateralTokenInfo(_collateralToken);
-    }
-
-    // function pool() public view returns (address) {
-    //     return address(_pool);
-    // }
-    
-    function poolBalance(address _collateralToken) public view returns (uint256) {
-        if (_collateralToken == ETH) {
-            return address(pool).balance;
+    function balanceOf(address _who, address _collateralToken) public view returns (uint256) {
+         if (_collateralToken == ETH) {
+            return _who.balance;
         } else {
-            return ERC20(_collateralToken).staticBalanceOf(address(pool));
+            return ERC20(_collateralToken).staticBalanceOf(_who);
         }
     }
-
 }

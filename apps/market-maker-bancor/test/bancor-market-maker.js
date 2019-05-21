@@ -134,7 +134,7 @@ contract('BancorMarketMaker app', accounts => {
     await token.changeController(tokenManager.address)
     await tokenManager.initialize(token.address, true, 0)
     await pool.initialize()
-    await controller.initialize(pool.address, curve.address, beneficiary)
+    await controller.initialize()
     await curve.initialize(controller.address, tokenManager.address, pool.address, beneficiary, formula.address, BLOCKS_IN_BATCH, FEE_PERCENT)
     // end up initializing market maker
     await curve.updateGasCosts(BUY_GAS, SELL_GAS, { from: authorized })
