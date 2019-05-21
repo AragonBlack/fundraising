@@ -410,6 +410,7 @@ contract BancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
 
         if (waitingClear == 0)
             return;
+        
         if (batch.cleared)
             return;
 
