@@ -15,7 +15,7 @@ const Controller = artifacts.require('SimpleMarketMakerController')
 const TokenManager = artifacts.require('TokenManager')
 const Pool = artifacts.require('Pool')
 const Formula = artifacts.require('BancorFormula.sol')
-const BondingCurve = artifacts.require('BondingCurve')
+const BancorMarketMaker = artifacts.require('BancorMarketMaker')
 const EtherTokenConstantMock = artifacts.require('EtherTokenConstantMock')
 const TokenMock = artifacts.require('TokenMock')
 
@@ -47,7 +47,7 @@ const randomReserveRatio = () => {
   return Math.floor(Math.random() * 999999) + 1
 }
 
-contract('BondingCurve app', accounts => {
+contract('BancorMarketMaker app', accounts => {
   let factory, dao, acl, cBase, tBase, pBase, bBase, token, tokenManager, controller, pool, formula, curve, token1, token2
   let ETH,
     APP_MANAGER_ROLE,
@@ -103,7 +103,7 @@ contract('BondingCurve app', accounts => {
     pool = await Pool.at(getEvent(pReceipt, 'NewAppProxy', 'proxy'))
     // bancor-curve
     const bReceipt = await dao.newAppInstance(BANCOR_CURVE_ID, bBase.address, '0x', false)
-    curve = await BondingCurve.at(getEvent(bReceipt, 'NewAppProxy', 'proxy'))
+    curve = await BancorMarketMaker.at(getEvent(bReceipt, 'NewAppProxy', 'proxy'))
     // permissions
     await acl.createPermission(curve.address, tokenManager.address, MINT_ROLE, root, { from: root })
     await acl.createPermission(curve.address, tokenManager.address, BURN_ROLE, root, { from: root })
@@ -238,7 +238,7 @@ contract('BondingCurve app', accounts => {
     cBase = await Controller.new()
     tBase = await TokenManager.new()
     pBase = await Pool.new()
-    bBase = await BondingCurve.new()
+    bBase = await BancorMarketMaker.new()
     // constants
     ETH = await (await EtherTokenConstantMock.new()).getETHConstant()
     APP_MANAGER_ROLE = await kBase.APP_MANAGER_ROLE()
@@ -260,7 +260,7 @@ contract('BondingCurve app', accounts => {
   // #region deploy
   context('> #deploy', () => {
     it('> it should deploy', async () => {
-      await BondingCurve.new()
+      await BancorMarketMaker.new()
     })
   })
   // #endregion
@@ -283,7 +283,7 @@ contract('BondingCurve app', accounts => {
     context('> initialization parameters are not correct', () => {
       it('it should revert [controller is not a contract]', async () => {
         const bReceipt = await dao.newAppInstance(BANCOR_CURVE_ID, bBase.address, '0x', false)
-        const uninitialized = await BondingCurve.at(getEvent(bReceipt, 'NewAppProxy', 'proxy'))
+        const uninitialized = await BancorMarketMaker.at(getEvent(bReceipt, 'NewAppProxy', 'proxy'))
 
         assertRevert(() =>
           uninitialized.initialize(authorized, tokenManager.address, pool.address, beneficiary, formula.address, BLOCKS_IN_BATCH, FEE_PERCENT, { from: root })
@@ -292,7 +292,7 @@ contract('BondingCurve app', accounts => {
 
       it('it should revert [token manager is not a contract]', async () => {
         const bReceipt = await dao.newAppInstance(BANCOR_CURVE_ID, bBase.address, '0x', false)
-        const uninitialized = await BondingCurve.at(getEvent(bReceipt, 'NewAppProxy', 'proxy'))
+        const uninitialized = await BancorMarketMaker.at(getEvent(bReceipt, 'NewAppProxy', 'proxy'))
 
         assertRevert(() =>
           uninitialized.initialize(controller.address, authorized, pool.address, beneficiary, formula.address, BLOCKS_IN_BATCH, FEE_PERCENT, { from: root })
@@ -301,7 +301,7 @@ contract('BondingCurve app', accounts => {
 
       it('it should revert [pool is not a contract]', async () => {
         const bReceipt = await dao.newAppInstance(BANCOR_CURVE_ID, bBase.address, '0x', false)
-        const uninitialized = await BondingCurve.at(getEvent(bReceipt, 'NewAppProxy', 'proxy'))
+        const uninitialized = await BancorMarketMaker.at(getEvent(bReceipt, 'NewAppProxy', 'proxy'))
 
         assertRevert(() =>
           uninitialized.initialize(controller.address, tokenManager.address, authorized, beneficiary, formula.address, BLOCKS_IN_BATCH, FEE_PERCENT, {
@@ -312,7 +312,7 @@ contract('BondingCurve app', accounts => {
 
       it('it should revert [formula is not a contract]', async () => {
         const bReceipt = await dao.newAppInstance(BANCOR_CURVE_ID, bBase.address, '0x', false)
-        const uninitialized = await BondingCurve.at(getEvent(bReceipt, 'NewAppProxy', 'proxy'))
+        const uninitialized = await BancorMarketMaker.at(getEvent(bReceipt, 'NewAppProxy', 'proxy'))
 
         assertRevert(() =>
           uninitialized.initialize(controller.address, tokenManager.address, pool.address, beneficiary, authorized, BLOCKS_IN_BATCH, FEE_PERCENT, {
@@ -323,7 +323,7 @@ contract('BondingCurve app', accounts => {
 
       it('it should revert [batchBlocks is zero]', async () => {
         const bReceipt = await dao.newAppInstance(BANCOR_CURVE_ID, bBase.address, '0x', false)
-        const uninitialized = await BondingCurve.at(getEvent(bReceipt, 'NewAppProxy', 'proxy'))
+        const uninitialized = await BancorMarketMaker.at(getEvent(bReceipt, 'NewAppProxy', 'proxy'))
 
         assertRevert(() =>
           uninitialized.initialize(controller.address, tokenManager.address, pool.address, beneficiary, formula.address, 0, FEE_PERCENT, { from: root })

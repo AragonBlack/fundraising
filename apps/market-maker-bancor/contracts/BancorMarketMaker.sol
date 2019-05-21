@@ -18,7 +18,7 @@ import "@ablack/fundraising-interface-core/contracts/IMarketMakerController.sol"
 import "@ablack/fundraising-formula-bancor/contracts/BancorFormula.sol";
 
 
-contract BondingCurve is EtherTokenConstant, IsContract, AragonApp {
+contract BancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
     using SafeERC20 for ERC20;
     using SafeMath for uint256;
 

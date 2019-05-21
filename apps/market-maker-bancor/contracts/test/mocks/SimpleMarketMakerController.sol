@@ -10,17 +10,17 @@ import "@aragon/os/contracts/lib/token/ERC20.sol";
 
 import "@ablack/fundraising-interface-core/contracts/IMarketMakerController.sol";
 import "@ablack/fundraising-module-pool/contracts/Pool.sol";
-import { BondingCurve } from "../../BondingCurve.sol";
+import { BancorMarketMaker } from "../../BancorMarketMaker.sol";
 
 
 contract SimpleMarketMakerController is IMarketMakerController, AragonApp {
     using SafeERC20 for ERC20;
 
     // Pool private _pool;
-    BondingCurve private _curve;
+    BancorMarketMaker private _curve;
     address public beneficiary;
 
-    function initialize(Pool __pool, BondingCurve __curve, address _beneficiary) external onlyInit {
+    function initialize(Pool __pool, BancorMarketMaker __curve, address _beneficiary) external onlyInit {
         pool = __pool;
         _curve = __curve;
         beneficiary = _beneficiary;
