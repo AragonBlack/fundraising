@@ -1,23 +1,28 @@
 {
-  "path": "contracts/PandoColony.sol",
-  "roles": [
-    {
-      "name": "Create new repositories",
-      "id": "CREATE_REPOSITORY_ROLE",
-      "params": []
-    }
-  ],
+  "status": "experimental",
   "environments": {
     "default": {
-      "network": "devchain",
       "registry": "0x5f6f7e8cc7346a11ca2def8f827b7a0b612c56a1",
-      "appName": "pando-colony.aragonpm.eth"
+      "appName": "fundraising-controller-aragon-fundraising.aragonpm.eth",
+      "network": "devchain"
     },
     "rinkeby": {
       "registry": "0x98Df287B6C145399Aaa709692c8D308357bC085D",
-      "network": "rinkeby",
-      "apmRegistry": "open.aragonpm.eth",
-      "appName": "pando-colony.open.aragonpm.eth"
+      "appName": "fundraising-controller-aragon-fundraising.aragonpm.eth",
+      "network": "rinkeby"
+    },
+    "staging": {
+      "registry": "0xfe03625ea880a8cba336f9b5ad6e15b0a3b5a939",
+      "appName": "fundraising-controller-aragon-fundraising.aragonpm.eth",
+      "network": "rinkeby"
     }
-  }
+  },
+  "roles": [
+    {
+      "name": "Add tokens as whitelisted collaterals",
+      "id": "ADD_COLLATERAL_TOKEN_ROLE",
+      "params": []
+    }
+  ],
+  "path": "contracts/AragonFundraisingController.sol"
 }
