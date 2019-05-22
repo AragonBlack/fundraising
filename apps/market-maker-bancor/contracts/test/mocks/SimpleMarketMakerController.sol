@@ -19,11 +19,11 @@ contract SimpleMarketMakerController is IMarketMakerController, AragonApp {
         initialized();
     }
 
-    function balanceOf(address _who, address _collateralToken) public view returns (uint256) {
-         if (_collateralToken == ETH) {
+    function balanceOf(address _who, address _token) public view returns (uint256) {
+         if (_token == ETH) {
             return _who.balance;
         } else {
-            return ERC20(_collateralToken).staticBalanceOf(_who);
+            return ERC20(_token).staticBalanceOf(_who);
         }
     }
 }
