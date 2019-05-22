@@ -427,6 +427,7 @@ contract BancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
         emit ClearBatch(_collateralToken, waitingClear);
     }
 
+
     function _clearMatching(address collateralToken) internal {
         Batch storage batch = collateralTokenInfo[collateralToken].batches[waitingClear]; // clearing batch
 
@@ -437,26 +438,33 @@ contract BancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
         // the static price is the current exact price in collateral
         // per token according to the initial state of the batch
         uint256 staticPrice = getPricePPM(collateralToken, batch.totalSupply, batch.poolBalance);
-        // resultOfSell is the amount of collateral that would result if all the
-        // sales took place at the current exact price instead of the bonding curve
-        // price over the span of tokens that were sold
+
+        // We want to find out if there are more buy orders or more sell orders.
+        // To do this we check the result of all sells and all buys at the current
+        // exact price. If the result of sells is larger than the pending buys, there are more sells.
+        // If the result of buys is larger than the pending sells, there are more buys.
+        // Of course we don't really need to check both, if one is true then the other is false.
         uint256 resultOfSell = batch.totalSellSpend.mul(staticPrice).div(PPM);
-        
-        // if the total amount of collateral out of all the sells is GREATER THAN
-        // the total amount of collateral in from all the buys
-        // then all of the buys can be executed at that exact price
-        // and the remaining sales can go back to the original bonding
-        // curve scenario
+
+        // We check if the result of the sells was more than the bending buys to determine
+        // if there were more sells than buys. If that is the case we will execute all pending buy
+        // orders at the current exact price, because there is at least one sell order for each buy.
+        // The remaining sell orders will be executed using the traditional bonding curve.
+        // The final sell price will be a combination of the exact price and the bonding curve price.
+        // Further down we will do the opposite if there are more buys than sells.
 
         // if more sells than buys
         if (resultOfSell >= batch.totalBuySpend) {
-            // total number of tokens created as a result of all of the buys being executed at the
-            // current exact price (tokens = collateral / price). staticPrice is in PPM, to avoid
-            // overflows it has been re-arranged.
+            // totalBuyReturn is the number of tokens bought as a result of all buy orders combined at the 
+            // current exact price. We have already determined that this number is less than the
+            // total amount of tokens to be sold.
+            // tokens = totalBuySpend / staticPrice. staticPrice is in PPM, to avoid
+            // rounding errors it has been re-arranged with PPM as a numerator
             batch.totalBuyReturn = batch.totalBuySpend.mul(PPM).div(staticPrice); // tokens
 
-            // there are some tokens left over to be sold. these should be the difference between
-            // the original total sell order, and the result of executing all of the buys
+            // we know there should be some tokens left over to be sold with the curve.
+            // these should be the difference between the original total sell order
+            // and the result of executing all of the buys.
             uint256 remainingSell = batch.totalSellSpend.sub(batch.totalBuyReturn); // tokens
 
             // now that we know how many tokens are left to be sold we can get the amount of collateral
@@ -465,37 +473,20 @@ contract BancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
             // order was just smaller than originally thought).
             uint256 remainingSellReturn = getSell(collateralToken, batch.totalSupply, batch.poolBalance, remainingSell);
 
-            // totalSellReturn becomes the result of matching the buy orders
-            // plus the getSell() return from selling the remaining tokens
+            // the total result of all sells is the original amount of buys which were matched, plus the remaining
+            // sells which were executed with the bonding curve
             batch.totalSellReturn = batch.totalBuySpend.add(remainingSellReturn);
 
-            // TotalSupply doesn't need to be changed (keep it commented out). It only needs to be changed
-            // by clearSales or clearBuys scenario so that the subsequent clearSales/clearBuys
-            // can correctly calculate the purchaseReturn/saleReturn.
-            // batch.totalSupply = batch.totalSupply.sub(remainingSell);
-
-            // poolBalance is ultimately only affected by the net difference between the buys and sells
-            // batch.poolBalance = batch.poolBalance.sub(remainingSellReturn);
-
-            // if the collateral resulting from the sells is LESS THAN
-            // the total amount of collateral to be spent during all buys
-            // then all of the sells can be executed at that exact price
-            // and the remaining buys can go back to the original bonding
-            // curve scenario.
 
         // more buys than sells
         } else {
+
+            // Now in this scenario there were more buys than sells. That means that resultOfSell that we
+            // calculated earlier is the total result of sell.
             batch.totalSellReturn = resultOfSell;
 
-            // there is some collateral left over to be spent. this should be the difference between
+            // there is some collateral left over to be spent as buy orders. this should be the difference between
             // the original total buy order, and the result of executing all of the sells.
-            // result of buy is collateral spent divided by price. Price = collateral per token (or c/t) but actually including,
-            // ppm it is price times ppm (or ppm*c/t). When you take the totalBuySpend of collateral you need to divide it by the price
-            // to result in a number of tokens returned from the purchase (t = C / p). Since p = ppm*c/t the result becomes
-            // C * t / (ppm*c). The collateral denoms cancel out so you get t/ppm. To find out the
-            // actual t value you need to also cancel out the ppm by multiplying it to get just t.
-            // re-order this for rounding purposes and you get C*ppm/p
-            // uint256 resultOfBuy = batch.totalBuySpend.mul(ppm) / staticPrice;
             uint256 remainingBuy = batch.totalBuySpend.sub(resultOfSell);
 
             // now that we know how much collateral is left to be spent we can get the amount of tokens
@@ -504,17 +495,9 @@ contract BancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
             // order was just smaller than originally thought).
             uint256 remainingBuyReturn = getBuy(collateralToken, batch.totalSupply, batch.poolBalance, remainingBuy);
 
-            // remainingBuyReturn becomes the result of buying out to the sell orders
-            // plus the getBuy() return from spending the remaining collateral
+            // remainingBuyReturn becomes the combintation of all the sell orders
+            // plus the resulting tokens from the remaining buy orders
             batch.totalBuyReturn = batch.totalSellSpend.add(remainingBuyReturn);
-
-            // TotalSupply doesn't need to be changed (keep it commented out). It only needs to be changed
-            // by clearSales or clearBuys scenario so that the subsequent clearSales/clearBuys
-            // can correctly calculate the purchaseReturn/saleReturn.
-            // batch.totalSupply = batch.totalSupply.add(remainingBuyReturn);
-
-            // poolBalance is ultimately only affected by the net difference between the buys and sells
-            // batch.poolBalance = batch.poolBalance.add(remainingBuy);
         }
     }
 
