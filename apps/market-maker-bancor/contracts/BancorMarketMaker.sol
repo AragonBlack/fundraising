@@ -105,6 +105,10 @@ contract BancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
 
     /***** external functions *****/
 
+    /* updateReserve */
+
+    /* updateBeneficiary */
+
     /**
       * @notice Add `_collateralToken.symbol(): string` as a whitelisted collateral
       * @param _collateralToken The address of the collateral token to be added
@@ -232,7 +236,7 @@ contract BancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
         require(batch.buyers[_buyer] != 0);
 
         _claimBuy(_buyer, _collateralToken, _batchId);
-        msg.sender.transfer(gasCostBuyOrder);
+        // msg.sender.transfer(gasCostBuyOrder);
     }
 
     /**
@@ -248,7 +252,7 @@ contract BancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
         require(batch.sellers[_seller] != 0);
 
         _claimSell(_seller, _collateralToken, _batchId);
-        msg.sender.transfer(gasCostSellOrder);
+        // msg.sender.transfer(gasCostSellOrder);
     }
 
     /***** public view functions *****/
