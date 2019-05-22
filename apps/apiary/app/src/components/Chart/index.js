@@ -24,6 +24,21 @@ const historyChartData = [...Array(100).keys()]
   }))
   .reverse()
 
+// const orders = [
+//   {
+//     type: BUY | SELL,
+//     holder: 0xaf85...,
+//     collateral: 0xefa....,
+//     price: 6.7,
+//     amount: 65,
+//     timestamp: 12312315153,
+//   },
+//   {
+//      ...
+//   },
+//   ...
+// ]
+
 const items = ['Bonding curve', 'History chart']
 
 export default () => {
@@ -86,11 +101,11 @@ export default () => {
       {activeItem === 1 && (
         <ResponsiveContainer width="100%" height={400}>
           <BarChart margin={{ left: 40, bottom: 40, top: 40, right: 40 }} data={historyChartData}>
+            <Tooltip cursor={{ fill: '#109CF1', fillOpacity: '0.2' }} />
             <CartesianGrid strokeDasharray="8 8" vertical={false} />
             <XAxis dataKey="date" minTickGap={100} interval="preserveStartEnd" tickMargin={25} tickLine={false} axisLine={false} />
             <YAxis tickMargin={25} tickLine={false} axisLine={false} />
             <Bar isAnimationActive={true} dataKey="Price" fill="#109CF1" />
-            <Tooltip />
           </BarChart>
         </ResponsiveContainer>
       )}

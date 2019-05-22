@@ -1,57 +1,85 @@
-import { Text } from '@aragon/ui';
-import React from 'react';
-import styled from 'styled-components';
-import antImage from '../assets/ant.png';
-import daiImage from '../assets/dai.png';
-import Chart from '../components/Chart';
+import { Text } from '@aragon/ui'
+import BN from 'bignumber.js'
+import React, { useEffect, useState } from 'react'
+import styled from 'styled-components'
+import antImage from '../assets/ant.png'
+import daiImage from '../assets/dai.png'
+import Chart from '../components/Chart'
 
-export default class Repositories extends React.Component {
-  render() {
-    return (
-      <div>
-        <TokenBalances>
-          <h1 className="title">
-            <Text>Token balances</Text>
-          </h1>
-          <ul>
-            <li>
-              <p className="title">Bonded token supply</p>
-              <p className="number">5600</p>
-              <p className="sub-number">$123,600,923.82</p>
-            </li>
-            <li>
-              <div className="title">
-                <img src={daiImage} />
-                <p>DAI Collateral</p>
-              </div>
-              <p className="number">103,039.39</p>
-              <p className="sub-number">$76,600,923.82</p>
-            </li>
-            <li>
-              <div className="title">
-                <img src={antImage} />
-                <p>ANT Collateral</p>
-              </div>
-              <p className="number">2,934.45</p>
-              <p className="sub-number">$17,586.27</p>
-            </li>
-            <li>
-              <p className="title">Total balance USD</p>
-              <p className="number">$23,699,746.32</p>
-              <p className="sub-number">$123,600,923.82</p>
-            </li>
-            <li>
-              <p className="title">Tap rate</p>
-              <p className="number">11,340</p>
-              <p className="sub-number">$25,500.82</p>
-            </li>
-          </ul>
-        </TokenBalances>
-        <Chart />
-      </div>
-    )
-  }
+const CONVERT_API_BASE = 'https://min-api.cryptocompare.com/data'
+
+const convertApiUrl = symbols => `${CONVERT_API_BASE}/price?fsym=USD&tsyms=${symbols.join(',')}`
+
+const formatCollateral = amount => new BN(amount).toFormat(0)
+
+const convertToUSD = (collateral, rate) => new BN(collateral).div(new BN(rate)).toFormat(2)
+
+export default () => {
+  const [state, setState] = useState({ daiCollateral: 103039, antCollateral: 2934, daiRate: 0, antRate: 0 })
+  const { daiCollateral, daiRate, antCollateral, antRate } = state
+  useEffect(() => {
+    async function getRates() {
+      const res = await fetch(convertApiUrl(['DAI', 'ANT']))
+      const rates = await res.json()
+      setState({ ...state, daiRate: rates['DAI'], antRate: rates['ANT'] })
+    }
+    getRates()
+
+    const id = setInterval(getRates, 10000)
+    return () => clearInterval(id)
+  }, [])
+  return (
+    <ContentWrapper>
+      <TokenBalances>
+        <h1 className="title">
+          <Text>Token balances</Text>
+        </h1>
+        <ul>
+          <li>
+            <p className="title">Bonded token supply</p>
+            <p className="number">5600</p>
+            <p className="sub-number">$123,600,923.82</p>
+          </li>
+          <li>
+            <div className="title">
+              <img src={daiImage} />
+              <p>DAI Collateral</p>
+            </div>
+            <p className="number">{formatCollateral(daiCollateral)}</p>
+            <p className="sub-number">${convertToUSD(daiCollateral, daiRate)}</p>
+          </li>
+          <li>
+            <div className="title">
+              <img src={antImage} />
+              <p>ANT Collateral</p>
+            </div>
+            <p className="number">{formatCollateral(antCollateral)}</p>
+            <p className="sub-number">${convertToUSD(antCollateral, antRate)}</p>
+          </li>
+          <li>
+            <p className="title">Total balance USD</p>
+            <p className="number">$23,699,746.32</p>
+            <p className="sub-number">$123,600,923.82</p>
+          </li>
+          <li>
+            <p className="title">Tap rate</p>
+            <p className="number">11,340</p>
+            <p className="sub-number">$25,500.82</p>
+          </li>
+        </ul>
+      </TokenBalances>
+      <Chart />
+    </ContentWrapper>
+  )
 }
+
+const ContentWrapper = styled.div`
+  padding: 2rem;
+
+  @media only screen and (max-width: 700px) {
+    padding: 0;
+  }
+`
 
 const TokenBalances = styled.div`
   margin-bottom: 2rem;
@@ -111,6 +139,12 @@ const TokenBalances = styled.div`
     li {
       padding: 2rem;
       border-bottom: 1px solid rgba(209, 209, 209, 0.5);
+    }
+  }
+
+  @media only screen and (max-width: 700px) {
+    .title {
+      margin: 1.5rem;
     }
   }
 `

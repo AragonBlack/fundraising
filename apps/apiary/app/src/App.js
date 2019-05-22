@@ -1,11 +1,9 @@
 import { useAragonApi } from '@aragon/api-react'
-import { AppBar, AppView, Button, Main, observe, TabBar } from '@aragon/ui'
+import { AppBar, AppView, Button, Main, TabBar } from '@aragon/ui'
 import React, { useState } from 'react'
-import { map } from 'rxjs/operators'
 import styled from 'styled-components'
 import MenuButton from './components/MenuButton'
 import NewOrderSidePanel from './components/NewOrderSidePanel'
-// import NewRepositoryIcon from './components/NewRepositoryIcon'
 import Orders from './screens/Orders'
 import Overview from './screens/Overview'
 
@@ -13,7 +11,6 @@ const tabs = ['Overview', 'Buys / Sells', 'Settings']
 
 const App = () => {
   const [state, setState] = useState({
-    repos: [],
     amount: '',
     token: '',
     tabIndex: 0,
@@ -28,6 +25,7 @@ const App = () => {
       <Main>
         <AppView
           title="Apiary"
+          padding={0}
           appBar={
             <NavBar>
               <AppBar>
@@ -104,12 +102,4 @@ const TitleLabel = styled.span`
   font-size: 22px;
 `
 
-export default observe(
-  observable =>
-    observable.pipe(
-      map(state => {
-        return { ...state }
-      })
-    ),
-  {}
-)(App)
+export default App

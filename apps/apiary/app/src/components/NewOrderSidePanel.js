@@ -67,7 +67,7 @@ export default class NewOrderSidePanel extends React.Component {
             <DropDown items={collateralTokens} active={activeItem} onChange={this.handleTokenChange} />
           </Field>
           <Button mode="strong" type="submit" wide onClick={onSubmit}>
-            Send amount
+            {activeTab === 0 ? 'Create buy order' : 'Create sell order'}
           </Button>
         </Form>
       </SidePanel>
