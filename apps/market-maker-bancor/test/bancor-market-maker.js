@@ -200,7 +200,7 @@ contract('BancorMarketMaker app', accounts => {
   const progressToNextBatch = async () => {
     let currentBlock = await blockNumber()
     let currentBatch = await curve.getCurrentBatchId()
-    let blocksTilNextBatch = currentBatch.add(10).sub(currentBlock)
+    let blocksTilNextBatch = currentBatch.add(BLOCKS_IN_BATCH).sub(currentBlock)
     await increaseBlocks(blocksTilNextBatch)
   }
 
