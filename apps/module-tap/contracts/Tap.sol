@@ -92,7 +92,7 @@ contract Tap is EtherTokenConstant, IsContract, AragonApp {
     /**
      * @notice Add tap for `_token.symbol(): string` at the pace of `@tokenAmount(_token, _tap)` per second
      * @param _token Address of the tapped token
-     * @param _tap Tap to be applied applied to the token [in wei / second]
+     * @param _tap The tap to be applied applied to that token [in wei / second]
     */
     function addTokenTap(address _token, uint256 _tap) external auth(ADD_TOKEN_TAP_ROLE) {
         require(_token == ETH || isContract(_token), ERROR_TOKEN_NOT_ETH_OR_CONTRACT);
