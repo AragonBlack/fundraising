@@ -83,7 +83,7 @@ contract Tap is EtherTokenConstant, IsContract, AragonApp {
 
     /**
      * @notice Update maximum monthly tap increase rate to `_maxMonthlyTapIncreaseRate`
-     * @param _maxMonthlyTapIncreaseRate New maximum monthly tap increase rate
+     * @param _maxMonthlyTapIncreaseRate New maximum monthly tap increase rate [in PP 10^18]
     */
     function updateMaxMonthlyTapIncreaseRate(uint256 _maxMonthlyTapIncreaseRate) external auth(UPDATE_MONTHLY_TAP_INCREASE_ROLE) {
         _updateMaxMonthlyTapIncreaseRate(_maxMonthlyTapIncreaseRate);
