@@ -54,8 +54,6 @@ contract Tap is EtherTokenConstant, IsContract, AragonApp {
 
     /***** external function *****/
 
-    // add ability to update maxMonthlyTapIncreaseRate ?
-
     function initialize(Vault _reserve, address _beneficiary, uint256 _maxMonthlyTapIncreaseRate) external onlyInit {
         require(isContract(_reserve), ERROR_RESERVE_NOT_CONTRACT);
 
@@ -66,8 +64,8 @@ contract Tap is EtherTokenConstant, IsContract, AragonApp {
     }
 
     /**
-    * @notice Update reserve to `_reserve`
-    * @param _reserve Address of the new reserve
+     * @notice Update reserve to `_reserve`
+     * @param _reserve Address of the new reserve
     */
     function updateReserve(Vault _reserve) external auth(UPDATE_RESERVE_ROLE) {
         require(isContract(_reserve), ERROR_RESERVE_NOT_CONTRACT);
@@ -76,25 +74,25 @@ contract Tap is EtherTokenConstant, IsContract, AragonApp {
     }
 
     /**
-    * @notice Update beneficiary to `_beneficiary`
-    * @param _beneficiary Address of the new beneficiary
+     * @notice Update beneficiary to `_beneficiary`
+     * @param _beneficiary Address of the new beneficiary
     */
     function updateBeneficiary(address _beneficiary) external auth(UPDATE_BENEFICIARY_ROLE) {
         _updateBeneficiary(_beneficiary);
     }
 
     /**
-    * @notice Update maximum monthly tap increase rate to `_maxMonthlyTapIncreaseRate`
-    * @param _maxMonthlyTapIncreaseRate New maximum monthly tap increase rate
+     * @notice Update maximum monthly tap increase rate to `_maxMonthlyTapIncreaseRate`
+     * @param _maxMonthlyTapIncreaseRate New maximum monthly tap increase rate
     */
     function updateMaxMonthlyTapIncreaseRate(uint256 _maxMonthlyTapIncreaseRate) external auth(UPDATE_MONTHLY_TAP_INCREASE_ROLE) {
         _updateMaxMonthlyTapIncreaseRate(_maxMonthlyTapIncreaseRate);
     }
 
     /**
-    * @notice Add tap for `_token.symbol(): string` at the pace of `@tokenAmount(_token, _tap)` per second
-    * @param _token Address of the tapped token
-    * @param _tap Tap applied to the token (in wei / second)
+     * @notice Add tap for `_token.symbol(): string` at the pace of `@tokenAmount(_token, _tap)` per second
+     * @param _token Address of the tapped token
+     * @param _tap Tap to be applied applied to the token [in wei / second]
     */
     function addTokenTap(address _token, uint256 _tap) external auth(ADD_TOKEN_TAP_ROLE) {
         require(_token == ETH || isContract(_token), ERROR_TOKEN_NOT_ETH_OR_CONTRACT);
@@ -105,8 +103,8 @@ contract Tap is EtherTokenConstant, IsContract, AragonApp {
     }
 
     /**
-    * @notice Remove tap for `_token.symbol(): string`
-    * @param _token Address of the tapped token
+     * @notice Remove tap for `_token.symbol(): string`
+     * @param _token Address of the tapped token to remove
     */
     function removeTokenTap(address _token) external auth(REMOVE_TOKEN_TAP_ROLE) {
         require(taps[_token] != uint256(0), ERROR_TOKEN_TAP_DOES_NOT_EXIST);
@@ -115,9 +113,9 @@ contract Tap is EtherTokenConstant, IsContract, AragonApp {
     }
 
     /**
-    * @notice Update tap for `_token.symbol(): string` to the pace of `@tokenAmount(_token, _tap)` per second
-    * @param _token Address of the tapped token
-    * @param _tap New tap applied to the token (in wei / second)
+     * @notice Update tap for `_token.symbol(): string` to the pace of `@tokenAmount(_token, _tap)` per second
+     * @param _token Address of the token whose tap is to be updated
+     * @param _tap New tap to be applied to the token [in wei / second]
     */
     function updateTokenTap(address _token, uint256 _tap) external auth(UPDATE_TOKEN_TAP_ROLE) {
         require(taps[_token] != uint256(0), ERROR_TOKEN_TAP_DOES_NOT_EXIST);
@@ -128,8 +126,8 @@ contract Tap is EtherTokenConstant, IsContract, AragonApp {
     }
 
     /**
-    * @notice Transfer about `@tokenAmount(_token, self.getMaxWithdrawal(_token))` from `self.reserve()` to `self.beneficiary()`
-    * @param _token Address of the token to transfer from reserve to beneficiary
+     * @notice Transfer about `@tokenAmount(_token, self.getMaxWithdrawal(_token))` from `self.reserve()` to `self.beneficiary()`
+     * @param _token Address of the token to transfer from reserve to beneficiary
     */
     function withdraw(address _token) external auth(WITHDRAW_ROLE) {
         require(taps[_token] > 0, ERROR_TOKEN_TAP_DOES_NOT_EXIST);
