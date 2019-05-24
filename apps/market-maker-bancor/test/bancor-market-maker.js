@@ -266,7 +266,7 @@ contract('BancorMarketMaker app', accounts => {
 
   // #region deploy
   context('> #deploy', () => {
-    it.skip('> it should deploy', async () => {
+    it('> it should deploy', async () => {
       await BancorMarketMaker.new()
     })
   })
@@ -275,7 +275,7 @@ contract('BancorMarketMaker app', accounts => {
   // #region initialize
   context('> #initialize', () => {
     context('> initialization parameters are correct', () => {
-      it.skip('it should initialize bancor market maker', async () => {
+      it('it should initialize bancor market maker', async () => {
         assert.equal(await curve.controller(), controller.address)
         assert.equal(await curve.tokenManager(), tokenManager.address)
         assert.equal(await curve.token(), token.address)
@@ -288,7 +288,7 @@ contract('BancorMarketMaker app', accounts => {
     })
 
     context('> initialization parameters are not correct', () => {
-      it.skip('it should revert [controller is not a contract]', async () => {
+      it('it should revert [controller is not a contract]', async () => {
         const bReceipt = await dao.newAppInstance(BANCOR_CURVE_ID, bBase.address, '0x', false)
         const uninitialized = await BancorMarketMaker.at(getEvent(bReceipt, 'NewAppProxy', 'proxy'))
 
@@ -297,7 +297,7 @@ contract('BancorMarketMaker app', accounts => {
         )
       })
 
-      it.skip('it should revert [token manager is not a contract]', async () => {
+      it('it should revert [token manager is not a contract]', async () => {
         const bReceipt = await dao.newAppInstance(BANCOR_CURVE_ID, bBase.address, '0x', false)
         const uninitialized = await BancorMarketMaker.at(getEvent(bReceipt, 'NewAppProxy', 'proxy'))
 
@@ -306,7 +306,7 @@ contract('BancorMarketMaker app', accounts => {
         )
       })
 
-      it.skip('it should revert [pool is not a contract]', async () => {
+      it('it should revert [pool is not a contract]', async () => {
         const bReceipt = await dao.newAppInstance(BANCOR_CURVE_ID, bBase.address, '0x', false)
         const uninitialized = await BancorMarketMaker.at(getEvent(bReceipt, 'NewAppProxy', 'proxy'))
 
@@ -317,7 +317,7 @@ contract('BancorMarketMaker app', accounts => {
         )
       })
 
-      it.skip('it should revert [formula is not a contract]', async () => {
+      it('it should revert [formula is not a contract]', async () => {
         const bReceipt = await dao.newAppInstance(BANCOR_CURVE_ID, bBase.address, '0x', false)
         const uninitialized = await BancorMarketMaker.at(getEvent(bReceipt, 'NewAppProxy', 'proxy'))
 
@@ -328,7 +328,7 @@ contract('BancorMarketMaker app', accounts => {
         )
       })
 
-      it.skip('it should revert [batchBlocks is zero]', async () => {
+      it('it should revert [batchBlocks is zero]', async () => {
         const bReceipt = await dao.newAppInstance(BANCOR_CURVE_ID, bBase.address, '0x', false)
         const uninitialized = await BancorMarketMaker.at(getEvent(bReceipt, 'NewAppProxy', 'proxy'))
 
@@ -338,7 +338,7 @@ contract('BancorMarketMaker app', accounts => {
       })
     })
 
-    it.skip('it should revert on re-initialization', async () => {
+    it('it should revert on re-initialization', async () => {
       assertRevert(() =>
         curve.initialize(controller.address, tokenManager.address, pool.address, beneficiary, formula.address, BLOCKS_IN_BATCH, FEE_PERCENT, { from: root })
       )
@@ -351,7 +351,7 @@ contract('BancorMarketMaker app', accounts => {
     context('> sender has ADD_COLLATERAL_TOKEN_ROLE', () => {
       context('> and collateral token has not yet been added', () => {
         context('> and collateral token is ETH or ERC20 [i.e. contract]', () => {
-          it.skip('it should add collateral token', async () => {
+          it('it should add collateral token', async () => {
             const virtualSupply = randomVirtualSupply()
             const virtualBalance = randomVirtualBalance()
             const reserveRatio = randomReserveRatio()
@@ -374,7 +374,7 @@ contract('BancorMarketMaker app', accounts => {
         })
 
         context('> but collateral token is not ETH or ERC20 [i.e. contract]', () => {
-          it.skip('it should revert', async () => {
+          it('it should revert', async () => {
             await assertRevert(() =>
               curve.addCollateralToken(authorized, randomVirtualSupply(), randomVirtualBalance(), randomReserveRatio(), { from: authorized })
             )
@@ -383,14 +383,14 @@ contract('BancorMarketMaker app', accounts => {
       })
 
       context('> but collateral token has already been added', () => {
-        it.skip('it should revert', async () => {
+        it('it should revert', async () => {
           await assertRevert(() => curve.addCollateralToken(ETH, randomVirtualSupply(), randomVirtualBalance(), randomReserveRatio(), { from: authorized }))
         })
       })
     })
 
     context('> sender does not have ADD_COLLATERAL_TOKEN_ROLE', () => {
-      it.skip('it should revert', async () => {
+      it('it should revert', async () => {
         const unlisted = await TokenMock.new(authorized, INITIAL_TOKEN_BALANCE)
 
         await assertRevert(() =>
@@ -405,7 +405,7 @@ contract('BancorMarketMaker app', accounts => {
   context('> #updateCollateralToken', () => {
     context('> sender has UPDATE_COLLATERAL_TOKEN_ROLE', () => {
       context('> and collateral token is whitelisted', () => {
-        it.skip('it should update collateral token', async () => {
+        it('it should update collateral token', async () => {
           const virtualSupply = randomVirtualSupply()
           const virtualBalance = randomVirtualBalance()
           const reserveRatio = randomReserveRatio()
@@ -420,7 +420,7 @@ contract('BancorMarketMaker app', accounts => {
       })
 
       context('> but collateral token is not whitelisted', () => {
-        it.skip('it should revert', async () => {
+        it('it should revert', async () => {
           const unlisted = await TokenMock.new(authorized, INITIAL_TOKEN_BALANCE)
 
           await assertRevert(() =>
@@ -431,7 +431,7 @@ contract('BancorMarketMaker app', accounts => {
     })
 
     context('> sender does not have UPDATE_COLLATERAL_TOKEN_ROLE', () => {
-      it.skip('it should revert', async () => {
+      it('it should revert', async () => {
         await assertRevert(() =>
           curve.updateCollateralToken(token1.address, randomVirtualSupply(), randomVirtualBalance(), randomReserveRatio(), { from: unauthorized })
         )
@@ -443,7 +443,7 @@ contract('BancorMarketMaker app', accounts => {
   // #region updateFees
   context('> #updateFee', () => {
     context('> sender has UPDATE_FEE_ROLE', () => {
-      it.skip('it should update fee', async () => {
+      it('it should update fee', async () => {
         const receipt = await curve.updateFee(40, { from: authorized })
 
         assertEvent(receipt, 'UpdateFee')
@@ -452,7 +452,7 @@ contract('BancorMarketMaker app', accounts => {
     })
 
     context('> sender does not have UPDATE_FEE_ROLE', () => {
-      it.skip('it should revert', async () => {
+      it('it should revert', async () => {
         await assertRevert(() => curve.updateFee(40, { from: unauthorized }))
       })
     })
@@ -462,7 +462,7 @@ contract('BancorMarketMaker app', accounts => {
   // #region updateGasCosts
   context('> #updateGasCosts', () => {
     context('> sender has UPDATE_GAS_COSTS_ROLE', () => {
-      it.skip('it should update gas costs', async () => {
+      it('it should update gas costs', async () => {
         const receipt = await curve.updateGasCosts(15, 23, { from: authorized })
 
         assertEvent(receipt, 'UpdateGasCosts')
@@ -472,7 +472,7 @@ contract('BancorMarketMaker app', accounts => {
     })
 
     context('> sender does not have UPDATE_GAS_COSTS_ROLE', () => {
-      it.skip('it should revert', async () => {
+      it('it should revert', async () => {
         await assertRevert(() => curve.updateGasCosts(15, 23, { from: unauthorized }))
       })
     })
@@ -486,7 +486,7 @@ contract('BancorMarketMaker app', accounts => {
         context('> and value is not zero', () => {
           context('> and sender has sufficient funds', () => {
             context('> ETH', () => {
-              it.skip('it should initialize and update token batch', async () => {
+              it('it should initialize and update token batch', async () => {
                 const amount = randomAmount()
                 const receipt = await curve.createBuyOrder(authorized, ETH, amount, { from: authorized, value: amount })
 
@@ -504,7 +504,7 @@ contract('BancorMarketMaker app', accounts => {
                 assert.equal(batch.totalSellReturn.toNumber(), 0)
               })
 
-              it.skip('it should create buy order', async () => {
+              it('it should create buy order', async () => {
                 const amount = randomAmount()
                 const receipt = await curve.createBuyOrder(authorized, ETH, amount, { from: authorized, value: amount })
                 const fee = computeFee(amount)
@@ -513,7 +513,7 @@ contract('BancorMarketMaker app', accounts => {
                 assert.equal((await web3.eth.getBalance(pool.address)).toNumber(), amount.minus(fee))
               })
 
-              it.skip('it should deduct fee', async () => {
+              it('it should deduct fee', async () => {
                 const oldBeneficiaryBalance = await web3.eth.getBalance(beneficiary)
                 const amount = randomAmount()
                 const receipt = await curve.createBuyOrder(authorized, ETH, amount, { from: authorized, value: amount })
@@ -527,7 +527,7 @@ contract('BancorMarketMaker app', accounts => {
                 assert.equal(batch.totalBuySpend.toNumber(), amount.minus(fee).toNumber())
               })
 
-              it.skip('it should clear previous batch', async () => {
+              it('it should clear previous batch', async () => {
                 // initialize two different collaterals in the same batch [no need to test with sell orders because buy and sell orders are registered in the same batch]
                 const amount1 = randomAmount()
                 const receipt1 = await curve.createBuyOrder(authorized, ETH, amount1, { from: authorized, value: amount1 })
@@ -552,7 +552,7 @@ contract('BancorMarketMaker app', accounts => {
             })
 
             context('> ERC20', () => {
-              it.skip('it should initialize and update token batch', async () => {
+              it('it should initialize and update token batch', async () => {
                 const amount = randomAmount()
                 const receipt = await curve.createBuyOrder(authorized, token1.address, amount, { from: authorized })
 
@@ -570,7 +570,7 @@ contract('BancorMarketMaker app', accounts => {
                 assert.equal(batch.totalSellReturn.toNumber(), 0)
               })
 
-              it.skip('it should create buy order', async () => {
+              it('it should create buy order', async () => {
                 const amount = randomAmount()
                 const receipt = await curve.createBuyOrder(authorized, token1.address, amount, { from: authorized })
                 const fee = computeFee(amount)
@@ -579,7 +579,7 @@ contract('BancorMarketMaker app', accounts => {
                 assert.equal((await token1.balanceOf(pool.address)).toNumber(), amount.minus(fee))
               })
 
-              it.skip('it should deduct fee', async () => {
+              it('it should deduct fee', async () => {
                 const amount = randomAmount()
                 const receipt = await curve.createBuyOrder(authorized, token1.address, amount, { from: authorized })
 
@@ -591,7 +591,7 @@ contract('BancorMarketMaker app', accounts => {
                 assert.equal(batch.totalBuySpend.toNumber(), amount.minus(fee).toNumber())
               })
 
-              it.skip('it should clear previous batch', async () => {
+              it('it should clear previous batch', async () => {
                 // initialize two different collaterals in the same batch [no need to test with sell orders because buy and sell orders are registered in the same batch]
                 const amount = randomAmount()
                 const receipt1 = await curve.createBuyOrder(authorized, ETH, amount, { from: authorized, value: amount })
@@ -615,7 +615,7 @@ contract('BancorMarketMaker app', accounts => {
             })
 
             context('> and there are multiple orders', () => {
-              it.skip('it should batch orders', () => {
+              it('it should batch orders', () => {
                 // already tested in #createSellOrder
               })
             })
@@ -623,35 +623,35 @@ contract('BancorMarketMaker app', accounts => {
         })
 
         context('> but sender does not have sufficient funds', () => {
-          it.skip('it should revert [ETH]', async () => {
+          it('it should revert [ETH]', async () => {
             const amount = randomAmount()
 
             await assertRevert(() => curve.createBuyOrder(authorized, ETH, amount, { from: authorized, value: amount.minus(1) }))
           })
 
-          it.skip('it should revert [ERC20]', async () => {
+          it('it should revert [ERC20]', async () => {
             await assertRevert(() => curve.createBuyOrder(authorized, token1.address, INITIAL_TOKEN_BALANCE + 1, { from: authorized }))
           })
         })
 
         context('> but value is zero', () => {
-          it.skip('it should revert [ETH]', async () => {
+          it('it should revert [ETH]', async () => {
             await assertRevert(() => curve.createBuyOrder(authorized, ETH, 0, { from: authorized, value: 10 }))
           })
 
-          it.skip('it should revert [ERC20]', async () => {
+          it('it should revert [ERC20]', async () => {
             await assertRevert(() => curve.createBuyOrder(authorized, token1.address, 0, { from: authorized }))
           })
         })
       })
 
       context('> but collateral is not whitelisted', () => {
-        it.skip('it should revert [ETH]', async () => {
+        it('it should revert [ETH]', async () => {
           // we can't test unless we re-deploy a DAO without ETH as a whitelisted collateral just for that use case
           // it's not worth it because the logic is the same than ERC20 anyhow
         })
 
-        it.skip('it should revert [ERC20]', async () => {
+        it('it should revert [ERC20]', async () => {
           const unlisted = await TokenMock.new(authorized, INITIAL_TOKEN_BALANCE)
           await unlisted.approve(curve.address, INITIAL_TOKEN_BALANCE, { from: authorized })
 
@@ -661,12 +661,12 @@ contract('BancorMarketMaker app', accounts => {
     })
 
     context('> sender does not have CREATE_BUY_ORDER_ROLE', () => {
-      it.skip('it should revert [ETH]', async () => {
+      it('it should revert [ETH]', async () => {
         const amount = randomAmount()
         await assertRevert(() => curve.createBuyOrder(unauthorized, ETH, amount, { from: unauthorized, value: amount }))
       })
 
-      it.skip('it should revert [ERC20]', async () => {
+      it('it should revert [ERC20]', async () => {
         await assertRevert(() => curve.createBuyOrder(unauthorized, token1.address, randomAmount(), { from: unauthorized }))
       })
     })
@@ -680,7 +680,7 @@ contract('BancorMarketMaker app', accounts => {
         context('> and amount is not zero', () => {
           context('> and sender has sufficient funds', () => {
             context('> ETH', () => {
-              it.skip('it should initialize and update token batch', async () => {
+              it('it should initialize and update token batch', async () => {
                 const amount = randomAmount()
                 const balance = await createAndClaimBuyOrder({ address: authorized, collateralToken: ETH, amount: amount })
                 const receipt = await curve.createSellOrder(authorized, ETH, balance, { from: authorized, value: balance })
@@ -700,7 +700,7 @@ contract('BancorMarketMaker app', accounts => {
                 assert.equal(batch.totalSellReturn.toNumber(), 0)
               })
 
-              it.skip('it should create sell order', async () => {
+              it('it should create sell order', async () => {
                 const balance = await createAndClaimBuyOrder({ address: authorized, collateralToken: ETH, amount: randomAmount() })
                 const receipt = await curve.createSellOrder(authorized, ETH, balance, { from: authorized, value: balance })
                 const fee = computeFee(balance)
@@ -709,7 +709,7 @@ contract('BancorMarketMaker app', accounts => {
                 assert.equal((await token.totalSupply()).toNumber(), fee.toNumber())
               })
 
-              it.skip('it should deduct fee', async () => {
+              it('it should deduct fee', async () => {
                 const balance = await createAndClaimBuyOrder({ address: authorized, collateralToken: ETH, amount: randomAmount() })
                 const receipt = await curve.createSellOrder(authorized, ETH, balance, { from: authorized, value: balance })
 
@@ -721,7 +721,7 @@ contract('BancorMarketMaker app', accounts => {
                 assert.equal(batch.totalSellSpend.toNumber(), balance.minus(fee).toNumber())
               })
 
-              it.skip('it should clear previous batch', async () => {
+              it('it should clear previous batch', async () => {
                 // buy bonded tokens to sell them afterwards
                 const balance = await createAndClaimBuyOrder({ address: authorized, collateralToken: ETH, amount: randomAmount() })
                 // initialize two different collaterals in the same batch [no need to test with sell orders because buy and sell orders are registered in the same batch]
@@ -747,13 +747,13 @@ contract('BancorMarketMaker app', accounts => {
             })
 
             context('> and there are multiple orders', () => {
-              it.skip('it should batch orders', async () => {
+              it('it should batch orders', async () => {
                 // already tested in the ERC20 version of the test below
               })
             })
 
             context('> ERC20', () => {
-              it.skip('it should initialize and update token batch', async () => {
+              it('it should initialize and update token batch', async () => {
                 const amount = randomAmount()
                 const balance = await createAndClaimBuyOrder({ address: authorized, collateralToken: token1.address, amount: amount })
                 const receipt = await curve.createSellOrder(authorized, token1.address, balance, { from: authorized })
@@ -773,7 +773,7 @@ contract('BancorMarketMaker app', accounts => {
                 assert.equal(batch.totalSellReturn.toNumber(), 0)
               })
 
-              it.skip('it should create sell order', async () => {
+              it('it should create sell order', async () => {
                 const balance = await createAndClaimBuyOrder({ address: authorized, collateralToken: token1.address, amount: randomAmount() })
                 const receipt = await curve.createSellOrder(authorized, token1.address, balance, { from: authorized })
                 const fee = computeFee(balance)
@@ -782,7 +782,7 @@ contract('BancorMarketMaker app', accounts => {
                 assert.equal((await token.totalSupply()).toNumber(), fee.toNumber())
               })
 
-              it.skip('it should deduct fee', async () => {
+              it('it should deduct fee', async () => {
                 const balance = await createAndClaimBuyOrder({ address: authorized, collateralToken: token1.address, amount: randomAmount() })
                 const receipt = await curve.createSellOrder(authorized, token1.address, balance, { from: authorized })
 
@@ -794,7 +794,7 @@ contract('BancorMarketMaker app', accounts => {
                 assert.equal(batch.totalSellSpend.toNumber(), balance.minus(fee).toNumber())
               })
 
-              it.skip('it should clear previous batch', async () => {
+              it('it should clear previous batch', async () => {
                 // buy bonded tokens to sell them afterwards
                 const balance = await createAndClaimBuyOrder({ address: authorized, collateralToken: token1.address, amount: randomAmount() })
                 // initialize two different collaterals in the same batch [no need to test with sell orders because buy and sell orders are registered in the same batch]
@@ -820,7 +820,7 @@ contract('BancorMarketMaker app', accounts => {
             })
 
             context('> and there are multiple orders', () => {
-              it.skip('it should batch orders', async () => {
+              it('it should batch orders', async () => {
                 // compute random amounts
                 const amountETH1 = randomAmount()
                 const amountETH2 = randomAmount()
@@ -905,13 +905,13 @@ contract('BancorMarketMaker app', accounts => {
           })
 
           context('> but sender does not have sufficient funds', () => {
-            it.skip('it should revert [ETH]', async () => {
+            it('it should revert [ETH]', async () => {
               const balance = await createAndClaimBuyOrder({ address: authorized, collateralToken: token1.address, amount: randomAmount() })
 
               await assertRevert(() => curve.createSellOrder(authorized, ETH, balance.plus(10), { from: authorized }))
             })
 
-            it.skip('it should revert [ERC20]', async () => {
+            it('it should revert [ERC20]', async () => {
               const balance = await createAndClaimBuyOrder({ address: authorized, collateralToken: token1.address, amount: randomAmount() })
 
               await assertRevert(() => curve.createSellOrder(authorized, token1.address, balance.plus(10), { from: authorized }))
@@ -920,13 +920,13 @@ contract('BancorMarketMaker app', accounts => {
         })
 
         context('> but amount is zero', () => {
-          it.skip('it should revert [ETH]', async () => {
+          it('it should revert [ETH]', async () => {
             await createAndClaimBuyOrder({ address: authorized, collateralToken: token1.address, amount: randomAmount() })
 
             await assertRevert(() => curve.createSellOrder(authorized, ETH, 0, { from: authorized }))
           })
 
-          it.skip('it should revert [ERC20]', async () => {
+          it('it should revert [ERC20]', async () => {
             await createAndClaimBuyOrder({ address: authorized, collateralToken: token1.address, amount: randomAmount() })
 
             await assertRevert(() => curve.createSellOrder(authorized, token1.address, 0, { from: authorized }))
@@ -935,12 +935,12 @@ contract('BancorMarketMaker app', accounts => {
       })
 
       context('> but collateral is not whitelisted', () => {
-        it.skip('it should revert [ETH]', async () => {
+        it('it should revert [ETH]', async () => {
           // we can't test unless we re-deploy a DAO without ETH as a whitelisted collateral just for that use case
           // it's not worth it because the logic is the same than ERC20 anyhow
         })
 
-        it.skip('it should revert [ERC20]', async () => {
+        it('it should revert [ERC20]', async () => {
           const unlisted = await TokenMock.new(authorized, INITIAL_TOKEN_BALANCE)
           await unlisted.approve(curve.address, INITIAL_TOKEN_BALANCE, { from: authorized })
           const balance = await createAndClaimBuyOrder({ address: authorized, collateralToken: token1.address, amount: randomAmount() })
@@ -951,7 +951,7 @@ contract('BancorMarketMaker app', accounts => {
     })
 
     context('> sender does not have CREATE_SELL_ORDER_ROLE', () => {
-      it.skip('it should revert', async () => {
+      it('it should revert', async () => {
         const balance = await createAndClaimBuyOrder({ address: authorized, collateralToken: token1.address, amount: randomAmount() })
         await token.transfer(unauthorized, balance, { from: authorized })
         // test both ETH and ERC20
@@ -966,7 +966,7 @@ contract('BancorMarketMaker app', accounts => {
   context('> #clearBatches', () => {
     context('> batch has not yet been cleared', () => {
       context('> and batch period is over', () => {
-        it.skip('it should clear pending batches for all collateral tokens', async () => {
+        it('it should clear pending batches for all collateral tokens', async () => {
           // compute random amounts
           const amountETH1 = randomAmount()
           const amountETH2 = randomAmount()
@@ -1029,7 +1029,7 @@ contract('BancorMarketMaker app', accounts => {
       })
 
       context('> but batch period is not over', () => {
-        it.skip('it should revert', async () => {
+        it('it should revert', async () => {
           await curve.createBuyOrder(authorized, token1.address, randomAmount(), { from: authorized })
 
           await assertRevert(() => curve.clearBatches())
@@ -1038,7 +1038,7 @@ contract('BancorMarketMaker app', accounts => {
     })
 
     context('> batch has already been cleared', () => {
-      it.skip('it should revert', async () => {
+      it('it should revert', async () => {
         await curve.createBuyOrder(authorized, token1.address, randomAmount(), { from: authorized })
         await progressToNextBatch()
         await curve.clearBatches()
@@ -1054,7 +1054,7 @@ contract('BancorMarketMaker app', accounts => {
     context('> collateral is whitelisted', () => {
       context('> and there are bonds to claim', () => {
         forEach(['ETH', 'ERC20']).describe('> and batch is cleared', denom => {
-          it.skip(`it should return bonds [${denom}]`, async () => {
+          it(`it should return bonds [${denom}]`, async () => {
             const collateralToken = denom === 'ETH' ? ETH : token1.address
 
             const oldBalance = await token.balanceOf(authorized)
@@ -1080,7 +1080,7 @@ contract('BancorMarketMaker app', accounts => {
 
       context('> but there are no tokens to claim', () => {
         context('> because address has no pending buy order at all', () => {
-          it.skip('it should revert [ETH]', async () => {
+          it('it should revert [ETH]', async () => {
             const amount = randomAmount()
             const receipt1 = await curve.createBuyOrder(authorized, ETH, amount, { from: authorized, value: amount })
             const batchId = getBuyOrderBatchId(receipt1)
@@ -1091,7 +1091,7 @@ contract('BancorMarketMaker app', accounts => {
             await assertRevert(() => curve.claimBuy(authorized2, ETH, batchId))
           })
 
-          it.skip('it should revert [ERC20]', async () => {
+          it('it should revert [ERC20]', async () => {
             const receipt = await curve.createBuyOrder(authorized, token1.address, randomAmount(), { from: authorized })
             const batchId = getBuyOrderBatchId(receipt)
 
@@ -1103,7 +1103,7 @@ contract('BancorMarketMaker app', accounts => {
         })
 
         context('> because address has a pending buy order but created through another collateral token', () => {
-          it.skip('it should revert [ETH]', async () => {
+          it('it should revert [ETH]', async () => {
             const amount = randomAmount()
             const receipt1 = await curve.createBuyOrder(authorized, ETH, amount, { from: authorized, value: amount })
             const batchId = getBuyOrderBatchId(receipt1)
@@ -1114,7 +1114,7 @@ contract('BancorMarketMaker app', accounts => {
             await assertRevert(() => curve.claimBuy(authorized, token1.address, batchId))
           })
 
-          it.skip('it should revert [ERC20]', async () => {
+          it('it should revert [ERC20]', async () => {
             const receipt = await curve.createBuyOrder(authorized, token1.address, randomAmount(), { from: authorized })
             const batchId = getBuyOrderBatchId(receipt)
 
@@ -1126,7 +1126,7 @@ contract('BancorMarketMaker app', accounts => {
         })
 
         context('> because buy order has already been claimed', () => {
-          it.skip('it should revert [ETH]', async () => {
+          it('it should revert [ETH]', async () => {
             const amount = randomAmount()
             const receipt1 = await curve.createBuyOrder(authorized, ETH, amount, { from: authorized, value: amount })
             const batchId = getBuyOrderBatchId(receipt1)
@@ -1138,7 +1138,7 @@ contract('BancorMarketMaker app', accounts => {
             await assertRevert(() => curve.claimBuy(authorized, ETH, batchId))
           })
 
-          it.skip('it should revert [ERC20]', async () => {
+          it('it should revert [ERC20]', async () => {
             const receipt1 = await curve.createBuyOrder(authorized, token1.address, randomAmount(), { from: authorized })
             const batchId = getBuyOrderBatchId(receipt1)
 
@@ -1152,7 +1152,7 @@ contract('BancorMarketMaker app', accounts => {
       })
 
       context('> but batch is not yet cleared', () => {
-        it.skip('it should revert [ETH]', async () => {
+        it('it should revert [ETH]', async () => {
           const amount = randomAmount()
           const receipt = await curve.createBuyOrder(authorized, ETH, amount, { from: authorized, value: amount })
           const batchId = getBuyOrderBatchId(receipt)
@@ -1160,7 +1160,7 @@ contract('BancorMarketMaker app', accounts => {
           await assertRevert(() => curve.claimBuy(authorized, ETH, batchId))
         })
 
-        it.skip('it should revert [ERC20]', async () => {
+        it('it should revert [ERC20]', async () => {
           const receipt = await curve.createBuyOrder(authorized, token1.address, randomAmount(), { from: authorized })
           const batchId = getBuyOrderBatchId(receipt)
 
@@ -1170,7 +1170,7 @@ contract('BancorMarketMaker app', accounts => {
     })
 
     context('> but collateral is not whitelisted', () => {
-      it.skip('it should revert', async () => {
+      it('it should revert', async () => {
         const unlisted = await TokenMock.new(authorized, INITIAL_TOKEN_BALANCE)
         await unlisted.approve(curve.address, INITIAL_TOKEN_BALANCE, { from: authorized })
 
@@ -1188,7 +1188,8 @@ contract('BancorMarketMaker app', accounts => {
 
   // #region checkMath
   context('#Checks math', () => {
-    forEach(['ETH', 'ERC20']).describe(`> Just one collateralToken being used [%s]`, collateralTokenIndex => {
+    forEach(['ERC20']).describe(`> Just one collateralToken being used [%s]`, collateralTokenIndex => {
+      // forEach(['ETH', 'ERC20']).describe(`> Just one collateralToken being used [%s]`, collateralTokenIndex => {
       collateralTokenIndex = collateralTokenIndex === 'ETH' ? 0 : 1
       let totalSupply, balance, reserveRatio, _token, collateralToken
       let tokens
@@ -1290,6 +1291,233 @@ contract('BancorMarketMaker app', accounts => {
             `Second Estimate (${estimatedSecondReturn.toString(10)}) did not match actual balance (${secondBalance.toString(
               10
             )}) within margin of error ${marginOfError.toString(10)}`
+          )
+        })
+      })
+      context('> Buys & Sells', () => {
+        const marginOfError = 1000000000000
+        it('it should match the estimate for equal buy and sells', async () => {
+          const amount = collateralToken === NULL_ADDRESS ? 5e18 : randomAmount()
+          let sellAmount = await buyAndClaimTokens({
+            token,
+            curve,
+            address: authorized,
+            collateralToken,
+            amount,
+          })
+
+          const currentPricePPM = await curve.getPricePPM(collateralToken, sellAmount, amount)
+
+          const spendAmount = new web3.BigNumber(
+            sellAmount
+              .mul(currentPricePPM)
+              .div(PPM)
+              .toString(10)
+              .split('.')[0]
+          )
+          // const resultOfSpend = spendAmount.mul(PPM).div(currentPricePPM)
+
+          await progressToNextBatch()
+
+          const { sellBatchNumber } = await sellSomeAmount({
+            curve,
+            token,
+            address: authorized,
+            collateralToken,
+            amount: sellAmount.toString(10),
+          })
+          const buyBatchNumber = await buyToken({
+            curve,
+            address: authorized2,
+            collateralToken,
+            amount: spendAmount,
+          })
+          assert(sellBatchNumber === buyBatchNumber, `sellBatchNumber  (${sellBatchNumber}) did not equal buyBatchNumber (${buyBatchNumber})`)
+
+          await increaseBlocks(BLOCKS_IN_BATCH)
+          await curve.clearBatches({ from: authorized })
+          await curve.claimBuy(authorized2, collateralToken, buyBatchNumber)
+          await curve.claimSell(authorized, collateralToken, sellBatchNumber)
+
+          const balanceOfSeller = await token.balanceOf(authorized)
+          const balanceOfBuyer = await token.balanceOf(authorized2)
+
+          assert(
+            balanceOfBuyer
+              .sub(sellAmount)
+              .abs()
+              .lt(marginOfError),
+            `Buyer did not have original sellAmount. Expected ${sellAmount.toString(10)}, got ${balanceOfBuyer.toString(
+              10
+            )} with margin of error ${marginOfError.toString(10)}`
+          )
+
+          assert(
+            balanceOfSeller.lt(marginOfError),
+            `Seller did not get rid of all their tokens. Expected 0, got ${balanceOfSeller.toString(10)} with margin of error ${marginOfError.toString(10)}`
+          )
+        })
+        it('it shoudl match the estimates on more sells than buys', async () => {
+          const amount = collateralToken === NULL_ADDRESS ? 5e18 : randomAmount()
+          let sellAmount = await buyAndClaimTokens({
+            token,
+            curve,
+            address: authorized,
+            collateralToken,
+            amount,
+          })
+
+          const currentPricePPM = await curve.getPricePPM(collateralToken, sellAmount, amount)
+
+          const sellAmountMatch = new web3.BigNumber(
+            sellAmount
+              .div(2)
+              .mul(currentPricePPM)
+              .div(PPM)
+              .toString(10)
+              .split('.')[0]
+          )
+
+          // const totalSupply = await token.totalSupply()
+          // const balance = await controller.balanceOf(pool.address, collateralToken)
+          // const reserveRatio = new Decimal(RESERVE_RATIOS[collateralTokenIndex]).div(PPM)
+
+          // let resultOfSellBondingCurve = getSell({
+          //   sellAmount: sellAmount.div(2),
+          //   totalSupply,
+          //   balance,
+          //   reserveRatio,
+          // })
+
+          // const resultOfSpend = spendAmount.mul(PPM).div(currentPricePPM)
+
+          // const totalResultOfSell = resultOfSellBondingCurve.bancor.add(sellAmountMatch)
+          // const averageSpendPrice = totalSpend.div(totalResultOfSpend)
+
+          await progressToNextBatch()
+
+          const { sellBatchNumber } = await sellSomeAmount({
+            curve,
+            token,
+            address: authorized,
+            collateralToken,
+            amount: sellAmount.toString(10),
+          })
+          const buyBatchNumber = await buyToken({
+            curve,
+            address: authorized2,
+            collateralToken,
+            amount: sellAmountMatch,
+          })
+          assert(sellBatchNumber === buyBatchNumber, `sellBatchNumber  (${sellBatchNumber}) did not equal buyBatchNumber (${buyBatchNumber})`)
+
+          await increaseBlocks(BLOCKS_IN_BATCH)
+          await curve.clearBatches({ from: authorized })
+          await curve.claimBuy(authorized2, collateralToken, buyBatchNumber)
+          await curve.claimSell(authorized, collateralToken, sellBatchNumber)
+
+          const balanceOfSeller = await token.balanceOf(authorized)
+          const balanceOfBuyer = await token.balanceOf(authorized2)
+
+          assert(
+            balanceOfBuyer
+              .sub(sellAmount)
+              .abs()
+              .lt(marginOfError),
+            `Buyer did not have original sellAmount. Expected ${sellAmount.toString(10)}, got ${balanceOfBuyer.toString(
+              10
+            )} with margin of error ${marginOfError.toString(10)}`
+          )
+
+          assert(
+            balanceOfSeller
+              .sub(balanceOfSeller)
+              .abs()
+              .lt(marginOfError),
+            `Seller did not get rid of all their tokens. Expected 0, got ${balanceOfSeller.toString(10)} with margin of error ${marginOfError.toString(10)}`
+          )
+        })
+
+        it('it should match the estimates on more buys than sells', async () => {
+          const amount = collateralToken === NULL_ADDRESS ? 5e18 : randomAmount()
+
+          let sellAmount = await buyAndClaimTokens({
+            token,
+            curve,
+            address: authorized,
+            collateralToken,
+            amount,
+          })
+
+          const currentPricePPM = await curve.getPricePPM(collateralToken, sellAmount, amount)
+
+          const spendAmountMatch = new web3.BigNumber(
+            sellAmount
+              .div(2)
+              .mul(currentPricePPM)
+              .div(PPM)
+              .toString(10)
+              .split('.')[0]
+          )
+
+          const totalSupply = await token.totalSupply()
+          const balance = await controller.balanceOf(pool.address, collateralToken)
+          const reserveRatio = new Decimal(RESERVE_RATIOS[collateralTokenIndex]).div(PPM)
+
+          let resultOfSpendBondingCurve = getBuy({
+            amount,
+            totalSupply,
+            balance,
+            reserveRatio,
+          })
+
+          // const resultOfSpend = spendAmount.mul(PPM).div(currentPricePPM)
+
+          const totalSpend = spendAmountMatch.add(amount)
+          const totalResultOfSpend = sellAmount.div(2).add(resultOfSpendBondingCurve.bancor.toString(10))
+          // const averageSpendPrice = totalSpend.div(totalResultOfSpend)
+
+          await progressToNextBatch()
+
+          const { sellBatchNumber } = await sellSomeAmount({
+            curve,
+            token,
+            address: authorized,
+            collateralToken,
+            amount: sellAmount.div(2).toString(10),
+          })
+          const buyBatchNumber = await buyToken({
+            curve,
+            address: authorized2,
+            collateralToken,
+            amount: totalSpend,
+          })
+          assert(sellBatchNumber === buyBatchNumber, `sellBatchNumber  (${sellBatchNumber}) did not equal buyBatchNumber (${buyBatchNumber})`)
+
+          await increaseBlocks(BLOCKS_IN_BATCH)
+          await curve.clearBatches({ from: authorized })
+          await curve.claimBuy(authorized2, collateralToken, buyBatchNumber)
+          await curve.claimSell(authorized, collateralToken, sellBatchNumber)
+
+          const balanceOfSeller = await token.balanceOf(authorized)
+          const balanceOfBuyer = await token.balanceOf(authorized2)
+
+          assert(
+            balanceOfBuyer
+              .sub(totalResultOfSpend)
+              .abs()
+              .lt(marginOfError),
+            `Buyer did not have original sellAmount. Expected ${totalResultOfSpend.toString(10)}, got ${balanceOfBuyer.toString(
+              10
+            )} with margin of error ${marginOfError.toString(10)}`
+          )
+
+          assert(
+            balanceOfSeller
+              .sub(balanceOfSeller.div(2))
+              .abs()
+              .lt(marginOfError),
+            `Seller did not get rid of all their tokens. Expected 0, got ${balanceOfSeller.toString(10)} with margin of error ${marginOfError.toString(10)}`
           )
         })
       })
@@ -1607,14 +1835,18 @@ async function sellSomeAmount({ token, curve, address, collateralToken, amount }
     from: address,
     gasCost,
   })
+
+  let NewSellOrder = sellReceipt.logs.find(l => l.event === 'NewSellOrder')
+  let sellBatchNumber = NewSellOrder ? NewSellOrder.args.batchId.toNumber() : new Error('No Sell Order')
+
   return {
     firstApprove,
     secondApprove,
     sellReceipt,
+    sellBatchNumber,
   }
 }
 
-// TODO: make it easier than double approve
 async function sellHalfAsMuchAsPossible({ token, curve, address, collateralToken }) {
   let balanceOf = await token.balanceOf(address)
   let half = balanceOf.div(2)
@@ -1627,10 +1859,15 @@ async function sellHalfAsMuchAsPossible({ token, curve, address, collateralToken
   const sellReceipt = await curve.createSellOrder(address, collateralToken, half, {
     from: address,
   })
+
+  let NewSellOrder = sellReceipt.logs.find(l => l.event === 'NewSellOrder')
+  let sellBatchNumber = NewSellOrder ? NewSellOrder.args.batchId.toNumber() : new Error('No Sell Order')
+
   return {
     firstApprove,
     secondApprove,
     sellReceipt,
+    sellBatchNumber,
   }
 }
 
@@ -1657,6 +1894,7 @@ async function buyAndClaimTokens({ token, curve, address, collateralToken, amoun
 
 async function buyToken({ curve, address, collateralToken, amount, from }) {
   if (!from) from = address
+  const gasCostBuyOrder = await curve.gasCostBuyOrder()
   const _receipt = await curve.createBuyOrder(address, collateralToken, amount, {
     from,
     value: collateralToken === NULL_ADDRESS ? amount : 0,
@@ -1716,6 +1954,10 @@ function getSell({ totalSupply, balance, reserveRatio, amount }) {
 }
 
 function getBuy({ totalSupply, balance, reserveRatio, amount }) {
+  totalSupply = new Decimal(totalSupply.toString(10))
+  balance = new Decimal(balance.toString(10))
+  reserveRatio = new Decimal(reserveRatio.toString(10))
+  amount = new Decimal(amount.toString(10))
   // // Straight from bancor contract
   // // Return = _supply * ((1 + _depositAmount / _connectorBalance) ^ (_connectorWeight / 1000000) - 1)
   // let bancorClassic = totalSupply.mul(
@@ -1732,7 +1974,9 @@ function getBuy({ totalSupply, balance, reserveRatio, amount }) {
   // formula for m & n from https://medium.com/@billyrennekamp/converting-between-bancor-and-bonding-curve-price-formulas-9c11309062f5
 
   // k = s(( ( p (n + 1) ) / (m * s^(n+1)) ) + 1)* (1 / (n + 1)) - 1)
-  const n = new Decimal(1).div(reserveRatio).sub(1)
+  let one = new Decimal('1')
+  let n = one.div(reserveRatio.toString(10))
+  n = n.sub(1)
   const m = balance.mul(n.add(1)).div(totalSupply.pow(n.add(1)))
 
   const slope = totalSupply.mul(

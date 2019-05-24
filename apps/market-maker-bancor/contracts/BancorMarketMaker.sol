@@ -190,9 +190,9 @@ contract BancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
      * @param _value The amount of collateral token to be spent
     */
     function createBuyOrder(address _buyer, address _collateralToken, uint256 _value) external payable auth(CREATE_BUY_ORDER_ROLE) {
-        require(collateralTokenInfo[_collateralToken].exists);
-        require(_value != 0);
-        require(msg.value >= (_collateralToken == ETH ? gasCostBuyOrder.add(_value) : gasCostBuyOrder));
+        require(collateralTokenInfo[_collateralToken].exists, "a");
+        require(_value != 0, "b");
+        require(msg.value >= (_collateralToken == ETH ? gasCostBuyOrder.add(_value) : gasCostBuyOrder), "c");
 
         _createBuyOrder(_buyer, _collateralToken, _value);
     }
