@@ -190,9 +190,9 @@ contract BancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
      * @param _value The amount of collateral token to be spent
     */
     function createBuyOrder(address _buyer, address _collateralToken, uint256 _value) external payable auth(CREATE_BUY_ORDER_ROLE) {
-        require(collateralTokenInfo[_collateralToken].exists, "a");
-        require(_value != 0, "b");
-        require(msg.value >= (_collateralToken == ETH ? gasCostBuyOrder.add(_value) : gasCostBuyOrder), "c");
+        require(collateralTokenInfo[_collateralToken].exists);
+        require(_value != 0);
+        require(msg.value >= (_collateralToken == ETH ? gasCostBuyOrder.add(_value) : gasCostBuyOrder));
 
         _createBuyOrder(_buyer, _collateralToken, _value);
     }
@@ -414,7 +414,7 @@ contract BancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
 
         if (waitingClear == 0)
             return;
-        
+
         if (batch.cleared)
             return;
 
@@ -430,7 +430,6 @@ contract BancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
 
         emit ClearBatch(_collateralToken, waitingClear);
     }
-
 
     function _clearMatching(address collateralToken) internal {
         Batch storage batch = collateralTokenInfo[collateralToken].batches[waitingClear]; // clearing batch
@@ -459,7 +458,7 @@ contract BancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
 
         // if more sells than buys
         if (resultOfSell >= batch.totalBuySpend) {
-            // totalBuyReturn is the number of tokens bought as a result of all buy orders combined at the 
+            // totalBuyReturn is the number of tokens bought as a result of all buy orders combined at the
             // current exact price. We have already determined that this number is less than the
             // total amount of tokens to be sold.
             // tokens = totalBuySpend / staticPrice. staticPrice is in PPM, to avoid

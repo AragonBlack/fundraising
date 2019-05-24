@@ -78,8 +78,8 @@ contract('BancorMarketMaker app', accounts => {
 
   BLOCKS_IN_BATCH = 10
   const FEE_PERCENT = 10000
-  const BUY_GAS = 0
-  const SELL_GAS = 0
+  const BUY_GAS = gasCost.mul(250000)
+  const SELL_GAS = gasCost.mul(78000)
 
   const VIRTUAL_SUPPLIES = [randomVirtualSupply(), randomVirtualSupply(), randomVirtualSupply()]
   const VIRTUAL_BALANCES = [randomVirtualBalance(), randomVirtualBalance(), randomVirtualBalance()]
@@ -189,7 +189,10 @@ contract('BancorMarketMaker app', accounts => {
   const createAndClaimBuyOrder = async ({ address, collateralToken, amount, from }) => {
     from = from || address
     // create buy order
-    const receipt = await curve.createBuyOrder(address, collateralToken, amount, { from, value: collateralToken === ETH ? amount : 0 })
+    let claimGas = await getBuyClaimCost({ curve })
+    let value = collateralToken === ETH ? amount : 0
+    value = claimGas.plus(value)
+    const receipt = await curve.createBuyOrder(address, collateralToken, amount, { from, value })
     const event = receipt.logs.find(l => l.event === 'NewBuyOrder')
     const batchId = event.args.batchId.toNumber()
     // move to next batch
@@ -197,7 +200,7 @@ contract('BancorMarketMaker app', accounts => {
     // clear batch
     await curve.clearBatches()
     // claim bonds
-    await curve.claimBuy(address, collateralToken, batchId)
+    printBuy(await curve.claimBuy(address, collateralToken, batchId))
     // return balance
     const balance = await token.balanceOf(address)
 
@@ -207,31 +210,31 @@ contract('BancorMarketMaker app', accounts => {
   const progressToNextBatch = async () => {
     let currentBlock = await blockNumber()
     let currentBatch = await curve.getCurrentBatchId()
-    let blocksTilNextBatch = currentBatch.add(BLOCKS_IN_BATCH).sub(currentBlock)
+    let blocksTilNextBatch = currentBatch.plus(BLOCKS_IN_BATCH).sub(currentBlock)
     await increaseBlocks(blocksTilNextBatch)
   }
 
-  const increaseBlocks = blocks => {
-    return new Promise((resolve, reject) => {
-      increaseBlock().then(() => {
-        blocks -= 1
-        if (blocks === 0) {
-          resolve()
-        } else {
-          increaseBlocks(blocks).then(resolve)
-        }
-      })
-    })
-  }
+  // const increaseBlocks = blocks => {
+  //   return new Promise((resolve, reject) => {
+  //     increaseBlock().then(() => {
+  //       blocks -= 1
+  //       if (blocks === 0) {
+  //         resolve()
+  //       } else {
+  //         increaseBlocks(blocks).then(resolve)
+  //       }
+  //     })
+  //   })
+  // }
 
-  const increaseBlock = () => {
-    return new Promise((resolve, reject) => {
-      web3.currentProvider.sendAsync({ jsonrpc: '2.0', method: 'evm_mine', id: 12345 }, (err, result) => {
-        if (err) reject(err)
-        resolve(result)
-      })
-    })
-  }
+  // const increaseBlock = () => {
+  //   return new Promise((resolve, reject) => {
+  //     web3.currentProvider.sendAsync({ jsonrpc: '2.0', method: 'evm_mine', id: 12345 }, (err, result) => {
+  //       if (err) reject(err)
+  //       resolve(result)
+  //     })
+  //   })
+  // }
 
   before(async () => {
     // factory
@@ -488,7 +491,11 @@ contract('BancorMarketMaker app', accounts => {
             context('> ETH', () => {
               it('it should initialize and update token batch', async () => {
                 const amount = randomAmount()
-                const receipt = await curve.createBuyOrder(authorized, ETH, amount, { from: authorized, value: amount })
+
+                let claimGas = await getBuyClaimCost({ curve })
+                let value = claimGas.plus(amount)
+
+                const receipt = await curve.createBuyOrder(authorized, ETH, amount, { from: authorized, value })
 
                 const batchId = getBuyOrderBatchId(receipt)
                 const batch = await getBatch(ETH, batchId)
@@ -506,7 +513,9 @@ contract('BancorMarketMaker app', accounts => {
 
               it('it should create buy order', async () => {
                 const amount = randomAmount()
-                const receipt = await curve.createBuyOrder(authorized, ETH, amount, { from: authorized, value: amount })
+                let value = await getBuyClaimCost({ curve })
+                value = value.plus(amount)
+                const receipt = await curve.createBuyOrder(authorized, ETH, amount, { from: authorized, value })
                 const fee = computeFee(amount)
 
                 assertEvent(receipt, 'NewBuyOrder')
@@ -516,7 +525,11 @@ contract('BancorMarketMaker app', accounts => {
               it('it should deduct fee', async () => {
                 const oldBeneficiaryBalance = await web3.eth.getBalance(beneficiary)
                 const amount = randomAmount()
-                const receipt = await curve.createBuyOrder(authorized, ETH, amount, { from: authorized, value: amount })
+
+                let claimGas = await getBuyClaimCost({ curve })
+                let value = claimGas.plus(amount)
+
+                const receipt = await curve.createBuyOrder(authorized, ETH, amount, { from: authorized, value })
 
                 const batchId = getBuyOrderBatchId(receipt)
                 const batch = await getBatch(ETH, batchId)
@@ -530,8 +543,14 @@ contract('BancorMarketMaker app', accounts => {
               it('it should clear previous batch', async () => {
                 // initialize two different collaterals in the same batch [no need to test with sell orders because buy and sell orders are registered in the same batch]
                 const amount1 = randomAmount()
-                const receipt1 = await curve.createBuyOrder(authorized, ETH, amount1, { from: authorized, value: amount1 })
-                const receipt2 = await curve.createBuyOrder(authorized, token1.address, randomAmount(), { from: authorized })
+
+                let claimGas = await getBuyClaimCost({ curve })
+                let value = claimGas.plus(amount1)
+
+                const receipt1 = await curve.createBuyOrder(authorized, ETH, amount1, { from: authorized, value })
+
+                value = claimGas.plus(0)
+                const receipt2 = await curve.createBuyOrder(authorized, token1.address, randomAmount(), { from: authorized, value })
                 // assert that these two orders have the same batchId
                 const batchId1 = getBuyOrderBatchId(receipt1)
                 const batchId2 = getBuyOrderBatchId(receipt2)
@@ -540,7 +559,9 @@ contract('BancorMarketMaker app', accounts => {
                 await progressToNextBatch()
                 // create a buy order in this next batch
                 const amount2 = randomAmount()
-                const receipt3 = await curve.createBuyOrder(authorized, ETH, amount2, { from: authorized, value: amount2 })
+
+                value = claimGas.plus(amount2)
+                const receipt3 = await curve.createBuyOrder(authorized, ETH, amount2, { from: authorized, value })
                 // get previous collateral batches
                 const batchETH = await getBatch(ETH, batchId1)
                 const batchToken1 = await getBatch(token1.address, batchId2)
@@ -554,7 +575,11 @@ contract('BancorMarketMaker app', accounts => {
             context('> ERC20', () => {
               it('it should initialize and update token batch', async () => {
                 const amount = randomAmount()
-                const receipt = await curve.createBuyOrder(authorized, token1.address, amount, { from: authorized })
+
+                let claimGas = await getBuyClaimCost({ curve })
+                let value = claimGas.plus(0)
+
+                const receipt = await curve.createBuyOrder(authorized, token1.address, amount, { from: authorized, value })
 
                 const batchId = getBuyOrderBatchId(receipt)
                 const batch = await getBatch(token1.address, batchId)
@@ -572,7 +597,11 @@ contract('BancorMarketMaker app', accounts => {
 
               it('it should create buy order', async () => {
                 const amount = randomAmount()
-                const receipt = await curve.createBuyOrder(authorized, token1.address, amount, { from: authorized })
+
+                let claimGas = await getBuyClaimCost({ curve })
+                let value = claimGas.plus(0)
+
+                const receipt = await curve.createBuyOrder(authorized, token1.address, amount, { from: authorized, value })
                 const fee = computeFee(amount)
 
                 assertEvent(receipt, 'NewBuyOrder')
@@ -581,7 +610,11 @@ contract('BancorMarketMaker app', accounts => {
 
               it('it should deduct fee', async () => {
                 const amount = randomAmount()
-                const receipt = await curve.createBuyOrder(authorized, token1.address, amount, { from: authorized })
+
+                let claimGas = await getBuyClaimCost({ curve })
+                let value = claimGas.plus(0)
+
+                const receipt = await curve.createBuyOrder(authorized, token1.address, amount, { from: authorized, value })
 
                 const batchId = getBuyOrderBatchId(receipt)
                 const batch = await getBatch(token1.address, batchId)
@@ -594,8 +627,14 @@ contract('BancorMarketMaker app', accounts => {
               it('it should clear previous batch', async () => {
                 // initialize two different collaterals in the same batch [no need to test with sell orders because buy and sell orders are registered in the same batch]
                 const amount = randomAmount()
-                const receipt1 = await curve.createBuyOrder(authorized, ETH, amount, { from: authorized, value: amount })
-                const receipt2 = await curve.createBuyOrder(authorized, token1.address, randomAmount(), { from: authorized })
+
+                let claimGas = await getBuyClaimCost({ curve })
+                let value = claimGas.plus(amount)
+
+                const receipt1 = await curve.createBuyOrder(authorized, ETH, amount, { from: authorized, value })
+
+                value = claimGas.plus(0)
+                const receipt2 = await curve.createBuyOrder(authorized, token1.address, randomAmount(), { from: authorized, value })
                 // assert that these two orders have the same batchId
                 const batchId1 = getBuyOrderBatchId(receipt1)
                 const batchId2 = getBuyOrderBatchId(receipt2)
@@ -603,7 +642,9 @@ contract('BancorMarketMaker app', accounts => {
                 // move to next batch
                 await progressToNextBatch()
                 // create a buy order in this next batch
-                const receipt3 = await curve.createBuyOrder(authorized, token1.address, randomAmount(), { from: authorized })
+
+                value = claimGas.plus(0)
+                const receipt3 = await curve.createBuyOrder(authorized, token1.address, randomAmount(), { from: authorized, value })
                 // get previous collateral batches
                 const batchETH = await getBatch(ETH, batchId1)
                 const batchToken1 = await getBatch(token1.address, batchId2)
@@ -625,22 +666,33 @@ contract('BancorMarketMaker app', accounts => {
         context('> but sender does not have sufficient funds', () => {
           it('it should revert [ETH]', async () => {
             const amount = randomAmount()
+            let claimGas = await getBuyClaimCost({ curve })
+            let value = claimGas.plus(amount.minus(1))
 
-            await assertRevert(() => curve.createBuyOrder(authorized, ETH, amount, { from: authorized, value: amount.minus(1) }))
+            await assertRevert(() => curve.createBuyOrder(authorized, ETH, amount, { from: authorized, value }))
           })
 
           it('it should revert [ERC20]', async () => {
-            await assertRevert(() => curve.createBuyOrder(authorized, token1.address, INITIAL_TOKEN_BALANCE + 1, { from: authorized }))
+            let claimGas = await getBuyClaimCost({ curve })
+            let value = claimGas.plus(0)
+
+            await assertRevert(() => curve.createBuyOrder(authorized, token1.address, INITIAL_TOKEN_BALANCE + 1, { from: authorized, value }))
           })
         })
 
         context('> but value is zero', () => {
           it('it should revert [ETH]', async () => {
-            await assertRevert(() => curve.createBuyOrder(authorized, ETH, 0, { from: authorized, value: 10 }))
+            let claimGas = await getBuyClaimCost({ curve })
+            let value = claimGas.plus(10)
+
+            await assertRevert(() => curve.createBuyOrder(authorized, ETH, 0, { from: authorized, value }))
           })
 
           it('it should revert [ERC20]', async () => {
-            await assertRevert(() => curve.createBuyOrder(authorized, token1.address, 0, { from: authorized }))
+            let claimGas = await getBuyClaimCost({ curve })
+            let value = claimGas.plus(0)
+
+            await assertRevert(() => curve.createBuyOrder(authorized, token1.address, 0, { from: authorized, value }))
           })
         })
       })
@@ -655,7 +707,10 @@ contract('BancorMarketMaker app', accounts => {
           const unlisted = await TokenMock.new(authorized, INITIAL_TOKEN_BALANCE)
           await unlisted.approve(curve.address, INITIAL_TOKEN_BALANCE, { from: authorized })
 
-          await assertRevert(() => curve.createBuyOrder(authorized, unlisted.address, randomAmount(), { from: authorized }))
+          let claimGas = await getBuyClaimCost({ curve })
+          let value = claimGas.plus(0)
+
+          await assertRevert(() => curve.createBuyOrder(authorized, unlisted.address, randomAmount(), { from: authorized, value }))
         })
       })
     })
@@ -663,11 +718,18 @@ contract('BancorMarketMaker app', accounts => {
     context('> sender does not have CREATE_BUY_ORDER_ROLE', () => {
       it('it should revert [ETH]', async () => {
         const amount = randomAmount()
-        await assertRevert(() => curve.createBuyOrder(unauthorized, ETH, amount, { from: unauthorized, value: amount }))
+
+        let claimGas = await getBuyClaimCost({ curve })
+        let value = claimGas.plus(amount)
+
+        await assertRevert(() => curve.createBuyOrder(unauthorized, ETH, amount, { from: unauthorized, value }))
       })
 
       it('it should revert [ERC20]', async () => {
-        await assertRevert(() => curve.createBuyOrder(unauthorized, token1.address, randomAmount(), { from: unauthorized }))
+        let claimGas = await getBuyClaimCost({ curve })
+        let value = claimGas.plus(0)
+
+        await assertRevert(() => curve.createBuyOrder(unauthorized, token1.address, randomAmount(), { from: unauthorized, value }))
       })
     })
   })
@@ -683,7 +745,9 @@ contract('BancorMarketMaker app', accounts => {
               it('it should initialize and update token batch', async () => {
                 const amount = randomAmount()
                 const balance = await createAndClaimBuyOrder({ address: authorized, collateralToken: ETH, amount: amount })
-                const receipt = await curve.createSellOrder(authorized, ETH, balance, { from: authorized, value: balance })
+
+                let value = await getSellClaimCost({ curve })
+                const receipt = await curve.createSellOrder(authorized, ETH, balance, { from: authorized, value })
 
                 const batchId = getSellOrderBatchId(receipt)
                 const batch = await getBatch(ETH, batchId)
@@ -702,7 +766,8 @@ contract('BancorMarketMaker app', accounts => {
 
               it('it should create sell order', async () => {
                 const balance = await createAndClaimBuyOrder({ address: authorized, collateralToken: ETH, amount: randomAmount() })
-                const receipt = await curve.createSellOrder(authorized, ETH, balance, { from: authorized, value: balance })
+                let value = await getSellClaimCost({ curve })
+                const receipt = await curve.createSellOrder(authorized, ETH, balance, { from: authorized, value })
                 const fee = computeFee(balance)
 
                 assertEvent(receipt, 'NewSellOrder')
@@ -711,7 +776,8 @@ contract('BancorMarketMaker app', accounts => {
 
               it('it should deduct fee', async () => {
                 const balance = await createAndClaimBuyOrder({ address: authorized, collateralToken: ETH, amount: randomAmount() })
-                const receipt = await curve.createSellOrder(authorized, ETH, balance, { from: authorized, value: balance })
+                let value = await getSellClaimCost({ curve })
+                const receipt = await curve.createSellOrder(authorized, ETH, balance, { from: authorized, value })
 
                 const batchId = getSellOrderBatchId(receipt)
                 const batch = await getBatch(ETH, batchId)
@@ -726,8 +792,15 @@ contract('BancorMarketMaker app', accounts => {
                 const balance = await createAndClaimBuyOrder({ address: authorized, collateralToken: ETH, amount: randomAmount() })
                 // initialize two different collaterals in the same batch [no need to test with sell orders because buy and sell orders are registered in the same batch]
                 const amount1 = randomAmount()
-                const receipt1 = await curve.createBuyOrder(authorized, ETH, amount1, { from: authorized, value: amount1 })
-                const receipt2 = await curve.createBuyOrder(authorized, token1.address, randomAmount(), { from: authorized })
+
+                let claimGas = await getBuyClaimCost({ curve })
+                let value = claimGas.plus(amount1)
+
+                const receipt1 = await curve.createBuyOrder(authorized, ETH, amount1, { from: authorized, value })
+
+                value = claimGas.plus(0)
+
+                const receipt2 = await curve.createBuyOrder(authorized, token1.address, randomAmount(), { from: authorized, value })
                 // assert that these two orders have the same batchId
                 const batchId1 = getBuyOrderBatchId(receipt1)
                 const batchId2 = getBuyOrderBatchId(receipt2)
@@ -735,7 +808,9 @@ contract('BancorMarketMaker app', accounts => {
                 // move to next batch
                 await progressToNextBatch()
                 // create a sell order in this next batch
-                const receipt3 = await curve.createSellOrder(authorized, ETH, balance, { from: authorized, value: balance })
+
+                value = await getSellClaimCost({ curve })
+                const receipt3 = await curve.createSellOrder(authorized, ETH, balance, { from: authorized, value })
                 // get previous collateral batches
                 const batchETH = await getBatch(ETH, batchId1)
                 const batchToken1 = await getBatch(token1.address, batchId2)
@@ -756,7 +831,8 @@ contract('BancorMarketMaker app', accounts => {
               it('it should initialize and update token batch', async () => {
                 const amount = randomAmount()
                 const balance = await createAndClaimBuyOrder({ address: authorized, collateralToken: token1.address, amount: amount })
-                const receipt = await curve.createSellOrder(authorized, token1.address, balance, { from: authorized })
+                let value = await getSellClaimCost({ curve })
+                const receipt = await curve.createSellOrder(authorized, token1.address, balance, { from: authorized, value })
 
                 const batchId = getSellOrderBatchId(receipt)
                 const batch = await getBatch(token1.address, batchId)
@@ -775,7 +851,8 @@ contract('BancorMarketMaker app', accounts => {
 
               it('it should create sell order', async () => {
                 const balance = await createAndClaimBuyOrder({ address: authorized, collateralToken: token1.address, amount: randomAmount() })
-                const receipt = await curve.createSellOrder(authorized, token1.address, balance, { from: authorized })
+                let value = await getSellClaimCost({ curve })
+                const receipt = await curve.createSellOrder(authorized, token1.address, balance, { from: authorized, value })
                 const fee = computeFee(balance)
 
                 assertEvent(receipt, 'NewSellOrder')
@@ -784,7 +861,8 @@ contract('BancorMarketMaker app', accounts => {
 
               it('it should deduct fee', async () => {
                 const balance = await createAndClaimBuyOrder({ address: authorized, collateralToken: token1.address, amount: randomAmount() })
-                const receipt = await curve.createSellOrder(authorized, token1.address, balance, { from: authorized })
+                let value = await getSellClaimCost({ curve })
+                const receipt = await curve.createSellOrder(authorized, token1.address, balance, { from: authorized, value })
 
                 const batchId = getSellOrderBatchId(receipt)
                 const batch = await getBatch(token1.address, batchId)
@@ -799,8 +877,15 @@ contract('BancorMarketMaker app', accounts => {
                 const balance = await createAndClaimBuyOrder({ address: authorized, collateralToken: token1.address, amount: randomAmount() })
                 // initialize two different collaterals in the same batch [no need to test with sell orders because buy and sell orders are registered in the same batch]
                 const amount1 = randomAmount()
-                const receipt1 = await curve.createBuyOrder(authorized, ETH, amount1, { from: authorized, value: amount1 })
-                const receipt2 = await curve.createBuyOrder(authorized, token1.address, randomAmount(), { from: authorized })
+
+                let claimGas = await getBuyClaimCost({ curve })
+                let value = claimGas.plus(amount1)
+
+                const receipt1 = await curve.createBuyOrder(authorized, ETH, amount1, { from: authorized, value })
+
+                value = claimGas.plus(0)
+
+                const receipt2 = await curve.createBuyOrder(authorized, token1.address, randomAmount(), { from: authorized, value })
                 // assert that these two orders have the same batchId
                 const batchId1 = getBuyOrderBatchId(receipt1)
                 const batchId2 = getBuyOrderBatchId(receipt2)
@@ -808,7 +893,8 @@ contract('BancorMarketMaker app', accounts => {
                 // move to next batch
                 await progressToNextBatch()
                 // create a sell order in this next batch
-                const receipt3 = await curve.createSellOrder(authorized, token1.address, balance, { from: authorized })
+                value = await getSellClaimCost({ curve })
+                const receipt3 = await curve.createSellOrder(authorized, token1.address, balance, { from: authorized, value })
                 // get previous collateral batches
                 const batchETH = await getBatch(ETH, batchId1)
                 const batchToken1 = await getBatch(token1.address, batchId2)
@@ -836,12 +922,24 @@ contract('BancorMarketMaker app', accounts => {
                 await progressToNextBatch()
                 // create some buy and sell orders
                 const third = balance1.div(3).round(0)
-                const receipt1 = await curve.createSellOrder(authorized, token1.address, third, { from: authorized })
-                const receipt2 = await curve.createSellOrder(authorized, ETH, third, { from: authorized })
-                const receipt3 = await curve.createBuyOrder(authorized, token2.address, amountToken21, { from: authorized })
-                const receipt4 = await curve.createSellOrder(authorized2, token2.address, balance2, { from: authorized2 })
-                const receipt5 = await curve.createBuyOrder(authorized2, token1.address, amountToken12, { from: authorized2 })
-                const receipt6 = await curve.createBuyOrder(authorized2, ETH, amountETH2, { from: authorized2, value: amountETH2 })
+                let value = await getSellClaimCost({ curve })
+                const receipt1 = await curve.createSellOrder(authorized, token1.address, third, { from: authorized, value })
+
+                value = await getSellClaimCost({ curve })
+                const receipt2 = await curve.createSellOrder(authorized, ETH, third, { from: authorized, value })
+
+                let claimGas = await getBuyClaimCost({ curve })
+                value = claimGas.plus(0)
+                const receipt3 = await curve.createBuyOrder(authorized, token2.address, amountToken21, { from: authorized, value })
+
+                value = await getSellClaimCost({ curve })
+                const receipt4 = await curve.createSellOrder(authorized2, token2.address, balance2, { from: authorized2, value })
+
+                value = claimGas.plus(0)
+                const receipt5 = await curve.createBuyOrder(authorized2, token1.address, amountToken12, { from: authorized2, value })
+
+                value = claimGas.plus(amountETH2)
+                const receipt6 = await curve.createBuyOrder(authorized2, ETH, amountETH2, { from: authorized2, value })
                 // assert that the orders have all been registered
                 assertEvent(receipt1, 'NewSellOrder')
                 assertEvent(receipt2, 'NewSellOrder')
@@ -907,14 +1005,14 @@ contract('BancorMarketMaker app', accounts => {
           context('> but sender does not have sufficient funds', () => {
             it('it should revert [ETH]', async () => {
               const balance = await createAndClaimBuyOrder({ address: authorized, collateralToken: token1.address, amount: randomAmount() })
-
-              await assertRevert(() => curve.createSellOrder(authorized, ETH, balance.plus(10), { from: authorized }))
+              let value = await getSellClaimCost({ curve })
+              await assertRevert(() => curve.createSellOrder(authorized, ETH, balance.plus(10), { from: authorized, value }))
             })
 
             it('it should revert [ERC20]', async () => {
               const balance = await createAndClaimBuyOrder({ address: authorized, collateralToken: token1.address, amount: randomAmount() })
-
-              await assertRevert(() => curve.createSellOrder(authorized, token1.address, balance.plus(10), { from: authorized }))
+              let value = await getSellClaimCost({ curve })
+              await assertRevert(() => curve.createSellOrder(authorized, token1.address, balance.plus(10), { from: authorized, value }))
             })
           })
         })
@@ -922,14 +1020,14 @@ contract('BancorMarketMaker app', accounts => {
         context('> but amount is zero', () => {
           it('it should revert [ETH]', async () => {
             await createAndClaimBuyOrder({ address: authorized, collateralToken: token1.address, amount: randomAmount() })
-
-            await assertRevert(() => curve.createSellOrder(authorized, ETH, 0, { from: authorized }))
+            let value = await getSellClaimCost({ curve })
+            await assertRevert(() => curve.createSellOrder(authorized, ETH, 0, { from: authorized, value }))
           })
 
           it('it should revert [ERC20]', async () => {
             await createAndClaimBuyOrder({ address: authorized, collateralToken: token1.address, amount: randomAmount() })
-
-            await assertRevert(() => curve.createSellOrder(authorized, token1.address, 0, { from: authorized }))
+            let value = await getSellClaimCost({ curve })
+            await assertRevert(() => curve.createSellOrder(authorized, token1.address, 0, { from: authorized, value }))
           })
         })
       })
@@ -944,8 +1042,8 @@ contract('BancorMarketMaker app', accounts => {
           const unlisted = await TokenMock.new(authorized, INITIAL_TOKEN_BALANCE)
           await unlisted.approve(curve.address, INITIAL_TOKEN_BALANCE, { from: authorized })
           const balance = await createAndClaimBuyOrder({ address: authorized, collateralToken: token1.address, amount: randomAmount() })
-
-          await assertRevert(() => curve.createSellOrder(authorized, unlisted.address, balance, { from: authorized }))
+          let value = await getSellClaimCost({ curve })
+          await assertRevert(() => curve.createSellOrder(authorized, unlisted.address, balance, { from: authorized, value }))
         })
       })
     })
@@ -955,8 +1053,10 @@ contract('BancorMarketMaker app', accounts => {
         const balance = await createAndClaimBuyOrder({ address: authorized, collateralToken: token1.address, amount: randomAmount() })
         await token.transfer(unauthorized, balance, { from: authorized })
         // test both ETH and ERC20
-        await assertRevert(() => curve.createSellOrder(unauthorized, ETH, balance, { from: unauthorized }))
-        await assertRevert(() => curve.createSellOrder(unauthorized, token1.address, balance, { from: unauthorized }))
+        let value = await getSellClaimCost({ curve })
+        await assertRevert(() => curve.createSellOrder(unauthorized, ETH, balance, { from: unauthorized, value }))
+        value = await getSellClaimCost({ curve })
+        await assertRevert(() => curve.createSellOrder(unauthorized, token1.address, balance, { from: unauthorized, value }))
       })
     })
   })
@@ -982,12 +1082,23 @@ contract('BancorMarketMaker app', accounts => {
           await progressToNextBatch()
           // create some buy and sell orders
           const third = balance1.div(3).round(0)
-          const receipt1 = await curve.createSellOrder(authorized, token1.address, third, { from: authorized })
-          const receipt2 = await curve.createSellOrder(authorized, ETH, third, { from: authorized })
-          const receipt3 = await curve.createBuyOrder(authorized, token2.address, amountToken21, { from: authorized })
-          const receipt4 = await curve.createSellOrder(authorized2, token2.address, balance2, { from: authorized2 })
-          const receipt5 = await curve.createBuyOrder(authorized2, token1.address, amountToken12, { from: authorized2 })
-          const receipt6 = await curve.createBuyOrder(authorized2, ETH, amountETH2, { from: authorized2, value: amountETH2 })
+          let value = await getSellClaimCost({ curve })
+          const receipt1 = await curve.createSellOrder(authorized, token1.address, third, { from: authorized, value })
+          value = await getSellClaimCost({ curve })
+          const receipt2 = await curve.createSellOrder(authorized, ETH, third, { from: authorized, value })
+
+          let claimGas = await getBuyClaimCost({ curve })
+
+          value = claimGas.plus(0)
+          const receipt3 = await curve.createBuyOrder(authorized, token2.address, amountToken21, { from: authorized, value })
+          value = await getSellClaimCost({ curve })
+          const receipt4 = await curve.createSellOrder(authorized2, token2.address, balance2, { from: authorized2, value })
+
+          value = claimGas.plus(0)
+          const receipt5 = await curve.createBuyOrder(authorized2, token1.address, amountToken12, { from: authorized2, value })
+
+          value = claimGas.plus(amountETH2)
+          const receipt6 = await curve.createBuyOrder(authorized2, ETH, amountETH2, { from: authorized2, value })
           // move to next batch
           await progressToNextBatch()
           // clear batches
@@ -1024,13 +1135,16 @@ contract('BancorMarketMaker app', accounts => {
           // assert that waitingClear has been re-initialized
           assert.equal(await curve.waitingClear(), 0)
 
+          // TODO: describe in more detail what needs to be done
           // TODO: had assert tests for clear matching / total buy and sell return math stuff here ?
         })
       })
 
       context('> but batch period is not over', () => {
         it('it should revert', async () => {
-          await curve.createBuyOrder(authorized, token1.address, randomAmount(), { from: authorized })
+          let claimGas = await getBuyClaimCost({ curve })
+          let value = claimGas.plus(0)
+          await curve.createBuyOrder(authorized, token1.address, randomAmount(), { from: authorized, value })
 
           await assertRevert(() => curve.clearBatches())
         })
@@ -1039,7 +1153,9 @@ contract('BancorMarketMaker app', accounts => {
 
     context('> batch has already been cleared', () => {
       it('it should revert', async () => {
-        await curve.createBuyOrder(authorized, token1.address, randomAmount(), { from: authorized })
+        let claimGas = await getBuyClaimCost({ curve })
+        let value = claimGas.plus(0)
+        await curve.createBuyOrder(authorized, token1.address, randomAmount(), { from: authorized, value })
         await progressToNextBatch()
         await curve.clearBatches()
         // batch is now cleared
@@ -1059,13 +1175,17 @@ contract('BancorMarketMaker app', accounts => {
 
             const oldBalance = await token.balanceOf(authorized)
             const amount = randomAmount()
-            const receipt1 = await curve.createBuyOrder(authorized, collateralToken, amount, { from: authorized, value: amount })
+
+            let claimGas = await getBuyClaimCost({ curve })
+            let value = claimGas.plus(amount)
+            const receipt1 = await curve.createBuyOrder(authorized, collateralToken, amount, { from: authorized, value })
             const batchId = getBuyOrderBatchId(receipt1)
 
             await progressToNextBatch()
             await curve.clearBatches()
 
             const receipt2 = await curve.claimBuy(authorized, collateralToken, batchId)
+            printBuy(receipt2)
             const batch = await getBatch(collateralToken, batchId)
             const newbalance = await token.balanceOf(authorized)
 
@@ -1073,6 +1193,7 @@ contract('BancorMarketMaker app', accounts => {
             assert.isAbove(batch.totalBuyReturn.toNumber(), 0)
             assert.isAbove(newbalance.toNumber(), oldBalance.toNumber())
 
+            // TODO: describe in more detail what needs to be done
             // TODO: add math checks
           })
         })
@@ -1082,7 +1203,10 @@ contract('BancorMarketMaker app', accounts => {
         context('> because address has no pending buy order at all', () => {
           it('it should revert [ETH]', async () => {
             const amount = randomAmount()
-            const receipt1 = await curve.createBuyOrder(authorized, ETH, amount, { from: authorized, value: amount })
+
+            let claimGas = await getBuyClaimCost({ curve })
+            let value = claimGas.plus(amount)
+            const receipt1 = await curve.createBuyOrder(authorized, ETH, amount, { from: authorized, value })
             const batchId = getBuyOrderBatchId(receipt1)
 
             await progressToNextBatch()
@@ -1092,7 +1216,10 @@ contract('BancorMarketMaker app', accounts => {
           })
 
           it('it should revert [ERC20]', async () => {
-            const receipt = await curve.createBuyOrder(authorized, token1.address, randomAmount(), { from: authorized })
+            let claimGas = await getBuyClaimCost({ curve })
+            let value = claimGas.plus(0)
+
+            const receipt = await curve.createBuyOrder(authorized, token1.address, randomAmount(), { from: authorized, value })
             const batchId = getBuyOrderBatchId(receipt)
 
             await progressToNextBatch()
@@ -1105,7 +1232,10 @@ contract('BancorMarketMaker app', accounts => {
         context('> because address has a pending buy order but created through another collateral token', () => {
           it('it should revert [ETH]', async () => {
             const amount = randomAmount()
-            const receipt1 = await curve.createBuyOrder(authorized, ETH, amount, { from: authorized, value: amount })
+
+            let claimGas = await getBuyClaimCost({ curve })
+            let value = claimGas.plus(amount)
+            const receipt1 = await curve.createBuyOrder(authorized, ETH, amount, { from: authorized, value })
             const batchId = getBuyOrderBatchId(receipt1)
 
             await progressToNextBatch()
@@ -1115,7 +1245,9 @@ contract('BancorMarketMaker app', accounts => {
           })
 
           it('it should revert [ERC20]', async () => {
-            const receipt = await curve.createBuyOrder(authorized, token1.address, randomAmount(), { from: authorized })
+            let claimGas = await getBuyClaimCost({ curve })
+            let value = claimGas.plus(0)
+            const receipt = await curve.createBuyOrder(authorized, token1.address, randomAmount(), { from: authorized, value })
             const batchId = getBuyOrderBatchId(receipt)
 
             await progressToNextBatch()
@@ -1128,23 +1260,29 @@ contract('BancorMarketMaker app', accounts => {
         context('> because buy order has already been claimed', () => {
           it('it should revert [ETH]', async () => {
             const amount = randomAmount()
-            const receipt1 = await curve.createBuyOrder(authorized, ETH, amount, { from: authorized, value: amount })
+
+            let claimGas = await getBuyClaimCost({ curve })
+            let value = claimGas.plus(amount)
+
+            const receipt1 = await curve.createBuyOrder(authorized, ETH, amount, { from: authorized, value })
             const batchId = getBuyOrderBatchId(receipt1)
 
             await progressToNextBatch()
             await curve.clearBatches()
-            await curve.claimBuy(authorized, ETH, batchId)
+            printBuy(await curve.claimBuy(authorized, ETH, batchId))
 
             await assertRevert(() => curve.claimBuy(authorized, ETH, batchId))
           })
 
           it('it should revert [ERC20]', async () => {
-            const receipt1 = await curve.createBuyOrder(authorized, token1.address, randomAmount(), { from: authorized })
+            let claimGas = await getBuyClaimCost({ curve })
+            let value = claimGas.plus(0)
+            const receipt1 = await curve.createBuyOrder(authorized, token1.address, randomAmount(), { from: authorized, value })
             const batchId = getBuyOrderBatchId(receipt1)
 
             await progressToNextBatch()
             await curve.clearBatches()
-            await curve.claimBuy(authorized, token1.address, batchId)
+            printBuy(await curve.claimBuy(authorized, token1.address, batchId))
 
             await assertRevert(() => curve.claimBuy(authorized, token1.address, batchId))
           })
@@ -1154,14 +1292,20 @@ contract('BancorMarketMaker app', accounts => {
       context('> but batch is not yet cleared', () => {
         it('it should revert [ETH]', async () => {
           const amount = randomAmount()
-          const receipt = await curve.createBuyOrder(authorized, ETH, amount, { from: authorized, value: amount })
+
+          let claimGas = await getBuyClaimCost({ curve })
+          let value = claimGas.plus(amount)
+          const receipt = await curve.createBuyOrder(authorized, ETH, amount, { from: authorized, value })
           const batchId = getBuyOrderBatchId(receipt)
 
           await assertRevert(() => curve.claimBuy(authorized, ETH, batchId))
         })
 
         it('it should revert [ERC20]', async () => {
-          const receipt = await curve.createBuyOrder(authorized, token1.address, randomAmount(), { from: authorized })
+          let claimGas = await getBuyClaimCost({ curve })
+          let value = claimGas.plus(0)
+
+          const receipt = await curve.createBuyOrder(authorized, token1.address, randomAmount(), { from: authorized, value })
           const batchId = getBuyOrderBatchId(receipt)
 
           await assertRevert(() => curve.claimBuy(authorized, token1.address, batchId))
@@ -1174,7 +1318,10 @@ contract('BancorMarketMaker app', accounts => {
         const unlisted = await TokenMock.new(authorized, INITIAL_TOKEN_BALANCE)
         await unlisted.approve(curve.address, INITIAL_TOKEN_BALANCE, { from: authorized })
 
-        const receipt = await curve.createBuyOrder(authorized, token1.address, randomAmount(), { from: authorized })
+        let claimGas = await getBuyClaimCost({ curve })
+        let value = claimGas.plus(0)
+
+        const receipt = await curve.createBuyOrder(authorized, token1.address, randomAmount(), { from: authorized, value })
         const batchId = getBuyOrderBatchId(receipt)
 
         await progressToNextBatch()
@@ -1188,8 +1335,7 @@ contract('BancorMarketMaker app', accounts => {
 
   // #region checkMath
   context('#Checks math', () => {
-    forEach(['ERC20']).describe(`> Just one collateralToken being used [%s]`, collateralTokenIndex => {
-      // forEach(['ETH', 'ERC20']).describe(`> Just one collateralToken being used [%s]`, collateralTokenIndex => {
+    forEach(['ETH', 'ERC20']).describe(`> Just one collateralToken being used [%s]`, collateralTokenIndex => {
       collateralTokenIndex = collateralTokenIndex === 'ETH' ? 0 : 1
       let totalSupply, balance, reserveRatio, _token, collateralToken
       let tokens
@@ -1267,8 +1413,8 @@ contract('BancorMarketMaker app', accounts => {
           await increaseBlocks(BLOCKS_IN_BATCH)
           await curve.clearBatches()
 
-          await curve.claimBuy(authorized, collateralToken, firstOrderBatchId)
-          await curve.claimBuy(authorized2, collateralToken, firstOrderBatchId)
+          printBuy(await curve.claimBuy(authorized, collateralToken, firstOrderBatchId))
+          printBuy(await curve.claimBuy(authorized2, collateralToken, firstOrderBatchId))
 
           const marginOfError = getMarginOfError({ balance, totalSupply })
 
@@ -1336,8 +1482,8 @@ contract('BancorMarketMaker app', accounts => {
 
           await increaseBlocks(BLOCKS_IN_BATCH)
           await curve.clearBatches({ from: authorized })
-          await curve.claimBuy(authorized2, collateralToken, buyBatchNumber)
-          await curve.claimSell(authorized, collateralToken, sellBatchNumber)
+          printBuy(await curve.claimBuy(authorized2, collateralToken, buyBatchNumber))
+          printSell(await curve.claimSell(authorized, collateralToken, sellBatchNumber))
 
           const balanceOfSeller = await token.balanceOf(authorized)
           const balanceOfBuyer = await token.balanceOf(authorized2)
@@ -1391,7 +1537,7 @@ contract('BancorMarketMaker app', accounts => {
 
           // const resultOfSpend = spendAmount.mul(PPM).div(currentPricePPM)
 
-          // const totalResultOfSell = resultOfSellBondingCurve.bancor.add(sellAmountMatch)
+          // const totalResultOfSell = resultOfSellBondingCurve.bancor.plus(sellAmountMatch)
           // const averageSpendPrice = totalSpend.div(totalResultOfSpend)
 
           await progressToNextBatch()
@@ -1413,15 +1559,15 @@ contract('BancorMarketMaker app', accounts => {
 
           await increaseBlocks(BLOCKS_IN_BATCH)
           await curve.clearBatches({ from: authorized })
-          await curve.claimBuy(authorized2, collateralToken, buyBatchNumber)
-          await curve.claimSell(authorized, collateralToken, sellBatchNumber)
+          printBuy(await curve.claimBuy(authorized2, collateralToken, buyBatchNumber))
+          printSell(await curve.claimSell(authorized, collateralToken, sellBatchNumber))
 
           const balanceOfSeller = await token.balanceOf(authorized)
           const balanceOfBuyer = await token.balanceOf(authorized2)
 
           assert(
             balanceOfBuyer
-              .sub(sellAmount)
+              .sub(sellAmount.div(2))
               .abs()
               .lt(marginOfError),
             `Buyer did not have original sellAmount. Expected ${sellAmount.toString(10)}, got ${balanceOfBuyer.toString(
@@ -1440,7 +1586,6 @@ contract('BancorMarketMaker app', accounts => {
 
         it('it should match the estimates on more buys than sells', async () => {
           const amount = collateralToken === NULL_ADDRESS ? 5e18 : randomAmount()
-
           let sellAmount = await buyAndClaimTokens({
             token,
             curve,
@@ -1448,9 +1593,11 @@ contract('BancorMarketMaker app', accounts => {
             collateralToken,
             amount,
           })
+          // authorized begins with "sellAmount" of tokens
 
           const currentPricePPM = await curve.getPricePPM(collateralToken, sellAmount, amount)
-
+          // if authorized were to sell half the "sellAmount" tokens at the current price
+          // they woudl receive spendAmountMatch of collateralToken
           const spendAmountMatch = new web3.BigNumber(
             sellAmount
               .div(2)
@@ -1464,8 +1611,11 @@ contract('BancorMarketMaker app', accounts => {
           const balance = await controller.balanceOf(pool.address, collateralToken)
           const reserveRatio = new Decimal(RESERVE_RATIOS[collateralTokenIndex]).div(PPM)
 
+          // if authorized were to buy beyond the current price some amount
+          // let's say the same as the original amount, minus the spendAmountMatch
+          // they would get resultOfSpendBondingCurve amount of tokens in addition
           let resultOfSpendBondingCurve = getBuy({
-            amount,
+            amount: spendAmountMatch.mul(-1).plus(amount),
             totalSupply,
             balance,
             reserveRatio,
@@ -1473,9 +1623,8 @@ contract('BancorMarketMaker app', accounts => {
 
           // const resultOfSpend = spendAmount.mul(PPM).div(currentPricePPM)
 
-          const totalSpend = spendAmountMatch.add(amount)
-          const totalResultOfSpend = sellAmount.div(2).add(resultOfSpendBondingCurve.bancor.toString(10))
-          // const averageSpendPrice = totalSpend.div(totalResultOfSpend)
+          // the totalResultOfSpend for the buyer would be the matched amount plus the result of the bonding curve buy
+          const totalResultOfSpend = sellAmount.div(2).plus(resultOfSpendBondingCurve.bancor.toString(10))
 
           await progressToNextBatch()
 
@@ -1490,14 +1639,14 @@ contract('BancorMarketMaker app', accounts => {
             curve,
             address: authorized2,
             collateralToken,
-            amount: totalSpend,
+            amount,
           })
           assert(sellBatchNumber === buyBatchNumber, `sellBatchNumber  (${sellBatchNumber}) did not equal buyBatchNumber (${buyBatchNumber})`)
 
           await increaseBlocks(BLOCKS_IN_BATCH)
           await curve.clearBatches({ from: authorized })
-          await curve.claimBuy(authorized2, collateralToken, buyBatchNumber)
-          await curve.claimSell(authorized, collateralToken, sellBatchNumber)
+          printBuy(await curve.claimBuy(authorized2, collateralToken, buyBatchNumber))
+          printSell(await curve.claimSell(authorized, collateralToken, sellBatchNumber))
 
           const balanceOfSeller = await token.balanceOf(authorized)
           const balanceOfBuyer = await token.balanceOf(authorized2)
@@ -1514,10 +1663,12 @@ contract('BancorMarketMaker app', accounts => {
 
           assert(
             balanceOfSeller
-              .sub(balanceOfSeller.div(2))
+              .sub(sellAmount.div(2))
               .abs()
               .lt(marginOfError),
-            `Seller did not get rid of all their tokens. Expected 0, got ${balanceOfSeller.toString(10)} with margin of error ${marginOfError.toString(10)}`
+            `Seller did not get rid of half their tokens. Expected ${sellAmount.div(2).toString(10)}, got ${balanceOfSeller.toString(
+              10
+            )} with margin of error ${marginOfError.toString(10)}`
           )
         })
       })
@@ -1536,8 +1687,8 @@ contract('BancorMarketMaker app', accounts => {
 
           const actualBalance = await controller.balanceOf(pool.address, collateralToken)
 
-          totalSupply = totalSupply.add(actualTotalSupply.toString(10))
-          balance = balance.add(actualBalance.toString(10))
+          totalSupply = totalSupply.plus(actualTotalSupply.toString(10))
+          balance = balance.plus(actualBalance.toString(10))
 
           let expectedReturn = getSell({
             amount,
@@ -1597,17 +1748,19 @@ contract('BancorMarketMaker app', accounts => {
           const clearBatchesGas = new web3.BigNumber(clearBatchesReceipt.receipt.gasUsed)
 
           const claimSellReceipt = await curve.claimSell(authorized, collateralToken, sellBatchNumber, { from: authorized })
+          printSell(claimSellReceipt)
           const claimSellGas = new web3.BigNumber(claimSellReceipt.receipt.gasUsed)
 
           let collateralBalanceAfter
           if (collateralToken === ETH) {
             let gasSpent = sellGas
-              .add(clearBatchesGas)
-              .add(claimSellGas)
-              .add(firstApproveGas)
-              .add(secondApproveGas)
+              .plus(clearBatchesGas)
+              .plus(claimSellGas)
+              .plus(firstApproveGas)
+              .plus(secondApproveGas)
             collateralBalanceAfter = await getBalance(authorized)
-            collateralBalanceAfter = collateralBalanceAfter.add(gasSpent.mul(gasCost))
+            let value = await getSellClaimCost({ curve })
+            collateralBalanceAfter = collateralBalanceAfter.plus(gasSpent.mul(gasCost)).plus(value)
           } else {
             collateralBalanceAfter = await _token.balanceOf(authorized)
           }
@@ -1617,8 +1770,8 @@ contract('BancorMarketMaker app', accounts => {
           actualTotalSupply = await token.totalSupply()
           actualBalance = await controller.balanceOf(pool.address, collateralToken)
 
-          totalSupply = totalSupply.add(actualTotalSupply.toString(10))
-          balance = balance.add(actualBalance.toString(10))
+          totalSupply = totalSupply.plus(actualTotalSupply.toString(10))
+          balance = balance.plus(actualBalance.toString(10))
 
           const marginOfError = getMarginOfError({ totalSupply, balance })
           assert(
@@ -1651,7 +1804,7 @@ contract('BancorMarketMaker app', accounts => {
           })
           let secondAmount = new Decimal(balanceOfTwo.div(2).toFixed(0))
 
-          let amount = firstAmount.add(secondAmount)
+          let amount = firstAmount.plus(secondAmount)
 
           let actualTotalSupply = await token.totalSupply()
           let actualBalance = await controller.balanceOf(pool.address, collateralToken)
@@ -1739,22 +1892,23 @@ contract('BancorMarketMaker app', accounts => {
           await increaseBlocks(BLOCKS_IN_BATCH)
 
           await curve.clearBatches({ from: root })
-          await curve.claimSell(authorized, collateralToken, sellBatchNumber, { from: root })
-          await curve.claimSell(authorized2, collateralToken, sellBatchNumber, { from: root })
+          printSell(await curve.claimSell(authorized, collateralToken, sellBatchNumber, { from: root }))
+          printSell(await curve.claimSell(authorized2, collateralToken, sellBatchNumber, { from: root }))
 
           // margin of error
           actualTotalSupply = await token.totalSupply()
           actualBalance = await controller.balanceOf(pool.address, collateralToken)
-          totalSupply = totalSupply.add(actualTotalSupply.toString(10))
-          balance = balance.add(actualBalance.toString(10))
+          totalSupply = totalSupply.plus(actualTotalSupply.toString(10))
+          balance = balance.plus(actualBalance.toString(10))
           const marginOfError = getMarginOfError({ totalSupply, balance })
 
           // Seller 1
           let collateralBalanceAfter1
           if (collateralToken === ETH) {
-            let gasSpent1 = sellGas1.add(firstApproveGas1).add(secondApproveGas1)
+            let gasSpent1 = sellGas1.plus(firstApproveGas1).plus(secondApproveGas1)
             collateralBalanceAfter1 = await getBalance(authorized)
-            collateralBalanceAfter1 = collateralBalanceAfter1.add(gasSpent1.mul(gasCost))
+            let value = await getSellClaimCost({ curve })
+            collateralBalanceAfter1 = collateralBalanceAfter1.plus(gasSpent1.mul(gasCost)).plus(value)
           } else {
             collateralBalanceAfter1 = await _token.balanceOf(authorized)
           }
@@ -1772,9 +1926,10 @@ contract('BancorMarketMaker app', accounts => {
           // Seller 2
           let collateralBalanceAfter2
           if (collateralToken === ETH) {
-            let gasSpent2 = sellGas2.add(firstApproveGas2).add(secondApproveGas2)
+            let gasSpent2 = sellGas2.plus(firstApproveGas2).plus(secondApproveGas2)
             collateralBalanceAfter2 = await getBalance(authorized2)
-            collateralBalanceAfter2 = collateralBalanceAfter2.add(gasSpent2.mul(gasCost))
+            value = await getSellClaimCost({ curve })
+            collateralBalanceAfter2 = collateralBalanceAfter2.plus(gasSpent2.mul(gasCost)).plus(value)
           } else {
             collateralBalanceAfter2 = await _token.balanceOf(authorized2)
           }
@@ -1792,7 +1947,95 @@ contract('BancorMarketMaker app', accounts => {
       })
     })
   })
-  // #endregion
+  forEach(['ETH', 'ERC20']).describe(`> Testing gas costs`, collateralTokenIndex => {
+    collateralTokenIndex = collateralTokenIndex === 'ETH' ? 0 : 1
+    let _token, collateralToken, collateralToken2
+    let tokens
+    beforeEach(() => {
+      // totalSupply = new Decimal(VIRTUAL_SUPPLIES[collateralTokenIndex])
+      // balance = new Decimal(VIRTUAL_BALANCES[collateralTokenIndex])
+      // reserveRatio = new Decimal(RESERVE_RATIOS[collateralTokenIndex]).div(PPM)
+      tokens = [ETH, token1, token2]
+      _token = tokens[collateralTokenIndex]
+      collateralToken = typeof _token.address === 'undefined' ? ETH : _token.address
+      collateralToken2 = collateralTokenIndex === 0 ? token1.address : token2.address
+    })
+
+    context(`> claimBuy [${collateralTokenIndex === 0 ? 'ETH' : 'ERC20'}]`, () => {
+      describe(`> Just one collateralToken being used`, () => {
+        it('it should give costs of one buy order being claimed', async () => {
+          await progressToNextBatch()
+          let amount = randomAmount()
+          let batchId = await buyToken({ curve, address: authorized, collateralToken, amount })
+          await progressToNextBatch()
+          await curve.clearBatches()
+          let tx = await curve.claimBuy(authorized, collateralToken, batchId)
+          let gasUsed = gasCost.mul(tx.receipt.gasUsed)
+          assert(gasUsed.lt(BUY_GAS), `Gas used in a single buy claim (${gasUsed.toString(10)}) was more than the BUY_GAS ${BUY_GAS.toString(10)}`)
+        })
+        it('it should give costs of two buy orders (from same person) being claimed', async () => {
+          await progressToNextBatch()
+          let amount = randomAmount()
+          let batchId = await buyToken({ curve, address: authorized, collateralToken, amount })
+          amount = randomAmount()
+          await buyToken({ curve, address: authorized, collateralToken, amount })
+          await progressToNextBatch()
+          await curve.clearBatches()
+          let tx = await curve.claimBuy(authorized, collateralToken, batchId)
+          let gasUsed = gasCost.mul(tx.receipt.gasUsed)
+          assert(gasUsed.lt(BUY_GAS), `Gas used in a single buy claim (${gasUsed.toString(10)}) was more than the BUY_GAS ${BUY_GAS.toString(10)}`)
+        })
+        it('it should give costs of two buy orders (from different people) being claimed', async () => {
+          await progressToNextBatch()
+          let amount = randomAmount()
+          let batchId = await buyToken({ curve, address: authorized, collateralToken, amount })
+          amount = randomAmount()
+          await buyToken({ curve, address: authorized2, collateralToken, amount })
+          await progressToNextBatch()
+          await curve.clearBatches()
+          let tx = await curve.claimBuy(authorized, collateralToken, batchId)
+          let gasUsed = gasCost.mul(tx.receipt.gasUsed)
+          assert(gasUsed.lt(BUY_GAS), `Gas used in a first buy claim (${gasUsed.toString(10)}) was more than the BUY_GAS ${BUY_GAS.toString(10)}`)
+          tx = await curve.claimBuy(authorized2, collateralToken, batchId)
+          gasUsed = gasCost.mul(tx.receipt.gasUsed)
+          assert(gasUsed.lt(BUY_GAS), `Gas used in a second buy claim (${gasUsed.toString(10)}) was more than the BUY_GAS ${BUY_GAS.toString(10)}`)
+        })
+      })
+      describe(`> Two collateralTokens being used`, () => {
+        it('it should give costs of two buy orders (from same person) being claimed', async () => {
+          await progressToNextBatch()
+          let amount = randomAmount()
+          let batchId = await buyToken({ curve, address: authorized, collateralToken, amount })
+          amount = randomAmount()
+          await buyToken({ curve, address: authorized, collateralToken: collateralToken2, amount })
+          await progressToNextBatch()
+          await curve.clearBatches()
+          let tx = await curve.claimBuy(authorized, collateralToken, batchId)
+          let gasUsed = gasCost.mul(tx.receipt.gasUsed)
+          assert(gasUsed.lt(BUY_GAS), `Gas used in a single buy claim (${gasUsed.toString(10)}) was more than the BUY_GAS ${BUY_GAS.toString(10)}`)
+
+          tx = await curve.claimBuy(authorized, collateralToken2, batchId)
+          gasUsed = gasCost.mul(tx.receipt.gasUsed)
+          assert(gasUsed.lt(BUY_GAS), `Gas used in a single buy claim (${gasUsed.toString(10)}) was more than the BUY_GAS ${BUY_GAS.toString(10)}`)
+        })
+        it('it should give costs of two buy orders (from different people) being claimed', async () => {
+          await progressToNextBatch()
+          let amount = randomAmount()
+          let batchId = await buyToken({ curve, address: authorized, collateralToken, amount })
+          amount = randomAmount()
+          await buyToken({ curve, address: authorized2, collateralToken: collateralToken2, amount })
+          await progressToNextBatch()
+          await curve.clearBatches()
+          let tx = await curve.claimBuy(authorized, collateralToken, batchId)
+          let gasUsed = gasCost.mul(tx.receipt.gasUsed)
+          assert(gasUsed.lt(BUY_GAS), `Gas used in a first buy claim (${gasUsed.toString(10)}) was more than the BUY_GAS ${BUY_GAS.toString(10)}`)
+          tx = await curve.claimBuy(authorized2, collateralToken2, batchId)
+          gasUsed = gasCost.mul(tx.receipt.gasUsed)
+          assert(gasUsed.lt(BUY_GAS), `Gas used in a second buy claim (${gasUsed.toString(10)}) was more than the BUY_GAS ${BUY_GAS.toString(10)}`)
+        })
+      })
+    })
+  })
 })
 
 function increaseBlocks(blocks) {
@@ -1831,9 +2074,11 @@ async function sellSomeAmount({ token, curve, address, collateralToken, amount }
     from: address,
     gasCost,
   })
+  let value = await getSellClaimCost({ curve })
   const sellReceipt = await curve.createSellOrder(address, collateralToken, amount, {
     from: address,
     gasCost,
+    value,
   })
 
   let NewSellOrder = sellReceipt.logs.find(l => l.event === 'NewSellOrder')
@@ -1856,8 +2101,10 @@ async function sellHalfAsMuchAsPossible({ token, curve, address, collateralToken
   let secondApprove = await token.approve(curve.address, half, {
     from: address,
   })
+  let value = await getSellClaimCost({ curve })
   const sellReceipt = await curve.createSellOrder(address, collateralToken, half, {
     from: address,
+    value,
   })
 
   let NewSellOrder = sellReceipt.logs.find(l => l.event === 'NewSellOrder')
@@ -1895,16 +2142,20 @@ async function buyAndClaimTokens({ token, curve, address, collateralToken, amoun
 async function buyToken({ curve, address, collateralToken, amount, from }) {
   if (!from) from = address
   const gasCostBuyOrder = await curve.gasCostBuyOrder()
+  let value = collateralToken === NULL_ADDRESS ? new web3.BigNumber(amount.toString(10)) : new web3.BigNumber(0)
+  value = value.plus(gasCostBuyOrder)
   const _receipt = await curve.createBuyOrder(address, collateralToken, amount, {
     from,
-    value: collateralToken === NULL_ADDRESS ? amount : 0,
+    value,
   })
   const NewBuyOrder = _receipt.logs.find(l => l.event === 'NewBuyOrder')
   return NewBuyOrder ? NewBuyOrder.args.batchId.toNumber() : new Error('No Buy Order')
 }
 
 async function claimToken({ curve, batchId, collateralToken, address }) {
-  await curve.claimBuy(address, collateralToken, batchId)
+  let tx = await curve.claimBuy(address, collateralToken, batchId)
+  printBuy(tx)
+  return tx
 }
 
 function getMarginOfError({ totalSupply, balance }) {
@@ -1915,7 +2166,7 @@ function getMarginOfError({ totalSupply, balance }) {
     balance = new Decimal(balance)
   }
   let averageSquareRootLength = totalSupply
-    .add(balance)
+    .plus(balance)
     .div(2)
     .sqrt()
     .toFixed(0)
@@ -1936,17 +2187,17 @@ function getSell({ totalSupply, balance, reserveRatio, amount }) {
 
   // collateral = (m / (n + 1)) * (s ^ (n + 1)) * ( ((1 + k/s) ^ (n + 1)) - 1)
   let n = new Decimal(1).div(reserveRatio).sub(1)
-  let m = balance.mul(n.add(1)).div(totalSupply.pow(n.add(1)))
+  let m = balance.mul(n.plus(1)).div(totalSupply.pow(n.plus(1)))
   let s = totalSupply.sub(amount)
   let k = amount
   let slope = m
-    .div(n.add(1))
-    .mul(s.pow(n.add(1)))
+    .div(n.plus(1))
+    .mul(s.pow(n.plus(1)))
     .mul(
       k
         .div(s)
-        .add(1)
-        .pow(n.add(1))
+        .plus(1)
+        .pow(n.plus(1))
         .sub(1)
     )
 
@@ -1961,7 +2212,7 @@ function getBuy({ totalSupply, balance, reserveRatio, amount }) {
   // // Straight from bancor contract
   // // Return = _supply * ((1 + _depositAmount / _connectorBalance) ^ (_connectorWeight / 1000000) - 1)
   // let bancorClassic = totalSupply.mul(
-  //   (new Decimal(1)).add(
+  //   (new Decimal(1)).plus(
   //     amount.div(balance)
   //   ).pow(
   //     reserveRatio
@@ -1977,14 +2228,14 @@ function getBuy({ totalSupply, balance, reserveRatio, amount }) {
   let one = new Decimal('1')
   let n = one.div(reserveRatio.toString(10))
   n = n.sub(1)
-  const m = balance.mul(n.add(1)).div(totalSupply.pow(n.add(1)))
+  const m = balance.mul(n.plus(1)).div(totalSupply.pow(n.plus(1)))
 
   const slope = totalSupply.mul(
     amount
-      .mul(n.add(1))
-      .div(m.mul(totalSupply.pow(n.add(1))))
-      .add(1)
-      .pow(new Decimal(1).div(n.add(1)))
+      .mul(n.plus(1))
+      .div(m.mul(totalSupply.pow(n.plus(1))))
+      .plus(1)
+      .pow(new Decimal(1).div(n.plus(1)))
       .sub(1)
   )
 
@@ -1998,4 +2249,22 @@ function getBuy({ totalSupply, balance, reserveRatio, amount }) {
   )
 
   return { bancor, slope, m, n }
+}
+function printSell(tx) {
+  // console.log({ sell: tx.receipt.gasUsed })
+}
+function printBuy(tx) {
+  // console.log({ buy: tx.receipt.gasUsed })
+}
+
+const getBuyClaimCost = async function({ curve }) {
+  return curve.gasCostBuyOrder()
+  // let claimGas = await curve.gasCostBuyOrder()
+  // return claimGas.mul(gasCost)
+}
+
+const getSellClaimCost = async function({ curve }) {
+  return curve.gasCostSellOrder()
+  // let claimGas = await curve.gasCostSellOrder()
+  // return claimGas.mul(gasCost)
 }
