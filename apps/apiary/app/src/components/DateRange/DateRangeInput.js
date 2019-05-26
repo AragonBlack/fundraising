@@ -1,19 +1,11 @@
-import React from 'react'
-import PropTypes from 'prop-types'
-import styled from 'styled-components'
-import {
-  isAfter,
-  isBefore,
-  isEqual,
-  isDate,
-  format as formatDate,
-  startOfDay,
-  endOfDay,
-} from 'date-fns'
 import { breakpoint, font, theme } from '@aragon/ui'
+import { endOfDay, format as formatDate, isAfter, isBefore, isDate, isEqual, startOfDay } from 'date-fns'
+import PropTypes from 'prop-types'
+import React from 'react'
+import styled from 'styled-components'
 import IconCalendar from './Calendar'
-import TextInput from './TextInput'
 import DatePicker from './DatePicker'
+import TextInput from './TextInput'
 
 const DATE_PLACEHOLDER = '--/--/----'
 
@@ -76,8 +68,7 @@ class DateRangeInput extends React.PureComponent {
 
   handleSelectStartDate = date => {
     const { endDate } = this.state
-    const isValidDate =
-      !endDate || isBefore(date, endDate) || isEqual(date, endDate)
+    const isValidDate = !endDate || isBefore(date, endDate) || isEqual(date, endDate)
     if (isValidDate) {
       this.setState({ startDateSelected: true, startDate: startOfDay(date) })
     }
@@ -85,49 +76,32 @@ class DateRangeInput extends React.PureComponent {
 
   handleSelectEndDate = date => {
     const { startDate } = this.state
-    const isValidDate =
-      !startDate || isAfter(date, startDate) || isEqual(date, startDate)
+    const isValidDate = !startDate || isAfter(date, startDate) || isEqual(date, startDate)
     if (isValidDate) {
       this.setState({ endDateSelected: true, endDate: endOfDay(date) })
     }
   }
 
   render() {
-    const { startDate, endDate } = this.state
+    const { startDate, endDate, showPicker } = this.state
+    const { active, onClick } = this.props
 
-    const icon = this.state.showPicker ? (
-      <IconCalendarSelected />
-    ) : (
-      <IconCalendar />
-    )
-    const value =
-      this.formattedStartDate && this.formattedEndDate
-        ? `${this.formattedStartDate} - ${this.formattedEndDate}`
-        : ''
-    const placeholder = `${
-      this.formattedStartDate ? this.formattedStartDate : DATE_PLACEHOLDER
-    } - ${
-      this.formattedEndDate
-        ? this.formattedEndDate
-        : this.formattedStartDate
-        ? DATE_PLACEHOLDER
-        : formatDate(new Date(), this.props.format)
+    const icon = showPicker || active ? <IconCalendarSelected /> : <IconCalendar />
+    const value = this.formattedStartDate && this.formattedEndDate ? `${this.formattedStartDate} - ${this.formattedEndDate}` : ''
+    const placeholder = `${this.formattedStartDate ? this.formattedStartDate : DATE_PLACEHOLDER} - ${
+      this.formattedEndDate ? this.formattedEndDate : this.formattedStartDate ? DATE_PLACEHOLDER : formatDate(new Date(), this.props.format)
     }`
 
     return (
       <StyledContainer
         ref={el => (this.rootRef = el)}
-        onClick={this.handleClick}
+        onClick={() => {
+          onClick()
+          this.setState({ showPicker: true })
+        }}
       >
-        <StyledTextInput
-          value={value}
-          readOnly
-          adornment={icon}
-          adornmentPosition="end"
-          height={39}
-          placeholder={placeholder}
-        />
-        {this.state.showPicker && (
+        <StyledTextInput value={value} readOnly adornment={icon} adornmentPosition="end" height={39} placeholder={placeholder} />
+        {showPicker && (
           <StyledDatePickersContainer>
             <DatePicker
               key={`start-picker-${startDate}`}
@@ -136,13 +110,7 @@ class DateRangeInput extends React.PureComponent {
               onSelect={this.handleSelectStartDate}
               overlay={false}
             />
-            <DatePicker
-              key={`end-picker-${endDate}`}
-              name="end-date-picker"
-              currentDate={endDate}
-              onSelect={this.handleSelectEndDate}
-              overlay={false}
-            />
+            <DatePicker key={`end-picker-${endDate}`} name="end-date-picker" currentDate={endDate} onSelect={this.handleSelectEndDate} overlay={false} />
           </StyledDatePickersContainer>
         )}
       </StyledContainer>

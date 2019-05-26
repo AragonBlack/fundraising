@@ -1,7 +1,7 @@
 import { DropDown } from '@aragon/ui'
-import { format } from 'date-fns'
+import { differenceInDays, format, startOfMinute, startOfMonth, startOfWeek, subDays, subHours, subSeconds } from 'date-fns'
 import React, { useState } from 'react'
-import { Area, AreaChart, Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { Area, AreaChart, Bar, BarChart, CartesianGrid, ReferenceDot, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import styled from 'styled-components'
 import DateRangeInput from '../DateRange/DateRangeInput'
 
@@ -11,18 +11,287 @@ const bondingCurveData = [...Array(24).keys()].map(idx => ({
   label: 'Token: ' + (idx + 1),
 }))
 
-// const timelineData = [...Array(24).keys()].map(x => ({
-//   tokens: x,
-//   Price: 0.05 * x ** 2 + 10 * x * Math.random(),
-//   label: 'Token: ' + (x + 1),
-// }))
-
-const historyChartData = [...Array(100).keys()]
+const everyThirtySecondsData = [...Array(2 * 60 * 24 * 10).keys()]
   .map(idx => ({
     Price: Math.random() * 140 + 60,
-    date: format(new Date(new Date().getTime() - (idx * 8000000 + 10000000)), 'd MMM', { awareOfUnicodeTokens: true }),
+    timestamp: subSeconds(new Date(), 30 * idx).getTime(),
   }))
   .reverse()
+
+const everyHourData = [...Array(24 * 365 * 2).keys()]
+  .map(idx => ({
+    Price: Math.random() * 140 + 60,
+    timestamp: subHours(new Date(), idx).getTime(),
+  }))
+  .reverse()
+
+const everyDayData = [...Array(365 * 3).keys()]
+  .map(idx => ({
+    Price: Math.random() * 140 + 60,
+    timestamp: subDays(new Date(), idx).getTime(),
+  }))
+  .reverse()
+
+function roundTimeHalfAnHour(time) {
+  var timeToReturn = new Date(time)
+
+  timeToReturn.setMilliseconds(Math.round(time.getMilliseconds() / 1000) * 1000)
+  timeToReturn.setSeconds(Math.round(timeToReturn.getSeconds() / 60) * 60)
+  timeToReturn.setMinutes(Math.round(timeToReturn.getMinutes() / 30) * 30)
+  return timeToReturn
+}
+
+function roundTime6Hours(time) {
+  var timeToReturn = new Date(time)
+
+  timeToReturn.setMilliseconds(Math.round(time.getMilliseconds() / 1000) * 1000)
+  timeToReturn.setSeconds(Math.round(timeToReturn.getSeconds() / 60) * 60)
+  timeToReturn.setMinutes(Math.round(timeToReturn.getMinutes() / 60) * 60)
+  timeToReturn.setHours(Math.round(timeToReturn.getHours() / 6) * 6)
+  return timeToReturn
+}
+
+function roundTime12Hours(time) {
+  var timeToReturn = new Date(time)
+
+  timeToReturn.setMilliseconds(Math.round(time.getMilliseconds() / 1000) * 1000)
+  timeToReturn.setSeconds(Math.round(timeToReturn.getSeconds() / 60) * 60)
+  timeToReturn.setMinutes(Math.round(timeToReturn.getMinutes() / 60) * 60)
+  timeToReturn.setHours(Math.round(timeToReturn.getHours() / 12) * 12)
+  return timeToReturn
+}
+
+const filter = (period, interval) => {
+  let cache = {}
+  if (period === 0) {
+    everyThirtySecondsData.forEach(item => {
+      const timestamp = startOfMinute(item.timestamp).getTime()
+      let current = cache[timestamp]
+
+      if (current) {
+        cache[timestamp] = {
+          avg: (item.Price + current.avg * current.iteration) / (current.iteration + 1),
+          iteration: current.iteration + 1,
+        }
+      } else {
+        cache[timestamp] = {
+          avg: item.Price,
+          iteration: 1,
+        }
+      }
+    })
+
+    return Object.keys(cache)
+      .slice(-60)
+      .map(key => ({
+        Price: cache[key].avg,
+        date: format(Number(key), 'HH:mm'),
+      }))
+  }
+
+  if (period === 1) {
+    everyThirtySecondsData.forEach(item => {
+      const timestamp = roundTimeHalfAnHour(new Date(item.timestamp)).getTime()
+      let current = cache[timestamp]
+
+      if (current) {
+        cache[timestamp] = {
+          avg: (item.Price + current.avg * current.iteration) / (current.iteration + 1),
+          iteration: current.iteration + 1,
+        }
+      } else {
+        cache[timestamp] = {
+          avg: item.Price,
+          iteration: 1,
+        }
+      }
+    })
+
+    return Object.keys(cache)
+      .slice(-48)
+      .map(key => ({
+        Price: cache[key].avg,
+        date: format(Number(key), 'MMM dd HH:mm'),
+      }))
+  }
+
+  if (period === 2) {
+    everyHourData.forEach(item => {
+      const timestamp = roundTime12Hours(new Date(item.timestamp)).getTime()
+      let current = cache[timestamp]
+
+      if (current) {
+        cache[timestamp] = {
+          avg: (item.Price + current.avg * current.iteration) / (current.iteration + 1),
+          iteration: current.iteration + 1,
+        }
+      } else {
+        cache[timestamp] = {
+          avg: item.Price,
+          iteration: 1,
+        }
+      }
+    })
+
+    return Object.keys(cache)
+      .slice(-60)
+      .map(key => ({
+        Price: cache[key].avg,
+        date: format(Number(key), 'MMM dd HH:mm'),
+      }))
+  }
+
+  if (period === 3) {
+    everyHourData.forEach(item => {
+      const timestamp = startOfWeek(item.timestamp).getTime()
+      let current = cache[timestamp]
+
+      if (current) {
+        cache[timestamp] = {
+          avg: (item.Price + current.avg * current.iteration) / (current.iteration + 1),
+          iteration: current.iteration + 1,
+        }
+      } else {
+        cache[timestamp] = {
+          avg: item.Price,
+          iteration: 1,
+        }
+      }
+    })
+
+    return Object.keys(cache)
+      .slice(-56)
+      .map(key => ({
+        Price: cache[key].avg,
+        date: format(Number(key), 'y MMM dd'),
+      }))
+  }
+
+  if (period === 4) {
+    everyDayData.forEach(item => {
+      const timestamp = startOfMonth(item.timestamp).getTime()
+      let current = cache[timestamp]
+
+      if (current) {
+        cache[timestamp] = {
+          avg: (item.Price + current.avg * current.iteration) / (current.iteration + 1),
+          iteration: current.iteration + 1,
+        }
+      } else {
+        cache[timestamp] = {
+          avg: item.Price,
+          iteration: 1,
+        }
+      }
+    })
+
+    return Object.keys(cache).map(key => ({
+      Price: cache[key].avg,
+      date: format(Number(key), 'y MMM dd'),
+    }))
+  }
+
+  if (period === 5) {
+    const difference = differenceInDays(interval.end, interval.start)
+    if (difference < 2) {
+      everyThirtySecondsData.forEach(item => {
+        const timestamp = roundTimeHalfAnHour(new Date(item.timestamp)).getTime()
+        let current = cache[timestamp]
+
+        if (current) {
+          cache[timestamp] = {
+            avg: (item.Price + current.avg * current.iteration) / (current.iteration + 1),
+            iteration: current.iteration + 1,
+          }
+        } else {
+          cache[timestamp] = {
+            avg: item.Price,
+            iteration: 1,
+          }
+        }
+      })
+
+      return Object.keys(cache)
+        .filter(key => Number(key) > interval.start && Number(key) < interval.end)
+        .map(key => ({
+          Price: cache[key].avg,
+          date: format(Number(key), 'MMM dd HH:mm'),
+        }))
+    } else if (difference < 31) {
+      everyHourData.forEach(item => {
+        const timestamp = roundTime6Hours(new Date(item.timestamp)).getTime()
+        let current = cache[timestamp]
+
+        if (current) {
+          cache[timestamp] = {
+            avg: (item.Price + current.avg * current.iteration) / (current.iteration + 1),
+            iteration: current.iteration + 1,
+          }
+        } else {
+          cache[timestamp] = {
+            avg: item.Price,
+            iteration: 1,
+          }
+        }
+      })
+
+      return Object.keys(cache)
+        .filter(key => Number(key) > interval.start && Number(key) < interval.end)
+        .map(key => ({
+          Price: cache[key].avg,
+          date: format(Number(key), 'MMM dd HH:mm'),
+        }))
+    } else if (difference < 365) {
+      everyHourData.forEach(item => {
+        const timestamp = startOfWeek(item.timestamp).getTime()
+        let current = cache[timestamp]
+
+        if (current) {
+          cache[timestamp] = {
+            avg: (item.Price + current.avg * current.iteration) / (current.iteration + 1),
+            iteration: current.iteration + 1,
+          }
+        } else {
+          cache[timestamp] = {
+            avg: item.Price,
+            iteration: 1,
+          }
+        }
+      })
+
+      return Object.keys(cache)
+        .filter(key => Number(key) > interval.start && Number(key) < interval.end)
+        .map(key => ({
+          Price: cache[key].avg,
+          date: format(Number(key), 'y MMM dd'),
+        }))
+    } else {
+      everyDayData.forEach(item => {
+        const timestamp = startOfMonth(item.timestamp).getTime()
+        let current = cache[timestamp]
+
+        if (current) {
+          cache[timestamp] = {
+            avg: (item.Price + current.avg * current.iteration) / (current.iteration + 1),
+            iteration: current.iteration + 1,
+          }
+        } else {
+          cache[timestamp] = {
+            avg: item.Price,
+            iteration: 1,
+          }
+        }
+      })
+
+      return Object.keys(cache)
+        .filter(key => Number(key) > interval.start && Number(key) < interval.end)
+        .map(key => ({
+          Price: cache[key].avg,
+          date: format(Number(key), 'y MMM dd'),
+        }))
+    }
+  }
+}
 
 // const orders = [
 //   {
@@ -44,6 +313,7 @@ const items = ['Bonding curve', 'History chart']
 export default () => {
   const [activeItem, setActiveItem] = useState(0)
   const [activeNavItem, setActiveNavItem] = useState(4)
+  const [date, setDate] = useState({ start: new Date(new Date().getTime() - 1000000000), end: new Date() })
 
   return (
     <Chart>
@@ -71,7 +341,13 @@ export default () => {
                 ALL
               </span>
             </div>
-            <DateRangeInput startDate={new Date(new Date().getTime() - 1000000000)} endDate={new Date()} onChange={test => console.log(test)} />
+            <DateRangeInput
+              startDate={date.start}
+              endDate={date.end}
+              onClick={() => setActiveNavItem(5)}
+              onChange={date => setDate(date)}
+              active={activeNavItem === 5}
+            />
           </div>
         ) : (
           <div />
@@ -91,8 +367,10 @@ export default () => {
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="8 8" vertical={false} />
+
             <XAxis type="number" dataKey="tokens" hide={false} interval="preserveStartEnd" tickMargin={25} tickLine={false} axisLine={false} tickCount={5} />
             <YAxis tickMargin={25} tickLine={false} axisLine={false} />
+            <ReferenceDot isFront x={18} y={5913} r={6} fill="#109CF1" stroke="none" />
             <Tooltip labelFormatter={value => 'Bonded tokens: ' + value} />
             <Area isAnimationActive={true} strokeWidth={2} type="monotone" dataKey="Price" stroke="#109CF1" fillOpacity={1} fill="url(#colorBlue)" />
           </AreaChart>
@@ -100,7 +378,7 @@ export default () => {
       )}
       {activeItem === 1 && (
         <ResponsiveContainer width="100%" height={400}>
-          <BarChart margin={{ left: 40, bottom: 40, top: 40, right: 40 }} data={historyChartData}>
+          <BarChart margin={{ left: 40, bottom: 40, top: 40, right: 40 }} data={filter(activeNavItem, date)}>
             <Tooltip cursor={{ fill: '#109CF1', fillOpacity: '0.2' }} />
             <CartesianGrid strokeDasharray="8 8" vertical={false} />
             <XAxis dataKey="date" minTickGap={100} interval="preserveStartEnd" tickMargin={25} tickLine={false} axisLine={false} />

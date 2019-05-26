@@ -4,10 +4,11 @@ import React, { useState } from 'react'
 import styled from 'styled-components'
 import MenuButton from './components/MenuButton'
 import NewOrderSidePanel from './components/NewOrderSidePanel'
+import MyOrders from './screens/MyOrders'
 import Orders from './screens/Orders'
 import Overview from './screens/Overview'
 
-const tabs = ['Overview', 'Buys / Sells', 'Settings']
+const tabs = ['Overview', 'Buys / Sells', 'My Orders', 'Settings']
 
 const App = () => {
   const [state, setState] = useState({
@@ -24,7 +25,7 @@ const App = () => {
     <div css="min-width: 320px">
       <Main>
         <AppView
-          title="Apiary"
+          title="Aragon Fundraising"
           padding={0}
           appBar={
             <NavBar>
@@ -32,7 +33,7 @@ const App = () => {
                 <AppBarContainer style={{ paddingLeft: '30px' }}>
                   <Title>
                     {displayMenuButton && <MenuButton onClick={requestMenu} />}
-                    <TitleLabel>Apiary</TitleLabel>
+                    <TitleLabel>Aragon Fundraising</TitleLabel>
                   </Title>
                   <NewOrder>
                     <Button mode="strong" onClick={() => setState({ ...state, displaySidePanel: true })}>
@@ -47,6 +48,7 @@ const App = () => {
         >
           {currentTab === 'Overview' && <Overview />}
           {currentTab === 'Buys / Sells' && <Orders />}
+          {currentTab === 'My Orders' && <MyOrders />}
         </AppView>
       </Main>
       <NewOrderSidePanel

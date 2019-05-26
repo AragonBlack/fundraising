@@ -128,12 +128,6 @@ const filter = (orders, state) => {
           }
         }
 
-        if (type === 'holder' && filter.payload[filter.active] !== 'All') {
-          if (filter.payload[filter.active].toLowerCase() !== order.from.toLowerCase()) {
-            return false
-          }
-        }
-
         if (type === 'date') {
           if (filter.payload.start > order.date.value || filter.payload.end < order.date.value) {
             return false
@@ -162,7 +156,6 @@ const Orders = ({ below }) => {
     order: { active: 0, payload: ['All', 'Buy', 'Sell'] },
     price: { active: 0, payload: ['Default', 'Ascending', 'Descending'] },
     token: { active: 0, payload: ['All', 'DAI', 'ANT', 'ETH'] },
-    holder: { active: 0, payload: ['All', '0x277bfcf7c2e162cb1ac3e9ae228a3132a75f83d4'] },
     date: { payload: { start: new Date().getTime() - 1000000, end: new Date().getTime() + 7 * 10000000 } },
   })
 
@@ -177,15 +170,6 @@ const Orders = ({ below }) => {
             startDate={new Date(state.date.payload.start)}
             endDate={new Date(state.date.payload.end)}
             onChange={payload => setState({ ...state, date: { payload: { start: payload.start.getTime(), end: payload.end.getTime() } } })}
-          />
-        </div>
-
-        <div className="filter-item">
-          <span className="filter-label">Holder</span>
-          <DropDown
-            items={state.holder.payload}
-            active={state.holder.active}
-            onChange={idx => setState({ ...state, holder: { ...state.holder, active: idx } })}
           />
         </div>
         <div className="filter-item">
@@ -251,6 +235,7 @@ const Orders = ({ below }) => {
                 <TableCell>
                   <StyledText>{'$' + order.price}</StyledText>
                   <ContextMenu>
+                    {order.state !== 'Returned' && <ContextMenuItem>{order.state === 'Cleared' ? 'Claim' : 'Clear'}</ContextMenuItem>}
                     <SafeLink href={'https://etherscan.io/tx/' + order.txHash} target="_blank">
                       <ContextMenuItem>View Tx on Etherscan</ContextMenuItem>
                     </SafeLink>
