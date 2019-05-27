@@ -66,42 +66,6 @@ The network details will be automatically selected by the `arapp.json`'s environ
 | Controller          | CREATE_SELL_ORDER           | Any                 | Voting (BON) |
 | Controller          | WITHDRAW                    | Voting (PRO)        | Voting (PRO) |
 
-bytes32 public constant ADD_COLLATERAL_TOKEN_ROLE = keccak256("ADD_COLLATERAL_TOKEN_ROLE");
-bytes32 public constant UPDATE_TOKEN_TAP_ROLE = keccak256("UPDATE_TOKEN_TAP_ROLE");
-bytes32 public constant UPDATE_MONTHLY_TAP_INCREASE_ROLE = keccak256("UPDATE_MONTHLY_TAP_INCREASE_ROLE");
-bytes32 public constant CREATE_BUY_ORDER_ROLE = keccak256("CREATE_BUY_ORDER_ROLE");
-bytes32 public constant CREATE_SELL_ORDER_ROLE = keccak256("CREATE_SELL_ORDER_ROLE");
-bytes32 public constant WITHDRAW_ROLE = keccak256("WITHDRAW_ROLE");
-
-bytes32 public constant ADD_COLLATERAL_TOKEN_ROLE = keccak256("ADD_COLLATERAL_TOKEN_ROLE");
-bytes32 public constant UPDATE_COLLATERAL_TOKEN_ROLE = keccak256("UPDATE_COLLATERAL_TOKEN_ROLE");
-bytes32 public constant UPDATE_FEE_ROLE = keccak256("UPDATE_FEE_ROLE");
-bytes32 public constant UPDATE_GAS_COSTS_ROLE = keccak256("UPDATE_GAS_COSTS_ROLE");
-bytes32 public constant CREATE_BUY_ORDER_ROLE = keccak256("CREATE_BUY_ORDER_ROLE");
-bytes32 public constant CREATE_SELL_ORDER_ROLE = keccak256("CREATE_SELL_ORDER_ROLE");
-
-"roles": [
-{
-"name": "Execute safe actions",
-"id": "SAFE_EXECUTE_ROLE",
-"params": []
-},
-{
-"name": "Add collateral tokens to safeguard",
-"id": "ADD_COLLATERAL_TOKEN_ROLE",
-"params": []
-},
-{
-"name": "Remove collateral tokens to safeguard",
-"id": "REMOVE_COLLATERAL_TOKEN_ROLE",
-"params": []
-}
-
-bytes32 public constant UPDATE_MONTHLY_TAP_INCREASE_ROLE = keccak256("UPDATE_MONTHLY_TAP_INCREASE_ROLE");
-bytes32 public constant ADD_TOKEN_TAP_ROLE = keccak256("ADD_TOKEN_TAP_ROLE");
-bytes32 public constant UPDATE_TOKEN_TAP_ROLE = keccak256("UPDATE_TOKEN_TAP_ROLE");
-bytes32 public constant WITHDRAW_ROLE = keccak256("WITHDRAW_ROLE");
-
 ## Gas usage
 
 Tested running `GAS_REPORTER=true truffle test --network devnet test/gas.js`
