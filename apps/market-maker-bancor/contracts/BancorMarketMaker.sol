@@ -25,7 +25,6 @@ contract BancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
     bytes32 public constant ADD_COLLATERAL_TOKEN_ROLE = keccak256("ADD_COLLATERAL_TOKEN_ROLE");
     bytes32 public constant UPDATE_COLLATERAL_TOKEN_ROLE = keccak256("UPDATE_COLLATERAL_TOKEN_ROLE");
     bytes32 public constant UPDATE_FEE_ROLE = keccak256("UPDATE_FEE_ROLE");
-    bytes32 public constant UPDATE_GAS_COSTS_ROLE = keccak256("UPDATE_GAS_COSTS_ROLE");
     bytes32 public constant CREATE_BUY_ORDER_ROLE = keccak256("CREATE_BUY_ORDER_ROLE");
     bytes32 public constant CREATE_SELL_ORDER_ROLE = keccak256("CREATE_SELL_ORDER_ROLE");
 
@@ -54,9 +53,8 @@ contract BancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
 
     uint256 public waitingClear;
     uint256 public batchBlocks;
-    uint256 public gasCostBuyOrder;
-    uint256 public gasCostSellOrder;
-    uint256 public feePercentPPM; // 100,000,000 = 100% / 1,000,000 = 1%
+    uint256 public buyFeePercentPPM; // 1,000,000 = 100% ---- 10,000 = 1%
+    uint256 public sellFeePercentPPM;
 
     IMarketMakerController public controller;
     TokenManager           public tokenManager;
@@ -71,8 +69,7 @@ contract BancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
 
     event AddCollateralToken(address indexed collateralToken, uint256 virtualSupply, uint256 virtualBalance, uint32 reserveRatio);
     event UpdateCollateralToken(address indexed collateralToken, uint256 virtualSupply, uint256 virtualBalance, uint32 reserveRatio);
-    event UpdateFee(uint256 fee);
-    event UpdateGasCosts(uint256 gasCostBuyOrder, uint256 gasCostSellOrder);
+    event UpdateFee(uint256 buyFee, uint256 sellFee);
     event NewBuyOrder(address indexed buyer, address indexed collateralToken, uint256 value, uint256 batchId);
     event NewSellOrder(address indexed seller, address indexed collateralToken, uint256 amount, uint256 batchId);
     event ReturnBuy(address indexed buyer, address indexed collateralToken, uint256 amount);
@@ -86,7 +83,8 @@ contract BancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
         address                _beneficiary,
         IBancorFormula         _formula,
         uint256                _batchBlocks,
-        uint256                _fee
+        uint256                _buyFee,
+        uint256                _sellFee
         ) external onlyInit
     {
         initialized();
@@ -100,7 +98,8 @@ contract BancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
         beneficiary = _beneficiary;
         formula = _formula;
         batchBlocks = _batchBlocks;
-        feePercentPPM = _fee;
+        buyFeePercentPPM = _buyFee;
+        sellFeePercentPPM = _sellFee;
     }
 
     /***** external functions *****/
@@ -163,23 +162,13 @@ contract BancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
 
     /**
      * @notice Update the fee percentage deducted from all buy and sell orders to `_fee` PPM
-     * @param _fee The new fee to be used [in PPM]
+     * @param _buyFee The new buy fee to be used [in PPM]
+     * @param _sellFee The new sell fee to be used [in PPM]
     */
-    function updateFee(uint256 _fee) external auth(UPDATE_FEE_ROLE) {
-        feePercentPPM = _fee;
-        emit UpdateFee(_fee);
-    }
-
-    /**
-     * @notice Update the gas costs to be included with every buy and sell orders to `_gasCostBuyOrder` and `_gasCostSellOrder`
-     * @param _gasCostBuyOrder The new buy gas amount to be used
-     * @param _gasCostSellOrder The new sell gas amount to be used
-    */
-    function updateGasCosts(uint256 _gasCostBuyOrder, uint256 _gasCostSellOrder) external auth(UPDATE_GAS_COSTS_ROLE) {
-        gasCostBuyOrder = _gasCostBuyOrder;
-        gasCostSellOrder = _gasCostSellOrder;
-
-        emit UpdateGasCosts(_gasCostBuyOrder, _gasCostSellOrder);
+    function updateFee(uint256 _buyFee, uint256 _sellFee) external auth(UPDATE_FEE_ROLE) {
+        buyFeePercentPPM = _buyFee;
+        sellFeePercentPPM = _sellFee;
+        emit UpdateFee(_buyFee, _sellFee);
     }
 
     /**
@@ -192,8 +181,9 @@ contract BancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
     function createBuyOrder(address _buyer, address _collateralToken, uint256 _value) external payable auth(CREATE_BUY_ORDER_ROLE) {
         require(collateralTokenInfo[_collateralToken].exists);
         require(_value != 0);
-        require(msg.value >= (_collateralToken == ETH ? gasCostBuyOrder.add(_value) : gasCostBuyOrder));
-
+        if (_collateralToken == ETH) {
+            require(msg.value >= _value);
+        }
         _createBuyOrder(_buyer, _collateralToken, _value);
     }
 
@@ -204,11 +194,10 @@ contract BancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
      * @param _collateralToken The address of the collateral token to be returned
      * @param _amount The amount of bonded token to be spent
     */
-    function createSellOrder(address _seller, address _collateralToken, uint256 _amount) external payable auth(CREATE_SELL_ORDER_ROLE) {
+    function createSellOrder(address _seller, address _collateralToken, uint256 _amount) external auth(CREATE_SELL_ORDER_ROLE) {
         require(collateralTokenInfo[_collateralToken].exists);
         require(_amount != 0);
         require(token.staticBalanceOf(_seller) >= _amount);
-        require(msg.value >= gasCostSellOrder);
 
         _createSellOrder(_seller, _collateralToken, _amount);
     }
@@ -236,7 +225,6 @@ contract BancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
         require(batch.buyers[_buyer] != 0);
 
         _claimBuy(_buyer, _collateralToken, _batchId);
-        // msg.sender.transfer(gasCostBuyOrder);
     }
 
     /**
@@ -252,7 +240,6 @@ contract BancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
         require(batch.sellers[_seller] != 0);
 
         _claimSell(_seller, _collateralToken, _batchId);
-        // msg.sender.transfer(gasCostSellOrder);
     }
 
     /***** public view functions *****/
@@ -373,7 +360,7 @@ contract BancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
     function _createBuyOrder(address _buyer, address _collateralToken, uint256 _value) internal {
         (uint256 batchId, Batch storage batch) = _getInitializedBatch(_collateralToken);
 
-        uint256 fee = _value.mul(feePercentPPM).div(PPM);
+        uint256 fee = _value.mul(buyFeePercentPPM).div(PPM);
         uint256 valueAfterFee = _value.sub(fee);
 
         _transfer(_buyer, address(pool), _collateralToken, valueAfterFee);
@@ -389,16 +376,12 @@ contract BancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
     function _createSellOrder(address _seller, address _collateralToken, uint256 _amount) internal {
         (uint256 batchId, Batch storage batch) = _getInitializedBatch(_collateralToken);
 
-        uint256 fee = _amount.mul(feePercentPPM).div(PPM);
-        uint256 amountAfterFee = _amount.sub(fee);
-
         tokenManager.burn(_seller, _amount);
-        tokenManager.mint(beneficiary, fee);
 
-        batch.totalSellSpend = batch.totalSellSpend.add(amountAfterFee);
-        batch.sellers[_seller] = batch.sellers[_seller].add(amountAfterFee);
+        batch.totalSellSpend = batch.totalSellSpend.add(_amount);
+        batch.sellers[_seller] = batch.sellers[_seller].add(_amount);
 
-        emit NewSellOrder(_seller, _collateralToken, amountAfterFee, batchId);
+        emit NewSellOrder(_seller, _collateralToken, _amount, batchId);
     }
 
     function _clearBatches() internal {
@@ -521,14 +504,19 @@ contract BancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
     function _claimSell(address _seller, address _collateralToken, uint256 _batchId) internal {
         Batch storage batch = collateralTokenInfo[_collateralToken].batches[_batchId];
         uint256 sellReturn = (batch.sellers[_seller].mul(batch.totalSellReturn)).div(batch.totalSellSpend);
+        uint256 fee = sellReturn.mul(sellFeePercentPPM).div(PPM);
+        uint256 amountAfterFee = sellReturn.sub(fee);
 
         batch.sellers[_seller] = 0;
 
-        if (sellReturn > 0) {
-            pool.transfer(_collateralToken, _seller, sellReturn);
+        if (amountAfterFee > 0) {
+            pool.transfer(_collateralToken, _seller, amountAfterFee);
+        }
+        if (fee > 0) {
+            pool.transfer(_collateralToken, beneficiary, fee);
         }
 
-        emit ReturnSell(_seller, _collateralToken, sellReturn);
+        emit ReturnSell(_seller, _collateralToken, amountAfterFee);
     }
 
     function _transfer(address _from, address _to, address _collateralToken, uint256 _amount) internal {
