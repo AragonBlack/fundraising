@@ -227,7 +227,7 @@ const Orders = ({ below }) => {
                     background={order.type === 'buy' ? theme.badgeAppBackground : theme.infoPermissionsBackground}
                     foreground={order.type === 'buy' ? theme.Purple : 'rgb(218, 192, 139)'}
                   >
-                    {order.type === 'buy' ? 'Buying order' : 'Selling order'}
+                    {order.type === 'buy' ? 'Buy order' : 'Sell order'}
                   </Badge>
                 </TableCell>
                 <TableCell>
@@ -290,7 +290,7 @@ const Orders = ({ below }) => {
                       background={order.type === 'buy' ? theme.badgeAppBackground : theme.infoPermissionsBackground}
                       foreground={order.type === 'buy' ? theme.Purple : 'rgb(218, 192, 139)'}
                     >
-                      {order.type === 'buy' ? 'Buying order' : 'Selling order'}
+                      {order.type === 'buy' ? 'Buy order' : 'Sell order'}
                     </Badge>
                   </div>
                   <div

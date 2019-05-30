@@ -5,11 +5,18 @@ import { Area, AreaChart, Bar, BarChart, CartesianGrid, ReferenceDot, Responsive
 import styled from 'styled-components'
 import DateRangeInput from '../DateRange/DateRangeInput'
 
-const bondingCurveData = [...Array(24).keys()].map(idx => ({
+const bondingCurveData = [...Array(600).keys()].map(idx => ({
   tokens: idx + 1,
-  Price: idx ** 3 + 1000,
+  Price: (idx + 1) ** 2 / 50,
   label: 'Token: ' + (idx + 1),
 }))
+
+// const everyThirtySecondsData = [...Array(2 * 60 * 24 * 10).keys()]
+//   .map(idx => ({
+//     Price: Math.random() * 140 + 60,
+//     timestamp: subSeconds(new Date(), 30 * idx).getTime(),
+//   }))
+//   .reverse()
 
 const everyThirtySecondsData = [...Array(2 * 60 * 24 * 10).keys()]
   .map(idx => ({
@@ -61,25 +68,31 @@ function roundTime12Hours(time) {
   return timeToReturn
 }
 
-const filter = (period, interval) => {
+const getFilteredData = (data, timestampFilter) => {
   let cache = {}
-  if (period === 0) {
-    everyThirtySecondsData.forEach(item => {
-      const timestamp = startOfMinute(item.timestamp).getTime()
-      let current = cache[timestamp]
+  data.forEach(item => {
+    const timestamp = timestampFilter(item.timestamp).getTime()
+    let current = cache[timestamp]
 
-      if (current) {
-        cache[timestamp] = {
-          avg: (item.Price + current.avg * current.iteration) / (current.iteration + 1),
-          iteration: current.iteration + 1,
-        }
-      } else {
-        cache[timestamp] = {
-          avg: item.Price,
-          iteration: 1,
-        }
+    if (current) {
+      cache[timestamp] = {
+        avg: (item.Price + current.avg * current.iteration) / (current.iteration + 1),
+        iteration: current.iteration + 1,
       }
-    })
+    } else {
+      cache[timestamp] = {
+        avg: item.Price,
+        iteration: 1,
+      }
+    }
+  })
+
+  return cache
+}
+
+const filter = (period, interval) => {
+  if (period === 0) {
+    const cache = getFilteredData(everyThirtySecondsData, startOfMinute)
 
     return Object.keys(cache)
       .slice(-60)
@@ -90,22 +103,7 @@ const filter = (period, interval) => {
   }
 
   if (period === 1) {
-    everyThirtySecondsData.forEach(item => {
-      const timestamp = roundTimeHalfAnHour(new Date(item.timestamp)).getTime()
-      let current = cache[timestamp]
-
-      if (current) {
-        cache[timestamp] = {
-          avg: (item.Price + current.avg * current.iteration) / (current.iteration + 1),
-          iteration: current.iteration + 1,
-        }
-      } else {
-        cache[timestamp] = {
-          avg: item.Price,
-          iteration: 1,
-        }
-      }
-    })
+    const cache = getFilteredData(everyThirtySecondsData, timestamp => roundTimeHalfAnHour(new Date(timestamp)))
 
     return Object.keys(cache)
       .slice(-48)
@@ -116,22 +114,7 @@ const filter = (period, interval) => {
   }
 
   if (period === 2) {
-    everyHourData.forEach(item => {
-      const timestamp = roundTime12Hours(new Date(item.timestamp)).getTime()
-      let current = cache[timestamp]
-
-      if (current) {
-        cache[timestamp] = {
-          avg: (item.Price + current.avg * current.iteration) / (current.iteration + 1),
-          iteration: current.iteration + 1,
-        }
-      } else {
-        cache[timestamp] = {
-          avg: item.Price,
-          iteration: 1,
-        }
-      }
-    })
+    const cache = getFilteredData(everyHourData, timestamp => roundTime12Hours(new Date(timestamp)))
 
     return Object.keys(cache)
       .slice(-60)
@@ -142,22 +125,7 @@ const filter = (period, interval) => {
   }
 
   if (period === 3) {
-    everyHourData.forEach(item => {
-      const timestamp = startOfWeek(item.timestamp).getTime()
-      let current = cache[timestamp]
-
-      if (current) {
-        cache[timestamp] = {
-          avg: (item.Price + current.avg * current.iteration) / (current.iteration + 1),
-          iteration: current.iteration + 1,
-        }
-      } else {
-        cache[timestamp] = {
-          avg: item.Price,
-          iteration: 1,
-        }
-      }
-    })
+    const cache = getFilteredData(everyHourData, startOfWeek)
 
     return Object.keys(cache)
       .slice(-56)
@@ -168,22 +136,7 @@ const filter = (period, interval) => {
   }
 
   if (period === 4) {
-    everyDayData.forEach(item => {
-      const timestamp = startOfMonth(item.timestamp).getTime()
-      let current = cache[timestamp]
-
-      if (current) {
-        cache[timestamp] = {
-          avg: (item.Price + current.avg * current.iteration) / (current.iteration + 1),
-          iteration: current.iteration + 1,
-        }
-      } else {
-        cache[timestamp] = {
-          avg: item.Price,
-          iteration: 1,
-        }
-      }
-    })
+    const cache = getFilteredData(everyDayData, startOfMonth)
 
     return Object.keys(cache).map(key => ({
       Price: cache[key].avg,
@@ -194,22 +147,7 @@ const filter = (period, interval) => {
   if (period === 5) {
     const difference = differenceInDays(interval.end, interval.start)
     if (difference < 2) {
-      everyThirtySecondsData.forEach(item => {
-        const timestamp = roundTimeHalfAnHour(new Date(item.timestamp)).getTime()
-        let current = cache[timestamp]
-
-        if (current) {
-          cache[timestamp] = {
-            avg: (item.Price + current.avg * current.iteration) / (current.iteration + 1),
-            iteration: current.iteration + 1,
-          }
-        } else {
-          cache[timestamp] = {
-            avg: item.Price,
-            iteration: 1,
-          }
-        }
-      })
+      const cache = getFilteredData(everyThirtySecondsData, timestamp => roundTimeHalfAnHour(new Date(timestamp)))
 
       return Object.keys(cache)
         .filter(key => Number(key) > interval.start && Number(key) < interval.end)
@@ -218,22 +156,7 @@ const filter = (period, interval) => {
           date: format(Number(key), 'MMM dd HH:mm'),
         }))
     } else if (difference < 31) {
-      everyHourData.forEach(item => {
-        const timestamp = roundTime6Hours(new Date(item.timestamp)).getTime()
-        let current = cache[timestamp]
-
-        if (current) {
-          cache[timestamp] = {
-            avg: (item.Price + current.avg * current.iteration) / (current.iteration + 1),
-            iteration: current.iteration + 1,
-          }
-        } else {
-          cache[timestamp] = {
-            avg: item.Price,
-            iteration: 1,
-          }
-        }
-      })
+      const cache = getFilteredData(everyHourData, timestamp => roundTime6Hours(new Date(timestamp)))
 
       return Object.keys(cache)
         .filter(key => Number(key) > interval.start && Number(key) < interval.end)
@@ -242,22 +165,7 @@ const filter = (period, interval) => {
           date: format(Number(key), 'MMM dd HH:mm'),
         }))
     } else if (difference < 365) {
-      everyHourData.forEach(item => {
-        const timestamp = startOfWeek(item.timestamp).getTime()
-        let current = cache[timestamp]
-
-        if (current) {
-          cache[timestamp] = {
-            avg: (item.Price + current.avg * current.iteration) / (current.iteration + 1),
-            iteration: current.iteration + 1,
-          }
-        } else {
-          cache[timestamp] = {
-            avg: item.Price,
-            iteration: 1,
-          }
-        }
-      })
+      const cache = getFilteredData(everyHourData, startOfWeek)
 
       return Object.keys(cache)
         .filter(key => Number(key) > interval.start && Number(key) < interval.end)
@@ -266,22 +174,7 @@ const filter = (period, interval) => {
           date: format(Number(key), 'y MMM dd'),
         }))
     } else {
-      everyDayData.forEach(item => {
-        const timestamp = startOfMonth(item.timestamp).getTime()
-        let current = cache[timestamp]
-
-        if (current) {
-          cache[timestamp] = {
-            avg: (item.Price + current.avg * current.iteration) / (current.iteration + 1),
-            iteration: current.iteration + 1,
-          }
-        } else {
-          cache[timestamp] = {
-            avg: item.Price,
-            iteration: 1,
-          }
-        }
-      })
+      const cache = getFilteredData(everyDayData, startOfMonth)
 
       return Object.keys(cache)
         .filter(key => Number(key) > interval.start && Number(key) < interval.end)
@@ -312,8 +205,11 @@ const items = ['Bonding curve', 'History chart']
 
 export default () => {
   const [activeItem, setActiveItem] = useState(0)
-  const [activeNavItem, setActiveNavItem] = useState(4)
-  const [date, setDate] = useState({ start: new Date(new Date().getTime() - 1000000000), end: new Date() })
+  const [activeNavItem, setActiveNavItem] = useState(0)
+  const [date, setDate] = useState({
+    start: new Date(new Date().getTime() - 1000000000),
+    end: new Date(),
+  })
 
   return (
     <Chart>
@@ -370,7 +266,7 @@ export default () => {
 
             <XAxis type="number" dataKey="tokens" hide={false} interval="preserveStartEnd" tickMargin={25} tickLine={false} axisLine={false} tickCount={5} />
             <YAxis tickMargin={25} tickLine={false} axisLine={false} />
-            <ReferenceDot isFront x={18} y={5913} r={6} fill="#109CF1" stroke="none" />
+            <ReferenceDot isFront x={210} y={882} r={6} fill="#109CF1" stroke="none" />
             <Tooltip labelFormatter={value => 'Bonded tokens: ' + value} />
             <Area isAnimationActive={true} strokeWidth={2} type="monotone" dataKey="Price" stroke="#109CF1" fillOpacity={1} fill="url(#colorBlue)" />
           </AreaChart>

@@ -76,6 +76,20 @@ const NavBar = styled.div`
   span {
     white-space: nowrap;
   }
+
+  @media only screen and (max-width: 500px) {
+    ul {
+      flex-direction: column;
+    }
+
+    ul li {
+      margin-bottom: 1rem;
+    }
+
+    ul li span {
+      display: initial;
+    }
+  }
 `
 
 const AppBarContainer = styled.div`

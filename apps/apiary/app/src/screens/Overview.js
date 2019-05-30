@@ -15,7 +15,12 @@ const formatCollateral = amount => new BN(amount).toFormat(0)
 const convertToUSD = (collateral, rate) => new BN(collateral).div(new BN(rate)).toFormat(2)
 
 export default () => {
-  const [state, setState] = useState({ daiCollateral: 103039, antCollateral: 2934, daiRate: 0, antRate: 0 })
+  const [state, setState] = useState({
+    daiCollateral: 103039,
+    antCollateral: 60421,
+    daiRate: 0,
+    antRate: 0,
+  })
   const { daiCollateral, daiRate, antCollateral, antRate } = state
   useEffect(() => {
     async function getRates() {
@@ -37,8 +42,8 @@ export default () => {
         <ul>
           <li>
             <p className="title">Bonded token supply</p>
-            <p className="number">5600</p>
-            <p className="sub-number">$123,600,923.82</p>
+            <p className="number">210</p>
+            <p className="sub-number">$185,220</p>
           </li>
           <li>
             <div className="title">
@@ -46,7 +51,7 @@ export default () => {
               <p>DAI Collateral</p>
             </div>
             <p className="number">{formatCollateral(daiCollateral)}</p>
-            <p className="sub-number">${convertToUSD(daiCollateral, daiRate)}</p>
+            <p className="sub-number">$103,039</p>
           </li>
           <li>
             <div className="title">
@@ -54,17 +59,17 @@ export default () => {
               <p>ANT Collateral</p>
             </div>
             <p className="number">{formatCollateral(antCollateral)}</p>
-            <p className="sub-number">${convertToUSD(antCollateral, antRate)}</p>
+            <p className="sub-number">$82,181</p>
           </li>
           <li>
             <p className="title">Total balance USD</p>
-            <p className="number">$23,699,746.32</p>
-            <p className="sub-number">$123,600,923.82</p>
+            <p className="number">$185,220</p>
+            <p className="sub-number">210 bonded tokens</p>
           </li>
           <li>
             <p className="title">Tap rate</p>
-            <p className="number">11,340</p>
-            <p className="sub-number">$25,500.82</p>
+            <p className="number">$18,522</p>
+            <p className="sub-number">10%</p>
           </li>
         </ul>
       </TokenBalances>
@@ -145,6 +150,10 @@ const TokenBalances = styled.div`
   @media only screen and (max-width: 700px) {
     .title {
       margin: 1.5rem;
+    }
+
+    li .title {
+      margin-left: 0;
     }
   }
 `
