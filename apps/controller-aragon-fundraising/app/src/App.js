@@ -1,8 +1,9 @@
 import { useAragonApi } from '@aragon/api-react'
-import { AppBar, AppView, Button, Main, TabBar } from '@aragon/ui'
+import { AppBar, AppView, Button, Main, TabBar, useViewport, Viewport } from '@aragon/ui'
 import React, { useState } from 'react'
 import styled from 'styled-components'
 import MenuButton from './components/MenuButton'
+import TabMenuButton from './components/TabMenuButton'
 import NewOrderSidePanel from './components/NewOrderSidePanel'
 import MyOrders from './screens/MyOrders'
 import Orders from './screens/Orders'
@@ -16,9 +17,11 @@ const App = () => {
     token: '',
     tabIndex: 0,
     displaySidePanel: false,
+    showTab: false,
   })
   const { requestMenu, displayMenuButton } = useAragonApi()
-  const { tabIndex, displaySidePanel, amount, token } = state
+  const { below } = useViewport()
+  const { tabIndex, displaySidePanel, amount, token, showTab } = state
   const currentTab = tabs[tabIndex]
 
   return (
@@ -27,10 +30,13 @@ const App = () => {
         <AppView
           title="Aragon Fundraising"
           padding={0}
+          css={`
+            background-color: white;
+          `}
           appBar={
             <NavBar>
               <AppBar>
-                <AppBarContainer style={{ paddingLeft: '30px' }}>
+                <AppBarContainer style={{ paddingLeft: displayMenuButton ? '0px' : '30px' }}>
                   <Title>
                     {displayMenuButton && <MenuButton onClick={requestMenu} />}
                     <TitleLabel>Aragon Fundraising</TitleLabel>
@@ -42,7 +48,26 @@ const App = () => {
                   </NewOrder>
                 </AppBarContainer>
               </AppBar>
-              <TabBar items={tabs} selected={tabIndex} onChange={tabIndex => setState({ ...state, tabIndex })} />
+
+              <Viewport>
+                {({ below }) => (
+                  <div>
+                    {below('small') && <TabMenuButton onClick={() => setState({ ...state, showTab: !showTab })} />}
+                    <div
+                      css={
+                        below('small') &&
+                        !showTab &&
+                        `
+                          overflow: hidden;
+                          height: 0;
+                        `
+                      }
+                    >
+                      <TabBar items={tabs} selected={tabIndex} onChange={tabIndex => setState({ ...state, tabIndex })} />
+                    </div>
+                  </div>
+                )}
+              </Viewport>
             </NavBar>
           }
         >
@@ -77,7 +102,7 @@ const NavBar = styled.div`
     white-space: nowrap;
   }
 
-  @media only screen and (max-width: 500px) {
+  @media only screen and (max-width: 540px) {
     ul {
       flex-direction: column;
     }

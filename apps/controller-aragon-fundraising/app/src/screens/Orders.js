@@ -19,6 +19,7 @@ import { format } from 'date-fns'
 import React, { useState } from 'react'
 import styled from 'styled-components'
 import DateRangeInput from '../components/DateRange/DateRangeInput'
+import ToggleFiltersButton from '../components/ToggleFiltersButton'
 
 const orders = [
   {
@@ -157,13 +158,14 @@ const filter = (orders, state) => {
     })
 }
 
-const Orders = ({ below }) => {
+const Orders = ({ below, within }) => {
   const [state, setState] = useState({
     order: { active: 0, payload: ['All', 'Buy', 'Sell'] },
     price: { active: 0, payload: ['Default', 'Ascending', 'Descending'] },
     token: { active: 0, payload: ['All', 'DAI', 'ANT', 'ETH'] },
     holder: { active: 0, payload: ['All', '0x277bfcf7c2e162cb1ac3e9ae228a3132a75f83d4'] },
     date: { payload: { start: new Date().getTime() - 1000000, end: new Date().getTime() + 7 * 10000000 } },
+    showFilters: false,
   })
 
   return (
@@ -171,7 +173,8 @@ const Orders = ({ below }) => {
       <h1 className="title">
         <Text>Historical Orders</Text>
       </h1>
-      <div className="filter-nav">
+      {within(0, 975) && <ToggleFiltersButton onClick={() => setState({ ...state, showFilters: !state.showFilters })} />}
+      <div className={within(0, 975) ? (state.showFilters ? 'filter-nav' : ' filter-nav hide') : 'filter-nav'}>
         <div className="filter-item">
           <DateRangeInput
             startDate={new Date(state.date.payload.start)}
@@ -352,6 +355,11 @@ const ContentWrapper = styled.div`
     margin-bottom: 2rem;
   }
 
+  .hide {
+    overflow: hidden;
+    height: 0;
+  }
+
   .filter-item {
     display: flex;
     align-items: center;
@@ -365,6 +373,7 @@ const ContentWrapper = styled.div`
     text-transform: lowercase;
     color: ${theme.textSecondary};
     font-weight: 600;
+    white-space: nowrap;
     ${unselectable};
   }
 
@@ -380,7 +389,7 @@ const ContentWrapper = styled.div`
     }
   }
 
-  @media only screen and (max-width: 950px) {
+  @media only screen and (max-width: 975px) {
     .filter-nav {
       flex-direction: column;
       margin-bottom: 1rem;
@@ -407,4 +416,4 @@ const StyledIdentityBadge = styled(IdentityBadge)`
   background-color: rgb(218, 234, 239);
 `
 
-export default props => <Viewport>{({ below }) => <Orders {...props} below={below} />}</Viewport>
+export default props => <Viewport>{({ below, within }) => <Orders {...props} below={below} within={within} />}</Viewport>
