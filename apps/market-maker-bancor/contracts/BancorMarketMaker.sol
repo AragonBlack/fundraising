@@ -266,32 +266,32 @@ contract BancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
      * @notice Clear the last batches of orders and return the results of `_buyer`'s buy orders through `_collateralToken.symbol(): string` collateral from last batch
      * @param _buyer The address of the user whose buy results are to be returned
      * @param _collateralToken The address of the collateral token used
+     * @param _batchId The id of the batch used
     */
-    function clearBatchesAndClaimBuy(address _buyer, address _collateralToken) external isInitialized {
-        require(waitingClear != 0); // require that batch has not yet been cleared
+    function clearBatchesAndClaimBuy(address _buyer, address _collateralToken, uint256 _batchId) external isInitialized {
         require(waitingClear < getCurrentBatchId()); // require current batch to be over
         require(collateralTokenInfo[_collateralToken].exists);
-        
-        uint256 batchId = waitingClear;
 
-        _clearBatches();
-        _claimBuy(_buyer, _collateralToken, batchId);
+        if (waitingClear == _batchId)
+            _clearBatches();
+
+        _claimBuy(_buyer, _collateralToken, _batchId);
     }
 
     /**
      * @notice Clear the last batches of orders and return the results of `_seller`'s `_collateralToken.symbol(): string` sell orders from last batch
      * @param _seller The address of the user whose sale results are to be returned
      * @param _collateralToken The address of the collateral token used
+     * @param _batchId The id of the batch used
     */
-    function clearBatchesAndClaimSell(address _seller, address _collateralToken) external isInitialized {
-        require(waitingClear != 0); // require that batch has not yet been cleared
+    function clearBatchesAndClaimSell(address _seller, address _collateralToken, uint256 _batchId) external isInitialized {
         require(waitingClear < getCurrentBatchId()); // require current batch to be over
         require(collateralTokenInfo[_collateralToken].exists);
-        
-        uint256 batchId = waitingClear;
 
-        _clearBatches();
-        _claimSell(_seller, _collateralToken, batchId);
+        if (waitingClear == _batchId)
+            _clearBatches();
+    
+        _claimSell(_seller, _collateralToken, _batchId);
     }
 
     /***** public view functions *****/
