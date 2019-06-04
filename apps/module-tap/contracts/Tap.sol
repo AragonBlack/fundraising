@@ -17,8 +17,6 @@ contract Tap is EtherTokenConstant, IsContract, AragonApp {
     using SafeERC20 for ERC20;
     using SafeMath for uint256;
 
-    uint64 public constant PCT_BASE = 10 ** 18; // 0% = 0; 1% = 10^16; 100% = 10^18
-
     bytes32 public constant UPDATE_RESERVE_ROLE = keccak256("UPDATE_RESERVE_ROLE");
     bytes32 public constant UPDATE_BENEFICIARY_ROLE = keccak256("UPDATE_BENEFICIARY_ROLE");
     bytes32 public constant UPDATE_MONTHLY_TAP_INCREASE_ROLE = keccak256("UPDATE_MONTHLY_TAP_INCREASE_ROLE");
@@ -27,7 +25,10 @@ contract Tap is EtherTokenConstant, IsContract, AragonApp {
     bytes32 public constant UPDATE_TOKEN_TAP_ROLE = keccak256("UPDATE_TOKEN_TAP_ROLE");
     bytes32 public constant WITHDRAW_ROLE = keccak256("WITHDRAW_ROLE");
 
+    uint64 public constant PCT_BASE = 10 ** 18; // 0% = 0; 1% = 10^16; 100% = 10^18
+
     string private constant ERROR_RESERVE_NOT_CONTRACT = "TAP_RESERVE_NOT_CONTRACT";
+    string private constant ERROR_TAP_INCREASE_PCT_TOO_HIGH = "TAP_TAP_INCREASE_PCT_TOO_HIGH";
     string private constant ERROR_TOKEN_NOT_ETH_OR_CONTRACT = "TAP_TOKEN_NOT_ETH_OR_CONTRACT";
     string private constant ERROR_TOKEN_TAP_ALREADY_EXISTS = "TAP_TOKEN_TAP_ALREADY_EXISTS";
     string private constant ERROR_TOKEN_TAP_DOES_NOT_EXIST = "TAP_TOKEN_TAP_DOES_NOT_EXIST";
@@ -37,7 +38,7 @@ contract Tap is EtherTokenConstant, IsContract, AragonApp {
 
     Vault public reserve;
     address public beneficiary;
-    uint256 public maxMonthlyTapIncreaseRate;
+    uint256 public maxMonthlyTapIncreasePct;
 
     mapping (address => uint256) public taps;
     mapping (address => uint256) public lastWithdrawals;
@@ -45,7 +46,7 @@ contract Tap is EtherTokenConstant, IsContract, AragonApp {
 
     event UpdateReserve(address reserve);
     event UpdateBeneficiary(address beneficiary);
-    event UpdateMaxMonthlyTapIncreaseRate(uint256 maxMonthlyTapIncreaseRate);
+    event UpdateMaxMonthlyTapIncreasePct(uint256 maxMonthlyTapIncreasePct);
     event AddTokenTap(address indexed token, uint256 tap);
     event RemoveTokenTap(address indexed token);
     event UpdateTokenTap(address indexed token, uint256 tap);
@@ -54,13 +55,14 @@ contract Tap is EtherTokenConstant, IsContract, AragonApp {
 
     /***** external function *****/
 
-    function initialize(Vault _reserve, address _beneficiary, uint256 _maxMonthlyTapIncreaseRate) external onlyInit {
+    function initialize(Vault _reserve, address _beneficiary, uint256 _maxMonthlyTapIncreasePct) external onlyInit {
         require(isContract(_reserve), ERROR_RESERVE_NOT_CONTRACT);
+        require(_maxMonthlyTapIncreasePct < PCT_BASE, ERROR_TAP_INCREASE_PCT_TOO_HIGH);
 
         initialized();
         reserve = _reserve;
         beneficiary = _beneficiary;
-        maxMonthlyTapIncreaseRate = _maxMonthlyTapIncreaseRate;
+        maxMonthlyTapIncreasePct = _maxMonthlyTapIncreasePct;
     }
 
     /**
@@ -82,11 +84,13 @@ contract Tap is EtherTokenConstant, IsContract, AragonApp {
     }
 
     /**
-     * @notice Update maximum monthly tap increase rate to `_maxMonthlyTapIncreaseRate`
-     * @param _maxMonthlyTapIncreaseRate New maximum monthly tap increase rate [in PP 10^18]
+     * @notice Update maximum monthly tap increase to `@formatPct(_maxMonthlyTapIncreasePct)`%
+     * @param _maxMonthlyTapIncreasePct New maximum monthly tap increase rate
     */
-    function updateMaxMonthlyTapIncreaseRate(uint256 _maxMonthlyTapIncreaseRate) external auth(UPDATE_MONTHLY_TAP_INCREASE_ROLE) {
-        _updateMaxMonthlyTapIncreaseRate(_maxMonthlyTapIncreaseRate);
+    function updateMaxMonthlyTapIncreasePct(uint256 _maxMonthlyTapIncreasePct) external auth(UPDATE_MONTHLY_TAP_INCREASE_ROLE) {
+        require(_maxMonthlyTapIncreasePct < PCT_BASE, ERROR_TAP_INCREASE_PCT_TOO_HIGH);
+
+        _updatemaxMonthlyTapIncreasePct(_maxMonthlyTapIncreasePct);
     }
 
     /**
@@ -145,7 +149,7 @@ contract Tap is EtherTokenConstant, IsContract, AragonApp {
 
         uint256 time = (now).sub(lastWithdrawals[_token]);
         uint256 diff = _tap.sub(taps[_token]);
-        uint256 maxRate = maxMonthlyTapIncreaseRate.mul(time).div(uint256(30).mul(uint256(1 days)));
+        uint256 maxRate = maxMonthlyTapIncreasePct.mul(time).div(uint256(30).mul(uint256(1 days)));
 
         return !_isValuePct(diff, taps[_token], maxRate);
     }
@@ -178,10 +182,10 @@ contract Tap is EtherTokenConstant, IsContract, AragonApp {
         emit UpdateBeneficiary(_beneficiary);
     }
 
-    function _updateMaxMonthlyTapIncreaseRate(uint256 _maxMonthlyTapIncreaseRate) internal {
-        maxMonthlyTapIncreaseRate = _maxMonthlyTapIncreaseRate;
+    function _updatemaxMonthlyTapIncreasePct(uint256 _maxMonthlyTapIncreasePct) internal {
+        maxMonthlyTapIncreasePct = _maxMonthlyTapIncreasePct;
 
-        emit UpdateMaxMonthlyTapIncreaseRate(_maxMonthlyTapIncreaseRate);
+        emit UpdateMaxMonthlyTapIncreasePct(_maxMonthlyTapIncreasePct);
     }
 
     function _addTokenTap(address _token, uint256 _tap) internal {
