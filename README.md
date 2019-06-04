@@ -2,7 +2,7 @@
 
 ## Architecture
 
-![Architecture](.gitbook/assets/architecture%20%281%29.svg)
+![Architecture](.github/images/architecture.svg)
 
 ## Contracts
 
