@@ -563,8 +563,8 @@ contract('Tap app', accounts => {
         await tap.addTokenTap(token1.address, 2, { from: authorized })
         await timeTravel(10)
 
-        assert.equal((await tap.getMaxWithdrawal(ETH)).toNumber(), 10)
-        assert.equal((await tap.getMaxWithdrawal(token1.address)).toNumber(), 20)
+        assert.isAtMost((await tap.getMaxWithdrawal(ETH)).minus(10).toNumber(), 1)
+        assert.isAtMost((await tap.getMaxWithdrawal(token1.address)).minus(20).toNumber(), 1)
       })
     })
 
