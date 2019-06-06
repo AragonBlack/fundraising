@@ -54,6 +54,7 @@
     "eth-ens-namehash": "^2.0.8",
     "eth-gas-reporter": "^0.1.1",
     "ganache-cli": "^6.1.0",
+    "mocha-each": "^1.2.0",
     "prettier": "^1.16.4",
     "solidity-coverage": "0.5.11",
     "solium": "^1.2.3",

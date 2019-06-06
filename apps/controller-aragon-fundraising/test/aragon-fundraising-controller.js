@@ -63,13 +63,18 @@ contract('AragonFundraisingController app', accounts => {
     TM_BURN_ROLE,
     POOL_ADD_COLLATERAL_TOKEN_ROLE,
     POOL_TRANSFER_ROLE,
+    MM_UPDATE_FEES_ROLE,
+    MM_UPDATE_BENEFICIARY_ROLE,
     MM_ADD_COLLATERAL_TOKEN_ROLE,
     MM_CREATE_BUY_ORDER_ROLE,
     MM_CREATE_SELL_ORDER_ROLE,
+    TAP_UPDATE_BENEFICIARY_ROLE,
     TAP_ADD_TOKEN_TAP_ROLE,
     TAP_UPDATE_TOKEN_TAP_ROLE,
     TAP_UPDATE_MONTHLY_TAP_INCREASE_ROLE,
     TAP_WITHDRAW_ROLE,
+    CONTROLLER_UPDATE_FEES_ROLE,
+    CONTROLLER_UPDATE_BENEFICIARY_ROLE,
     CONTROLLER_ADD_COLLATERAL_TOKEN_ROLE,
     CONTROLLER_UPDATE_TOKEN_TAP_ROLE,
     CONTROLLER_UPDATE_MONTHLY_TAP_INCREASE_ROLE,
@@ -89,7 +94,8 @@ contract('AragonFundraisingController app', accounts => {
   const MAX_MONTHLY_TAP_INCREASE_RATE = 50 * Math.pow(10, 16)
 
   const BLOCKS_IN_BATCH = 10
-  const FEE_PERCENT = 10000
+  const BUY_FEE_PERCENT = 100000000000000000 // 1%
+  const SELL_FEE_PERCENT = 100000000000000000
 
   const root = accounts[0]
   const authorized = accounts[1]
@@ -127,13 +133,18 @@ contract('AragonFundraisingController app', accounts => {
     await acl.createPermission(marketMaker.address, pool.address, POOL_TRANSFER_ROLE, root, { from: root })
     await acl.grantPermission(tap.address, pool.address, POOL_TRANSFER_ROLE, { from: root })
     await acl.createPermission(controller.address, pool.address, POOL_ADD_COLLATERAL_TOKEN_ROLE, root, { from: root })
+    await acl.createPermission(controller.address, tap.address, TAP_UPDATE_BENEFICIARY_ROLE, root, { from: root })
     await acl.createPermission(controller.address, tap.address, TAP_ADD_TOKEN_TAP_ROLE, root, { from: root })
     await acl.createPermission(controller.address, tap.address, TAP_UPDATE_TOKEN_TAP_ROLE, root, { from: root })
     await acl.createPermission(controller.address, tap.address, TAP_UPDATE_MONTHLY_TAP_INCREASE_ROLE, root, { from: root })
     await acl.createPermission(controller.address, tap.address, TAP_WITHDRAW_ROLE, root, { from: root })
+    await acl.createPermission(controller.address, marketMaker.address, MM_UPDATE_FEES_ROLE, root, { from: root })
+    await acl.createPermission(controller.address, marketMaker.address, MM_UPDATE_BENEFICIARY_ROLE, root, { from: root })
     await acl.createPermission(controller.address, marketMaker.address, MM_ADD_COLLATERAL_TOKEN_ROLE, root, { from: root })
     await acl.createPermission(controller.address, marketMaker.address, MM_CREATE_BUY_ORDER_ROLE, root, { from: root })
     await acl.createPermission(controller.address, marketMaker.address, MM_CREATE_SELL_ORDER_ROLE, root, { from: root })
+    await acl.createPermission(authorized, controller.address, CONTROLLER_UPDATE_FEES_ROLE, root, { from: root })
+    await acl.createPermission(authorized, controller.address, CONTROLLER_UPDATE_BENEFICIARY_ROLE, root, { from: root })
     await acl.createPermission(authorized, controller.address, CONTROLLER_ADD_COLLATERAL_TOKEN_ROLE, root, { from: root })
     await acl.createPermission(authorized, controller.address, CONTROLLER_UPDATE_TOKEN_TAP_ROLE, root, { from: root })
     await acl.createPermission(authorized, controller.address, CONTROLLER_UPDATE_MONTHLY_TAP_INCREASE_ROLE, root, { from: root })
@@ -151,7 +162,16 @@ contract('AragonFundraisingController app', accounts => {
     await pool.initialize()
     await tap.initialize(pool.address, vault.address, MAX_MONTHLY_TAP_INCREASE_RATE)
     await controller.initialize(marketMaker.address, pool.address, tap.address)
-    await marketMaker.initialize(controller.address, tokenManager.address, pool.address, vault.address, formula.address, BLOCKS_IN_BATCH, FEE_PERCENT)
+    await marketMaker.initialize(
+      controller.address,
+      tokenManager.address,
+      pool.address,
+      vault.address,
+      formula.address,
+      BLOCKS_IN_BATCH,
+      BUY_FEE_PERCENT,
+      SELL_FEE_PERCENT
+    )
     // make sure tests start at the beginning of a new batch
     await progressToNextBatch()
   }
@@ -251,13 +271,18 @@ contract('AragonFundraisingController app', accounts => {
     TM_BURN_ROLE = await tmBase.BURN_ROLE()
     POOL_ADD_COLLATERAL_TOKEN_ROLE = await pBase.ADD_COLLATERAL_TOKEN_ROLE()
     POOL_TRANSFER_ROLE = await pBase.TRANSFER_ROLE()
+    TAP_UPDATE_BENEFICIARY_ROLE = await tBase.UPDATE_BENEFICIARY_ROLE()
     TAP_ADD_TOKEN_TAP_ROLE = await tBase.ADD_TOKEN_TAP_ROLE()
     TAP_UPDATE_TOKEN_TAP_ROLE = await tBase.UPDATE_TOKEN_TAP_ROLE()
     TAP_UPDATE_MONTHLY_TAP_INCREASE_ROLE = await tBase.UPDATE_MONTHLY_TAP_INCREASE_ROLE()
     TAP_WITHDRAW_ROLE = await tBase.WITHDRAW_ROLE()
+    MM_UPDATE_FEES_ROLE = await mmBase.UPDATE_FEES_ROLE()
+    MM_UPDATE_BENEFICIARY_ROLE = await mmBase.UPDATE_BENEFICIARY_ROLE()
     MM_ADD_COLLATERAL_TOKEN_ROLE = await mmBase.ADD_COLLATERAL_TOKEN_ROLE()
     MM_CREATE_BUY_ORDER_ROLE = await mmBase.CREATE_BUY_ORDER_ROLE()
     MM_CREATE_SELL_ORDER_ROLE = await mmBase.CREATE_SELL_ORDER_ROLE()
+    CONTROLLER_UPDATE_FEES_ROLE = await cBase.UPDATE_FEES_ROLE()
+    CONTROLLER_UPDATE_BENEFICIARY_ROLE = await cBase.UPDATE_BENEFICIARY_ROLE()
     CONTROLLER_ADD_COLLATERAL_TOKEN_ROLE = await cBase.ADD_COLLATERAL_TOKEN_ROLE()
     CONTROLLER_UPDATE_TOKEN_TAP_ROLE = await cBase.UPDATE_TOKEN_TAP_ROLE()
     CONTROLLER_UPDATE_MONTHLY_TAP_INCREASE_ROLE = await cBase.UPDATE_MONTHLY_TAP_INCREASE_ROLE()
@@ -309,6 +334,44 @@ contract('AragonFundraisingController app', accounts => {
   })
   // #endregion
 
+  // #region updateFees
+  context('> #updateFees', () => {
+    context('> sender has UPDATE_FEES_ROLE', () => {
+      it('it should update fees', async () => {
+        const receipt = await controller.updateFees(BUY_FEE_PERCENT - 10, SELL_FEE_PERCENT + 1, { from: authorized })
+
+        assertExternalEvent(receipt, 'UpdateFees(uint256,uint256)')
+      })
+    })
+
+    context('> sender does not have UPDATE_FEES_ROLE', () => {
+      it('it should revert', async () => {
+        await assertRevert(() => controller.updateFees(BUY_FEE_PERCENT - 10, SELL_FEE_PERCENT + 1, { from: unauthorized }))
+      })
+    })
+  })
+  // #endregion
+
+  // #region updateBeneficiary
+  context('> #updateBeneficiary', () => {
+    context('> sender has UPDATE_BENEFICIARY_ROLE', () => {
+      it('it should update beneficiary', async () => {
+        const receipt = await controller.updateBeneficiary(root, { from: authorized })
+
+        assertExternalEvent(receipt, 'UpdateBeneficiary(address)', 2)
+        assert.equal(await marketMaker.beneficiary(), root)
+        assert.equal(await tap.beneficiary(), root)
+      })
+    })
+
+    context('> sender does not have UPDATE_BENEFICIARY_ROLE', () => {
+      it('it should revert', async () => {
+        await assertRevert(() => controller.updateBeneficiary(root, { from: unauthorized }))
+      })
+    })
+  })
+  // #endregion
+
   // #region addCollateralToken
   context('> #addCollateralToken', () => {
     context('> sender has ADD_COLLATERAL_TOKEN_ROLE', () => {
@@ -336,18 +399,18 @@ contract('AragonFundraisingController app', accounts => {
   // #endregion
 
   // #region updateMaxMonthlyTapIncreaseRate
-  context('> #updateMaxMonthlyTapIncreaseRate', () => {
+  context('> #updateMaxMonthlyTapIncreasePct', () => {
     context('> sender has UPDATE_MONTHLY_TAP_INCREASE_ROLE', () => {
       it('it should update maximum monthly tap increase rate', async () => {
-        const receipt = await controller.updateMaxMonthlyTapIncreaseRate(70 * Math.pow(10, 16), { from: authorized })
+        const receipt = await controller.updateMaxMonthlyTapIncreasePct(70 * Math.pow(10, 16), { from: authorized })
 
-        assertExternalEvent(receipt, 'UpdateMaxMonthlyTapIncreaseRate(uint256)') // tap
+        assertExternalEvent(receipt, 'UpdateMaxMonthlyTapIncreasePct(uint256)') // tap
       })
     })
 
     context('> sender does not have UPDATE_MONTHLY_TAP_INCREASE_ROLE', () => {
       it('it should revert', async () => {
-        await assertRevert(() => controller.updateMaxMonthlyTapIncreaseRate(70 * Math.pow(10, 16), { from: unauthorized }))
+        await assertRevert(() => controller.updateMaxMonthlyTapIncreasePct(70 * Math.pow(10, 16), { from: unauthorized }))
       })
     })
   })
@@ -618,6 +681,77 @@ contract('AragonFundraisingController app', accounts => {
 
       const receipt2 = await controller.claimSell(token1.address, batchId, { from: authorized })
 
+      assertExternalEvent(receipt2, 'ReturnSell(address,address,uint256)') // market maker
+    })
+  })
+  // #endregion
+
+  // #region clearBatchesAndClaimBuy
+  context('> #clearBatchesAndClaimBuy', () => {
+    it('it should clear batches and return bonds [ETH]', async () => {
+      await controller.addCollateralToken(ETH, randomVirtualSupply(), randomVirtualBalance(), randomReserveRatio(), randomTap(), { from: authorized })
+
+      const amount = randomAmount()
+      const receipt1 = await controller.createBuyOrder(ETH, amount, { from: authorized, value: amount })
+      const batchId = getBuyOrderBatchId(receipt1)
+
+      await progressToNextBatch()
+
+      const receipt2 = await controller.clearBatchesAndClaimBuy(ETH, batchId, { from: authorized })
+
+      assertExternalEvent(receipt2, 'ClearBatch(address,uint256)') // market maker
+      assertExternalEvent(receipt2, 'ReturnBuy(address,address,uint256)') // market maker
+    })
+
+    it('it should clear batches and return bonds [ERC20]', async () => {
+      await controller.addCollateralToken(token1.address, randomVirtualSupply(), randomVirtualBalance(), randomReserveRatio(), randomTap(), {
+        from: authorized,
+      })
+
+      const receipt1 = await controller.createBuyOrder(token1.address, randomAmount(), { from: authorized })
+      const batchId = getBuyOrderBatchId(receipt1)
+
+      await progressToNextBatch()
+
+      const receipt2 = await controller.clearBatchesAndClaimBuy(token1.address, batchId, { from: authorized })
+
+      assertExternalEvent(receipt2, 'ClearBatch(address,uint256)') // market maker
+      assertExternalEvent(receipt2, 'ReturnBuy(address,address,uint256)') // market maker
+    })
+  })
+  // #endregion
+
+  // #region clearBatchesAndClaimSell
+  context('> #clearBatchesAndClaimSell', () => {
+    it('it should clear batches and return collateral [ETH]', async () => {
+      await controller.addCollateralToken(ETH, randomVirtualSupply(), randomVirtualBalance(), randomReserveRatio(), randomTap(), { from: authorized })
+      const balance = await createAndClaimBuyOrder({ address: authorized, collateralToken: ETH, amount: randomAmount() })
+
+      const receipt1 = await controller.createSellOrder(ETH, balance, { from: authorized })
+      const batchId = getSellOrderBatchId(receipt1)
+
+      await progressToNextBatch()
+
+      const receipt2 = await controller.clearBatchesAndClaimSell(ETH, batchId, { from: authorized })
+
+      assertExternalEvent(receipt2, 'ClearBatch(address,uint256)') // market maker
+      assertExternalEvent(receipt2, 'ReturnSell(address,address,uint256)') // market maker
+    })
+
+    it('it should clear batches and return collateral [ERC20]', async () => {
+      await controller.addCollateralToken(token1.address, randomVirtualSupply(), randomVirtualBalance(), randomReserveRatio(), randomTap(), {
+        from: authorized,
+      })
+      const balance = await createAndClaimBuyOrder({ address: authorized, collateralToken: token1.address, amount: randomAmount() })
+
+      const receipt1 = await controller.createSellOrder(token1.address, balance, { from: authorized })
+      const batchId = getSellOrderBatchId(receipt1)
+
+      await progressToNextBatch()
+
+      const receipt2 = await controller.clearBatchesAndClaimSell(token1.address, batchId, { from: authorized })
+
+      assertExternalEvent(receipt2, 'ClearBatch(address,uint256)') // market maker
       assertExternalEvent(receipt2, 'ReturnSell(address,address,uint256)') // market maker
     })
   })

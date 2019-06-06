@@ -24,12 +24,33 @@ contract BancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
 
     bytes32 public constant ADD_COLLATERAL_TOKEN_ROLE = keccak256("ADD_COLLATERAL_TOKEN_ROLE");
     bytes32 public constant UPDATE_COLLATERAL_TOKEN_ROLE = keccak256("UPDATE_COLLATERAL_TOKEN_ROLE");
-    bytes32 public constant UPDATE_FEE_ROLE = keccak256("UPDATE_FEE_ROLE");
-    bytes32 public constant UPDATE_GAS_COSTS_ROLE = keccak256("UPDATE_GAS_COSTS_ROLE");
+    bytes32 public constant UPDATE_BENEFICIARY_ROLE = keccak256("UPDATE_BENEFICIARY_ROLE");
+    bytes32 public constant UPDATE_FEES_ROLE = keccak256("UPDATE_FEES_ROLE");
     bytes32 public constant CREATE_BUY_ORDER_ROLE = keccak256("CREATE_BUY_ORDER_ROLE");
     bytes32 public constant CREATE_SELL_ORDER_ROLE = keccak256("CREATE_SELL_ORDER_ROLE");
 
-    uint32 private constant PPM  = 1000000;
+    uint64 public constant PCT_BASE = 10 ** 18; // 0% = 0; 1% = 10^16; 100% = 10^18
+    uint32 public constant PPM = 1000000;
+
+    string private constant ERROR_CONTROLLER_NOT_CONTRACT = "BMM_CONTROLLER_NOT_CONTRACT";
+    string private constant ERROR_TM_NOT_CONTRACT = "BMM_TM_NOT_CONTRACT";
+    string private constant ERROR_RESERVE_NOT_CONTRACT = "BMM_RESERVE_NOT_CONTRACT";
+    string private constant ERROR_FORMULA_NOT_CONTRACT = "BMM_FORMULA_NOT_CONTRACT";
+    string private constant ERROR_NOT_CONTRACT = "BMM_NOT_CONTRACT";
+    string private constant ERROR_BATCH_BLOCKS_ZERO = "BMM_BATCH_BLOCKS_ZERO";
+    string private constant ERROR_FEE_PERCENTAGE_TOO_HIGH = "BMM_FEE_PERCENTAGE_TOO_HIGH";
+    string private constant ERROR_COLLATERAL_NOT_WHITELISTED = "BMM_COLLATERAL_NOT_WHITELISTED";
+    string private constant ERROR_COLLATERAL_NOT_ETH_OR_ERC20 = "BMM_COLLATERAL_NOT_ETH_OR_ERC20";
+    string private constant ERROR_BUY_VALUE_ZERO = "BMM_BUY_VALUE_ZERO";
+    string private constant ERROR_SELL_AMOUNT_ZERO = "BMM_SELL_AMOUNT_ZERO";
+    string private constant ERROR_INSUFFICIENT_VALUE = "BMM_INSUFFICIENT_VALUE";
+    string private constant ERROR_INSUFFICIENT_BALANCE = "BMM_INSUFFICIENT_BALANCE";
+    string private constant ERROR_NOTHING_TO_CLAIM = "BMM_NOTHING_TO_CLAIM";
+    string private constant ERROR_BATCHES_ALREADY_CLEARED = "BMM_BATCHES_ALREADY_CLEARED";
+    string private constant ERROR_BATCH_NOT_CLEARED = "BMM_BATCH_NOT_CLEARED";
+    string private constant ERROR_BATCH_NOT_OVER = "BMM_BATCH_NOT_OVER";
+    string private constant ERROR_TRANSFER_FROM_FAILED = "BMM_TRANSFER_FROM_FAILED";
+
 
     struct Batch {
         bool    initialized;
@@ -54,14 +75,13 @@ contract BancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
 
     uint256 public waitingClear;
     uint256 public batchBlocks;
-    uint256 public gasCostBuyOrder;
-    uint256 public gasCostSellOrder;
-    uint256 public feePercentPPM; // 100,000,000 = 100% / 1,000,000 = 1%
+    uint256 public buyFeePct;
+    uint256 public sellFeePct;
 
     IMarketMakerController public controller;
     TokenManager           public tokenManager;
     ERC20                  public token;
-    Vault                  public pool;
+    Vault                  public reserve;
     address                public beneficiary;
     IBancorFormula         public formula;
 
@@ -71,43 +91,48 @@ contract BancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
 
     event AddCollateralToken(address indexed collateralToken, uint256 virtualSupply, uint256 virtualBalance, uint32 reserveRatio);
     event UpdateCollateralToken(address indexed collateralToken, uint256 virtualSupply, uint256 virtualBalance, uint32 reserveRatio);
-    event UpdateFee(uint256 fee);
-    event UpdateGasCosts(uint256 gasCostBuyOrder, uint256 gasCostSellOrder);
+    event UpdateBeneficiary(address beneficiary);
+    event UpdateFees(uint256 buyFee, uint256 sellFee);
     event NewBuyOrder(address indexed buyer, address indexed collateralToken, uint256 value, uint256 batchId);
     event NewSellOrder(address indexed seller, address indexed collateralToken, uint256 amount, uint256 batchId);
+    event ClearBatch(address indexed collateralToken, uint256 batchId);
     event ReturnBuy(address indexed buyer, address indexed collateralToken, uint256 amount);
     event ReturnSell(address indexed seller, address indexed collateralToken, uint256 value);
-    event ClearBatch(address indexed collateralToken, uint256 batchId);
 
     function initialize(
         IMarketMakerController _controller,
         TokenManager           _tokenManager,
-        Vault                  _pool,
+        Vault                  _reserve,
         address                _beneficiary,
         IBancorFormula         _formula,
         uint256                _batchBlocks,
-        uint256                _fee
-        ) external onlyInit
+        uint256                _buyFee,
+        uint256                _sellFee
+    )
+        external onlyInit
     {
         initialized();
 
-        require(isContract(_controller) && isContract(_tokenManager) && isContract(_pool) && isContract(_formula) && _batchBlocks > 0);
+        require(isContract(_controller), ERROR_CONTROLLER_NOT_CONTRACT);
+        require(isContract(_tokenManager), ERROR_TM_NOT_CONTRACT);
+        require(isContract(_reserve), ERROR_RESERVE_NOT_CONTRACT);
+        require(isContract(_formula), ERROR_FORMULA_NOT_CONTRACT);
+        require(_batchBlocks > 0, ERROR_BATCH_BLOCKS_ZERO);
+        require(_buyFee < PCT_BASE, ERROR_FEE_PERCENTAGE_TOO_HIGH);
+        require(_sellFee < PCT_BASE, ERROR_FEE_PERCENTAGE_TOO_HIGH);
 
         controller = _controller;
         tokenManager = _tokenManager;
         token = ERC20(tokenManager.token());
-        pool = _pool;
+        reserve = _reserve;
         beneficiary = _beneficiary;
         formula = _formula;
         batchBlocks = _batchBlocks;
-        feePercentPPM = _fee;
+        buyFeePct = _buyFee;
+        sellFeePct = _sellFee;
     }
 
     /***** external functions *****/
-
-    /* updateReserve */
-
-    /* updateBeneficiary */
 
     /**
       * @notice Add `_collateralToken.symbol(): string` as a whitelisted collateral
@@ -124,17 +149,10 @@ contract BancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
     )
         external auth(ADD_COLLATERAL_TOKEN_ROLE)
     {
-        require(!collateralTokenInfo[_collateralToken].exists);
-        require(_collateralToken == ETH || isContract(_collateralToken));
+        require(!collateralTokenInfo[_collateralToken].exists, ERROR_COLLATERAL_NOT_WHITELISTED);
+        require(_collateralToken == ETH || isContract(_collateralToken), ERROR_COLLATERAL_NOT_ETH_OR_ERC20);
 
-        collateralTokens[collateralTokensLength] = _collateralToken;
-        collateralTokenInfo[_collateralToken].exists = true;
-        collateralTokenInfo[_collateralToken].virtualSupply = _virtualSupply;
-        collateralTokenInfo[_collateralToken].virtualBalance = _virtualBalance;
-        collateralTokenInfo[_collateralToken].reserveRatio = _reserveRatio;
-        collateralTokensLength = collateralTokensLength + 1;
-
-        emit AddCollateralToken(_collateralToken, _virtualSupply, _virtualBalance, _reserveRatio);
+        _addCollateralToken(_collateralToken, _virtualSupply, _virtualBalance, _reserveRatio);
     }
 
     /**
@@ -152,34 +170,29 @@ contract BancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
     )
         external auth(UPDATE_COLLATERAL_TOKEN_ROLE)
     {
-        require(collateralTokenInfo[_collateralToken].exists);
+        require(collateralTokenInfo[_collateralToken].exists, ERROR_COLLATERAL_NOT_WHITELISTED);
 
-        collateralTokenInfo[_collateralToken].virtualSupply = _virtualSupply;
-        collateralTokenInfo[_collateralToken].virtualBalance = _virtualBalance;
-        collateralTokenInfo[_collateralToken].reserveRatio = _reserveRatio;
-
-        emit UpdateCollateralToken(_collateralToken, _virtualSupply, _virtualBalance, _reserveRatio);
+        _updateCollateralToken(_collateralToken, _virtualSupply, _virtualBalance, _reserveRatio);
     }
 
     /**
-     * @notice Update the fee percentage deducted from all buy and sell orders to `_fee` PPM
-     * @param _fee The new fee to be used [in PPM]
+     * @notice Update the beneficiary to `_beneficiary`
+     * @param _beneficiary The new beneficiary to be used
     */
-    function updateFee(uint256 _fee) external auth(UPDATE_FEE_ROLE) {
-        feePercentPPM = _fee;
-        emit UpdateFee(_fee);
+    function updateBeneficiary(address _beneficiary) external auth(UPDATE_BENEFICIARY_ROLE) {
+        _updateBeneficiary(_beneficiary);
     }
 
     /**
-     * @notice Update the gas costs to be included with every buy and sell orders to `_gasCostBuyOrder` and `_gasCostSellOrder`
-     * @param _gasCostBuyOrder The new buy gas amount to be used
-     * @param _gasCostSellOrder The new sell gas amount to be used
+     * @notice Update the fee percentage deducted from all buy and sell orders to respectively `@formatPct(_buyFee)` % and `@formatPct(_sellFee)` %
+     * @param _buyFee The new buy fee to be used
+     * @param _sellFee The new sell fee to be used
     */
-    function updateGasCosts(uint256 _gasCostBuyOrder, uint256 _gasCostSellOrder) external auth(UPDATE_GAS_COSTS_ROLE) {
-        gasCostBuyOrder = _gasCostBuyOrder;
-        gasCostSellOrder = _gasCostSellOrder;
+    function updateFees(uint256 _buyFee, uint256 _sellFee) external auth(UPDATE_FEES_ROLE) {
+        require(_buyFee < PCT_BASE, ERROR_FEE_PERCENTAGE_TOO_HIGH);
+        require(_sellFee < PCT_BASE, ERROR_FEE_PERCENTAGE_TOO_HIGH);
 
-        emit UpdateGasCosts(_gasCostBuyOrder, _gasCostSellOrder);
+        _updateFees(_buyFee, _sellFee);
     }
 
     /**
@@ -190,9 +203,11 @@ contract BancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
      * @param _value The amount of collateral token to be spent
     */
     function createBuyOrder(address _buyer, address _collateralToken, uint256 _value) external payable auth(CREATE_BUY_ORDER_ROLE) {
-        require(collateralTokenInfo[_collateralToken].exists);
-        require(_value != 0);
-        require(msg.value >= (_collateralToken == ETH ? gasCostBuyOrder.add(_value) : gasCostBuyOrder));
+        require(collateralTokenInfo[_collateralToken].exists, ERROR_COLLATERAL_NOT_WHITELISTED);
+        require(_value != 0, ERROR_BUY_VALUE_ZERO);
+        if (_collateralToken == ETH) {
+            require(msg.value >= _value, ERROR_INSUFFICIENT_VALUE);
+        }
 
         _createBuyOrder(_buyer, _collateralToken, _value);
     }
@@ -204,11 +219,10 @@ contract BancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
      * @param _collateralToken The address of the collateral token to be returned
      * @param _amount The amount of bonded token to be spent
     */
-    function createSellOrder(address _seller, address _collateralToken, uint256 _amount) external payable auth(CREATE_SELL_ORDER_ROLE) {
-        require(collateralTokenInfo[_collateralToken].exists);
-        require(_amount != 0);
-        require(token.staticBalanceOf(_seller) >= _amount);
-        require(msg.value >= gasCostSellOrder);
+    function createSellOrder(address _seller, address _collateralToken, uint256 _amount) external auth(CREATE_SELL_ORDER_ROLE) {
+        require(collateralTokenInfo[_collateralToken].exists, ERROR_COLLATERAL_NOT_WHITELISTED);
+        require(_amount != 0, ERROR_SELL_AMOUNT_ZERO);
+        require(token.staticBalanceOf(_seller) >= _amount, ERROR_INSUFFICIENT_BALANCE);
 
         _createSellOrder(_seller, _collateralToken, _amount);
     }
@@ -216,9 +230,9 @@ contract BancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
     /**
      * @notice Clear the last batches of orders [if they have not yet been cleared]
     */
-    function clearBatches() external {
-        require(waitingClear != 0); // require that batch has not yet been cleared
-        require(waitingClear < getCurrentBatchId()); // require current batch to be over
+    function clearBatches() external isInitialized {
+        require(waitingClear != 0, ERROR_BATCHES_ALREADY_CLEARED); // require that batch has not yet been cleared
+        require(waitingClear < getCurrentBatchId(), ERROR_BATCH_NOT_OVER); // require current batch to be over
 
         _clearBatches();
     }
@@ -229,14 +243,13 @@ contract BancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
      * @param _collateralToken The address of the collateral token used
      * @param _batchId The id of the batch used
     */
-    function claimBuy(address _buyer, address _collateralToken, uint256 _batchId) external {
-        require(collateralTokenInfo[_collateralToken].exists);
+    function claimBuy(address _buyer, address _collateralToken, uint256 _batchId) external isInitialized {
+        require(collateralTokenInfo[_collateralToken].exists, ERROR_COLLATERAL_NOT_WHITELISTED);
         Batch storage batch = collateralTokenInfo[_collateralToken].batches[_batchId];
-        require(batch.cleared);
-        require(batch.buyers[_buyer] != 0);
+        require(batch.cleared, ERROR_BATCH_NOT_CLEARED);
+        require(batch.buyers[_buyer] != 0, ERROR_NOTHING_TO_CLAIM);
 
         _claimBuy(_buyer, _collateralToken, _batchId);
-        // msg.sender.transfer(gasCostBuyOrder);
     }
 
     /**
@@ -245,14 +258,45 @@ contract BancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
      * @param _collateralToken The address of the collateral token used
      * @param _batchId The id of the batch used
     */
-    function claimSell(address _seller, address _collateralToken, uint256 _batchId) external {
-        require(collateralTokenInfo[_collateralToken].exists);
+    function claimSell(address _seller, address _collateralToken, uint256 _batchId) external isInitialized {
+        require(collateralTokenInfo[_collateralToken].exists, ERROR_COLLATERAL_NOT_WHITELISTED);
         Batch storage batch = collateralTokenInfo[_collateralToken].batches[_batchId];
-        require(batch.cleared);
-        require(batch.sellers[_seller] != 0);
+        require(batch.cleared, ERROR_BATCH_NOT_CLEARED);
+        require(batch.sellers[_seller] != 0, ERROR_NOTHING_TO_CLAIM);
 
         _claimSell(_seller, _collateralToken, _batchId);
-        // msg.sender.transfer(gasCostSellOrder);
+    }
+
+    /**
+     * @notice Clear the last batches of orders and return the results of `_buyer`'s buy orders through `_collateralToken.symbol(): string` collateral from last batch
+     * @param _buyer The address of the user whose buy results are to be returned
+     * @param _collateralToken The address of the collateral token used
+     * @param _batchId The id of the batch used
+    */
+    function clearBatchesAndClaimBuy(address _buyer, address _collateralToken, uint256 _batchId) external isInitialized {
+        require(waitingClear < getCurrentBatchId(), ERROR_BATCH_NOT_OVER);
+        require(collateralTokenInfo[_collateralToken].exists, ERROR_COLLATERAL_NOT_WHITELISTED);
+
+        if (waitingClear == _batchId)
+            _clearBatches();
+
+        _claimBuy(_buyer, _collateralToken, _batchId);
+    }
+
+    /**
+     * @notice Clear the last batches of orders and return the results of `_seller`'s `_collateralToken.symbol(): string` sell orders from last batch
+     * @param _seller The address of the user whose sale results are to be returned
+     * @param _collateralToken The address of the collateral token used
+     * @param _batchId The id of the batch used
+    */
+    function clearBatchesAndClaimSell(address _seller, address _collateralToken, uint256 _batchId) external isInitialized {
+        require(waitingClear < getCurrentBatchId(), ERROR_BATCH_NOT_OVER);
+        require(collateralTokenInfo[_collateralToken].exists, ERROR_COLLATERAL_NOT_WHITELISTED);
+
+        if (waitingClear == _batchId)
+            _clearBatches();
+
+        _claimSell(_seller, _collateralToken, _batchId);
     }
 
     /***** public view functions *****/
@@ -261,13 +305,14 @@ contract BancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
      * @dev Get the id [i.e. block number] attached to the current batches of orders
      * @return The id the current batches of orders
     */
-    function getCurrentBatchId() public view returns (uint256) {
+    function getCurrentBatchId() public view isInitialized returns (uint256) {
         return (block.number.div(batchBlocks)).mul(batchBlocks);
     }
 
     function getBatch(address _collateralToken, uint256 _batchId)
         public
         view
+        isInitialized
         returns (bool, bool, uint256, uint256, uint256, uint256, uint256, uint256)
     {
         Batch storage batch = collateralTokenInfo[_collateralToken].batches[_batchId];
@@ -284,7 +329,7 @@ contract BancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
         );
     }
 
-    function getCollateralTokenInfo(address _collateralToken) public view returns (bool, uint256, uint256, uint32) {
+    function getCollateralTokenInfo(address _collateralToken) public view isInitialized returns (bool, uint256, uint256, uint32) {
         Collateral storage collateral = collateralTokenInfo[_collateralToken];
 
         return (collateral.exists, collateral.virtualSupply, collateral.virtualBalance, collateral.reserveRatio);
@@ -300,7 +345,14 @@ contract BancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
      * @param _poolBalance The collateral pool balance to be used in the calculation
      * @return The current exact price in parts per million as collateral over token
     */
-    function getPricePPM(address _collateralToken, uint256 _totalSupply, uint256 _poolBalance) public view returns (uint256 price) {
+    function getPricePPM(
+        address _collateralToken,
+        uint256 _totalSupply,
+        uint256 _poolBalance
+    )
+        public view isInitialized
+        returns (uint256 price)
+    {
         price = uint256(PPM).mul(
             _poolBalance.add(
                 collateralTokenInfo[_collateralToken].virtualBalance)
@@ -321,7 +373,15 @@ contract BancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
      * @param _buyValue The amount of collateral tokens to be spent in the purchase
      * @return The number of tokens that would be purchased in this scenario
     */
-    function getBuy(address _collateralToken, uint256 _totalSupply, uint256 _poolBalance, uint256 _buyValue) public view returns (uint256) {
+    function getBuy(
+        address _collateralToken,
+        uint256 _totalSupply,
+        uint256 _poolBalance,
+        uint256 _buyValue
+    )
+        public view isInitialized
+        returns (uint256)
+    {
         return formula.calculatePurchaseReturn(
             _totalSupply.add(collateralTokenInfo[_collateralToken].virtualSupply),
             _poolBalance.add(collateralTokenInfo[_collateralToken].virtualBalance),
@@ -338,7 +398,15 @@ contract BancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
      * @param _sellAmount The amount of tokens to be sold in the transaction
      * @return The number of collateral tokens that would be returned in this scenario
     */
-    function getSell(address _collateralToken, uint256 _totalSupply, uint256 _poolBalance, uint256 _sellAmount) public view returns (uint256) {
+    function getSell(
+        address _collateralToken,
+        uint256 _totalSupply,
+        uint256 _poolBalance,
+        uint256 _sellAmount
+    )
+        public view isInitialized
+        returns (uint256)
+    {
         return formula.calculateSaleReturn(
             _totalSupply.add(collateralTokenInfo[_collateralToken].virtualSupply),
             _poolBalance.add(collateralTokenInfo[_collateralToken].virtualBalance),
@@ -359,7 +427,7 @@ contract BancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
             // initialize new batch
             for (uint i = 0; i < collateralTokensLength; i++) {
                 address collateralToken = collateralTokens[i];
-                collateralTokenInfo[collateralToken].batches[batchId].poolBalance = controller.balanceOf(address(pool), collateralToken);
+                collateralTokenInfo[collateralToken].batches[batchId].poolBalance = controller.balanceOf(address(reserve), collateralToken);
                 collateralTokenInfo[collateralToken].batches[batchId].totalSupply = token.totalSupply();
                 collateralTokenInfo[collateralToken].batches[batchId].initialized = true;
             }
@@ -370,13 +438,45 @@ contract BancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
         return (batchId, batch);
     }
 
+    function _addCollateralToken(address _collateralToken, uint256 _virtualSupply, uint256 _virtualBalance, uint32 _reserveRatio) internal {
+        collateralTokens[collateralTokensLength] = _collateralToken;
+        collateralTokenInfo[_collateralToken].exists = true;
+        collateralTokenInfo[_collateralToken].virtualSupply = _virtualSupply;
+        collateralTokenInfo[_collateralToken].virtualBalance = _virtualBalance;
+        collateralTokenInfo[_collateralToken].reserveRatio = _reserveRatio;
+        collateralTokensLength = collateralTokensLength + 1;
+
+        emit AddCollateralToken(_collateralToken, _virtualSupply, _virtualBalance, _reserveRatio);
+    }
+
+    function _updateCollateralToken(address _collateralToken, uint256 _virtualSupply, uint256 _virtualBalance, uint32 _reserveRatio) internal {
+        collateralTokenInfo[_collateralToken].virtualSupply = _virtualSupply;
+        collateralTokenInfo[_collateralToken].virtualBalance = _virtualBalance;
+        collateralTokenInfo[_collateralToken].reserveRatio = _reserveRatio;
+
+        emit UpdateCollateralToken(_collateralToken, _virtualSupply, _virtualBalance, _reserveRatio);
+    }
+
+    function _updateBeneficiary(address _beneficiary) internal {
+        beneficiary = _beneficiary;
+
+        emit UpdateBeneficiary(_beneficiary);
+    }
+
+    function _updateFees(uint256 _buyFee, uint256 _sellFee) internal {
+        buyFeePct = _buyFee;
+        sellFeePct = _sellFee;
+
+        emit UpdateFees(_buyFee, _sellFee);
+    }
+
     function _createBuyOrder(address _buyer, address _collateralToken, uint256 _value) internal {
         (uint256 batchId, Batch storage batch) = _getInitializedBatch(_collateralToken);
 
-        uint256 fee = _value.mul(feePercentPPM).div(PPM);
+        uint256 fee = _value.mul(buyFeePct).div(PCT_BASE);
         uint256 valueAfterFee = _value.sub(fee);
 
-        _transfer(_buyer, address(pool), _collateralToken, valueAfterFee);
+        _transfer(_buyer, address(reserve), _collateralToken, valueAfterFee);
         if (fee > 0)
             _transfer(_buyer, beneficiary, _collateralToken, fee);
 
@@ -389,16 +489,12 @@ contract BancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
     function _createSellOrder(address _seller, address _collateralToken, uint256 _amount) internal {
         (uint256 batchId, Batch storage batch) = _getInitializedBatch(_collateralToken);
 
-        uint256 fee = _amount.mul(feePercentPPM).div(PPM);
-        uint256 amountAfterFee = _amount.sub(fee);
-
         tokenManager.burn(_seller, _amount);
-        tokenManager.mint(beneficiary, fee);
 
-        batch.totalSellSpend = batch.totalSellSpend.add(amountAfterFee);
-        batch.sellers[_seller] = batch.sellers[_seller].add(amountAfterFee);
+        batch.totalSellSpend = batch.totalSellSpend.add(_amount);
+        batch.sellers[_seller] = batch.sellers[_seller].add(_amount);
 
-        emit NewSellOrder(_seller, _collateralToken, amountAfterFee, batchId);
+        emit NewSellOrder(_seller, _collateralToken, _amount, batchId);
     }
 
     function _clearBatches() internal {
@@ -414,7 +510,7 @@ contract BancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
 
         if (waitingClear == 0)
             return;
-        
+
         if (batch.cleared)
             return;
 
@@ -424,13 +520,12 @@ contract BancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
         // now buy orders bonded tokens need to be minted
         // the resulting tokens are held by the pool contract until collected by the buyers
         if (batch.totalBuyReturn > 0)
-            tokenManager.mint(address(pool), batch.totalBuyReturn);
+            tokenManager.mint(address(reserve), batch.totalBuyReturn);
 
         batch.cleared = true;
 
         emit ClearBatch(_collateralToken, waitingClear);
     }
-
 
     function _clearMatching(address collateralToken) internal {
         Batch storage batch = collateralTokenInfo[collateralToken].batches[waitingClear]; // clearing batch
@@ -459,7 +554,7 @@ contract BancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
 
         // if more sells than buys
         if (resultOfSell >= batch.totalBuySpend) {
-            // totalBuyReturn is the number of tokens bought as a result of all buy orders combined at the 
+            // totalBuyReturn is the number of tokens bought as a result of all buy orders combined at the
             // current exact price. We have already determined that this number is less than the
             // total amount of tokens to be sold.
             // tokens = totalBuySpend / staticPrice. staticPrice is in PPM, to avoid
@@ -512,7 +607,7 @@ contract BancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
         batch.buyers[_buyer] = 0;
 
         if (buyReturn > 0) {
-            tokenManager.burn(address(pool), buyReturn);
+            tokenManager.burn(address(reserve), buyReturn);
             tokenManager.mint(_buyer, buyReturn);
         }
 
@@ -522,21 +617,26 @@ contract BancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
     function _claimSell(address _seller, address _collateralToken, uint256 _batchId) internal {
         Batch storage batch = collateralTokenInfo[_collateralToken].batches[_batchId];
         uint256 sellReturn = (batch.sellers[_seller].mul(batch.totalSellReturn)).div(batch.totalSellSpend);
+        uint256 fee = sellReturn.mul(sellFeePct).div(PCT_BASE);
+        uint256 amountAfterFee = sellReturn.sub(fee);
 
         batch.sellers[_seller] = 0;
 
-        if (sellReturn > 0) {
-            pool.transfer(_collateralToken, _seller, sellReturn);
+        if (amountAfterFee > 0) {
+            reserve.transfer(_collateralToken, _seller, amountAfterFee);
+        }
+        if (fee > 0) {
+            reserve.transfer(_collateralToken, beneficiary, fee);
         }
 
-        emit ReturnSell(_seller, _collateralToken, sellReturn);
+        emit ReturnSell(_seller, _collateralToken, amountAfterFee);
     }
 
     function _transfer(address _from, address _to, address _collateralToken, uint256 _amount) internal {
         if (_collateralToken == ETH) {
             _to.transfer(_amount);
         } else {
-            require(ERC20(_collateralToken).safeTransferFrom(_from, _to, _amount));
+            require(ERC20(_collateralToken).safeTransferFrom(_from, _to, _amount), ERROR_TRANSFER_FROM_FAILED);
         }
     }
 }

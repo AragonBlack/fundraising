@@ -40,7 +40,7 @@ contract('Tap app', accounts => {
 
   const INITIAL_ETH_BALANCE = 100000000
   const INITIAL_TOKEN_BALANCE = 100000000
-  const MAX_MONTHLY_TAP_INCREASE_RATE = 50 * Math.pow(10, 16)
+  const MAX_MONTHLY_TAP_INCREASE_PCT = 50 * Math.pow(10, 16)
 
   const root = accounts[0]
   const authorized = accounts[1]
@@ -79,7 +79,7 @@ contract('Tap app', accounts => {
     // initializations
     await reserve.initialize()
     await beneficiary.initialize()
-    await tap.initialize(reserve.address, beneficiary.address, MAX_MONTHLY_TAP_INCREASE_RATE)
+    await tap.initialize(reserve.address, beneficiary.address, MAX_MONTHLY_TAP_INCREASE_PCT)
     // balances
     await forceSendETH(reserve.address, INITIAL_ETH_BALANCE)
     token1 = await TokenMock.new(reserve.address, INITIAL_TOKEN_BALANCE)
@@ -123,7 +123,7 @@ contract('Tap app', accounts => {
       it('it should initialize tap', async () => {
         assert.equal(await tap.reserve(), reserve.address)
         assert.equal(await tap.beneficiary(), beneficiary.address)
-        assert.equal(await tap.maxMonthlyTapIncreaseRate(), MAX_MONTHLY_TAP_INCREASE_RATE)
+        assert.equal(await tap.maxMonthlyTapIncreasePct(), MAX_MONTHLY_TAP_INCREASE_PCT)
       })
     })
 
@@ -137,12 +137,13 @@ contract('Tap app', accounts => {
         const _tReceipt = await dao.newAppInstance(TAP_ID, tBase.address, '0x', false)
         const _tap = await Tap.at(getEvent(_tReceipt, 'NewAppProxy', 'proxy'))
 
-        await assertRevert(() => _tap.initialize(root, beneficiary.address, MAX_MONTHLY_TAP_INCREASE_RATE))
+        await assertRevert(() => _tap.initialize(root, beneficiary.address, MAX_MONTHLY_TAP_INCREASE_PCT))
+        await assertRevert(() => _tap.initialize(reserve.address, beneficiary.address, Math.pow(10, 18) + 1))
       })
     })
 
     it('it should revert on re-initialization', async () => {
-      await assertRevert(() => tap.initialize(reserve.address, beneficiary.address, MAX_MONTHLY_TAP_INCREASE_RATE, { from: authorized }))
+      await assertRevert(() => tap.initialize(reserve.address, beneficiary.address, MAX_MONTHLY_TAP_INCREASE_PCT, { from: authorized }))
     })
   })
 
@@ -192,19 +193,27 @@ contract('Tap app', accounts => {
     })
   })
 
-  context('> #updateMaxMonthlyTapIncreaseRate', () => {
+  context('> #updateMaxMonthlyTapIncreasePct', () => {
     context('> sender has UPDATE_MONTHLY_TAP_INCREASE_ROLE', () => {
-      it('it should update maximum monthly tap increase rate', async () => {
-        const receipt = await tap.updateMaxMonthlyTapIncreaseRate(70 * Math.pow(10, 16), { from: authorized })
+      context('> and increase percentage is valid', () => {
+        it('it should update maximum monthly tap increase rate', async () => {
+          const receipt = await tap.updateMaxMonthlyTapIncreasePct(70 * Math.pow(10, 16), { from: authorized })
 
-        assertEvent(receipt, 'UpdateMaxMonthlyTapIncreaseRate')
-        assert.equal(await tap.maxMonthlyTapIncreaseRate(), 70 * Math.pow(10, 16))
+          assertEvent(receipt, 'UpdateMaxMonthlyTapIncreasePct')
+          assert.equal(await tap.maxMonthlyTapIncreasePct(), 70 * Math.pow(10, 16))
+        })
+      })
+
+      context('> but increase percentage is too high', () => {
+        it('it should revert', async () => {
+          await assertRevert(() => tap.updateMaxMonthlyTapIncreasePct(Math.pow(10, 18) + 1, { from: authorized }))
+        })
       })
     })
 
     context('> sender does not have UPDATE_MONTHLY_TAP_INCREASE_ROLE', () => {
       it('it should revert', async () => {
-        await assertRevert(() => tap.updateMaxMonthlyTapIncreaseRate(70 * Math.pow(10, 16), { from: unauthorized }))
+        await assertRevert(() => tap.updateMaxMonthlyTapIncreasePct(70 * Math.pow(10, 16), { from: unauthorized }))
       })
     })
   })
@@ -522,9 +531,9 @@ contract('Tap app', accounts => {
         // 1 month = 2592000 seconds
         await timeTravel(2592000)
 
-        assert.equal(await tap.isMonthlyTapIncreaseValid(ETH, INITIAL_TAP + (INITIAL_TAP * MAX_MONTHLY_TAP_INCREASE_RATE) / (100 * Math.pow(10, 16)) - 1), true)
+        assert.equal(await tap.isMonthlyTapIncreaseValid(ETH, INITIAL_TAP + (INITIAL_TAP * MAX_MONTHLY_TAP_INCREASE_PCT) / (100 * Math.pow(10, 16)) - 1), true)
         assert.equal(
-          await tap.isMonthlyTapIncreaseValid(token1.address, INITIAL_TAP + (INITIAL_TAP * MAX_MONTHLY_TAP_INCREASE_RATE) / (100 * Math.pow(10, 16)) - 1),
+          await tap.isMonthlyTapIncreaseValid(token1.address, INITIAL_TAP + (INITIAL_TAP * MAX_MONTHLY_TAP_INCREASE_PCT) / (100 * Math.pow(10, 16)) - 1),
           true
         )
       })
@@ -538,12 +547,9 @@ contract('Tap app', accounts => {
         // 1 month = 2592000 seconds
         await timeTravel(2592000)
 
+        assert.equal(await tap.isMonthlyTapIncreaseValid(ETH, INITIAL_TAP + (INITIAL_TAP * MAX_MONTHLY_TAP_INCREASE_PCT) / (100 * Math.pow(10, 16)) + 1), false)
         assert.equal(
-          await tap.isMonthlyTapIncreaseValid(ETH, INITIAL_TAP + (INITIAL_TAP * MAX_MONTHLY_TAP_INCREASE_RATE) / (100 * Math.pow(10, 16)) + 1),
-          false
-        )
-        assert.equal(
-          await tap.isMonthlyTapIncreaseValid(token1.address, INITIAL_TAP + (INITIAL_TAP * MAX_MONTHLY_TAP_INCREASE_RATE) / (100 * Math.pow(10, 16)) + 1),
+          await tap.isMonthlyTapIncreaseValid(token1.address, INITIAL_TAP + (INITIAL_TAP * MAX_MONTHLY_TAP_INCREASE_PCT) / (100 * Math.pow(10, 16)) + 1),
           false
         )
       })
@@ -557,8 +563,8 @@ contract('Tap app', accounts => {
         await tap.addTokenTap(token1.address, 2, { from: authorized })
         await timeTravel(10)
 
-        assert.equal((await tap.getMaxWithdrawal(ETH)).toNumber(), 10)
-        assert.equal((await tap.getMaxWithdrawal(token1.address)).toNumber(), 20)
+        assert.isAtMost((await tap.getMaxWithdrawal(ETH)).minus(10).toNumber(), 1)
+        assert.isAtMost((await tap.getMaxWithdrawal(token1.address)).minus(20).toNumber(), 1)
       })
     })
 

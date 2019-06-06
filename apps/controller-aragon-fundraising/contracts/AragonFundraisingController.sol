@@ -1,3 +1,7 @@
+/*
+ * SPDX-License-Identitifer:    GPL-3.0-or-later
+ */
+
 pragma solidity 0.4.24;
 
 import "@aragon/os/contracts/apps/AragonApp.sol";
@@ -17,6 +21,8 @@ contract AragonFundraisingController is EtherTokenConstant, IsContract, IMarketM
     using SafeERC20 for ERC20;
     using SafeMath for uint256;
 
+    bytes32 public constant UPDATE_FEES_ROLE = keccak256("UPDATE_FEES_ROLE");
+    bytes32 public constant UPDATE_BENEFICIARY_ROLE = keccak256("UPDATE_BENEFICIARY_ROLE");
     bytes32 public constant ADD_COLLATERAL_TOKEN_ROLE = keccak256("ADD_COLLATERAL_TOKEN_ROLE");
     bytes32 public constant UPDATE_TOKEN_TAP_ROLE = keccak256("UPDATE_TOKEN_TAP_ROLE");
     bytes32 public constant UPDATE_MONTHLY_TAP_INCREASE_ROLE = keccak256("UPDATE_MONTHLY_TAP_INCREASE_ROLE");
@@ -44,14 +50,6 @@ contract AragonFundraisingController is EtherTokenConstant, IsContract, IMarketM
 
     /* collateral tokens related functions */
 
-    /** NOTICE. Updating collateral token settings should
-     * only be possible from the CLI and not from the frontend
-     * as it should be available to power users only.
-     * Furthermore, such an update would only affect the
-     * MarketMaker contract. Thus, no API is provided
-     * into this controller.
-    */
-
     /**
      * @notice Add `_token.symbol(): string` as a whitelisted collateral token
      * @param _token The address of the collateral token to be added
@@ -68,21 +66,34 @@ contract AragonFundraisingController is EtherTokenConstant, IsContract, IMarketM
         marketMaker.addCollateralToken(_token, _virtualSupply, _virtualBalance, _reserveRatio);
     }
 
+    /**
+     * @notice Update the fee percentage deducted from all buy and sell orders to respectively `@formatPct(_buyFee)` % and `@formatPct(_sellFee)` %
+     * @param _buyFee The new buy fee to be used
+     * @param _sellFee The new sell fee to be used
+    */
+    function updateFees(uint256 _buyFee, uint256 _sellFee) external auth(UPDATE_FEES_ROLE) {
+        marketMaker.updateFees(_buyFee, _sellFee);
+    }
+
     /* settings related functions */
 
     /**
-     * updateReserve should not be possible ... ?
-     * updateBeneficiary should be possible ?
+     * @notice Update the beneficiary to `_beneficiary`
+     * @param _beneficiary The new beneficiary to be used
     */
+    function updateBeneficiary(address _beneficiary) external auth(UPDATE_BENEFICIARY_ROLE) {
+        marketMaker.updateBeneficiary(_beneficiary);
+        tap.updateBeneficiary(_beneficiary);
+    }
 
     /* tap related functions */
 
     /**
-     * @notice Update maximum monthly tap increase rate to `_maxMonthlyTapIncreaseRate` [in PP 10^18]
-     * @param _maxMonthlyTapIncreaseRate New maximum monthly tap increase rate [in PP 10^18]
+     * @notice Update maximum monthly tap increase rate to `@formatPct(`_maxMonthlyTapIncreaseRate)`%
+     * @param _maxMonthlyTapIncreasePct New maximum monthly tap increase rate
     */
-    function updateMaxMonthlyTapIncreaseRate(uint256 _maxMonthlyTapIncreaseRate) external auth(UPDATE_MONTHLY_TAP_INCREASE_ROLE) {
-        tap.updateMaxMonthlyTapIncreaseRate(_maxMonthlyTapIncreaseRate);
+    function updateMaxMonthlyTapIncreasePct(uint256 _maxMonthlyTapIncreasePct) external auth(UPDATE_MONTHLY_TAP_INCREASE_ROLE) {
+        tap.updateMaxMonthlyTapIncreasePct(_maxMonthlyTapIncreasePct);
     }
 
     /**
@@ -124,6 +135,14 @@ contract AragonFundraisingController is EtherTokenConstant, IsContract, IMarketM
 
     function claimSell(address _collateralToken, uint256 _batchId) external isInitialized {
         marketMaker.claimSell(msg.sender, _collateralToken, _batchId);
+    }
+
+    function clearBatchesAndClaimBuy(address _collateralToken, uint256 _batchId) external isInitialized {
+        marketMaker.clearBatchesAndClaimBuy(msg.sender, _collateralToken, _batchId);
+    }
+
+    function clearBatchesAndClaimSell(address _collateralToken, uint256 _batchId) external isInitialized {
+        marketMaker.clearBatchesAndClaimSell(msg.sender, _collateralToken, _batchId);
     }
 
     /***** public view functions *****/
