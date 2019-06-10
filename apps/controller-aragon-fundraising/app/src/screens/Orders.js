@@ -102,7 +102,7 @@ const orders = [
 ].map((order, idx) => {
   order.date = {
     value: new Date().getTime() + idx * 10000000,
-    text: format(new Date().getTime() + idx * 10000000, 'MM/dd/YYYY - HH:mm', { awareOfUnicodeTokens: true }),
+    text: format(new Date().getTime() + idx * 10000000, 'MM/dd/yyyy - HH:mm', { awareOfUnicodeTokens: true }),
   }
 
   return order
