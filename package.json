@@ -4,9 +4,12 @@
   "scripts": {
     "bootstrap": "lerna bootstrap",
     "fix": "rm -rf **/websocket/.git",
-    "clean": "rm -rf apps/bc/node_modules apps/bc/package-lock.json apps/tap/node_modules apps/tap/package-lock.json apps/pool/node_modules apps/pool/package-lock.json"
+    "clean": "lerna clean"
   },
   "devDependencies": {
     "lerna": "^3.4.3"
+  },
+  "dependencies": {
+    "@aragon/os": "^4.2.0"
   }
 }

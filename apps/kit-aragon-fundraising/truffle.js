@@ -1,1 +1,1 @@
-module.exports = require('../../truffle.js')
+module.exports = require("@aragon/os/truffle-config")
