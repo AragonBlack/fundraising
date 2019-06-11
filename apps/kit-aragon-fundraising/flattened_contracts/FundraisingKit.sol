@@ -8059,11 +8059,11 @@ contract FundraisingKit is APMNamehash, BetaKitBase {
         acl.createPermission(address(-1), fundraising, fundraising.CREATE_SELL_ORDER_ROLE(), fundraising);
         acl.createPermission(address(-1), fundraising, fundraising.WITHDRAW_ROLE(), fundraising);
 
-        IBancorFormula formula = IBancorFormula(latestVersionAppBase(apmNamehash("fundraising-formula-bancor")));
+        BancorFormula formula = BancorFormula(latestVersionAppBase(apmNamehash("fundraising-formula-bancor")));
 
         // Intialization
         pool.initialize();
-        tap.initialize(vault, vault, uint256(50 * 10 ** 16));
+        tap.initialize(vault, address(pool), uint256(50 * 10 ** 16));
         marketMaker.initialize(
           fundraising,
           tokenManager,
