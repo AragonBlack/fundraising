@@ -122,3 +122,27 @@
 07:35:33.524181 table@remove removed @30
 07:35:33.529297 table@remove removed @28
 07:35:33.533251 table@remove removed @29
+=============== Jun 11, 2019 (UTC) ===============
+08:52:57.805140 log@legend F·NumFile S·FileSize N·Entry C·BadEntry B·BadBlock Ke·KeyError D·DroppedEntry L·Level Q·SeqNum T·TimeElapsed
+08:52:57.813969 version@stat F·[0 3] S·4MiB[0B 4MiB] Sc·[0.00 0.05]
+08:52:57.814797 db@open opening
+08:52:57.825879 journal@recovery F·1
+08:52:57.837886 journal@recovery recovering @31
+08:52:58.084967 memdb@flush created L0@36 N·6046 S·1MiB "Dat..ion,v17855":"r\x00\x00..\xcc\x0e\xba,v23895"
+08:52:58.097268 version@stat F·[1 3] S·6MiB[1MiB 4MiB] Sc·[0.25 0.05]
+08:52:58.115247 db@janitor F·9 G·3
+08:52:58.115693 db@janitor removing journal-6
+08:52:58.145738 db@janitor removing manifest-7
+08:52:58.148631 db@janitor removing table-8
+08:52:58.151573 db@open done T·335.8138ms
+08:52:58.396523 table@compaction L0·1 -> L1·3 S·6MiB Q·23902
+08:52:58.623610 table@build created L1@39 N·3432 S·2MiB "\x03\x95\x06..\v_I,v12":"b\x00\x00..\f\xba/,v14529"
+08:52:58.864980 table@build created L1@40 N·989 S·2MiB "b\x00\x00..\xe8\u007f\xd1,v14520":"b\x00\x00..\xd5\xdc\xc2,v6666"
+08:52:59.360698 table@build created L1@41 N·8936 S·2MiB "b\x00\x00..r\x97`,v23493":"r\x00\x00..\xbe\xc0\x8d,v3610"
+08:52:59.486854 table@build created L1@42 N·1476 S·439KiB "r\x00\x00..J\x86\xf8,v20393":"\xee\x12{.. W\xcd,v13"
+08:52:59.487982 version@stat F·[0 4] S·6MiB[0B 6MiB] Sc·[0.00 0.07]
+08:52:59.491206 table@compaction committed F~ S-72KiB Ke·0 D·2644 T·1.0941806s
+08:52:59.493853 table@remove removed @36
+08:52:59.496452 table@remove removed @33
+08:52:59.499720 table@remove removed @34
+08:52:59.502813 table@remove removed @35

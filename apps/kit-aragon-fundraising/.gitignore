@@ -2,4 +2,5 @@ abis.json
 arapp_local.json
 abi/
 build
+ethereum-data/*
 node_modules

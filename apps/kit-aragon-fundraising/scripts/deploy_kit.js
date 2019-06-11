@@ -11,7 +11,13 @@ const logDeploy = require('@aragon/os/scripts/helpers/deploy-logger')
 const apps = ['finance', 'token-manager', 'vault', 'voting']
 const appIds = apps.map(app => namehash(`${app}.aragonpm.eth`))
 
-const fundraisingApps = ['fundraising-market-maker-bancor', 'fundraising-formula-bancor', 'fundraising-controller-aragon-fundraising', 'fundraising-module-tap', 'fundraising-module-pool']
+const fundraisingApps = [
+  'fundraising-market-maker-bancor',
+  'fundraising-formula-bancor',
+  'fundraising-controller-aragon-fundraising',
+  'fundraising-module-tap',
+  'fundraising-module-pool',
+]
 const fundraisingAppIds = fundraisingApps.map(app => namehash(require(`@ablack/${app}/arapp`).environments.default.appName))
 
 const globalArtifacts = this.artifacts // Not injected unless called directly via truffle
@@ -119,7 +125,7 @@ module.exports = async (
     }
 
     if ((await ens.owner(fundraisingAppIds[0])) == '0x0000000000000000000000000000000000000000') {
-      log('Deploying Fundraising apps in local network')
+      log('Deploying fundraising apps in local network')
       await newRepo(apm, 'fundraising-market-maker-bancor', owner, 'BancorMarketMaker')
       await newRepo(apm, 'fundraising-controller-aragon-fundraising', owner, 'AragonFundraisingController')
       await newRepo(apm, 'fundraising-module-tap', owner, 'Tap')
