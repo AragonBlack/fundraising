@@ -3,3 +3,4 @@ arapp_local.json
 build
 node_modules
 ethereum-data
+flattened_contracts
