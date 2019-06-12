@@ -76,13 +76,13 @@ const ANY_ADDRESS = '0xffffffffffffffffffffffffffffffffffffffff'
 const NULL_ADDRESS = '0x00'
 
 contract('FundraisingKit', accounts => {
-  let daoAddress, tokenAddress
+  let daoAddress, multisigTokenAddress, bondedTokenAddress
 
-  let financeAddress, tokenManagerAddress, vaultAddress, votingAddress
-  let finance, tokenManager, vault, voting
+  let financeAddress, multisigTokenManagerAddress, vaultAddress, multisigAddress
+  let finance, multisigTokenManager, vault, multisig
 
-  let marketMakerAddress, controllerAddress, tapAddress, poolAddress
-  let marketMaker, aragonFundraisingController, tap, pool
+  let tokenManagerAddress, votingAddress, marketMakerAddress, controllerAddress, tapAddress, poolAddress
+  let tokenManager, voting, marketMaker, controller, tap, pool
 
   let kit, receiptMultisig, receiptFundraising
 
@@ -129,12 +129,13 @@ contract('FundraisingKit', accounts => {
         if (creationStyle === 'single') {
           // create token and instance
           receiptInstance = await kit.newTokenAndInstance(tokenName, tokenSymbol, aragonId, holders)
-          tokenAddress = getEventResult(receiptInstance, 'DeployToken', 'token')
+          multisigTokenAddress = getEventResult(receiptInstance, 'DeployToken', 'token')
           daoAddress = getEventResult(receiptInstance, 'DeployInstance', 'dao')
         } else if (creationStyle === 'separate') {
-          // create Token
+          // create tokens
           const receiptToken = await kit.newTokens(tokenName, tokenSymbol)
-          tokenAddress = getEventResult(receiptToken, 'DeployToken', 'token1')
+          multisigTokenAddress = getEventResult(receiptToken, 'DeployToken', 'token1')
+          bondedTokenAddress = getEventResult(receiptToken, 'DeployToken', 'token2')
           // create instance
           receiptMultisig = await kit.newMultisigInstance(aragonId, holders, 2, { from: owner })
           receiptFundraising = await kit.newFundraisingInstance({ from: owner })
@@ -143,22 +144,24 @@ contract('FundraisingKit', accounts => {
         // generated apps from dao creation
         financeAddress = getAppProxy(receiptMultisig, appIds[0])
         finance = await Finance.at(financeAddress)
-        tokenManagerAddress = getAppProxy(receiptMultisig, appIds[1])
-        tokenManager = TokenManager.at(tokenManagerAddress)
+        multisigTokenManagerAddress = getAppProxy(receiptMultisig, appIds[1])
+        multisigTokenManager = TokenManager.at(multisigTokenManagerAddress)
         vaultAddress = getAppProxy(receiptMultisig, appIds[2])
         vault = Vault.at(vaultAddress)
-        votingAddress = getAppProxy(receiptMultisig, appIds[3])
-        voting = Voting.at(votingAddress)
+        multisigAddress = getAppProxy(receiptMultisig, appIds[3])
+        multisig = Voting.at(multisigAddress)
         daoAddress = getEventResult(receiptMultisig, 'DeployMultisigInstance', 'dao')
-        tokenAddress = getEventResult(receiptMultisig, 'DeployMultisigInstance', 'token')
-        console.log('Dao Created', daoAddress)
-        // const apps = ['finance', 'token-manager', 'vault', 'voting']
+        multisigTokenAddress = getEventResult(receiptMultisig, 'DeployMultisigInstance', 'token')
 
         // Fundraising Apps
+        tokenManagerAddress = getAppProxy(receiptFundraising, appIds[1])
+        tokenManager = TokenManager.at(tokenManagerAddress)
+        votingAddress = getAppProxy(receiptFundraising, appIds[3])
+        voting = Voting.at(votingAddress)
         marketMakerAddress = getAppProxy(receiptFundraising, fundraisingAppIds[0])
         marketMaker = await BancorMarketMaker.at(marketMakerAddress)
         controllerAddress = getAppProxy(receiptFundraising, fundraisingAppIds[1])
-        aragonFundraisingController = AragonFundraisingController.at(controllerAddress)
+        controller = AragonFundraisingController.at(controllerAddress)
         tapAddress = getAppProxy(receiptFundraising, fundraisingAppIds[2])
         tap = await Tap.at(tapAddress)
         poolAddress = getAppProxy(receiptFundraising, fundraisingAppIds[3])
@@ -166,39 +169,33 @@ contract('FundraisingKit', accounts => {
       })
 
       it('creates and initializes a DAO with its Token', async () => {
-        assert.notEqual(tokenAddress, '0x0', 'Token not generated')
-        assert.notEqual(tokenAddress, undefined, 'Token undefined')
-
+        assert.notEqual(multisigTokenAddress, '0x0', 'Token not generated')
+        assert.notEqual(bondedTokenAddress, '0x0', 'Token not generated')
         assert.notEqual(daoAddress, '0x0', 'Instance not generated')
-        assert.notEqual(daoAddress, undefined, 'Instance undefined')
 
-        // Check ENS assignment
-        // const aragonIdNamehash = namehash(`${aragonId}.aragonid.eth`)
-        // const resolvedAddr = await PublicResolver.at(
-        //   await ens.resolver(aragonIdNamehash)
-        // ).addr(aragonIdNamehash)
-        // assert.equal(
-        //   resolvedAddr,
-        //   daoAddress,
-        //   "aragonId ENS name doesn't match"
-        // )
+        // check ENS assignment
+        const aragonIdNamehash = namehash(`${aragonId}.aragonid.eth`)
+        const resolvedAddr = await PublicResolver.at(await ens.resolver(aragonIdNamehash)).addr(aragonIdNamehash)
+        assert.equal(resolvedAddr, daoAddress, "aragonId ENS name doesn't match")
 
-        // Check token values
-        const token = MiniMeToken.at(tokenAddress)
+        // check token values
+        const token = MiniMeToken.at(multisigTokenAddress)
         assert.equal(await token.name(), tokenName, "token name doesn't match")
         assert.equal(await token.symbol(), tokenSymbol, "token symbol doesn't match")
       })
 
       it('has initialized all the installed apps', async () => {
-        assert.isTrue(await tokenManager.hasInitialized(), 'tokenManager not initialized')
+        assert.isTrue(await finance.hasInitialized(), 'finance not initialized')
+        assert.isTrue(await multisigTokenManager.hasInitialized(), 'multisigTokenManager not initialized')
         assert.isTrue(await vault.hasInitialized(), 'vault not initialized')
-        assert.isTrue(await voting.hasInitialized(), 'voting not initialized')
+        assert.isTrue(await multisig.hasInitialized(), 'multisig not initialized')
 
-        // Fundraising Apps
+        assert.isTrue(await tokenManager.hasInitialized(), 'tokenManager not initialized')
+        assert.isTrue(await voting.hasInitialized(), 'voting not initialized')
         assert.isTrue(await pool.hasInitialized(), 'pool not initialized')
         assert.isTrue(await tap.hasInitialized(), 'tap not initialized')
-        assert.isTrue(await marketMaker.hasInitialized(), 'Market Maker app not initialized')
-        assert.isTrue(await aragonFundraisingController.hasInitialized(), 'Aragon Controller app not initialized')
+        assert.isTrue(await marketMaker.hasInitialized(), 'market maker not initialized')
+        assert.isTrue(await controller.hasInitialized(), 'controller app not initialized')
       })
 
       it('has the correct permisssions', async () => {
@@ -210,103 +207,102 @@ contract('FundraisingKit', accounts => {
           assert.isTrue(await acl.hasPermission(granteeAddress, appAddress, permission), `Grantee should have ${appName} role ${roleName}`)
         }
 
-        // App manager role
+        // app manager role
         await checkRole(daoAddress, await dao.APP_MANAGER_ROLE(), votingAddress, 'Kernel', 'APP_MANAGER')
 
-        // Create permissions role
+        // create permissions role
         await checkRole(acl.address, await acl.CREATE_PERMISSIONS_ROLE(), votingAddress, 'ACL', 'CREATE_PERMISSION')
 
-        // EVMScript Registry
+        // evm script registry
         const regConstants = await getContract('EVMScriptRegistryConstants').new()
         const reg = await getContract('EVMScriptRegistry').at(await acl.getEVMScriptRegistry())
-        await checkRole(reg.address, await reg.REGISTRY_ADD_EXECUTOR_ROLE(), votingAddress, 'EVMScriptRegistry', 'ADD_EXECUTOR')
-        await checkRole(reg.address, await reg.REGISTRY_MANAGER_ROLE(), votingAddress, 'EVMScriptRegistry', 'REGISTRY_MANAGER')
+        await checkRole(reg.address, await reg.REGISTRY_ADD_EXECUTOR_ROLE(), multisigAddress, 'EVMScriptRegistry', 'ADD_EXECUTOR')
+        await checkRole(reg.address, await reg.REGISTRY_MANAGER_ROLE(), multisigAddress, 'EVMScriptRegistry', 'REGISTRY_MANAGER')
 
-        // Token Manager
-        await checkRole(tokenManager.address, await tokenManager.ISSUE_ROLE(), votingAddress, 'TokenManager', 'ISSUE_ROLE')
+        // multisig
+        await checkRole(multisigAddress, await multisig.CREATE_VOTES_ROLE(), multisigAddress, 'Voting', 'CREATE_VOTES', multisigTokenManagerAddress)
+        await checkRole(multisigAddress, await multisig.MODIFY_QUORUM_ROLE(), multisigAddress, 'Voting', 'MODIFY_QUORUM')
+        await checkRole(multisigAddress, await multisig.MODIFY_SUPPORT_ROLE(), multisigAddress, 'Voting', 'MODIFY_SUPPORT')
 
-        await checkRole(tokenManager.address, await tokenManager.ASSIGN_ROLE(), votingAddress, 'TokenManager', 'ASSIGN_ROLE')
+        // vault
+        await checkRole(vaultAddress, await vault.TRANSFER_ROLE(), multisigAddress, 'Vault', 'TRANSFER', financeAddress)
 
-        await checkRole(tokenManager.address, await tokenManager.REVOKE_VESTINGS_ROLE(), votingAddress, 'TokenManager', 'REVOKE_VESTINGS_ROLE')
+        // finance
+        await checkRole(financeAddress, await finance.CREATE_PAYMENTS_ROLE(), multisigAddress, 'Finance', 'CREATE_PAYMENTS')
+        await checkRole(financeAddress, await finance.EXECUTE_PAYMENTS_ROLE(), multisigAddress, 'Finance', 'EXECUTE_PAYMENTS')
+        await checkRole(financeAddress, await finance.MANAGE_PAYMENTS_ROLE(), multisigAddress, 'Finance', 'MANAGE_PAYMENTS')
 
-        await checkRole(tokenManager.address, await tokenManager.BURN_ROLE(), marketMaker.address, 'TokenManager', 'BURN_ROLE')
+        // multisig token manager
+        await checkRole(multisigTokenManagerAddress, await multisigTokenManager.ASSIGN_ROLE(), multisigAddress, 'TokenManager', 'ASSIGN')
+        await checkRole(multisigTokenManagerAddress, await multisigTokenManager.REVOKE_VESTINGS_ROLE(), multisigAddress, 'TokenManager', 'REVOKE_VESTINGS')
 
-        await checkRole(tokenManager.address, await tokenManager.MINT_ROLE(), marketMaker.address, 'TokenManager', 'MINT_ROLE')
+        // token Manager
+        await checkRole(tokenManager.address, await tokenManager.MINT_ROLE(), votingAddress, 'TokenManager', 'MINT', marketMakerAddress)
+        await checkRole(tokenManager.address, await tokenManager.BURN_ROLE(), votingAddress, 'TokenManager', 'BURN', marketMakerAddress)
 
-        // Tap
-        await checkRole(tap.address, await tap.UPDATE_RESERVE_ROLE(), votingAddress, 'Tap', 'UPDATE_RESERVE_ROLE')
-
-        await checkRole(tap.address, await tap.UPDATE_BENEFICIARY_ROLE(), votingAddress, 'Tap', 'UPDATE_BENEFICIARY_ROLE')
-
-        await checkRole(tap.address, await tap.UPDATE_MONTHLY_TAP_INCREASE_ROLE(), votingAddress, 'Tap', 'UPDATE_MONTHLY_TAP_INCREASE_ROLE')
-
-        await checkRole(tap.address, await tap.ADD_TOKEN_TAP_ROLE(), votingAddress, 'Tap', 'ADD_TOKEN_TAP_ROLE')
-
-        await checkRole(tap.address, await tap.REMOVE_TOKEN_TAP_ROLE(), votingAddress, 'Tap', 'REMOVE_TOKEN_TAP_ROLE')
-
-        await checkRole(tap.address, await tap.UPDATE_TOKEN_TAP_ROLE(), votingAddress, 'Tap', 'UPDATE_TOKEN_TAP_ROLE')
-
-        await checkRole(tap.address, await tap.WITHDRAW_ROLE(), ANY_ADDRESS, 'Tap', 'WITHDRAW_ROLE', votingAddress)
-
-        // BancorMarketMaker
-        await checkRole(marketMaker.address, await marketMaker.ADD_COLLATERAL_TOKEN_ROLE(), votingAddress, 'BancorMarketMaker', 'ADD_COLLATERAL_TOKEN_ROLE')
-
-        await checkRole(
-          marketMaker.address,
-          await marketMaker.UPDATE_COLLATERAL_TOKEN_ROLE(),
-          votingAddress,
-          'BancorMarketMaker',
-          'UPDATE_COLLATERAL_TOKEN_ROLE'
+        // voting
+        await checkRole(votingAddress, await voting.CREATE_VOTES_ROLE(), votingAddress, 'Voting', 'CREATE_VOTES', tokenManagerAddress)
+        await checkRole(votingAddress, await voting.MODIFY_QUORUM_ROLE(), votingAddress, 'Voting', 'MODIFY_QUORUM')
+        assert.equal(
+          await acl.getPermissionManager(votingAddress, await voting.MODIFY_SUPPORT_ROLE()),
+          await acl.BURN_ENTITY(),
+          'Voting MODIFY_SUPPORT Manager should be burned'
         )
 
-        await checkRole(marketMaker.address, await marketMaker.UPDATE_FEE_ROLE(), votingAddress, 'BancorMarketMaker', 'UPDATE_FEE_ROLE')
+        // pool
+        await checkRole(poolAddress, await pool.SAFE_EXECUTE_ROLE(), votingAddress, 'Pool', 'SAFE_EXECUTE_ROLE')
+        await checkRole(poolAddress, await pool.ADD_COLLATERAL_TOKEN_ROLE(), votingAddress, 'Pool', 'ADD_COLLATERAL_TOKEN', controllerAddress)
+        await checkRole(poolAddress, await pool.TRANSFER_ROLE(), votingAddress, 'Pool', 'TRANSFER_ROLE', tapAddress)
+        await checkRole(poolAddress, await pool.TRANSFER_ROLE(), votingAddress, 'Pool', 'TRANSFER_ROLE', marketMakerAddress)
 
-        await checkRole(marketMaker.address, await marketMaker.UPDATE_GAS_COSTS_ROLE(), votingAddress, 'BancorMarketMaker', 'UPDATE_GAS_COSTS_ROLE')
+        // tap
+        await checkRole(tapAddress, await tap.UPDATE_BENEFICIARY_ROLE(), multisigAddress, 'Tap', 'UPDATE_BENEFICIARY_ROLE')
+        await checkRole(tapAddress, await tap.UPDATE_MONTHLY_TAP_INCREASE_ROLE(), votingAddress, 'Tap', 'UPDATE_MONTHLY_TAP_INCREASE_ROLE', controllerAddress)
+        await checkRole(tapAddress, await tap.ADD_TOKEN_TAP_ROLE(), votingAddress, 'Tap', 'ADD_TOKEN_TAP_ROLE', controllerAddress)
+        await checkRole(tapAddress, await tap.UPDATE_TOKEN_TAP_ROLE(), votingAddress, 'Tap', 'UPDATE_TOKEN_TAP_ROLE', controllerAddress)
+        await checkRole(tapAddress, await tap.WITHDRAW_ROLE(), multisigAddress, 'Tap', 'WITHDRAW_ROLE', controllerAddress)
 
-        await checkRole(
-          marketMaker.address,
-          await marketMaker.CREATE_BUY_ORDER_ROLE(),
-          ANY_ADDRESS,
-          'BancorMarketMaker',
-          'CREATE_BUY_ORDER_ROLE',
-          marketMaker.address
-        )
+        // controller
+        // bytes32 public constant UPDATE_FEES_ROLE = keccak256("UPDATE_FEES_ROLE");
+        // bytes32 public constant UPDATE_BENEFICIARY_ROLE = keccak256("UPDATE_BENEFICIARY_ROLE");
+        // bytes32 public constant ADD_COLLATERAL_TOKEN_ROLE = keccak256("ADD_COLLATERAL_TOKEN_ROLE");
+        // bytes32 public constant UPDATE_TOKEN_TAP_ROLE = keccak256("UPDATE_TOKEN_TAP_ROLE");
+        // bytes32 public constant UPDATE_MONTHLY_TAP_INCREASE_ROLE = keccak256("UPDATE_MONTHLY_TAP_INCREASE_ROLE");
+        // bytes32 public constant CREATE_BUY_ORDER_ROLE = keccak256("CREATE_BUY_ORDER_ROLE");
+        // bytes32 public constant CREATE_SELL_ORDER_ROLE = keccak256("CREATE_SELL_ORDER_ROLE");
+        // bytes32 public constant WITHDRAW_ROLE = keccak256("WITHDRAW_ROLE");
 
-        await checkRole(
-          marketMaker.address,
-          await marketMaker.CREATE_SELL_ORDER_ROLE(),
-          ANY_ADDRESS,
-          'BancorMarketMaker',
-          'CREATE_SELL_ORDER_ROLE',
-          marketMaker.address
-        )
+        // // BancorMarketMaker
+        // await checkRole(marketMaker.address, await marketMaker.ADD_COLLATERAL_TOKEN_ROLE(), votingAddress, 'BancorMarketMaker', 'ADD_COLLATERAL_TOKEN_ROLE')
+        // await checkRole(
+        //   marketMaker.address,
+        //   await marketMaker.UPDATE_COLLATERAL_TOKEN_ROLE(),
+        //   votingAddress,
+        //   'BancorMarketMaker',
+        //   'UPDATE_COLLATERAL_TOKEN_ROLE'
+        // )
 
-        // Pool
-        await checkRole(pool.address, await pool.SAFE_EXECUTE_ROLE(), marketMaker.address, 'Pool', 'SAFE_EXECUTE_ROLE', votingAddress)
+        // await checkRole(marketMaker.address, await marketMaker.UPDATE_FEE_ROLE(), votingAddress, 'BancorMarketMaker', 'UPDATE_FEE_ROLE')
+        // await checkRole(marketMaker.address, await marketMaker.UPDATE_GAS_COSTS_ROLE(), votingAddress, 'BancorMarketMaker', 'UPDATE_GAS_COSTS_ROLE')
+        // await checkRole(
+        //   marketMaker.address,
+        //   await marketMaker.CREATE_BUY_ORDER_ROLE(),
+        //   ANY_ADDRESS,
+        //   'BancorMarketMaker',
+        //   'CREATE_BUY_ORDER_ROLE',
+        //   marketMaker.address
+        // )
+        // await checkRole(
+        //   marketMaker.address,
+        //   await marketMaker.CREATE_SELL_ORDER_ROLE(),
+        //   ANY_ADDRESS,
+        //   'BancorMarketMaker',
+        //   'CREATE_SELL_ORDER_ROLE',
+        //   marketMaker.address
+        // )
 
-        await checkRole(pool.address, await pool.SAFE_EXECUTE_ROLE(), tap.address, 'Pool', 'SAFE_EXECUTE_ROLE', votingAddress)
-
-        await checkRole(pool.address, await pool.ADD_COLLATERAL_TOKEN_ROLE(), votingAddress, 'Pool', 'ADD_COLLATERAL_TOKEN')
-
-        await checkRole(pool.address, await pool.REMOVE_COLLATERAL_TOKEN_ROLE(), votingAddress, 'Pool', 'REMOVE_COLLATERAL_TOKEN')
-
-        // Voting
-        await checkRole(voting.address, await voting.CREATE_VOTES_ROLE(), ANY_ADDRESS, 'Voting', 'CREATE_VOTES_ROLE', votingAddress)
-
-        await checkRole(voting.address, await voting.MODIFY_SUPPORT_ROLE(), votingAddress, 'Voting', 'MODIFY_SUPPORT_ROLE')
-
-        // Vault
-        await checkRole(vault.address, await vault.TRANSFER_ROLE(), tap.address, 'Vault', 'TRANSFER_ROLE', vault.address)
-      })
-
-      it('cannot reinitialize apps', async () => {
-        // Voting
-        try {
-          await voting.initialize(tokenAddress, neededSupport, minimumAcceptanceQuorum, votingTime)
-        } catch (err) {
-          assert.equal(err.receipt.status, 0, 'It should have thrown')
-          return
-        }
+        // // Vault
+        // await checkRole(vault.address, await vault.TRANSFER_ROLE(), tap.address, 'Vault', 'TRANSFER_ROLE', vault.address)
       })
     })
   }
