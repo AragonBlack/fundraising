@@ -18,7 +18,7 @@
     "deploy:rinkeby": "truffle exec --network rinkeby scripts/deploy.js",
     "deploy:rpc": "truffle exec --network rpc scripts/deploy.js",
     "deploy:devnet": "truffle exec --network devnet scripts/deploy.js",
-    "docker:wait-gas": "truffle exec scripts/sleep-until-gaslimit.js --network devnet 7900000",
+    "docker:wait-gas": "truffle exec scripts/sleep-until-gaslimit.js --network devnet 6900000",
     "docker:run": "docker-compose -f docker-compose.yml up -d; RESULT=$?; $(exit $RESULT)",
     "docker:stop": "docker-compose down;",
     "lint": "solium --dir ./contracts",
@@ -75,7 +75,6 @@
     "@aragon/apps-vault": "^4.1.0",
     "@aragon/apps-voting": "^2.1.0",
     "@aragon/kits-base": "^1.0.0",
-    "@aragon/kits-beta-base": "^1.0.0",
     "@aragon/os": "^4.2.0"
   }
 }

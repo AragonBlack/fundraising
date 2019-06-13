@@ -16,6 +16,7 @@ const ACL = artifacts.require('ACL')
 const EVMScriptRegistry = artifacts.require('EVMScriptRegistry')
 const MiniMeTokenFactory = artifacts.require('MiniMeTokenFactory')
 const MiniMeToken = artifacts.require('MiniMeToken')
+const TokenMock = artifacts.require('TokenMock')
 
 const Vault = artifacts.require('Vault')
 const Finance = artifacts.require('Finance')
@@ -84,7 +85,7 @@ contract('FundraisingKit', accounts => {
   let tokenManagerAddress, votingAddress, marketMakerAddress, controllerAddress, tapAddress, poolAddress
   let tokenManager, voting, marketMaker, controller, tap, pool
 
-  let kit, receiptMultisig, receiptFundraising
+  let kit, receiptMultisig, receiptFundraising, collateral1, collateral2
 
   const owner = accounts[0]
   const holder1 = accounts[1]
@@ -99,6 +100,8 @@ contract('FundraisingKit', accounts => {
   const minParticipationPct = pct16(50)
   const candidateSupportPct = pct16(10)
   const votingTime = 60
+
+  const INITIAL_TOKEN_BALANCE = 10000000
 
   before(async () => {
     // create Fundraising  Kit
@@ -126,6 +129,9 @@ contract('FundraisingKit', accounts => {
         tokenName = 'Fundraising Token'
         tokenSymbol = 'FUND'
 
+        collateral1 = await TokenMock.new(holder1, INITIAL_TOKEN_BALANCE * 2)
+        collateral2 = await TokenMock.new(holder2, INITIAL_TOKEN_BALANCE * 2)
+
         if (creationStyle === 'single') {
           // create token and instance
           receiptInstance = await kit.newTokenAndInstance(tokenName, tokenSymbol, aragonId, holders)
@@ -138,7 +144,7 @@ contract('FundraisingKit', accounts => {
           bondedTokenAddress = getEventResult(receiptToken, 'DeployToken', 'token2')
           // create instance
           receiptMultisig = await kit.newMultisigInstance(aragonId, holders, 2, { from: owner })
-          receiptFundraising = await kit.newFundraisingInstance({ from: owner })
+          receiptFundraising = await kit.newFundraisingInstance(collateral1.address, collateral2.address, { from: owner })
         }
 
         // generated apps from dao creation
@@ -236,7 +242,7 @@ contract('FundraisingKit', accounts => {
         await checkRole(multisigTokenManagerAddress, await multisigTokenManager.ASSIGN_ROLE(), multisigAddress, 'TokenManager', 'ASSIGN')
         await checkRole(multisigTokenManagerAddress, await multisigTokenManager.REVOKE_VESTINGS_ROLE(), multisigAddress, 'TokenManager', 'REVOKE_VESTINGS')
 
-        // token Manager
+        // token manager
         await checkRole(tokenManager.address, await tokenManager.MINT_ROLE(), votingAddress, 'TokenManager', 'MINT', marketMakerAddress)
         await checkRole(tokenManager.address, await tokenManager.BURN_ROLE(), votingAddress, 'TokenManager', 'BURN', marketMakerAddress)
 
@@ -263,16 +269,46 @@ contract('FundraisingKit', accounts => {
         await checkRole(tapAddress, await tap.WITHDRAW_ROLE(), multisigAddress, 'Tap', 'WITHDRAW_ROLE', controllerAddress)
 
         // controller
-        // bytes32 public constant UPDATE_FEES_ROLE = keccak256("UPDATE_FEES_ROLE");
-        // bytes32 public constant UPDATE_BENEFICIARY_ROLE = keccak256("UPDATE_BENEFICIARY_ROLE");
-        // bytes32 public constant ADD_COLLATERAL_TOKEN_ROLE = keccak256("ADD_COLLATERAL_TOKEN_ROLE");
-        // bytes32 public constant UPDATE_TOKEN_TAP_ROLE = keccak256("UPDATE_TOKEN_TAP_ROLE");
-        // bytes32 public constant UPDATE_MONTHLY_TAP_INCREASE_ROLE = keccak256("UPDATE_MONTHLY_TAP_INCREASE_ROLE");
-        // bytes32 public constant CREATE_BUY_ORDER_ROLE = keccak256("CREATE_BUY_ORDER_ROLE");
-        // bytes32 public constant CREATE_SELL_ORDER_ROLE = keccak256("CREATE_SELL_ORDER_ROLE");
-        // bytes32 public constant WITHDRAW_ROLE = keccak256("WITHDRAW_ROLE");
+        await checkRole(controllerAddress, await controller.ADD_COLLATERAL_TOKEN_ROLE(), votingAddress, 'Controller', 'ADD_COLLATERAL_TOKEN_ROLE')
+        await checkRole(controllerAddress, await controller.UPDATE_TOKEN_TAP_ROLE(), votingAddress, 'Controller', 'UPDATE_TOKEN_TAP_ROLE')
+        await checkRole(controllerAddress, await controller.UPDATE_MONTHLY_TAP_INCREASE_ROLE(), votingAddress, 'Controller', 'UPDATE_MONTHLY_TAP_INCREASE_ROLE')
+        await checkRole(controllerAddress, await controller.CREATE_BUY_ORDER_ROLE(), votingAddress, 'Controller', 'CREATE_BUY_ORDER_ROLE', ANY_ADDRESS)
+        await checkRole(controllerAddress, await controller.CREATE_SELL_ORDER_ROLE(), votingAddress, 'Controller', 'CREATE_SELL_ORDER_ROLE', ANY_ADDRESS)
+        await checkRole(controllerAddress, await controller.WITHDRAW_ROLE(), multisigAddress, 'Controller', 'WITHDRAW_ROLE')
 
-        // // BancorMarketMaker
+        // market maker
+        await checkRole(
+          marketMakerAddress,
+          await marketMaker.ADD_COLLATERAL_TOKEN_ROLE(),
+          votingAddress,
+          'Controller',
+          'ADD_COLLATERAL_TOKEN_ROLE',
+          controllerAddress
+        )
+        await checkRole(
+          marketMakerAddress,
+          await marketMaker.UPDATE_COLLATERAL_TOKEN_ROLE(),
+          votingAddress,
+          'Controller',
+          'UPDATE_COLLATERAL_TOKEN_ROLE',
+          controllerAddress
+        )
+        await checkRole(marketMakerAddress, await marketMaker.UPDATE_FEES_ROLE(), votingAddress, 'Controller', 'UPDATE_FEES_ROLE', controllerAddress)
+
+        await checkRole(marketMakerAddress, await marketMaker.CREATE_BUY_ORDER_ROLE(), votingAddress, 'Controller', 'CREATE_BUY_ORDER_ROLE', controllerAddress)
+        await checkRole(
+          marketMakerAddress,
+          await marketMaker.CREATE_SELL_ORDER_ROLE(),
+          votingAddress,
+          'Controller',
+          'CREATE_SELL_ORDER_ROLE',
+          controllerAddress
+        )
+
+        // await checkRole(marketMakerAddress, await marketMaker.UPDATE_FEES_ROLE(), votingAddress, 'Controller', 'UPDATE_FEES_ROLE', controllerAddress)
+        // await checkRole(marketMakerAddress, await marketMaker.CREATE_BUY_ORDER_ROLE(), votingAddress, 'Controller', 'CREATE_BUY_ORDER_ROLE', ANY_ADDRESS)
+        // await checkRole(marketMakerAddress, await marketMaker.CREATE_SELL_ORDER_ROLE(), votingAddress, 'Controller', 'CREATE_SELL_ORDER_ROLE', ANY_ADDRESS)
+
         // await checkRole(marketMaker.address, await marketMaker.ADD_COLLATERAL_TOKEN_ROLE(), votingAddress, 'BancorMarketMaker', 'ADD_COLLATERAL_TOKEN_ROLE')
         // await checkRole(
         //   marketMaker.address,

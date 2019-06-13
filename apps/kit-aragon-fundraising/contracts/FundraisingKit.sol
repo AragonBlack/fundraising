@@ -150,18 +150,16 @@ contract FundraisingKit is APMNamehash, IsContract, KitBase {
         _cacheMultisig(msg.sender, token, dao, acl, vault, voting);
     }
 
-    function newFundraisingInstance() public {
+    function newFundraisingInstance(address _collateralToken1, address _collateralToken2) public {
+        require(isContract(_collateralToken1));
+        require(isContract(_collateralToken2));
+
         Kernel dao;
         ACL    acl;
         Vault  vault;
         Voting multisig;
 
         (dao, acl, vault, multisig) = _popMultisigCache(msg.sender);
-
-        // bytes32[2] memory appsA1 = [
-        //     apmNamehash("token-manager"),   // 0
-        //     apmNamehash("voting")           // 1
-        // ];
 
         bytes32[7] memory apps = [
             apmNamehash("fundraising-module-pool"),   // 0
@@ -214,8 +212,8 @@ contract FundraisingKit is APMNamehash, IsContract, KitBase {
         acl.createPermission(controller, marketMaker, marketMaker.ADD_COLLATERAL_TOKEN_ROLE(), voting);
         acl.createPermission(controller, marketMaker, marketMaker.UPDATE_COLLATERAL_TOKEN_ROLE(), voting);
         acl.createPermission(controller, marketMaker, marketMaker.UPDATE_FEES_ROLE(), voting);
-        acl.createPermission(address(-1), marketMaker, marketMaker.CREATE_BUY_ORDER_ROLE(), voting);
-        acl.createPermission(address(-1), marketMaker, marketMaker.CREATE_SELL_ORDER_ROLE(), voting);
+        acl.createPermission(controller, marketMaker, marketMaker.CREATE_BUY_ORDER_ROLE(), voting);
+        acl.createPermission(controller, marketMaker, marketMaker.CREATE_SELL_ORDER_ROLE(), voting);
 
         // Pool
         acl.createPermission(voting, pool, pool.SAFE_EXECUTE_ROLE(), voting);
@@ -225,12 +223,12 @@ contract FundraisingKit is APMNamehash, IsContract, KitBase {
         cleanupPermission(acl, voting, pool, pool.TRANSFER_ROLE());
 
         // Controller
-        acl.createPermission(voting, controller, controller.ADD_COLLATERAL_TOKEN_ROLE(), voting);
+        acl.createPermission(this, controller, controller.ADD_COLLATERAL_TOKEN_ROLE(), this);
         acl.createPermission(voting, controller, controller.UPDATE_TOKEN_TAP_ROLE(), voting);
         acl.createPermission(voting, controller, controller.UPDATE_MONTHLY_TAP_INCREASE_ROLE(), voting);
         acl.createPermission(address(-1), controller, controller.CREATE_BUY_ORDER_ROLE(), voting);
         acl.createPermission(address(-1), controller, controller.CREATE_SELL_ORDER_ROLE(), voting);
-        acl.createPermission(multisig, controller, controller.WITHDRAW_ROLE(), voting);
+        acl.createPermission(multisig, controller, controller.WITHDRAW_ROLE(), multisig);
 
         // initialize apps
         // BancorFormula formula = BancorFormula(latestVersionAppBase(apmNamehash("fundraising-formula-bancor")));
@@ -251,7 +249,12 @@ contract FundraisingKit is APMNamehash, IsContract, KitBase {
         );
         controller.initialize(marketMaker, pool, tap);
 
-        // Clean-up
+        // add collateral tokens
+        controller.addCollateralToken(_collateralToken1, 100, 100, 1 * 10**5, 400 * 10^9);
+        controller.addCollateralToken(_collateralToken2, 100, 100, 1 * 10**5, 400 * 10^9);
+
+        // clean-up
+        cleanupPermission(acl, voting, controller, controller.ADD_COLLATERAL_TOKEN_ROLE());
         cleanupDAOPermissions(dao, acl, voting);
 
         // // Voting
