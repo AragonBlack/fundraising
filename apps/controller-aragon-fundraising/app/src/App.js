@@ -42,7 +42,7 @@ const App = () => {
                     <TitleLabel>Aragon Fundraising</TitleLabel>
                   </Title>
                   <NewOrder>
-                    <Button mode="strong" onClick={() => setState({ ...state, displaySidePanel: true })}>
+                    <Button mode="strong" style={{ width: '140px' }} onClick={() => setState({ ...state, displaySidePanel: true })}>
                       New Order
                     </Button>
                   </NewOrder>
@@ -89,10 +89,9 @@ const App = () => {
 }
 
 const NewOrder = styled.h1`
-  position: absolute;
-  z-index: 3;
-  padding: 20px;
-  right: 0;
+  display: block;
+  padding: 0 30px;
+  justify-content:center;
 `
 
 const NavBar = styled.div`
