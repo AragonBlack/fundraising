@@ -1,152 +1,145 @@
-import { AppView, Main, TabBar, Button, SidePanel, observe } from '@aragon/ui'
-import { first, map } from 'rxjs/operators'
+import { useAragonApi } from '@aragon/api-react'
+import { AppBar, AppView, Button, Main, TabBar, useViewport, Viewport } from '@aragon/ui'
+import React, { useState } from 'react'
 import styled from 'styled-components'
-import React from 'react'
-import AppLayout from './components/AppLayout'
+import MenuButton from './components/MenuButton'
+import TabMenuButton from './components/TabMenuButton'
 import NewOrderSidePanel from './components/NewOrderSidePanel'
-// import NewRepositoryIcon from './components/NewRepositoryIcon'
+import MyOrders from './screens/MyOrders'
 import Orders from './screens/Orders'
 import Overview from './screens/Overview'
 
-const tabs = ['Overview', 'Buys / Sells', 'Settings']
+const tabs = ['Overview', 'Buys / Sells', 'My Orders', 'Settings']
 
-class App extends React.Component {
-  static defaultProps = {
-    repos: [],
+const App = () => {
+  const [state, setState] = useState({
     amount: '',
-    token: ''
-  }
+    token: '',
+    tabIndex: 0,
+    displaySidePanel: false,
+    showTab: false,
+  })
+  const { requestMenu, displayMenuButton } = useAragonApi()
+  const { below } = useViewport()
+  const { tabIndex, displaySidePanel, amount, token, showTab } = state
+  const currentTab = tabs[tabIndex]
 
-  constructor(props) {
-    super(props)
-    // this.state = { repos: props.repos, sidePanelOpen: false }
+  return (
+    <div css="min-width: 320px">
+      <Main>
+        <AppView
+          title="Aragon Fundraising"
+          padding={0}
+          css={`
+            background-color: white;
+          `}
+          appBar={
+            <NavBar>
+              <AppBar>
+                <AppBarContainer style={{ paddingLeft: displayMenuButton ? '0px' : '30px' }}>
+                  <Title>
+                    {displayMenuButton && <MenuButton onClick={requestMenu} />}
+                    <TitleLabel>Aragon Fundraising</TitleLabel>
+                  </Title>
+                  <NewOrder>
+                    <Button mode="strong" style={{ width: '140px' }} onClick={() => setState({ ...state, displaySidePanel: true })}>
+                      New Order
+                    </Button>
+                  </NewOrder>
+                </AppBarContainer>
+              </AppBar>
 
-    this.handleMenuPanelOpen = this.handleMenuPanelOpen.bind(this)
-    this.handleOrderSidePanelOpen = this.handleOrderSidePanelOpen.bind(this)
-    this.handleOrderSidePanelClose = this.handleOrderSidePanelClose.bind(this)
-    this.handleCreateRepository = this.handleCreateRepository.bind(this)
-
-    this.state = {
-      tabIndex: 0,
-      updateOrderSidePanelOpen: false,
-    }
-  }
-
-  componentDidMount() {
-    this.deriveReposInformationsFromProps(this.props)
-  }
-
-  componentWillReceiveProps(props) {
-    this.deriveReposInformationsFromProps(props)
-  }
-
-  deriveReposInformationsFromProps(props) {
-    const repos = []
-    const requests = []
-
-    try {
-      for (const repo of props.repos) {
-        const contract = props.app.external(repo, PandoRepository.abi)
-        requests.push(this.loadRepoInformations(contract))
-      }
-    } catch (err) {
-      console.error('Failed to set repos informations due to:', err)
-    }
-
-    Promise.all(requests)
-      .then(results => {
-        for (const index in results) {
-          const [name, description] = results[index]
-          repos.push({ address: props.repos[index], name, description })
-        }
-        this.setState({ repos })
-      })
-      .catch(err => {
-        console.error('Failed to set repos informations due to:', err)
-      })
-  }
-
-  loadRepoName(repoContract) {
-    return new Promise((resolve, reject) => {
-      repoContract
-        .name()
-        .pipe(first())
-        .subscribe(resolve, reject)
-    })
-  }
-
-  loadRepoDescription(repoContract) {
-    return new Promise((resolve, reject) => {
-      repoContract
-        .description()
-        .pipe(first())
-        .subscribe(resolve, reject)
-    })
-  }
-
-  loadRepoInformations(repoContract) {
-    return Promise.all([this.loadRepoName(repoContract), this.loadRepoDescription(repoContract)])
-  }
-
-  handleMenuPanelOpen() {
-    this.props.sendMessageToWrapper('menuPanel', true)
-  }
-
-  handleOrderSidePanelOpen() {
-    this.setState({ updateOrderSidePanelOpen: true })
-  }
-
-  handleOrderSidePanelClose() {
-    this.setState({ updateOrderSidePanelOpen: false })
-  }
-
-  handleCreateRepository(name, description) {
-    this.props.app.createRepository(name, description)
-  }
-
-  handleUpdateOrder(amount, token) {
-    //this.props.app.createOrder(amount, token)
-  }
-
-  render() {
-    const { tabIndex, updateOrderSidePanelOpen, amount, token } = this.state
-    const currentTab = tabs[tabIndex]
-
-    return (
-      <div css="min-width: 320px">
-        <Main>
-          <NewOrder><Button mode="strong" onClick={this.handleOrderSidePanelOpen}>New Order</Button></NewOrder>
-          <AppView title="Apiary" tabs={<TabBar items={tabs} selected={tabIndex} onChange={tabIndex => this.setState({ tabIndex })} />}>
-            {currentTab === 'Overview' && <Overview />}
-            {currentTab === 'Buys / Sells' && <Orders />}
-          </AppView>
-        </Main>
-        <NewOrderSidePanel
-            amount={amount}
-            token={token}
-            price={"300.00"}
-            opened={updateOrderSidePanelOpen}
-            onClose={this.handleOrderSidePanelClose}
-            onSubmit={this.handleUpdateOrder}
-          />
-      </div>
-    )
-  }
+              <Viewport>
+                {({ below }) => (
+                  <div>
+                    {below('small') && <TabMenuButton onClick={() => setState({ ...state, showTab: !showTab })} />}
+                    <div
+                      css={
+                        below('small') &&
+                        !showTab &&
+                        `
+                          overflow: hidden;
+                          height: 0;
+                        `
+                      }
+                    >
+                      <TabBar items={tabs} selected={tabIndex} onChange={tabIndex => setState({ ...state, tabIndex })} />
+                    </div>
+                  </div>
+                )}
+              </Viewport>
+            </NavBar>
+          }
+        >
+          {currentTab === 'Overview' && <Overview />}
+          {currentTab === 'Buys / Sells' && <Orders />}
+          {currentTab === 'My Orders' && <MyOrders />}
+        </AppView>
+      </Main>
+      <NewOrderSidePanel
+        amount={amount}
+        token={token}
+        price={'300.00'}
+        opened={displaySidePanel}
+        onClose={() => setState({ ...state, displaySidePanel: false })}
+        onSubmit={() => console.log('Handle submit')}
+      />
+    </div>
+  )
 }
 
 const NewOrder = styled.h1`
-  position: absolute;
-  z-index: 3;
-  padding:20px;
-  right: 0;
+  display: block;
+  padding: 0 30px;
+  justify-content:center;
 `
 
-export default observe(
-  observable =>
-    observable.pipe(
-      map(state => {
-        return { ...state }
-      })
-    ),
-  {}
-)(App)
+const NavBar = styled.div`
+  background-color: #ffffff;
+
+  span {
+    white-space: nowrap;
+  }
+
+  @media only screen and (max-width: 540px) {
+    ul {
+      flex-direction: column;
+    }
+
+    ul li {
+      margin-bottom: 1rem;
+    }
+
+    ul li span {
+      display: initial;
+    }
+  }
+`
+
+const AppBarContainer = styled.div`
+  display: flex;
+  width: 100%;
+  height: 100%;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: nowrap;
+`
+
+const Title = styled.h1`
+  display: flex;
+  flex: 1 1 auto;
+  width: 0;
+  align-items: center;
+  height: 100%;
+`
+
+const TitleLabel = styled.span`
+  flex: 0 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-right: 10px;
+  font-size: 22px;
+`
+
+export default App
