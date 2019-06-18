@@ -140,9 +140,9 @@ contract FundraisingKit is APMNamehash, IsContract, KitBase {
         cleanupPermission(acl, voting, tokenManager, tokenManager.MINT_ROLE());
 
         // EVMScriptRegistry permissions
-        EVMScriptRegistry reg = EVMScriptRegistry(acl.getEVMScriptRegistry());
-        acl.createPermission(voting, reg, reg.REGISTRY_ADD_EXECUTOR_ROLE(), voting);
-        acl.createPermission(voting, reg, reg.REGISTRY_MANAGER_ROLE(), voting);
+        // EVMScriptRegistry reg = EVMScriptRegistry(acl.getEVMScriptRegistry());
+        // acl.createPermission(voting, reg, reg.REGISTRY_ADD_EXECUTOR_ROLE(), voting);
+        // acl.createPermission(voting, reg, reg.REGISTRY_MANAGER_ROLE(), voting);
         
         // aragonID registration
         registerAragonID(aragonId, dao);
