@@ -220,10 +220,10 @@ contract('FundraisingKit', accounts => {
         await checkRole(acl.address, await acl.CREATE_PERMISSIONS_ROLE(), votingAddress, 'ACL', 'CREATE_PERMISSION')
 
         // evm script registry
-        const regConstants = await getContract('EVMScriptRegistryConstants').new()
-        const reg = await getContract('EVMScriptRegistry').at(await acl.getEVMScriptRegistry())
-        await checkRole(reg.address, await reg.REGISTRY_ADD_EXECUTOR_ROLE(), multisigAddress, 'EVMScriptRegistry', 'ADD_EXECUTOR')
-        await checkRole(reg.address, await reg.REGISTRY_MANAGER_ROLE(), multisigAddress, 'EVMScriptRegistry', 'REGISTRY_MANAGER')
+        // const regConstants = await getContract('EVMScriptRegistryConstants').new()
+        // const reg = await getContract('EVMScriptRegistry').at(await acl.getEVMScriptRegistry())
+        // await checkRole(reg.address, await reg.REGISTRY_ADD_EXECUTOR_ROLE(), multisigAddress, 'EVMScriptRegistry', 'ADD_EXECUTOR')
+        // await checkRole(reg.address, await reg.REGISTRY_MANAGER_ROLE(), multisigAddress, 'EVMScriptRegistry', 'REGISTRY_MANAGER')
 
         // multisig
         await checkRole(multisigAddress, await multisig.CREATE_VOTES_ROLE(), multisigAddress, 'Voting', 'CREATE_VOTES', multisigTokenManagerAddress)
