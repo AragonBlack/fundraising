@@ -8,8 +8,9 @@ import NewOrderSidePanel from './components/NewOrderSidePanel'
 import MyOrders from './screens/MyOrders'
 import Orders from './screens/Orders'
 import Overview from './screens/Overview'
+import Reserves from './screens/Reserves'
 
-const tabs = ['Overview', 'Buys / Sells', 'My Orders', 'Settings']
+const tabs = ['Overview', 'Buys / Sells', 'My Orders', 'Reserves']
 
 const App = () => {
   const [state, setState] = useState({
@@ -74,6 +75,7 @@ const App = () => {
           {currentTab === 'Overview' && <Overview />}
           {currentTab === 'Buys / Sells' && <Orders />}
           {currentTab === 'My Orders' && <MyOrders />}
+          {currentTab === 'Reserves' && <Reserves />}
         </AppView>
       </Main>
       <NewOrderSidePanel
