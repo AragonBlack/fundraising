@@ -5,6 +5,7 @@ import styled from 'styled-components'
 import antImage from '../assets/ant.png'
 import daiImage from '../assets/dai.png'
 import Chart from '../components/Chart'
+import Box from '../components/Box/Box'
 
 const CONVERT_API_BASE = 'https://min-api.cryptocompare.com/data'
 
@@ -35,59 +36,69 @@ export default () => {
   }, [])
   return (
     <ContentWrapper>
-      <TokenBalances>
-        <h1 className="title">
-          <Text>Token balances</Text>
-        </h1>
+      <KeyMetrics heading="Key metrics" padding={false}>
         <ul>
           <li>
-            <p className="title">Bonded token supply</p>
-            <p className="number">210</p>
-            <p className="sub-number">$185,220</p>
+            <p className="title">Price</p>
+            <p className="number">$106,03.36</p>
+            <p className="sub-number green">+$4.82 (0.5%)</p>
           </li>
           <li>
             <div className="title">
-              <img src={daiImage} />
-              <p>DAI Collateral</p>
+              <p>Market Cap</p>
             </div>
-            <p className="number">{formatCollateral(daiCollateral)}</p>
-            <p className="sub-number">$103,039</p>
+            <p className="number">$675,02 M</p>
+            <p className="sub-number green">+$4.82M</p>
           </li>
           <li>
             <div className="title">
-              <img src={antImage} />
-              <p>ANT Collateral</p>
+              <p>Trading Volume</p>
             </div>
-            <p className="number">{formatCollateral(antCollateral)}</p>
-            <p className="sub-number">$82,181</p>
+            <p className="number">$1.5 M</p>
+            <p className="sub-number green">$48M (Y)</p>
           </li>
           <li>
-            <p className="title">Total balance USD</p>
-            <p className="number">$185,220</p>
-            <p className="sub-number">210 bonded tokens</p>
+            <p className="title">Token Supply</p>
+            <p className="number">100,013 M</p>
+            <p className="sub-number red">-$23.82 (0.5%)</p>
           </li>
           <li>
-            <p className="title">Tap rate</p>
-            <p className="number">$18,522</p>
-            <p className="sub-number">10%</p>
+            <p className="title">Reserves</p>
+            <p className="number">$25,07 M</p>
+            <p className="sub-number red">-$0.82M</p>
+          </li>
+          <li>
+            <p className="title">Monthly Allowance</p>
+            <p className="number">$150.5 K</p>
+            <p className="sub-number green">$48M (Y)</p>
           </li>
         </ul>
-      </TokenBalances>
+      </KeyMetrics>
       <Chart />
     </ContentWrapper>
   )
 }
 
 const ContentWrapper = styled.div`
-  padding: 2rem;
-
+  margin: 1rem 0;
+  @media only screen and (max-width: 768px) {
+    margin: 1rem;
+  }
   @media only screen and (max-width: 700px) {
     padding: 0;
   }
 `
 
-const TokenBalances = styled.div`
-  margin-bottom: 2rem;
+const KeyMetrics = styled(Box)`
+  margin-bottom: 1rem;
+
+  .green {
+    color: #2cc68f;
+  }
+
+  .red {
+    color: #fb7777;
+  }
 
   .title {
     margin-bottom: 1rem;
@@ -97,12 +108,10 @@ const TokenBalances = styled.div`
   ul {
     display: flex;
     justify-content: space-between;
-    padding: 2rem;
     background: #fff;
-    border: 1px solid rgba(209, 209, 209, 0.5);
     box-sizing: border-box;
     border-radius: 3px;
-    box-shadow: 0px 6px 14px rgba(0, 0, 0, 0.06);
+    padding: 1rem;
   }
 
   li {
@@ -116,25 +125,25 @@ const TokenBalances = styled.div`
 
     .title {
       display: flex;
-      font-weight: 600;
-      color: #6d777b;
-      text-transform: uppercase;
-      opacity: 0.7;
+      font-size: 16px;
+      font-weight: 300;
+      color: #637381;
       white-space: nowrap;
+      margin-bottom: 0.75rem;
     }
 
     .number {
-      margin: 0.75rem 0;
-      font-size: 32px;
+      margin-bottom: 1rem;
+      font-size: 26px;
       line-height: 24px;
     }
 
     .sub-number {
-      color: #b5b5b5;
+      font-size: 16px;
     }
   }
 
-  @media only screen and (max-width: 1000px) {
+  @media only screen and (max-width: 1152px) {
     ul {
       display: flex;
       flex-direction: column;
@@ -142,18 +151,12 @@ const TokenBalances = styled.div`
     }
 
     li {
-      padding: 2rem;
-      border-bottom: 1px solid rgba(209, 209, 209, 0.5);
-    }
-  }
-
-  @media only screen and (max-width: 700px) {
-    .title {
-      margin: 1.5rem;
+      padding: 1rem;
+      border-bottom: 1px solid #dde4e9;
     }
 
-    li .title {
-      margin-left: 0;
+    li:last-child {
+      border-bottom: none;
     }
   }
 `

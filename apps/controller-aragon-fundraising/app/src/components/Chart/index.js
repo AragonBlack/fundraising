@@ -258,28 +258,28 @@ export default () => {
           <AreaChart margin={{ left: 40, bottom: 40, top: 40, right: 40 }} height={400} data={bondingCurveData}>
             <defs>
               <linearGradient id="colorBlue" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#109CF1" stopOpacity={0.3} />
-                <stop offset="100%" stopColor="#109CF1" stopOpacity={0} />
+                <stop offset="0%" stopColor="#08BEE5" stopOpacity={0.3} />
+                <stop offset="100%" stopColor="#08BEE5" stopOpacity={0} />
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="8 8" vertical={false} />
 
             <XAxis type="number" dataKey="tokens" hide={false} interval="preserveStartEnd" tickMargin={25} tickLine={false} axisLine={false} tickCount={5} />
             <YAxis tickMargin={25} tickLine={false} axisLine={false} />
-            <ReferenceDot isFront x={210} y={882} r={6} fill="#109CF1" stroke="none" />
+            <ReferenceDot isFront x={210} y={882} r={6} fill="#08BEE5" stroke="none" />
             <Tooltip labelFormatter={value => 'Bonded tokens: ' + value} />
-            <Area isAnimationActive={true} strokeWidth={2} type="monotone" dataKey="Price" stroke="#109CF1" fillOpacity={1} fill="url(#colorBlue)" />
+            <Area isAnimationActive={true} strokeWidth={2} type="monotone" dataKey="Price" stroke="#08BEE5" fillOpacity={1} fill="url(#colorBlue)" />
           </AreaChart>
         </ResponsiveContainer>
       )}
       {activeItem === 1 && (
         <ResponsiveContainer width="100%" height={400}>
           <BarChart margin={{ left: 40, bottom: 40, top: 40, right: 40 }} data={filter(activeNavItem, date)}>
-            <Tooltip cursor={{ fill: '#109CF1', fillOpacity: '0.2' }} />
+            <Tooltip cursor={{ fill: '#08BEE5', fillOpacity: '0.2' }} />
             <CartesianGrid strokeDasharray="8 8" vertical={false} />
             <XAxis dataKey="date" minTickGap={100} interval="preserveStartEnd" tickMargin={25} tickLine={false} axisLine={false} />
             <YAxis tickMargin={25} tickLine={false} axisLine={false} />
-            <Bar isAnimationActive={true} dataKey="Price" fill="#109CF1" />
+            <Bar isAnimationActive={true} dataKey="Price" fill="#08BEE5" />
           </BarChart>
         </ResponsiveContainer>
       )}
@@ -289,7 +289,7 @@ export default () => {
 
 const Chart = styled.div`
   background: #fff;
-  border: 1px solid rgba(209, 209, 209, 0.5);
+  border: 1px solid #dde4e9;
   box-sizing: border-box;
   border-radius: 3px;
 
@@ -298,7 +298,7 @@ const Chart = styled.div`
     justify-content: space-between;
     margin-top: 2rem;
     margin-right: 3rem;
-    margin-left: 12rem;
+    margin-left: 4rem;
 
     .timeline {
       display: flex;
@@ -313,6 +313,9 @@ const Chart = styled.div`
       .item {
         margin-right: 1.5rem;
         color: rgba(109, 119, 123, 0.7);
+      }
+      .item:last-child {
+        margin-right: 2rem;
       }
       .item:hover {
         cursor: pointer;
@@ -335,25 +338,15 @@ const Chart = styled.div`
     }
 
     .chart-view-text {
-      font-weight: bold;
-      font-size: 12px;
-      color: #6d777b;
-      opacity: 0.7;
-      text-transform: uppercase;
+      font-size: 16px;
+      color: #637381;
       margin-right: 1rem;
-      flex-wrap: nowrap;
+      white-space: nowrap;
     }
   }
 
-  @media only screen and (max-width: 1050px) {
+  @media only screen and (max-width: 1152px) {
     .navbar {
-      margin-left: 6rem;
-    }
-  }
-
-  @media only screen and (max-width: 920px) {
-    .navbar {
-      margin-left: 6rem;
       flex-direction: column-reverse;
       align-items: flex-end;
 

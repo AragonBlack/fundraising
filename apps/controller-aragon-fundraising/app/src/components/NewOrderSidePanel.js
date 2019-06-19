@@ -1,8 +1,39 @@
-import { Button, DropDown, Field, SidePanel, TabBar, Text, TextInput } from '@aragon/ui'
+import { Button, DropDown, Field, Info, SidePanel, TabBar, Table, TableCell, TableRow, Text, TextInput, theme } from '@aragon/ui'
 import React from 'react'
 import styled from 'styled-components'
+import transferArrows from '../assets/transferArrows.svg'
 
 const collateralTokens = ['DAI', 'ANT']
+
+const styles = {
+  selectionInputLeft: {
+    borderRadius: '3px 0px 0px 3px',
+    textAlign: 'right',
+    padding: 0,
+    paddingLeft: 0,
+  },
+  selectionInputRight: {
+    textAlign: 'right',
+    paddingRight: '50px',
+  },
+  noBorderCell: {
+    borderBottom: 0,
+    borderTop: 0,
+    padding: 0,
+  },
+  maxBalanceLink: {
+    paddingLeft: '14px',
+    textDecoration: 'underline',
+    cursor: 'pointer',
+    color: '#1DD9D5',
+  },
+  daiPrice: {
+    position: 'relative',
+    display: 'inline-block',
+    top: '-12px',
+    left: '3rem',
+  },
+}
 
 export default class NewOrderSidePanel extends React.Component {
   static defaultProps = {
@@ -21,6 +52,7 @@ export default class NewOrderSidePanel extends React.Component {
       activeItem: 0,
       amount: props.amount,
       token: props.token,
+      daiRate: '1.00',
     }
 
     this.handleTokenChange = this.handleTokenChange.bind(this)
@@ -50,35 +82,139 @@ export default class NewOrderSidePanel extends React.Component {
   }
 
   render() {
-    const { amount, token, activeItem, activeTab } = this.state
+    const { amount, token, daiRate, activeItem, activeTab } = this.state
     const { opened, onClose, onSubmit, price } = this.props
+
+    const renderOrderType = (activeTab, onSubmit) => {
+      const orderType = activeTab === 0
+      return (
+        <div>
+          <FlexWrapper>
+            <Text weight="bold">TOTAL</Text>
+            <Text weight="bold">0</Text>
+            <Text weight="bold">{orderType ? 'ATL' : 'USD'}</Text>
+          </FlexWrapper>
+          <FlexWrapper>
+            <Text weight="bold" />
+            <Text color="grey">0</Text>
+            <Text color="grey">{orderType ? 'USD' : 'ATL'}</Text>
+          </FlexWrapper>
+          <Button mode="strong" type="submit" wide onClick={onSubmit}>
+            {orderType ? 'Place buy order' : 'Place sell order'}
+          </Button>
+          <Info.Action style={{ marginTop: '20px' }} title={orderType ? 'Buy order' : 'Sell order'}>
+            As more collateral is staked into the bonding curve, you may opt to sell a small share of your tokens in order to redeem your collateral from the
+            contract where a percentage fee goes to the development of the project.
+          </Info.Action>
+        </div>
+      )
+    }
 
     return (
       <SidePanel title="New Order" opened={opened} onClose={onClose}>
         <TabBarWrapper>
           <TabBar items={['Buy', 'Sell']} selected={activeTab} onChange={idx => this.setState({ activeTab: idx })} />
         </TabBarWrapper>
-        <Text size={'small'}>Price: {'$' + price}</Text>
         <Form onSubmit={this.handleSubmit}>
-          <Field label="Amount">
-            <TextInput type="number" ref={amount => (this.amountInput = amount)} value={amount} onChange={this.handleAmountChange} required wide />
-          </Field>
-          <Field label="Collateral Token">
-            <DropDown items={collateralTokens} active={activeItem} onChange={this.handleTokenChange} />
-          </Field>
-          <Button mode="strong" type="submit" wide onClick={onSubmit}>
-            {activeTab === 0 ? 'Create buy order' : 'Create sell order'}
-          </Button>
+          <Table noSideBorders={true}>
+            <TableRow>
+              <TableCell
+                style={styles.noBorderCell}
+                css={`
+                  justify-content: flex-start;
+                  white-space: nowrap;
+                `}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                  }}
+                >
+                  <Field css={fieldCss} label="Order Amount">
+                    <TextInput
+                      adornment={<a style={styles.maxBalanceLink}>MAX</a>}
+                      type="number"
+                      style={styles.selectionInputLeft}
+                      ref={amount => (this.amountInput = amount)}
+                      value={amount}
+                      onChange={this.handleAmountChange}
+                      wide
+                      required
+                    />
+                  </Field>
+                  <StyledDropdown>
+                    <DropDown items={collateralTokens} active={activeItem} onChange={this.handleTokenChange} />
+                  </StyledDropdown>
+                </div>
+              </TableCell>
+              <TableCell
+                style={styles.noBorderCell}
+                css={`
+                  justify-content: flex-start;
+                  white-space: nowrap;
+                `}
+              >
+                <img src={transferArrows} style={{ height: '16px', margin: '0 0.5rem' }} />
+                <Field css={fieldCss} label="Token Amount">
+                  <TextInput
+                    style={styles.selectionInputRight}
+                    adornment={<span style={{ paddingRight: '14px' }}>ATL</span>}
+                    adornmentPosition={'end'}
+                    ref={amount => (this.amountInput = amount)}
+                    value={amount}
+                    onChange={this.handleAmountChange}
+                    required
+                    wide
+                  />
+                </Field>
+              </TableCell>
+            </TableRow>
+            <Text color={'rgb(150, 150, 150)'} size="small" style={styles.daiPrice}>
+              ${daiRate} USD
+            </Text>
+          </Table>
+          {renderOrderType(activeTab, onSubmit)}
         </Form>
       </SidePanel>
     )
   }
 }
 
+const FlexWrapper = styled.div`
+  display: flex;
+  margin-bottom: 10px;
+
+  span:first-child {
+    flex: 0 1 326px;
+  }
+
+  span:last-child {
+    margin-left: 1.5rem;
+  }
+`
+const StyledDropdown = styled.div`
+  height: 40px;
+  > div {
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.06);
+  }
+  > div > div {
+    padding-right: 26px;
+    border-radius: 0 3px 3px 0;
+    border-left: 0px;
+    margin-top: 1px;
+  }
+`
 const Form = styled.form`
-  margin-top: 20px;
+  display: block;
 `
 
 const TabBarWrapper = styled.div`
   margin: 0 -30px 30px;
+`
+
+const fieldCss = `
+  > label > div {
+    width: auto;
+  }
 `

@@ -1,25 +1,12 @@
-import {
-  Badge,
-  ContextMenu,
-  ContextMenuItem,
-  DropDown,
-  IdentityBadge,
-  SafeLink,
-  Table,
-  TableCell,
-  TableHeader,
-  TableRow,
-  Text,
-  theme,
-  unselectable,
-  Viewport,
-} from '@aragon/ui'
+import { Badge, ContextMenu, ContextMenuItem, DropDown, SafeLink, Table, TableCell, TableHeader, TableRow, Text, theme, unselectable } from '@aragon/ui'
 import BN from 'bignumber.js'
 import { format } from 'date-fns'
 import React, { useState } from 'react'
 import styled from 'styled-components'
 import DateRangeInput from '../components/DateRange/DateRangeInput'
 import ToggleFiltersButton from '../components/ToggleFiltersButton'
+// import IdentityBadge from '../components/IdentityBadge/IdentityBadge'
+import { useViewport } from '../providers'
 
 const orders = [
   {
@@ -158,7 +145,7 @@ const filter = (orders, state) => {
     })
 }
 
-const Orders = ({ below, within }) => {
+export default () => {
   const [state, setState] = useState({
     order: { active: 0, payload: ['All', 'Buy', 'Sell'] },
     price: { active: 0, payload: ['Default', 'Ascending', 'Descending'] },
@@ -168,11 +155,10 @@ const Orders = ({ below, within }) => {
     showFilters: false,
   })
 
+  const { within, below } = useViewport()
+
   return (
     <ContentWrapper>
-      <h1 className="title">
-        <Text>Historical Orders</Text>
-      </h1>
       {within(0, 975) && <ToggleFiltersButton onClick={() => setState({ ...state, showFilters: !state.showFilters })} />}
       <div className={within(0, 975) ? (state.showFilters ? 'filter-nav' : ' filter-nav hide') : 'filter-nav'}>
         <div className="filter-item">
@@ -241,9 +227,7 @@ const Orders = ({ below, within }) => {
                     {order.state}
                   </Badge>
                 </TableCell>
-                <TableCell>
-                  <StyledIdentityBadge entity={order.from} shorten={below('large')} />
-                </TableCell>
+                <TableCell>{/* <StyledIdentityBadge entity={order.from} shorten={below('large')} /> */}</TableCell>
                 <TableCell>
                   <StyledText>
                     {order.type === 'buy' ? '+' : '-'}
@@ -301,7 +285,7 @@ const Orders = ({ below, within }) => {
                       margin-bottom: 1rem;
                     `}
                   >
-                    <StyledIdentityBadge entity={order.from} shorten={below('small')} />
+                    {/* <StyledIdentityBadge entity={order.from} shorten={below('small')} /> */}
                   </div>
                   <div
                     css={`
@@ -343,8 +327,6 @@ const Orders = ({ below, within }) => {
 }
 
 const ContentWrapper = styled.div`
-  padding: 2rem;
-
   .title {
     font-weight: 600;
   }
@@ -412,8 +394,8 @@ const StyledText = styled(Text)`
   white-space: nowrap;
 `
 
-const StyledIdentityBadge = styled(IdentityBadge)`
-  background-color: rgb(218, 234, 239);
-`
+// const StyledIdentityBadge = styled(IdentityBadge)`
+//   background-color: rgb(218, 234, 239);
+// `
 
-export default props => <Viewport>{({ below, within }) => <Orders {...props} below={below} within={within} />}</Viewport>
+// export default props => <Viewport>{({ below, within }) => <Orders {...props} below={below} within={within} />}</Viewport>
