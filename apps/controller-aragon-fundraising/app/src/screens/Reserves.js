@@ -131,6 +131,14 @@ const monthlyAllowanceStyle = `
   .item + .item {
     margin-top: 1rem;
   }
+
+  @media only screen and (max-width: 1152px) {
+    width: 50%;
+  }
+
+  @media only screen and (max-width: 600px) {
+    width: 100%;
+  }
 `
 
 const ContentWrapper = styled.div`
@@ -163,6 +171,34 @@ const ContentWrapper = styled.div`
       display: flex;
       flex-direction: column;
       width: 50%;
+    }
+  }
+
+  @media only screen and (max-width: 1152px) {
+    .settings {
+      width: 50%;
+    }
+    .settings-content {
+      flex-direction: column;
+      > div {
+        width: 100%;
+      }
+      > div:first-child {
+        margin-bottom: 2rem;
+      }
+    }
+  }
+
+  @media only screen and (max-width: 768px) {
+    padding: 1rem;
+  }
+
+  @media only screen and (max-width: 600px) {
+    flex-direction: column;
+
+    .settings {
+      width: 100%;
+      margin-bottom: 1rem;
     }
   }
 `
