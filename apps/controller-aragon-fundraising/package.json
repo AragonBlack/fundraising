@@ -25,7 +25,8 @@
     "publish:major:devchain": "aragon apm publish major --files ./build --environment default",
     "publish": "npm run publish:major:devchain",
     "abi:extract": "truffle-extract --output app/src/abi/ --keys abi",
-    "prepublishOnly": "truffle compile --all && npm run abi:extract -- --no-compile"
+    "prepublishOnly": "truffle compile --all && npm run abi:extract -- --no-compile",
+    "publish": "npm run publish:major:devchain"
   },
   "files": [
     "/arapp.json",
