@@ -15,6 +15,7 @@
     "@aragon/ui": "^0.38.1",
     "bignumber.js": "^8.1.1",
     "date-fns": "^2.0.0-alpha.27",
+    "dayjs": "^1.8.14",
     "prop-types": "^15.6.0",
     "react": "^16.8.6",
     "react-dom": "^16.8.6",

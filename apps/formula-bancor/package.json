@@ -12,7 +12,7 @@
   "license": "(GPL-3.0-or-later OR MIT)",
   "scripts": {
     "compile": "truffle compile",
-    "publish:major:devchain": "aragon apm publish major --files ./build --environment default",
+    "publish:major:devchain": "aragon apm publish major --environment default",
     "publish": "npm run publish:major:devchain"
   },
   "files": [
