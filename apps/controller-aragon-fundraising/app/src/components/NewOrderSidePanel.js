@@ -1,4 +1,4 @@
-import { Button, DropDown, Field, Info, SidePanel, TabBar, Table, TableCell, TableRow, Text, TextInput, theme } from '@aragon/ui'
+import { Button, DropDown, Field, Info, SidePanel, TabBar, Table, TableCell, TableRow, Text, TextInput } from '@aragon/ui'
 import React from 'react'
 import styled from 'styled-components'
 import transferArrows from '../assets/transferArrows.svg'
@@ -50,16 +50,16 @@ export default class NewOrderSidePanel extends React.Component {
     this.state = {
       activeTab: 0,
       activeItem: 0,
-      amount: props.amount,
+      orderAmount: props.orderAmount,
+      tokenAmount: props.tokenAmount,
       token: props.token,
-      daiRate: '1.00',
     }
 
     this.handleTokenChange = this.handleTokenChange.bind(this)
   }
 
-  componentWillReceiveProps({ opened, amount, token, price }) {
-    this.setState({ amount: amount, token: token, price: price })
+  componentWillReceiveProps({ opened, orderAmount, tokenAmount, token, price }) {
+    this.setState({ orderAmount: orderAmount, tokenAmount: tokenAmount, token: token, price: price })
     if (opened && !this.props.opened) {
       // setTimeout is needed as a small hack to wait until the input's on
       // screen until we call focus
@@ -67,22 +67,32 @@ export default class NewOrderSidePanel extends React.Component {
     }
   }
 
-  handleAmountChange = event => {
-    this.setState({ amount: event.target.value })
+  // TODO: create condition for ANT token price / abstract for any token price listed
+  handleOrderAmountChange = event => {
+    const tokenAmount = (event.target.value / this.props.price).toFixed(2)
+    this.setState({ orderAmount: event.target.value, tokenAmount })
+  }
+
+  handleTokenAmountChange = event => {
+    const orderAmount = (event.target.value * this.props.price).toFixed(2)
+    this.setState({ tokenAmount: event.target.value, orderAmount })
   }
 
   handleTokenChange(index) {
     const token = collateralTokens[index]
+    // const tokenAddress = collateralTokenAddress[token]
+    //
+    // this.setState(
     this.setState({ activeItem: index })
   }
 
-  handleSubmit = event => {
+  handleSubmit = (event, orderType) => {
     event.preventDefault()
-    this.props.onSubmit(this.state.amount.trim(), this.state.token.trim())
+    this.props.onSubmit(this.state.token.trim(), this.state.tokenAmount.trim(), orderType)
   }
 
   render() {
-    const { amount, token, daiRate, activeItem, activeTab } = this.state
+    const { orderAmount, tokenAmount, activeItem, activeTab } = this.state
     const { opened, onClose, onSubmit, price } = this.props
 
     const renderOrderType = (activeTab, onSubmit) => {
@@ -91,15 +101,15 @@ export default class NewOrderSidePanel extends React.Component {
         <div>
           <FlexWrapper>
             <Text weight="bold">TOTAL</Text>
-            <Text weight="bold">0</Text>
+            <Text weight="bold">{orderType ? tokenAmount : orderAmount}</Text>
             <Text weight="bold">{orderType ? 'ATL' : 'USD'}</Text>
           </FlexWrapper>
           <FlexWrapper>
             <Text weight="bold" />
-            <Text color="grey">0</Text>
+            <Text color="grey">{orderType ? orderAmount : tokenAmount}</Text>
             <Text color="grey">{orderType ? 'USD' : 'ATL'}</Text>
           </FlexWrapper>
-          <Button mode="strong" type="submit" wide onClick={onSubmit}>
+          <Button mode="strong" type="submit" wide onClick={e => this.handleSubmit(e, orderType)}>
             {orderType ? 'Place buy order' : 'Place sell order'}
           </Button>
           <Info.Action style={{ marginTop: '20px' }} title={orderType ? 'Buy order' : 'Sell order'}>
@@ -115,8 +125,8 @@ export default class NewOrderSidePanel extends React.Component {
         <TabBarWrapper>
           <TabBar items={['Buy', 'Sell']} selected={activeTab} onChange={idx => this.setState({ activeTab: idx })} />
         </TabBarWrapper>
-        <Form onSubmit={this.handleSubmit}>
-          <Table noSideBorders={true}>
+        <Form onSubmit={e => this.handleSubmit(e, activeTab === '0')}>
+          <Table noSideBorders>
             <TableRow>
               <TableCell
                 style={styles.noBorderCell}
@@ -137,8 +147,8 @@ export default class NewOrderSidePanel extends React.Component {
                       type="number"
                       style={styles.selectionInputLeft}
                       ref={amount => (this.amountInput = amount)}
-                      value={amount}
-                      onChange={this.handleAmountChange}
+                      value={orderAmount}
+                      onChange={this.handleOrderAmountChange}
                       wide
                       required
                     />
@@ -158,12 +168,13 @@ export default class NewOrderSidePanel extends React.Component {
                 <img src={transferArrows} style={{ height: '16px', margin: '0 0.5rem' }} />
                 <Field css={fieldCss} label="Token Amount">
                   <TextInput
+                    type="number"
                     style={styles.selectionInputRight}
                     adornment={<span style={{ paddingRight: '14px' }}>ATL</span>}
                     adornmentPosition={'end'}
                     ref={amount => (this.amountInput = amount)}
-                    value={amount}
-                    onChange={this.handleAmountChange}
+                    value={tokenAmount}
+                    onChange={this.handleTokenAmountChange}
                     required
                     wide
                   />
@@ -171,7 +182,7 @@ export default class NewOrderSidePanel extends React.Component {
               </TableCell>
             </TableRow>
             <Text color={'rgb(150, 150, 150)'} size="small" style={styles.daiPrice}>
-              ${daiRate} USD
+              ${price} USD
             </Text>
           </Table>
           {renderOrderType(activeTab, onSubmit)}

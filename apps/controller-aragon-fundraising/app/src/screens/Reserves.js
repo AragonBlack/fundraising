@@ -23,6 +23,7 @@ export default () => {
   const onButtonClick = () => {
     const updatedAllocation = inputRef.current.value
     // call contract api to update if they have valid permissions
+    this.props.updateTokenTap(updatedAllocation)
   }
 
   return (
@@ -47,7 +48,7 @@ export default () => {
               />
             </div>
             <Button type="submit" css={buttonStyle} onSubmit={onButtonClick}>
-              <img src={EditIcon} />
+              <img style={{ marginTop: '6px' }} src={EditIcon} />
               <p
                 css={`
                   margin-top: 4px;
