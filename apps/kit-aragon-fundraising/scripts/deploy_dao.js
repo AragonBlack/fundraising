@@ -8,32 +8,21 @@ const deploy = async address => {
 }
 
 module.exports = async callback => {
+  const collateral1 = await TokenMock.new('0xb4124cEB3451635DAcedd11767f004d8a28c6eE7', 1000000000000000000)
+  const collateral2 = await TokenMock.new('0xb4124cEB3451635DAcedd11767f004d8a28c6eE7', 1000000000000000000)
+
   const kit = await FundraisingKit.at(process.argv[6])
-  console.log(kit.address)
 
-  const receipt1 = await kit.newTokens('BONDS', 'BONDS')
-
-  console.log(receipt1)
-
+  const receipt1 = await kit.newTokens('PRO', 'PROJECT')
   const receipt2 = await kit.newMultisigInstance(
     'fundraising' + Math.random(),
     ['0xb4124cEB3451635DAcedd11767f004d8a28c6eE7', '0x8401Eb5ff34cc943f096A32EF3d5113FEbE8D4Eb '],
     2
   )
-
-  console.log(receipt2.logs)
-
-  const collateral1 = await TokenMock.new('0xb4124cEB3451635DAcedd11767f004d8a28c6eE7', 1000000000000000000)
-  const collateral2 = await TokenMock.new('0xb4124cEB3451635DAcedd11767f004d8a28c6eE7', 1000000000000000000)
-
-  console.log(collateral1.address)
-  console.log(collateral2.address)
-
   const receipt3 = await kit.newFundraisingInstance(collateral1.address, collateral2.address)
+  const dao = receipt2.logs.filter(l => l.event == 'DeployMultisigInstance')[0].args.dao
 
-  //   console.log(receipt3)
-
-  //   console.log(receipt3.logs)
+  console.log('DAO deployed at ' + dao)
 
   callback()
 }
