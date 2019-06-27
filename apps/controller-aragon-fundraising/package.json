@@ -21,6 +21,7 @@
     "test:gas": "GAS_REPORTER=true npm test",
     "test:coverage": "SOLIDITY_COVERAGE=true npm run ganache-cli:test",
     "ganache-cli:test": "./node_modules/@aragon/test-helpers/ganache-cli.sh",
+    "publish:minor:devchain": "aragon apm publish minor --only-content --files ./app/build --environment default",
     "publish:major:devchain": "aragon apm publish major --files ./app/build --environment default",
     "publish": "npm run publish:major:devchain"
   },
