@@ -2,6 +2,16 @@
   "name": "apiary",
   "version": "0.1.0",
   "private": true,
+  "author": "Aragon Black <contact@aragon.black>",
+  "contributors": [
+    "Olivier Sarrouy <olivier@pando.network>",
+    "Cory Dickson <cory@aragon.black>",
+    "Deam Hansen <deam@aragon.blackk>"
+  ],
+  "repository": "github:AragonBlack/fundraising",
+  "homepage": "https://github.com/AragonBlack/fundraising",
+  "bugs": "https://github.com/AragonBlack/fundraising/issues",
+  "license": "(GPL-3.0-or-later OR MIT)",
   "scripts": {
     "lint": "eslint ./src",
     "sync-assets": "copy-aragon-ui-assets -n aragon-ui ./build && rsync -rtu ./public/ ./build",

@@ -12,6 +12,8 @@
   "bugs": "https://github.com/AragonBlack/fundraising/issues",
   "license": "(GPL-3.0-or-later OR MIT)",
   "scripts": {
+    "build": "cd app && npm run build",
+    "install:frontend": "cd app && npm install",
     "lint:contracts": "solium --dir ./contracts",
     "lint:tests": "eslint ./test",
     "lint": "npm run lint:contracts && npm run lint:tests",
@@ -21,7 +23,9 @@
     "test:coverage": "SOLIDITY_COVERAGE=true npm run ganache-cli:test",
     "ganache-cli:test": "./node_modules/@aragon/test-helpers/ganache-cli.sh",
     "publish:major:devchain": "aragon apm publish major --files ./build --environment default",
-    "publish": "npm run publish:major:devchain"
+    "publish": "npm run publish:major:devchain",
+    "abi:extract": "truffle-extract --output app/src/abi/ --keys abi",
+    "prepublishOnly": "truffle compile --all && npm run abi:extract -- --no-compile"
   },
   "files": [
     "/arapp.json",
@@ -58,6 +62,7 @@
     "js-sha3": "^0.8.0",
     "prettier": "^1.8.2",
     "solium": "^1.2.3",
-    "truffle": "4.1.14"
+    "truffle": "4.1.14",
+    "truffle-extract": "^1.2.1"
   }
 }
