@@ -32,6 +32,11 @@
       "name": "Remove collateral tokens to safeguard",
       "id": "REMOVE_COLLATERAL_TOKEN_ROLE",
       "params": []
+    },
+    {
+      "name": "Transfer tokens",
+      "id": "TRANSFER_ROLE",
+      "params": ["Token address", "Receiver address", "Token amount"]
     }
   ],
   "path": "contracts/Pool.sol"

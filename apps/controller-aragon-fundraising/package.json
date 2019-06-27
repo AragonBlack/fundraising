@@ -18,14 +18,15 @@
     "lint:tests": "eslint ./test",
     "lint": "npm run lint:contracts && npm run lint:tests",
     "compile": "truffle compile",
+    "build": "cd app && npm run build",
     "test": "TRUFFLE_TEST=true npm run ganache-cli:test",
     "test:gas": "GAS_REPORTER=true npm test",
     "test:coverage": "SOLIDITY_COVERAGE=true npm run ganache-cli:test",
     "ganache-cli:test": "./node_modules/@aragon/test-helpers/ganache-cli.sh",
-    "publish:major:devchain": "aragon apm publish major --files ./build --environment default",
     "publish": "npm run publish:major:devchain",
     "abi:extract": "truffle-extract --output app/src/abi/ --keys abi",
     "prepublishOnly": "truffle compile --all && npm run abi:extract -- --no-compile",
+    "publish:major:devchain": "aragon apm publish major --files ./app/build --environment default",
     "publish": "npm run publish:major:devchain"
   },
   "files": [
