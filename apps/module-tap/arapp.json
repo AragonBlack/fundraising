@@ -29,6 +29,11 @@
       "params": []
     },
     {
+      "name": "Update tap maximum monthly increase",
+      "id": "UPDATE_MONTHLY_TAP_INCREASE_ROLE",
+      "params": []
+    },
+    {
       "name": "Add token taps",
       "id": "ADD_TOKEN_TAP_ROLE",
       "params": []
