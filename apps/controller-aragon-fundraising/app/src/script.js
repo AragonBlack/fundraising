@@ -16,9 +16,12 @@ import { of, zip } from 'rxjs'
 // import vaultBalanceAbi from './abi/vault-balance.json'
 // import vaultGetInitializationBlockAbi from './abi/vault-getinitializationblock.json'
 // import vaultEventAbi from './abi/vault-events.json'
+import vaultAbi from './abi/Vault.json'
+import poolAbi from './abi/Pool.json'
+import tapAbi from './abi/Tap.json'
+import marketMakerAbi from './abi/BancorMarketMaker.json'
 
 // const tokenAbi = [].concat(tokenDecimalsAbi, tokenNameAbi, tokenSymbolAbi)
-// const vaultAbi = [].concat(vaultBalanceAbi, vaultGetInitializationBlockAbi, vaultEventAbi)
 
 const TEST_TOKEN_ADDRESSES = []
 const tokenContracts = new Map() // Addr -> External contract
@@ -27,6 +30,7 @@ const tokenNames = new Map() // External contract -> name
 const tokenSymbols = new Map() // External contract -> symbol
 
 const ETH_CONTRACT = Symbol('ETH_CONTRACT')
+const INITIALIZATION_TRIGGER = Symbol('INITIALIZATION_TRIGGER')
 
 const app = new Aragon()
 
@@ -58,11 +62,11 @@ const retryEvery = (callback, initialRetryTimer = 1000, increaseFactor = 5) => {
   attempt()
 }
 
-const externals = zip(app.call('tap'), app.call('marketMaker'))
+const externals = zip(app.call('vault'), app.call('pool'), app.call('tap'), app.call('marketMaker'))
 // Get the token address to initialize ourselves
 retryEvery(retry => {
   externals.subscribe(
-    ([tapAddress, marketMakerAddress]) => initialize(tapAddress, marketMakerAddress),
+    ([reserveAddress, poolAddress, tapAddress, marketMakerAddress]) => initialize(reserveAddress, poolAddress, tapAddress, marketMakerAddress),
     err => {
       console.error('Could not start background script execution due to the contract not loading external contract addresses:', err)
       retry()
@@ -70,13 +74,20 @@ retryEvery(retry => {
   )
 })
 
-async function initialize(tapAddress, marketMakerAddress) {
-  // const vaultContract = app.external(vaultAddress, vaultAbi)
+async function initialize(reserveAddress, poolAddress, tapAddress, marketMakerAddress) {
+  // TODO: Create a function that generates the settings object with a list of addresses and the corresponding apps
+  // Breakout into two functions, one to intialize and the other to create state store
+  const vaultContract = app.external(reserveAddress, vaultAbi)
+  const poolContract = app.external(poolAddress, poolAbi)
+  const tapContract = app.external(tapAddress, tapAbi)
+  const marketMakerContract = app.external(marketMakerAddress, marketMakerAbi)
 
   console.log('Initialize')
 
   console.log(tapAddress)
   console.log(marketMakerAddress)
+  console.log(poolAddress)
+  console.log(reserveAddress)
 
   const network = await app
     .network()
@@ -90,73 +101,89 @@ async function initialize(tapAddress, marketMakerAddress) {
   // tokenNames.set(ETH_CONTRACT, 'Ether')
   // tokenSymbols.set(ETH_CONTRACT, 'ETH')
 
-  // const settings = {
-  //   network,
-  //   ethToken: {
-  //     address: ethAddress,
-  //   },
-  //   vault: {
-  //     address: vaultAddress,
-  //     contract: vaultContract,
-  //   },
-  // }
+  const settings = {
+    network,
+    ethToken: {
+      // address: ethAddress,
+    },
+    reserveVault: {
+      address: reserveAddress,
+      contract: vaultContract,
+    },
+    pool: {
+      address: poolAddress,
+      contract: poolContract,
+    },
+    tap: {
+      address: tapAddress,
+      contract: tapContract,
+    },
+    marketMaker: {
+      address: marketMakerAddress,
+      contract: marketMakerContract,
+    },
+  }
 
-  // let vaultInitializationBlock
+  let vaultInitializationBlock
 
-  // try {
-  //   vaultInitializationBlock = await settings.vault.contract.getInitializationBlock().toPromise()
-  // } catch (err) {
-  //   console.error("Could not get attached vault's initialization block:", err)
-  // }
+  try {
+    vaultInitializationBlock = await settings.vault.contract.getInitializationBlock().toPromise()
+  } catch (err) {
+    console.error("Could not get attached vault's initialization block:", err)
+  }
 
-  // return app.store(
-  //   async (state, event) => {
-  //     const { vault } = settings
-  //     const { address: eventAddress, event: eventName } = event
-  //     const nextState = {
-  //       ...state,
-  //     }
+  return app.store(
+    async (state, event) => {
+      if (state === null) state = { tokenSupply: 0, collateralTokens: {}, tapRate: 0, price: 0, historicalOrders: {}, cache: {} }
+      const nextState = {
+        ...state,
+      }
 
-  //     if (eventName === events.SYNC_STATUS_SYNCING) {
-  //       return { ...nextState, isSyncing: true }
-  //     } else if (eventName === events.SYNC_STATUS_SYNCED) {
-  //       return { ...nextState, isSyncing: false }
-  //     }
+      const { id, returnValues, address: eventAddress, event: eventName } = event
 
-  //     // Vault event
-  //     if (addressesEqual(eventAddress, vault.address)) {
-  //       return vaultLoadBalance(nextState, event, settings)
-  //     }
+      if (eventName === events.SYNC_STATUS_SYNCING) {
+        return { ...nextState, isSyncing: true }
+      } else if (eventName === events.SYNC_STATUS_SYNCED) {
+        return { ...nextState, isSyncing: false }
+      }
 
-  //     // Finance event
-  //     switch (eventName) {
-  //       case 'ChangePeriodDuration':
-  //         nextState.periodDuration = marshallDate(event.returnValues.newDuration)
-  //         return nextState
-  //       case 'NewPeriod':
-  //         return {
-  //           ...(await newPeriod(nextState, event, settings)),
-  //           // A new period is always started as part of the Finance app's initialization,
-  //           // so this is just a handy way to get information about the app we're running
-  //           // (e.g. its own address)
-  //           proxyAddress: eventAddress,
-  //         }
-  //       case 'NewTransaction':
-  //         return newTransaction(nextState, event, settings)
-  //       default:
-  //         return nextState
-  //     }
-  //   },
-  //   {
-  //     init: initializeState(settings),
-  //     externals: [
-  //       {
-  //         contract: settings.vault.contract,
-  //         initializationBlock: vaultInitializationBlock,
-  //       },
-  //     ],
-  //   }
-  // )
+      if (!state.cache[id]) {
+        state.cache[id] = true
+        state.cache.address = eventAddress
+
+        switch (eventName) {
+          case 'UpdateTapRate':
+            // record when the last time the tap was updated
+            break
+          case 'NewOrder':
+            const ORDER = {
+              id: returnValues.id,
+              orderType: returnValues.orderType,
+              state: returnValues.state,
+              amount: returnValues.amount,
+              orderPrice: returnValues.orderPrice,
+            }
+
+            nextState.historicalOrders[returnValues.id] = ORDER
+            return nextState
+          case 'ClaimOrder':
+            // get the id of the order and change its status to claimed once the tx clears and event is emitted
+            return nextState
+          case 'ClearOrder':
+            break
+          default:
+            break
+        }
+      }
+
+      return nextState
+    },
+    [
+      // Always initialize the store with our own home-made event
+      of({ event: INITIALIZATION_TRIGGER }),
+      settings.vault.contract.events(vaultInitializationBlock),
+    ]
+  )
 }
 
 /***********************

@@ -3,13 +3,17 @@ import React from 'react'
 import styled from 'styled-components'
 import transferArrows from '../assets/transferArrows.svg'
 
+const formatOrderRequirements = value => {
+  return value.length > 0 && value > 0 ? value : '0.00'
+}
+
 const collateralTokens = ['DAI', 'ANT']
 
 const styles = {
   selectionInputLeft: {
     borderRadius: '3px 0px 0px 3px',
     textAlign: 'right',
-    padding: 0,
+    width: '150px',
     paddingLeft: 0,
   },
   selectionInputRight: {
@@ -70,12 +74,12 @@ export default class NewOrderSidePanel extends React.Component {
   // TODO: create condition for ANT token price / abstract for any token price listed
   handleOrderAmountChange = event => {
     const tokenAmount = (event.target.value / this.props.price).toFixed(2)
-    this.setState({ orderAmount: event.target.value, tokenAmount })
+    this.setState({ orderAmount: formatOrderRequirements(event.target.value), tokenAmount })
   }
 
   handleTokenAmountChange = event => {
     const orderAmount = (event.target.value * this.props.price).toFixed(2)
-    this.setState({ tokenAmount: event.target.value, orderAmount })
+    this.setState({ tokenAmount: formatOrderRequirements(event.target.value), orderAmount })
   }
 
   handleTokenChange(index) {
@@ -144,7 +148,6 @@ export default class NewOrderSidePanel extends React.Component {
                   <Field css={fieldCss} label="Order Amount">
                     <TextInput
                       adornment={<a style={styles.maxBalanceLink}>MAX</a>}
-                      type="number"
                       style={styles.selectionInputLeft}
                       ref={amount => (this.amountInput = amount)}
                       value={orderAmount}
@@ -168,7 +171,6 @@ export default class NewOrderSidePanel extends React.Component {
                 <img src={transferArrows} style={{ height: '16px', margin: '0 0.5rem' }} />
                 <Field css={fieldCss} label="Token Amount">
                   <TextInput
-                    type="number"
                     style={styles.selectionInputRight}
                     adornment={<span style={{ paddingRight: '14px' }}>ATL</span>}
                     adornmentPosition={'end'}
