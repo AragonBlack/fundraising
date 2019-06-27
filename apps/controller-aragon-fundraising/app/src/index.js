@@ -3,7 +3,7 @@ import React from 'react'
 import ReactDOM from 'react-dom'
 import App from './App'
 import Main from './components/Main/Main'
-// import RootPortal from './components/RootPortal/RootPortal'
+// import appStateReducer from './reducer.js'
 
 ReactDOM.render(
   <AragonApi>
