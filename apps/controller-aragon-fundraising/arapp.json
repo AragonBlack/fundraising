@@ -19,8 +19,43 @@
   },
   "roles": [
     {
+      "name": "Update buy and sell orders fees",
+      "id": "UPDATE_FEES_ROLE",
+      "params": []
+    },
+    {
+      "name": "Update beneficiary address",
+      "id": "UPDATE_BENEFICIARY_ROLE",
+      "params": []
+    },
+    {
       "name": "Add tokens as whitelisted collaterals",
       "id": "ADD_COLLATERAL_TOKEN_ROLE",
+      "params": []
+    },
+    {
+      "name": "Update token taps",
+      "id": "UPDATE_TOKEN_TAP_ROLE",
+      "params": []
+    },
+    {
+      "name": "Update tap maximum monthly increase",
+      "id": "UPDATE_MONTHLY_TAP_INCREASE_ROLE",
+      "params": []
+    },
+    {
+      "name": "Create buy orders",
+      "id": "CREATE_BUY_ORDER_ROLE",
+      "params": []
+    },
+    {
+      "name": "Create sell orders",
+      "id": "CREATE_SELL_ORDER_ROLE",
+      "params": []
+    },
+    {
+      "name": "Withdraw funds from the pool to the vault",
+      "id": "WITHDRAW_ROLE",
       "params": []
     }
   ],
