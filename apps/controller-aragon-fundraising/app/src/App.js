@@ -55,7 +55,7 @@ class App extends React.Component {
     this.handleNewOrderClose()
   }
 
-  handleTokenTapUpdate = async (tapAmount) => {
+  handleTokenTapUpdate = async tapAmount => {
     const { token } = this.state
     this.props.api.updateTokenTap(token, tapAmount).toPromise(err => console.log('You do not have permissions to update this value: ', err))
   }
