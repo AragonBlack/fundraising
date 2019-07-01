@@ -14,6 +14,9 @@ const baseStyles = css`
   box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.06);
   color: ${theme.textPrimary};
   appearance: none;
+  &:hover {
+    cursor: pointer;
+  }
   &:focus {
     outline: none;
     border-color: ${theme.contentBorderActive};
@@ -31,15 +34,7 @@ const TextInput = styled.input`
 
 TextInput.propTypes = {
   required: PropTypes.bool,
-  type: PropTypes.oneOf([
-    'email',
-    'number',
-    'password',
-    'search',
-    'tel',
-    'text',
-    'url',
-  ]),
+  type: PropTypes.oneOf(['email', 'number', 'password', 'search', 'tel', 'text', 'url']),
 }
 
 TextInput.defaultProps = {
@@ -49,18 +44,7 @@ TextInput.defaultProps = {
 
 // Text input wrapped to allow adornments
 const WrapperTextInput = React.forwardRef(
-  (
-    {
-      adornment,
-      adornmentPosition,
-      adornmentSettings: {
-        width: adornmentWidth = 34,
-        padding: adornmentPadding = 4,
-      },
-      ...props
-    },
-    ref
-  ) => {
+  ({ adornment, adornmentPosition, adornmentSettings: { width: adornmentWidth = 34, padding: adornmentPadding = 4 }, ...props }, ref) => {
     if (!adornment) {
       return <TextInput ref={ref} {...props} />
     }
@@ -75,9 +59,7 @@ const WrapperTextInput = React.forwardRef(
         <TextInput
           ref={ref}
           css={`
-            ${adornmentPosition === 'end'
-              ? 'padding-right'
-              : 'padding-left'}: ${adornmentWidth - adornmentPadding * 2}px;
+            ${adornmentPosition === 'end' ? 'padding-right' : 'padding-left'}: ${adornmentWidth - adornmentPadding * 2}px;
           `}
           {...props}
         />
@@ -87,13 +69,14 @@ const WrapperTextInput = React.forwardRef(
             top: 0;
             bottom: 0;
             height: 100%;
-            ${adornmentPosition === 'end'
-              ? 'right'
-              : 'left'}: ${adornmentPadding}px;
+            ${adornmentPosition === 'end' ? 'right' : 'left'}: ${adornmentPadding}px;
             display: flex;
             align-items: center;
             justify-content: center;
             color: ${theme.textSecondary};
+            &:hover {
+              cursor: pointer;
+            }
           `}
         >
           {adornment}
