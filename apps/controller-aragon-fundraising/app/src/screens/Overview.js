@@ -1,9 +1,6 @@
-import { Text } from '@aragon/ui'
 import BN from 'bignumber.js'
 import React, { useEffect, useState } from 'react'
 import styled from 'styled-components'
-import antImage from '../assets/ant.png'
-import daiImage from '../assets/dai.png'
 import Chart from '../components/Chart'
 import Box from '../components/Box/Box'
 
@@ -39,37 +36,45 @@ export default () => {
       <KeyMetrics heading="Key metrics" padding={false}>
         <ul>
           <li>
-            <p className="title">Price</p>
-            <p className="number">$106,03.36</p>
+            <div>
+              <p className="title">Price</p>
+              <p className="number">$106,03.36</p>
+            </div>
             <p className="sub-number green">+$4.82 (0.5%)</p>
           </li>
           <li>
-            <div className="title">
-              <p>Market Cap</p>
+            <div>
+              <p className="title">Market Cap</p>
+              <p className="number">$675,02 M</p>
             </div>
-            <p className="number">$675,02 M</p>
             <p className="sub-number green">+$4.82M</p>
           </li>
           <li>
-            <div className="title">
-              <p>Trading Volume</p>
+            <div>
+              <p className="title">Trading Volume</p>
+              <p className="number">$1.5 M</p>
             </div>
-            <p className="number">$1.5 M</p>
             <p className="sub-number green">$48M (Y)</p>
           </li>
           <li>
-            <p className="title">Token Supply</p>
-            <p className="number">100,013 M</p>
+            <div>
+              <p className="title">Token Supply</p>
+              <p className="number">100,013 M</p>
+            </div>
             <p className="sub-number red">-$23.82 (0.5%)</p>
           </li>
           <li>
-            <p className="title">Reserves</p>
-            <p className="number">$25,07 M</p>
+            <div>
+              <p className="title">Reserves</p>
+              <p className="number">$25,07 M</p>
+            </div>
             <p className="sub-number red">-$0.82M</p>
           </li>
           <li>
-            <p className="title">Monthly Allowance</p>
-            <p className="number">$150.5 K</p>
+            <div>
+              <p className="title">Monthly Allowance</p>
+              <p className="number">$150.5 K</p>
+            </div>
             <p className="sub-number green">$48M (Y)</p>
           </li>
         </ul>
@@ -151,8 +156,15 @@ const KeyMetrics = styled(Box)`
     }
 
     li {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
       padding: 1rem;
       border-bottom: 1px solid #dde4e9;
+
+      .number {
+        margin-bottom: 0;
+      }
     }
 
     li:last-child {
