@@ -21,6 +21,7 @@ contract AragonFundraisingController is EtherTokenConstant, IsContract, IMarketM
     using SafeERC20 for ERC20;
     using SafeMath for uint256;
 
+    /* Hardcoded constants to save gas
     bytes32 public constant UPDATE_FEES_ROLE = keccak256("UPDATE_FEES_ROLE");
     bytes32 public constant UPDATE_BENEFICIARY_ROLE = keccak256("UPDATE_BENEFICIARY_ROLE");
     bytes32 public constant ADD_COLLATERAL_TOKEN_ROLE = keccak256("ADD_COLLATERAL_TOKEN_ROLE");
@@ -29,6 +30,15 @@ contract AragonFundraisingController is EtherTokenConstant, IsContract, IMarketM
     bytes32 public constant CREATE_BUY_ORDER_ROLE = keccak256("CREATE_BUY_ORDER_ROLE");
     bytes32 public constant CREATE_SELL_ORDER_ROLE = keccak256("CREATE_SELL_ORDER_ROLE");
     bytes32 public constant WITHDRAW_ROLE = keccak256("WITHDRAW_ROLE");
+    */
+    bytes32 public constant UPDATE_FEES_ROLE = 0x5f9be2932ed3a723f295a763be1804c7ebfd1a41c1348fb8bdf5be1c5cdca822;
+    bytes32 public constant UPDATE_BENEFICIARY_ROLE = 0xf7ea2b80c7b6a2cab2c11d2290cb005c3748397358a25e17113658c83b732593;
+    bytes32 public constant ADD_COLLATERAL_TOKEN_ROLE = 0x217b79cb2bc7760defc88529853ef81ab33ae5bb315408ce9f5af09c8776662d;
+    bytes32 public constant UPDATE_TOKEN_TAP_ROLE = 0xdb8c88bedbc61ea0f92e1ce46da0b7a915affbd46d1c76c4bbac9a209e4a8416;
+    bytes32 public constant UPDATE_MONTHLY_TAP_INCREASE_ROLE = 0x965f75f8b066c8f6d244fa7fb60cce4126475cd69c5cce83f73de5b05e7fed7a;
+    bytes32 public constant CREATE_BUY_ORDER_ROLE = 0x3731927a06368b3d870c9ec54b3f21fbd9bbe837133738bdc168b92d9f7b7910;
+    bytes32 public constant CREATE_SELL_ORDER_ROLE = 0xaed76687e01a1c6eae60156208dbf21f33a05cfd144a7c92637148ccd9ab576a;
+    bytes32 public constant WITHDRAW_ROLE = 0x5d8e12c39142ff96d79d04d15d1ba1269e4fe57bb9d26f43523628b34ba108ec;
 
     BancorMarketMaker public marketMaker;
     Pool public reserve;

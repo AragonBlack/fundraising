@@ -17,6 +17,7 @@ contract Tap is EtherTokenConstant, IsContract, AragonApp {
     using SafeERC20 for ERC20;
     using SafeMath for uint256;
 
+    /* Hardcoded constants to save gas
     bytes32 public constant UPDATE_RESERVE_ROLE = keccak256("UPDATE_RESERVE_ROLE");
     bytes32 public constant UPDATE_BENEFICIARY_ROLE = keccak256("UPDATE_BENEFICIARY_ROLE");
     bytes32 public constant UPDATE_MONTHLY_TAP_INCREASE_ROLE = keccak256("UPDATE_MONTHLY_TAP_INCREASE_ROLE");
@@ -24,6 +25,14 @@ contract Tap is EtherTokenConstant, IsContract, AragonApp {
     bytes32 public constant REMOVE_TOKEN_TAP_ROLE = keccak256("REMOVE_TOKEN_TAP_ROLE");
     bytes32 public constant UPDATE_TOKEN_TAP_ROLE = keccak256("UPDATE_TOKEN_TAP_ROLE");
     bytes32 public constant WITHDRAW_ROLE = keccak256("WITHDRAW_ROLE");
+    */
+    bytes32 public constant UPDATE_RESERVE_ROLE = 0x7984c050833e1db850f5aa7476710412fd2983fcec34da049502835ad7aed4f7;
+    bytes32 public constant UPDATE_BENEFICIARY_ROLE = 0xf7ea2b80c7b6a2cab2c11d2290cb005c3748397358a25e17113658c83b732593;
+    bytes32 public constant UPDATE_MONTHLY_TAP_INCREASE_ROLE = 0x965f75f8b066c8f6d244fa7fb60cce4126475cd69c5cce83f73de5b05e7fed7a;
+    bytes32 public constant ADD_TOKEN_TAP_ROLE = 0xbc9cb5e3f7ce81c4fd021d86a4bcb193dee9df315b540808c3ed59a81e596207;
+    bytes32 public constant REMOVE_TOKEN_TAP_ROLE = 0x353009f517b4339f6fc8bb1891762ce1b47a8232ac4330fccf50d2f4192f1ae1;
+    bytes32 public constant UPDATE_TOKEN_TAP_ROLE = 0xdb8c88bedbc61ea0f92e1ce46da0b7a915affbd46d1c76c4bbac9a209e4a8416;
+    bytes32 public constant WITHDRAW_ROLE = 0x5d8e12c39142ff96d79d04d15d1ba1269e4fe57bb9d26f43523628b34ba108ec;
 
     uint64 public constant PCT_BASE = 10 ** 18; // 0% = 0; 1% = 10^16; 100% = 10^18
 
