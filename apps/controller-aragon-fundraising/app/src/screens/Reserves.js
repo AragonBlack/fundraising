@@ -4,6 +4,13 @@ import styled from 'styled-components'
 import Box from '../components/Box/Box'
 import TextInput from '../components/Input/TextInput'
 import EditIcon from '../assets/EditIcon.svg'
+import HoverNotification from '../components/HoverNotification/HoverNotification'
+
+// In this copy we should display the user the percentage of max increase of the tap
+const hoverTextNotifications = [
+  'This will update the monthly allocation (tap rate) i.e. how much funds can be released within the bonding curve contract per 30-day period. Note: this value must be less than the max increase limit set inside the contract.',
+  "You're essentially bonding collateral when buying tokens (increasing the supply), and burning collateral when selling tokens (decreasing the supply). These relationships are defined by the smart contract.",
+]
 
 export default () => {
   const [state, setState] = useState({
@@ -32,7 +39,7 @@ export default () => {
         <div className="settings-content">
           <div css="margin-right: 4rem;">
             <div css="display: flex; flex-direction: column; margin-bottom: 1rem;">
-              {NotificationLabel('Monthly allocation')}
+            {NotificationLabel('Monthly allocation', hoverTextNotifications[0])}
               <StyledTextInput
                 ref={inputRef}
                 adornment={
@@ -60,11 +67,11 @@ export default () => {
           </div>
           <div>
             <div css="display: flex; flex-direction: column; margin-bottom: 1.5rem;">
-              {NotificationLabel('ANT collateralization ratio')}
+            {NotificationLabel('ANT collateralization ratio', hoverTextNotifications[1])}
               <Text>{antRatio}%</Text>
             </div>
             <div css="display: flex; flex-direction: column;">
-              {NotificationLabel('DAI collateralization ratio')}
+            {NotificationLabel('DAI collateralization ratio', hoverTextNotifications[1])}
               <Text>{daiRatio}%</Text>
             </div>
           </div>
@@ -90,12 +97,14 @@ export default () => {
   )
 }
 
-const NotificationLabel = label => (
+const NotificationLabel = (label, hoverText) => (
   <Text css="margin-bottom: 0.5rem;">
     {label}
-    <Badge.Notification style={{ margin: '0 10px', cursor: 'pointer', background: '#7C80F2', boxShadow: '0px 1px 1px rgba(0, 0, 0, 0.15)' }}>
-      ?
-    </Badge.Notification>
+    <HoverNotification copy={hoverText}>
+      <Badge.Notification style={{ margin: '0 10px', cursor: 'pointer', background: '#7C80F2', boxShadow: '0px 1px 1px rgba(0, 0, 0, 0.15)' }}>
+        ?
+      </Badge.Notification>
+    </HoverNotification>
   </Text>
 )
 
