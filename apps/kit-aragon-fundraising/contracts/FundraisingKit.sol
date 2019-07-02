@@ -68,9 +68,9 @@ contract FundraisingKit is APMNamehash, IsContract, KitBase {
         MiniMeToken token2 = minimeFac.createCloneToken(
             MiniMeToken(address(0)),
             0,
-            'Bonds',
+            "Bonds",
             18,
-            'BONDS',
+            "BONDS",
             true
         );
 
