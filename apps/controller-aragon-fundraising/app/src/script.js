@@ -62,11 +62,12 @@ const retryEvery = (callback, initialRetryTimer = 1000, increaseFactor = 5) => {
   attempt()
 }
 
-const externals = zip(app.call('vault'), app.call('pool'), app.call('tap'), app.call('bancor-market-maker'))
+const externals = zip(app.call('reserve'), app.call('tap'), app.call('marketMaker'))
 // Get the token address to initialize ourselves
 retryEvery(retry => {
+  console.log('TRY TO SUBSRIBE')
   externals.subscribe(
-    ([vaultAddress, poolAddress, tapAddress, marketMakerAddress]) => initialize(vaultAddress, poolAddress, tapAddress, marketMakerAddress),
+    ([poolAddress, tapAddress, marketMakerAddress]) => initialize(poolAddress, tapAddress, marketMakerAddress),
     err => {
       console.error('Could not start background script execution due to the contract not loading external contract addresses:', err)
       retry()
@@ -74,19 +75,28 @@ retryEvery(retry => {
   )
 })
 
-async function initialize(vaultAddress, poolAddress, tapAddress, marketMakerAddress) {
+async function initialize(poolAddress, tapAddress, marketMakerAddress) {
+  console.log('INITIALIZE')
+
+  console.log(poolAddress)
+  console.log(tapAddress)
+  console.log(marketMakerAddress)
+
   const marketMakerContract = app.external(marketMakerAddress, marketMakerAbi)
   const tapContract = app.external(tapAddress, tapAbi)
   const poolContract = app.external(poolAddress, poolAbi)
-  const vaultContract = app.external(vaultAddress, vaultAbi)
+
+  console.log('Before app Name')
 
   appNames.set(marketMakerAddress, 'bancor-market-maker.aragonpm.eth')
   appNames.set(tapAddress, 'tap.aragonpm.eth')
   appNames.set(poolAddress, 'pool.aragonpm.eth')
-  appNames.set(vaultAddress, 'vault.aragonpm.eth')
+  // appNames.set(vaultAddress, 'vault.aragonpm.eth')
 
-  const appAddresses = [tapAddress, marketMakerAddress, poolAddress, vaultAddress]
+  const appAddresses = [tapAddress, marketMakerAddress, poolAddress]
   appAddresses.map(address => console.log(`Initialize ${appNames.get(address)} at ${address}`))
+
+  console.log('After app Name')
 
   const network = await app
     .network()
@@ -102,10 +112,6 @@ async function initialize(vaultAddress, poolAddress, tapAddress, marketMakerAddr
 
   const settings = {
     network,
-    vault: {
-      address: vaultAddress,
-      contract: vaultContract,
-    },
     pool: {
       address: poolAddress,
       contract: poolContract,
@@ -123,74 +129,81 @@ async function initialize(vaultAddress, poolAddress, tapAddress, marketMakerAddr
     },
   }
 
-  let vaultInitializationBlock
+  // let vaultInitializationBlock
 
-  try {
-    vaultInitializationBlock = await settings.vault.contract.getInitializationBlock().toPromise()
-  } catch (err) {
-    console.error("Could not get attached vault's initialization block:", err)
-  }
+  // try {
+  //   vaultInitializationBlock = await settings.vault.contract.getInitializationBlock().toPromise()
+  // } catch (err) {
+  //   console.error("Could not get attached vault's initialization block:", err)
+  // }
+
+  console.log('NEW')
 
   return app.store(
     async (state, event) => {
-      // if (state === null) state = { batches: {}, balances: {}, tokenSupply: 0, collateralTokens: {}, tapRate: 0, price: 0, historicalOrders: {}, cache: {} }
+      console.log('EVENT')
+      console.log(event)
+
+      if (state === null) state = { batches: {}, balances: {}, tokenSupply: 0, collateralTokens: {}, tapRate: 0, price: 0, historicalOrders: {}, cache: {} }
+
       const nextState = {
         ...state,
       }
-      const { vault, tap } = settings
+      const { tap } = settings
       const { returnValues, address: eventAddress, event: eventName } = event
 
-      if (eventName === events.SYNC_STATUS_SYNCING) {
-        return { ...nextState, isSyncing: true }
-      } else if (eventName === events.SYNC_STATUS_SYNCED) {
-        return { ...nextState, isSyncing: false }
-      }
+      // if (eventName === events.SYNC_STATUS_SYNCING) {
+      //   console.log('SYNCING')
+      //   return { ...nextState, isSyncing: true }
+      // } else if (eventName === events.SYNC_STATUS_SYNCED) {
+      //   console.log('SYNCED')
+      //   return { ...nextState, isSyncing: false }
+      // }
 
       // Vault event
-      if (addressesEqual(eventAddress, vault.address)) {
-        return vaultLoadBalance(nextState, event, settings)
-      }
+      // if (addressesEqual(eventAddress, vault.address)) {
+      //   return vaultLoadBalance(nextState, event, settings)
+      // }
 
       switch (eventName) {
-        case 'Withdrawal':
-          const { amount } = returnValues
+        //   case 'Withdrawal':
+        //     const { amount } = returnValues
 
-          if (amount < nextState.maxWithdrawal) {
-            await app.call('widthraw', settings.bondedToken.address).toPromise()
-            // return updateBalances(await app.call('withdraw') ....)
-          } else {
-            console.error(`Cannot execute withdrawal, ${amount} exceeds limit of ${nextState.maxWithdrawal}`)
-          }
+        //     if (amount < nextState.maxWithdrawal) {
+        //       await app.call('widthraw', settings.bondedToken.address).toPromise()
+        //       // return updateBalances(await app.call('withdraw') ....)
+        //     } else {
+        //       console.error(`Cannot execute withdrawal, ${amount} exceeds limit of ${nextState.maxWithdrawal}`)
+        //     }
 
-          return nextState
-        case 'UpdateMonthlyTapRateIncrease':
-          return updateMonthlyTapRateIncrease(nextState, event, settings)
-        case 'UpdateTokenTap':
-          return updateTokenTap(nextState, event, settings)
-        case 'refreshMaxWithdrawal':
-          return {
-            ...nextState,
-            maxWithdrawal: await tap.contract.getMaxWithdrawal(settings.bondedToken.address).toPromise(),
-          }
-        case 'CreateBuyOrder':
-          return createBuyOrder(nextState, event, settings)
-        case 'CreateSellOrder':
-          return createSellOrder(nextState, event, settings)
-        case 'ClaimBuyOrder':
-          return claimBuy(nextState, event, settings)
-        case 'ClaimSellOrder':
-          return claimSell(nextState, event, settings)
-        case 'ClearBatches':
-          return clearBatches(nextState, settings)
-        default:
-          return nextState
+        //     return nextState
+        //   case 'UpdateMonthlyTapRateIncrease':
+        //     return updateMonthlyTapRateIncrease(nextState, event, settings)
+        //   case 'UpdateTokenTap':
+        //     return updateTokenTap(nextState, event, settings)
+        //   case 'refreshMaxWithdrawal':
+        //     return {
+        //       ...nextState,
+        //       maxWithdrawal: await tap.contract.getMaxWithdrawal(settings.bondedToken.address).toPromise(),
+        //     }
+        case 'NewBuyOrder':
+          console.log('THIS IS A BUY ORDER !!!!')
+        // return createBuyOrder(nextState, event, settings)
+        //   case 'CreateSellOrder':
+        //     return createSellOrder(nextState, event, settings)
+        //   case 'ClaimBuyOrder':
+        //     return claimBuy(nextState, event, settings)
+        //   case 'ClaimSellOrder':
+        //     return claimSell(nextState, event, settings)
+        //   case 'ClearBatches':
+        //     return clearBatches(nextState, settings)
+        //   default:
+        //     return nextState
       }
+
+      return state
     },
-    [
-      // Always initialize the store with our own home-made event
-      of({ event: INITIALIZATION_TRIGGER }),
-      settings.vault.contract.events(vaultInitializationBlock),
-    ]
+    [tapContract.events(), marketMakerContract.events()]
   )
 }
 
@@ -200,18 +213,18 @@ async function initialize(vaultAddress, poolAddress, tapAddress, marketMakerAddr
  *                     *
  ***********************/
 
-const initializeState = settings => async cachedState => {
-  const newState = {
-    ...cachedState,
-    isSyncing: true,
-    vaultAddress: settings.vault.address,
-  }
-  // const withTokenBalances = await loadTokenBalances(newState, settings)
-  // const withTestnetState = await loadTestnetState(withTokenBalances, settings)
-  // const withEthBalance = await loadEthBalance(withTestnetState, settings)
+// const initializeState = settings => async cachedState => {
+//   const newState = {
+//     ...cachedState,
+//     isSyncing: true,
+//     vaultAddress: settings.vault.address,
+//   }
+//   // const withTokenBalances = await loadTokenBalances(newState, settings)
+//   // const withTestnetState = await loadTestnetState(withTokenBalances, settings)
+//   // const withEthBalance = await loadEthBalance(withTestnetState, settings)
 
-  return withEthBalance
-}
+//   return withEthBalance
+// }
 
 async function updateMonthlyTapRateIncrease(state, event, settings) {
   return marshallMonthlyTapRateIncrease(await app.call('updateMonthlyTapIncreasePct', event.returnValues.percentage).toPromise())
@@ -222,6 +235,8 @@ async function updateTokenTap(state, event, settings) {
 }
 
 async function createBuyOrder(state, event, settings) {
+  console.log('BUY ORDER')
+
   let newState = {
     ...state,
   }
