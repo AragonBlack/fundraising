@@ -68,9 +68,9 @@ contract FundraisingKit is APMNamehash, IsContract, KitBase {
         MiniMeToken token2 = minimeFac.createCloneToken(
             MiniMeToken(address(0)),
             0,
-            'Bonds',
+            "Bonds",
             18,
-            'BONDS',
+            "BONDS",
             true
         );
 
@@ -143,95 +143,95 @@ contract FundraisingKit is APMNamehash, IsContract, KitBase {
         // EVMScriptRegistry reg = EVMScriptRegistry(acl.getEVMScriptRegistry());
         // acl.createPermission(voting, reg, reg.REGISTRY_ADD_EXECUTOR_ROLE(), voting);
         // acl.createPermission(voting, reg, reg.REGISTRY_MANAGER_ROLE(), voting);
-        
+
         // aragonID registration
         registerAragonID(aragonId, dao);
 
         _cacheMultisig(msg.sender, token, dao, acl, vault, voting);
+        emit DeployMultisigInstance(dao, token);
     }
 
-    function newFundraisingInstance(address _collateralToken1, address _collateralToken2) public {
-        require(isContract(_collateralToken1));
-        require(isContract(_collateralToken2));
+      function newFundraisingInstance(address _collateralToken1, address _collateralToken2) public {
+          require(isContract(_collateralToken1));
+          require(isContract(_collateralToken2));
 
-        Kernel dao;
-        ACL    acl;
-        Vault  vault;
-        Voting multisig;
+          Kernel dao;
+          ACL    acl;
+          Vault  vault;
+          Voting multisig;
 
-        (dao, acl, vault, multisig) = _popMultisigCache(msg.sender);
+          (dao, acl, vault, multisig) = _popMultisigCache(msg.sender);
 
-        bytes32[7] memory apps = [
-            apmNamehash("fundraising-module-pool"),   // 0
-            apmNamehash("fundraising-module-tap"),    // 1
-            apmNamehash("fundraising-controller-aragon-fundraising"),           // 2
-            apmNamehash("fundraising-market-maker-bancor"), // 3
-            apmNamehash("fundraising-formula-bancor"), //4
-            apmNamehash("token-manager"), //5
-            apmNamehash("voting")  // 6
-        ];
+          bytes32[7] memory apps = [
+              apmNamehash("fundraising-module-pool"),   // 0
+              apmNamehash("fundraising-module-tap"),    // 1
+              apmNamehash("fundraising-controller-aragon-fundraising"),           // 2
+              apmNamehash("fundraising-market-maker-bancor"), // 3
+              apmNamehash("fundraising-formula-bancor"), //4
+              apmNamehash("token-manager"), //5
+              apmNamehash("voting")  // 6
+          ];
 
-        MiniMeToken token = _popTokensCache(msg.sender, uint256(1));
+          MiniMeToken token = _popTokensCache(msg.sender, uint256(1));
 
-        TokenManager tokenManager = TokenManager(dao.newAppInstance(apps[5], latestVersionAppBase(apps[5])));
-        emit InstalledApp(tokenManager, apps[5]);
+          TokenManager tokenManager = TokenManager(dao.newAppInstance(apps[5], latestVersionAppBase(apps[5])));
+          emit InstalledApp(tokenManager, apps[5]);
 
-        Voting voting = Voting(dao.newAppInstance(apps[6], latestVersionAppBase(apps[6])));
-        emit InstalledApp(voting, apps[6]);
+          Voting voting = Voting(dao.newAppInstance(apps[6], latestVersionAppBase(apps[6])));
+          emit InstalledApp(voting, apps[6]);
 
-        // // Install fundraising app instances
-        Pool pool = Pool(dao.newAppInstance(apps[0], latestVersionAppBase(apps[0])));
-        emit InstalledApp(pool, apps[0]);
+          // // Install fundraising app instances
+          Pool pool = Pool(dao.newAppInstance(apps[0], latestVersionAppBase(apps[0])));
+          emit InstalledApp(pool, apps[0]);
 
-        Tap tap = Tap(dao.newAppInstance(apps[1], latestVersionAppBase(apps[1])));
-        emit InstalledApp(tap, apps[1]);
+          Tap tap = Tap(dao.newAppInstance(apps[1], latestVersionAppBase(apps[1])));
+          emit InstalledApp(tap, apps[1]);
 
-        AragonFundraisingController controller = AragonFundraisingController(dao.newAppInstance(apps[2], latestVersionAppBase(apps[2])));
-        emit InstalledApp(controller, apps[2]);
+          AragonFundraisingController controller = AragonFundraisingController(dao.newAppInstance(apps[2], latestVersionAppBase(apps[2])));
+          emit InstalledApp(controller, apps[2]);
 
-        BancorMarketMaker marketMaker = BancorMarketMaker(dao.newAppInstance(apps[3], latestVersionAppBase(apps[3])));
-        emit InstalledApp(marketMaker, apps[3]);
+          BancorMarketMaker marketMaker = BancorMarketMaker(dao.newAppInstance(apps[3], latestVersionAppBase(apps[3])));
+          emit InstalledApp(marketMaker, apps[3]);
 
-        // Token Manager
-        acl.createPermission(marketMaker, tokenManager, tokenManager.BURN_ROLE(), voting);
-        acl.createPermission(marketMaker, tokenManager, tokenManager.MINT_ROLE(), voting);
+          // Token Manager
+          acl.createPermission(marketMaker, tokenManager, tokenManager.BURN_ROLE(), voting);
+          acl.createPermission(marketMaker, tokenManager, tokenManager.MINT_ROLE(), voting);
 
-        // Voting
-        acl.createPermission(tokenManager, voting, voting.CREATE_VOTES_ROLE(), voting);
-        acl.createPermission(voting, voting, voting.MODIFY_QUORUM_ROLE(), voting);
-        acl.createBurnedPermission(voting, voting.MODIFY_SUPPORT_ROLE());
+          // Voting
+          acl.createPermission(tokenManager, voting, voting.CREATE_VOTES_ROLE(), voting);
+          acl.createPermission(voting, voting, voting.MODIFY_QUORUM_ROLE(), voting);
+          acl.createBurnedPermission(voting, voting.MODIFY_SUPPORT_ROLE());
 
-        // Tap
-        acl.createPermission(multisig, tap, tap.UPDATE_BENEFICIARY_ROLE(), multisig);
-        acl.createPermission(controller, tap, tap.UPDATE_MONTHLY_TAP_INCREASE_ROLE(), voting);
-        acl.createPermission(controller, tap, tap.ADD_TOKEN_TAP_ROLE(), voting);
-        acl.createPermission(controller, tap, tap.UPDATE_TOKEN_TAP_ROLE(), voting);
-        acl.createPermission(controller, tap, tap.WITHDRAW_ROLE(), multisig);
+          // Tap
+          acl.createPermission(multisig, tap, tap.UPDATE_BENEFICIARY_ROLE(), multisig);
+          acl.createPermission(controller, tap, tap.UPDATE_MONTHLY_TAP_INCREASE_ROLE(), voting);
+          acl.createPermission(controller, tap, tap.ADD_TOKEN_TAP_ROLE(), voting);
+          acl.createPermission(controller, tap, tap.UPDATE_TOKEN_TAP_ROLE(), voting);
+          acl.createPermission(controller, tap, tap.WITHDRAW_ROLE(), multisig);
 
-        // BancorMarketMaker
-        acl.createPermission(controller, marketMaker, marketMaker.ADD_COLLATERAL_TOKEN_ROLE(), voting);
-        acl.createPermission(controller, marketMaker, marketMaker.UPDATE_COLLATERAL_TOKEN_ROLE(), voting);
-        acl.createPermission(controller, marketMaker, marketMaker.UPDATE_FEES_ROLE(), voting);
-        acl.createPermission(controller, marketMaker, marketMaker.CREATE_BUY_ORDER_ROLE(), voting);
-        acl.createPermission(controller, marketMaker, marketMaker.CREATE_SELL_ORDER_ROLE(), voting);
+          // BancorMarketMaker
+          acl.createPermission(controller, marketMaker, marketMaker.ADD_COLLATERAL_TOKEN_ROLE(), voting);
+          acl.createPermission(controller, marketMaker, marketMaker.UPDATE_COLLATERAL_TOKEN_ROLE(), voting);
+          acl.createPermission(controller, marketMaker, marketMaker.UPDATE_FEES_ROLE(), voting);
+          acl.createPermission(controller, marketMaker, marketMaker.CREATE_BUY_ORDER_ROLE(), voting);
+          acl.createPermission(controller, marketMaker, marketMaker.CREATE_SELL_ORDER_ROLE(), voting);
 
-        // Pool
-        acl.createPermission(voting, pool, pool.SAFE_EXECUTE_ROLE(), voting);
-        acl.createPermission(controller, pool, pool.ADD_COLLATERAL_TOKEN_ROLE(), voting);
-        acl.createPermission(tap, pool, pool.TRANSFER_ROLE(), this);
-        acl.grantPermission(marketMaker, pool, pool.TRANSFER_ROLE());
-        cleanupPermission(acl, voting, pool, pool.TRANSFER_ROLE());
+          // Pool
+          acl.createPermission(voting, pool, pool.SAFE_EXECUTE_ROLE(), voting);
+          acl.createPermission(controller, pool, pool.ADD_COLLATERAL_TOKEN_ROLE(), voting);
+          acl.createPermission(tap, pool, pool.TRANSFER_ROLE(), this);
+          acl.grantPermission(marketMaker, pool, pool.TRANSFER_ROLE());
+          cleanupPermission(acl, voting, pool, pool.TRANSFER_ROLE());
 
-        // Controller
-        acl.createPermission(this, controller, controller.ADD_COLLATERAL_TOKEN_ROLE(), this);
-        acl.createPermission(voting, controller, controller.UPDATE_TOKEN_TAP_ROLE(), voting);
-        acl.createPermission(voting, controller, controller.UPDATE_MONTHLY_TAP_INCREASE_ROLE(), voting);
-        acl.createPermission(address(-1), controller, controller.CREATE_BUY_ORDER_ROLE(), voting);
-        acl.createPermission(address(-1), controller, controller.CREATE_SELL_ORDER_ROLE(), voting);
-        acl.createPermission(multisig, controller, controller.WITHDRAW_ROLE(), multisig);
+          // Controller
+          acl.createPermission(this, controller, controller.ADD_COLLATERAL_TOKEN_ROLE(), this);
+          acl.createPermission(voting, controller, controller.UPDATE_TOKEN_TAP_ROLE(), voting);
+          acl.createPermission(voting, controller, controller.UPDATE_MONTHLY_TAP_INCREASE_ROLE(), voting);
+          acl.createPermission(address(-1), controller, controller.CREATE_BUY_ORDER_ROLE(), voting);
+          acl.createPermission(address(-1), controller, controller.CREATE_SELL_ORDER_ROLE(), voting);
+          acl.createPermission(multisig, controller, controller.WITHDRAW_ROLE(), multisig);
 
         // initialize apps
-        // BancorFormula formula = BancorFormula(latestVersionAppBase(apmNamehash("fundraising-formula-bancor")));
         token.changeController(tokenManager);
         tokenManager.initialize(token, true, 0);
         voting.initialize(token, uint64(50 * 10 ** 16), uint64(20 * 10 ** 16), 7 days);
@@ -257,24 +257,7 @@ contract FundraisingKit is APMNamehash, IsContract, KitBase {
         cleanupPermission(acl, voting, controller, controller.ADD_COLLATERAL_TOKEN_ROLE());
         cleanupDAOPermissions(dao, acl, voting);
 
-        // // Voting
-        // acl.createPermission(address(-1), voting, voting.CREATE_VOTES_ROLE(), voting);
-        // acl.createPermission(voting, voting, voting.MODIFY_SUPPORT_ROLE(), voting);
-
-        // // Vault
-        // acl.createPermission(tap, vault, vault.TRANSFER_ROLE(), vault);
-
-        // // Fundraising
-        // acl.createPermission(voting, fundraising, fundraising.UPDATE_FEES_ROLE(), voting);
-        // acl.createPermission(voting, fundraising, fundraising.UPDATE_BENEFICIARY_ROLE(), voting);
-        // acl.createPermission(voting, fundraising, fundraising.ADD_COLLATERAL_TOKEN_ROLE(), voting);
-        // acl.createPermission(voting, fundraising, fundraising.UPDATE_TOKEN_TAP_ROLE(), voting);
-        // acl.createPermission(voting, fundraising, fundraising.UPDATE_MONTHLY_TAP_INCREASE_ROLE(), voting);
-        // acl.createPermission(address(-1), fundraising, fundraising.CREATE_BUY_ORDER_ROLE(), fundraising);
-        // acl.createPermission(address(-1), fundraising, fundraising.CREATE_SELL_ORDER_ROLE(), fundraising);
-        // acl.createPermission(address(-1), fundraising, fundraising.WITHDRAW_ROLE(), fundraising);
-
-        
+        emit DeployFundraisingInstance(dao, token);
     }
 
     function _cacheTokens(address _owner, MiniMeToken _multisigToken, MiniMeToken _bondedToken) internal {
