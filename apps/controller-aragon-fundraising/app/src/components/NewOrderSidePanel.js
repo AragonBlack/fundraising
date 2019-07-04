@@ -1,7 +1,9 @@
-import { Button, DropDown, Field, Info, SidePanel, TabBar, Table, TableCell, TableRow, Text, TextInput } from '@aragon/ui'
+import { DropDown, SidePanel, Text, TextInput } from '@aragon/ui'
 import React from 'react'
 import styled from 'styled-components'
 import transferArrows from '../assets/transferArrows.svg'
+import TabBar from './TabBar/TabBar'
+import Button from './Button/Button'
 
 const formatOrderRequirements = value => {
   return value.length > 0 && value > 0 ? value : '0.00'
@@ -103,23 +105,43 @@ export default class NewOrderSidePanel extends React.Component {
       const orderType = activeTab === 0
       return (
         <div>
-          <FlexWrapper>
+          <div>
             <Text weight="bold">TOTAL</Text>
-            <Text weight="bold">{orderType ? tokenAmount : orderAmount}</Text>
-            <Text weight="bold">{orderType ? 'ATL' : 'USD'}</Text>
-          </FlexWrapper>
-          <FlexWrapper>
+            <div css="float: right;">
+              <Text weight="bold" css={orderType ? 'margin-right: 1.5rem;' : 'margin-right: 21px;'}>
+                0
+              </Text>
+              <Text weight="bold">{orderType ? 'ATL' : 'USD'}</Text>
+            </div>
+          </div>
+          <div css="margin-bottom: 2rem;">
             <Text weight="bold" />
-            <Text color="grey">{orderType ? orderAmount : tokenAmount}</Text>
-            <Text color="grey">{orderType ? 'USD' : 'ATL'}</Text>
-          </FlexWrapper>
-          <Button mode="strong" type="submit" wide onClick={e => this.handleSubmit(e, orderType)}>
+            <div css="float: right;">
+              <Text color="grey" css={orderType ? 'margin-right: 21px;' : 'margin-right: 1.5rem;'}>
+                0
+              </Text>
+              <Text color="grey">{orderType ? 'USD' : 'ATL'}</Text>
+            </div>
+          </div>
+          <Button mode="strong" type="submit" css="width: 100%;" onClick={onSubmit}>
             {orderType ? 'Place buy order' : 'Place sell order'}
           </Button>
-          <Info.Action style={{ marginTop: '20px' }} title={orderType ? 'Buy order' : 'Sell order'}>
-            As more collateral is staked into the bonding curve, you may opt to sell a small share of your tokens in order to redeem your collateral from the
-            contract where a percentage fee goes to the development of the project.
-          </Info.Action>
+          <div
+            css={`
+              background-color: #f1fbff;
+              border-radius: 4px;
+              color: #188aaf;
+              padding: 1rem;
+              margin-top: 2rem;
+              border-left: 2px solid #0ab0e5;
+            `}
+          >
+            <p css="font-weight: 700;">Info</p>
+            <p>
+              For a {orderType ? 'buying' : 'selling'} order, the more collateral is staked into the bonding curve, you may opt to sell a small share of your
+              tokens in order to redeem collateral from the contract and fund the development of the project.
+            </p>
+          </div>
         </div>
       )
     }
@@ -129,64 +151,96 @@ export default class NewOrderSidePanel extends React.Component {
         <TabBarWrapper>
           <TabBar items={['Buy', 'Sell']} selected={activeTab} onChange={idx => this.setState({ activeTab: idx })} />
         </TabBarWrapper>
-        <Form onSubmit={e => this.handleSubmit(e, activeTab === '0')}>
-          <Table noSideBorders>
-            <TableRow>
-              <TableCell
-                style={styles.noBorderCell}
+        <Form onSubmit={this.handleSubmit}>
+          <div
+            css={`
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              margin-bottom: 3rem;
+            `}
+          >
+            <div css="width: 50%;">
+              <p
                 css={`
-                  justify-content: flex-start;
-                  white-space: nowrap;
+                  text-transform: uppercase;
+                  color: #637381;
+                  font-size: 14px;
+                  opacity: 0.7;
                 `}
               >
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                  }}
+                Order amount
+              </p>
+              <div
+                css={`
+                  display: flex;
+                  align-items: center;
+                `}
+              >
+                <StyledTextInput
+                  adornment={<a style={styles.maxBalanceLink}>MAX</a>}
+                  type="number"
+                  style={styles.selectionInputLeft}
+                  ref={amount => (this.amountInput = amount)}
+                  value={amount}
+                  onChange={this.handleAmountChange}
+                  wide
+                  required
+                />
+                <StyledDropdown>
+                  <DropDown items={collateralTokens} active={activeItem} onChange={this.handleTokenChange} />
+                </StyledDropdown>
+              </div>
+            </div>
+
+            <img
+              src={transferArrows}
+              css={`
+                height: 16px;
+                margin: 0 0.5rem;
+                margin-top: 1rem;
+              `}
+            />
+
+            <div
+              css={`
+                display: flex;
+                align-items: center;
+                white-space: nowrap;
+              `}
+            >
+              <div
+                css={`
+                  > div {
+                    width: 100%;
+                  }
+                `}
+              >
+                <p
+                  css={`
+                    text-transform: uppercase;
+                    color: #637381;
+                    font-size: 14px;
+                    opacity: 0.7;
+                  `}
                 >
-                  <Field css={fieldCss} label="Order Amount">
-                    <TextInput
-                      adornment={<a style={styles.maxBalanceLink}>MAX</a>}
-                      style={styles.selectionInputLeft}
-                      ref={amount => (this.amountInput = amount)}
-                      value={orderAmount}
-                      onChange={this.handleOrderAmountChange}
-                      wide
-                      required
-                    />
-                  </Field>
-                  <StyledDropdown>
-                    <DropDown items={collateralTokens} active={activeItem} onChange={this.handleTokenChange} />
-                  </StyledDropdown>
-                </div>
-              </TableCell>
-              <TableCell
-                style={styles.noBorderCell}
-                css={`
-                  justify-content: flex-start;
-                  white-space: nowrap;
-                `}
-              >
-                <img src={transferArrows} style={{ height: '16px', margin: '0 0.5rem' }} />
-                <Field css={fieldCss} label="Token Amount">
-                  <TextInput
-                    style={styles.selectionInputRight}
-                    adornment={<span style={{ paddingRight: '14px' }}>ATL</span>}
-                    adornmentPosition={'end'}
-                    ref={amount => (this.amountInput = amount)}
-                    value={tokenAmount}
-                    onChange={this.handleTokenAmountChange}
-                    required
-                    wide
-                  />
-                </Field>
-              </TableCell>
-            </TableRow>
-            <Text color={'rgb(150, 150, 150)'} size="small" style={styles.daiPrice}>
-              ${price} USD
-            </Text>
-          </Table>
+                  Token amount
+                </p>
+                <StyledTextInput
+                  type="number"
+                  style={styles.selectionInputRight}
+                  adornment={<span style={{ paddingRight: '14px' }}>ATL</span>}
+                  adornmentPosition={'end'}
+                  ref={amount => (this.amountInput = amount)}
+                  value={amount}
+                  onChange={this.handleAmountChange}
+                  required
+                  wide
+                />
+              </div>
+            </div>
+          </div>
+
           {renderOrderType(activeTab, onSubmit)}
         </Form>
       </SidePanel>
@@ -194,28 +248,22 @@ export default class NewOrderSidePanel extends React.Component {
   }
 }
 
-const FlexWrapper = styled.div`
-  display: flex;
-  margin-bottom: 10px;
-
-  span:first-child {
-    flex: 0 1 326px;
-  }
-
-  span:last-child {
-    margin-left: 1.5rem;
-  }
+const StyledTextInput = styled(TextInput)`
+  border: 1px solid #dde4e9;
+  box-shadow: none;
+  width: 100%;
 `
 const StyledDropdown = styled.div`
-  height: 40px;
   > div {
-    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.06);
+    box-shadow: none;
   }
-  > div > div {
+
+  > div > div:first-child {
     padding-right: 26px;
     border-radius: 0 3px 3px 0;
-    border-left: 0px;
-    margin-top: 1px;
+    border: 1px solid #dde4e9;
+    border-left: none;
+    height: 40px;
   }
 `
 const Form = styled.form`
@@ -224,10 +272,4 @@ const Form = styled.form`
 
 const TabBarWrapper = styled.div`
   margin: 0 -30px 30px;
-`
-
-const fieldCss = `
-  > label > div {
-    width: auto;
-  }
 `

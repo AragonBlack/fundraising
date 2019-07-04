@@ -1,5 +1,5 @@
 import { DropDown } from '@aragon/ui'
-import { differenceInDays, format, startOfMinute, startOfMonth, startOfWeek, subDays, subHours, subSeconds } from 'date-fns'
+import { differenceInDays, format, startOfMinute, startOfMonth, startOfWeek, subDays, subHours, subSeconds, startOfDay, endOfDay } from 'date-fns'
 import React, { useState } from 'react'
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, ReferenceDot, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import styled from 'styled-components'
@@ -207,8 +207,8 @@ export default () => {
   const [activeItem, setActiveItem] = useState(0)
   const [activeNavItem, setActiveNavItem] = useState(0)
   const [date, setDate] = useState({
-    start: new Date(new Date().getTime() - 1000000000),
-    end: new Date(),
+    start: startOfDay(new Date()),
+    end: endOfDay(new Date()),
   })
 
   return (
@@ -319,10 +319,10 @@ const Chart = styled.div`
       }
       .item:hover {
         cursor: pointer;
-        border-bottom: 2px solid #1dd9d5;
+        border-bottom: 2px solid #08bee5;
       }
       .item.active {
-        border-bottom: 2px solid #1dd9d5;
+        border-bottom: 2px solid #08bee5;
       }
 
       .item > span:nth-child(1) {
