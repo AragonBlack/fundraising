@@ -16,7 +16,7 @@ node_modules
 lerna-debug.log
 
 # truffle build artifacts
-*/**/abi
+# */**/abi
 */**/build
 */**/.DS_Store
 
