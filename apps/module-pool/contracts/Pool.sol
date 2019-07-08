@@ -52,7 +52,7 @@ contract Pool is Agent {
         assembly {
             size := returndatasize
             ptr := mload(0x40)
-            // new "memory end" including padding
+            // new "memory end"
             mstore(0x40, add(ptr, size))
             returndatacopy(ptr, 0, size)
         }
