@@ -58,17 +58,21 @@ contract Pool is Agent {
         }
 
         if (result) {
-          for (uint256 j = 0; j < collateralTokensLength; j++) {
-              require(balances[j] == balance(collateralTokens[j + 1]), ERROR_BALANCE_NOT_CONSTANT);
-          }
-            emit SafeExecute(msg.sender, _target, _data);
-        }
+            // if the underlying call has succeeded, check protected tokens' balances and return the call's return data
+            for (uint256 j = 0; j < collateralTokensLength; j++) {
+                require(balances[j] == balance(collateralTokens[j + 1]), ERROR_BALANCE_NOT_CONSTANT);
+            }
 
-        assembly {
-            // revert instead of invalid() bc if the underlying call failed with invalid() it already wasted gas.
-            // if the call returned error data, forward it
-            switch result case 0 { revert(ptr, size) }
-            default { return(ptr, size) }
+            emit SafeExecute(msg.sender, _target, _data);
+
+            assembly {
+                return(ptr, size)
+            }
+        } else {
+            // if the underlying call has failed, revert and forward [possible] returned error data
+            assembly {
+                revert(ptr, size)
+            }
         }
     }
 
