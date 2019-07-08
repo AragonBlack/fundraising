@@ -7,6 +7,8 @@ pragma solidity 0.4.24;
 import "@aragon/apps-agent/contracts/Agent.sol";
 
 
+// `Agent` is already an `AragonApp` [so `Pool` still is too]
+// The `initialize` function is implemented in the Agent contract
 contract Pool is Agent {
     bytes32 public constant SAFE_EXECUTE_ROLE = keccak256("SAFE_EXECUTE_ROLE");
     bytes32 public constant ADD_COLLATERAL_TOKEN_ROLE = keccak256("ADD_COLLATERAL_TOKEN_ROLE");
