@@ -20,8 +20,7 @@ contract Pool is Agent {
     string private constant ERROR_TARGET_IS_GUARDED = "POOL_TARGET_IS_GUARDED";
     string private constant ERROR_BALANCE_NOT_CONSTANT = "POOL_BALANCE_NOT_CONSTANT";
 
-    mapping (uint256 => address) public collateralTokens;
-    uint256 public collateralTokensLength;
+    address[] public collateralTokens;
 
     event SafeExecute(address indexed sender, address indexed target, bytes data);
     event AddCollateralToken(address indexed token);
@@ -36,12 +35,12 @@ contract Pool is Agent {
     * @return Exits call frame forwarding the return data of the executed call (either error or success data)
     */
     function safeExecute(address _target, bytes _data) external auth(SAFE_EXECUTE_ROLE) {
-        uint256[] memory balances = new uint256[](collateralTokensLength);
+        uint256[] memory balances = new uint256[](collateralTokens.length);
         bytes32 size;
         bytes32 ptr;
 
-        for (uint256 i = 0; i < collateralTokensLength; i++) {
-            address token = collateralTokens[i + 1];
+        for (uint256 i = 0; i < collateralTokens.length; i++) {
+            address token = collateralTokens[i];
             // we don't care if target is ETH [0x00...0] as it can't be spent anyhow [though you can't invoke anything at 0x00...0]
             require(_target != token || token == ETH, ERROR_TARGET_IS_GUARDED);
             balances[i] = balance(token);
@@ -59,8 +58,8 @@ contract Pool is Agent {
 
         if (result) {
             // if the underlying call has succeeded, check protected tokens' balances and return the call's return data
-            for (uint256 j = 0; j < collateralTokensLength; j++) {
-                require(balances[j] == balance(collateralTokens[j + 1]), ERROR_BALANCE_NOT_CONSTANT);
+            for (uint256 j = 0; j < collateralTokens.length; j++) {
+                require(balances[j] == balance(collateralTokens[j]), ERROR_BALANCE_NOT_CONSTANT);
             }
 
             emit SafeExecute(msg.sender, _target, _data);
@@ -82,7 +81,7 @@ contract Pool is Agent {
     */
     function addCollateralToken(address _token) external auth(ADD_COLLATERAL_TOKEN_ROLE) {
         require(_token == ETH || isContract(_token), ERROR_TOKEN_NOT_ETH_OR_CONTRACT);
-        require(collateralTokenIndex(_token) == 0, ERROR_TOKEN_ALREADY_EXISTS);
+        require(!isTokenProtected(_token), ERROR_TOKEN_ALREADY_EXISTS);
 
         _addCollateralToken(_token);
     }
@@ -92,37 +91,45 @@ contract Pool is Agent {
     * @param _token Address of collateral token
     */
     function removeCollateralToken(address _token) external auth(REMOVE_COLLATERAL_TOKEN_ROLE) {
-      uint256 index = collateralTokenIndex(_token);
-      require(index != 0, ERROR_TOKEN_DOES_NOT_EXIST);
+        require(isTokenProtected(_token), ERROR_TOKEN_DOES_NOT_EXIST);
 
-      _removeCollateralToken(index, _token);
+      _removeCollateralToken(_token);
     }
 
     /***** public functions *****/
 
+    function isTokenProtected(address _token) public view returns (bool) {
+        for (uint256 i = 0; i < collateralTokens.length; i++) {
+            if (collateralTokens[i] == _token) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     function collateralTokenIndex(address _token) public view returns (uint256) {
-        for (uint i = 1; i <= collateralTokensLength; i++) {
+        for (uint i = 0; i < collateralTokens.length; i++) {
             if (collateralTokens[i] == _token) {
               return i;
             }
         }
 
-        return uint256(0);
+        revert(ERROR_TOKEN_DOES_NOT_EXIST);
     }
 
     /***** internal functions *****/
 
     function _addCollateralToken(address _token) internal {
-        collateralTokensLength = collateralTokensLength + 1;
-        collateralTokens[collateralTokensLength] = _token;
+        collateralTokens.push(_token);
 
         emit AddCollateralToken(_token);
     }
 
-    function _removeCollateralToken(uint256 _index, address _token) internal {
-        collateralTokens[_index] = collateralTokens[collateralTokensLength];
-        collateralTokens[collateralTokensLength] = address(0);
-        collateralTokensLength = collateralTokensLength - 1;
+    function _removeCollateralToken(address _token) internal {
+        collateralTokens[collateralTokenIndex(_token)] = collateralTokens[collateralTokens.length - 1];
+        delete collateralTokens[collateralTokens.length - 1];
+        collateralTokens.length --;
 
         emit RemoveCollateralToken(_token);
     }

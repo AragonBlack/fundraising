@@ -96,10 +96,9 @@ contract('Pool app', accounts => {
             assertEvent(receipt1, 'AddCollateralToken')
             assertEvent(receipt2, 'AddCollateralToken')
             assertEvent(receipt3, 'AddCollateralToken')
-            assert.equal(await pool.collateralTokensLength(), 3)
-            assert.equal(await pool.collateralTokens(1), ETH)
-            assert.equal(await pool.collateralTokens(2), token2.address)
-            assert.equal(await pool.collateralTokens(3), token3.address)
+            assert.equal(await pool.collateralTokens(0), ETH)
+            assert.equal(await pool.collateralTokens(1), token2.address)
+            assert.equal(await pool.collateralTokens(2), token3.address)
           })
         })
 
@@ -145,10 +144,8 @@ contract('Pool app', accounts => {
 
           assertEvent(receipt1, 'RemoveCollateralToken')
           assertEvent(receipt2, 'RemoveCollateralToken')
-          assert.equal(await pool.collateralTokensLength(), 1)
-          assert.equal(await pool.collateralTokens(1), token2.address)
-          assert.equal(await pool.collateralTokens(2), '0x0000000000000000000000000000000000000000')
-          assert.equal(await pool.collateralTokens(3), '0x0000000000000000000000000000000000000000')
+          assert.equal(await pool.collateralTokens(0), token2.address)
+          await assertRevert(() => pool.collateralTokens(1)) // this should try to overflow the length of the protectedTokens array and thus revert
         })
       })
 
