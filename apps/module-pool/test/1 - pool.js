@@ -23,7 +23,7 @@ const encodeFunctionCall = (contract, functionName, ...params) => contract[funct
 
 contract('Pool app', accounts => {
   let factory, dao, acl, pBase, pool
-  let ETH, APP_MANAGER_ROLE, SAFE_EXECUTE_ROLE, ADD_COLLATERAL_TOKEN_ROLE, REMOVE_COLLATERAL_TOKEN_ROLE
+  let ETH, APP_MANAGER_ROLE, SAFE_EXECUTE_ROLE, ADD_PROTECTED_TOKEN_ROLE, REMOVE_PROTECTED_TOKEN_ROLE
 
   const POOL_ID = hash('pool.aragonpm.eth')
 
@@ -42,8 +42,8 @@ contract('Pool app', accounts => {
     pool = await Pool.at(getEvent(pReceipt, 'NewAppProxy', 'proxy'))
     // permissions
     await acl.createPermission(authorized, pool.address, SAFE_EXECUTE_ROLE, root, { from: root })
-    await acl.createPermission(authorized, pool.address, ADD_COLLATERAL_TOKEN_ROLE, root, { from: root })
-    await acl.createPermission(authorized, pool.address, REMOVE_COLLATERAL_TOKEN_ROLE, root, { from: root })
+    await acl.createPermission(authorized, pool.address, ADD_PROTECTED_TOKEN_ROLE, root, { from: root })
+    await acl.createPermission(authorized, pool.address, REMOVE_PROTECTED_TOKEN_ROLE, root, { from: root })
     // initialization
     await pool.initialize()
   }
@@ -61,8 +61,8 @@ contract('Pool app', accounts => {
     ANY_ENTITY = await aBase.ANY_ENTITY()
     APP_MANAGER_ROLE = await kBase.APP_MANAGER_ROLE()
     SAFE_EXECUTE_ROLE = await pBase.SAFE_EXECUTE_ROLE()
-    ADD_COLLATERAL_TOKEN_ROLE = await pBase.ADD_COLLATERAL_TOKEN_ROLE()
-    REMOVE_COLLATERAL_TOKEN_ROLE = await pBase.REMOVE_COLLATERAL_TOKEN_ROLE()
+    ADD_PROTECTED_TOKEN_ROLE = await pBase.ADD_PROTECTED_TOKEN_ROLE()
+    REMOVE_PROTECTED_TOKEN_ROLE = await pBase.REMOVE_PROTECTED_TOKEN_ROLE()
   })
 
   beforeEach(async () => {
@@ -81,71 +81,71 @@ contract('Pool app', accounts => {
     })
   })
 
-  context('> #addCollateralToken', () => {
-    context('> sender has ADD_COLLATERAL_TOKEN_ROLE', () => {
+  context('> #addProtectedToken', () => {
+    context('> sender has ADD_PROTECTED_TOKEN_ROLE', () => {
       context('> and token is ETH or ERC20', () => {
         context('> and token does not already exist', () => {
-          it('it should add collateral token', async () => {
+          it('it should add protected token', async () => {
             const token2 = await TokenMock.new(pool.address, 10000)
             const token3 = await TokenMock.new(pool.address, 10000)
 
-            const receipt1 = await pool.addCollateralToken(ETH, { from: authorized })
-            const receipt2 = await pool.addCollateralToken(token2.address, { from: authorized })
-            const receipt3 = await pool.addCollateralToken(token3.address, { from: authorized })
+            const receipt1 = await pool.addProtectedToken(ETH, { from: authorized })
+            const receipt2 = await pool.addProtectedToken(token2.address, { from: authorized })
+            const receipt3 = await pool.addProtectedToken(token3.address, { from: authorized })
 
-            assertEvent(receipt1, 'AddCollateralToken')
-            assertEvent(receipt2, 'AddCollateralToken')
-            assertEvent(receipt3, 'AddCollateralToken')
-            assert.equal(await pool.collateralTokens(0), ETH)
-            assert.equal(await pool.collateralTokens(1), token2.address)
-            assert.equal(await pool.collateralTokens(2), token3.address)
+            assertEvent(receipt1, 'AddProtectedToken')
+            assertEvent(receipt2, 'AddProtectedToken')
+            assertEvent(receipt3, 'AddProtectedToken')
+            assert.equal(await pool.protectedTokens(0), ETH)
+            assert.equal(await pool.protectedTokens(1), token2.address)
+            assert.equal(await pool.protectedTokens(2), token3.address)
           })
         })
 
         context('> but token already exists', () => {
           it('it should revert', async () => {
             const token = await TokenMock.new(pool.address, 10000)
-            await pool.addCollateralToken(token.address, { from: authorized })
+            await pool.addProtectedToken(token.address, { from: authorized })
 
-            await assertRevert(() => pool.addCollateralToken(token.address, { from: authorized }))
+            await assertRevert(() => pool.addProtectedToken(token.address, { from: authorized }))
           })
         })
       })
 
       context('> but token is not ETH or ERC20', () => {
         it('it should revert', async () => {
-          await assertRevert(() => pool.addCollateralToken(root, { from: authorized }))
+          await assertRevert(() => pool.addProtectedToken(root, { from: authorized }))
         })
       })
     })
 
-    context('> sender does not have ADD_COLLATERAL_TOKEN_ROLE', () => {
+    context('> sender does not have ADD_PROTECTED_TOKEN_ROLE', () => {
       it('it should revert', async () => {
         const token = await TokenMock.new(pool.address, 10000)
 
-        await assertRevert(() => pool.addCollateralToken(token.address, { from: unauthorized }))
+        await assertRevert(() => pool.addProtectedToken(token.address, { from: unauthorized }))
       })
     })
   })
 
-  context('> #removeCollateralToken', () => {
-    context('> sender has REMOVE_COLLATERAL_TOKEN_ROLE', () => {
+  context('> #removeProtectedToken', () => {
+    context('> sender has REMOVE_PROTECTED_TOKEN_ROLE', () => {
       context('> and token already exists', () => {
-        it('it should remove collateral token', async () => {
+        it('it should remove protected token', async () => {
           const token2 = await TokenMock.new(authorized, 10000)
           const token3 = await TokenMock.new(authorized, 10000)
 
-          await pool.addCollateralToken(ETH, { from: authorized })
-          await pool.addCollateralToken(token2.address, { from: authorized })
-          await pool.addCollateralToken(token3.address, { from: authorized })
+          await pool.addProtectedToken(ETH, { from: authorized })
+          await pool.addProtectedToken(token2.address, { from: authorized })
+          await pool.addProtectedToken(token3.address, { from: authorized })
 
-          const receipt1 = await pool.removeCollateralToken(token3.address, { from: authorized })
-          const receipt2 = await pool.removeCollateralToken(ETH, { from: authorized })
+          const receipt1 = await pool.removeProtectedToken(token3.address, { from: authorized })
+          const receipt2 = await pool.removeProtectedToken(ETH, { from: authorized })
 
-          assertEvent(receipt1, 'RemoveCollateralToken')
-          assertEvent(receipt2, 'RemoveCollateralToken')
-          assert.equal(await pool.collateralTokens(0), token2.address)
-          await assertRevert(() => pool.collateralTokens(1)) // this should try to overflow the length of the protectedTokens array and thus revert
+          assertEvent(receipt1, 'RemoveProtectedToken')
+          assertEvent(receipt2, 'RemoveProtectedToken')
+          assert.equal(await pool.protectedTokens(0), token2.address)
+          await assertRevert(() => pool.protectedTokens(1)) // this should try to overflow the length of the protectedTokens array and thus revert
         })
       })
 
@@ -153,19 +153,19 @@ contract('Pool app', accounts => {
         it('it should revert', async () => {
           const token1 = await TokenMock.new(pool.address, 10000)
           const token2 = await TokenMock.new(pool.address, 10000)
-          await pool.addCollateralToken(token1.address, { from: authorized })
+          await pool.addProtectedToken(token1.address, { from: authorized })
 
-          await assertRevert(() => pool.removeCollateralToken(token2.address, { from: authorized }))
+          await assertRevert(() => pool.removeProtectedToken(token2.address, { from: authorized }))
         })
       })
     })
 
-    context('> sender does not have REMOVE_COLLATERAL_TOKEN_ROLE', () => {
+    context('> sender does not have REMOVE_PROTECTED_TOKEN_ROLE', () => {
       it('it should revert', async () => {
         const token = await TokenMock.new(pool.address, 10000)
-        await pool.addCollateralToken(token.address, { from: authorized })
+        await pool.addProtectedToken(token.address, { from: authorized })
 
-        await assertRevert(() => pool.removeCollateralToken(token.address, { from: unauthorized }))
+        await assertRevert(() => pool.removeProtectedToken(token.address, { from: unauthorized }))
       })
     })
   })
@@ -180,9 +180,9 @@ contract('Pool app', accounts => {
       token1 = await TokenMock.new(pool.address, amount)
       token2 = await TokenMock.new(pool.address, amount)
 
-      await pool.addCollateralToken(ETH, { from: authorized })
-      await pool.addCollateralToken(token1.address, { from: authorized })
-      await pool.addCollateralToken(token2.address, { from: authorized })
+      await pool.addProtectedToken(ETH, { from: authorized })
+      await pool.addProtectedToken(token1.address, { from: authorized })
+      await pool.addProtectedToken(token2.address, { from: authorized })
 
       assert.equal(await target.counter(), 0)
       assert.equal(await token1.balanceOf(pool.address), amount)
@@ -190,7 +190,7 @@ contract('Pool app', accounts => {
     })
 
     context('> sender has SAFE_EXECUTE_ROLE', () => {
-      context('> and target is not a collateralized ERC20', () => {
+      context('> and target is not a protected ERC20', () => {
         it('it can execute actions', async () => {
           const N = 1102
           const data = target.contract.setCounter.getData(N)
@@ -258,7 +258,7 @@ contract('Pool app', accounts => {
         })
       })
 
-      context('> but target is a collateralized ERC20', () => {
+      context('> but target is a protected ERC20', () => {
         it('it should revert', async () => {
           const approve = token1.contract.approve.getData(target.address, 10)
 
@@ -266,12 +266,12 @@ contract('Pool app', accounts => {
         })
       })
 
-      context('> and target is not a collateralized ERC20 but action affects a collateralized ERC20 balance', () => {
+      context('> and target is not a protected ERC20 but action affects a protected ERC20 balance', () => {
         it('it should revert', async () => {
           const token3 = await TokenMock.new(pool.address, amount)
           const approve = token3.contract.approve.getData(target.address, 10)
           await pool.safeExecute(token3.address, approve, { from: authorized }) // target is now allowed to transfer on behalf of pool
-          await pool.addCollateralToken(token3.address, { from: authorized }) // token3 is now collateralized
+          await pool.addProtectedToken(token3.address, { from: authorized }) // token3 is now protected
           const data = target.contract.transferTokenFrom.getData(token3.address)
 
           await assertRevert(() => pool.safeExecute(target.address, data, { from: authorized }))

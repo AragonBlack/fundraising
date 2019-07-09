@@ -11,20 +11,20 @@ import "@aragon/apps-agent/contracts/Agent.sol";
 // The `initialize` function is implemented in the Agent contract
 contract Pool is Agent {
     bytes32 public constant SAFE_EXECUTE_ROLE = keccak256("SAFE_EXECUTE_ROLE");
-    bytes32 public constant ADD_COLLATERAL_TOKEN_ROLE = keccak256("ADD_COLLATERAL_TOKEN_ROLE");
-    bytes32 public constant REMOVE_COLLATERAL_TOKEN_ROLE = keccak256("REMOVE_COLLATERAL_TOKEN_ROLE");
+    bytes32 public constant ADD_PROTECTED_TOKEN_ROLE = keccak256("ADD_PROTECTED_TOKEN_ROLE");
+    bytes32 public constant REMOVE_PROTECTED_TOKEN_ROLE = keccak256("REMOVE_PROTECTED_TOKEN_ROLE");
 
     string private constant ERROR_TOKEN_NOT_ETH_OR_CONTRACT = "POOL_TOKEN_NOT_ETH_OR_CONTRACT";
-    string private constant ERROR_TOKEN_ALREADY_EXISTS = "POOL_TOKEN_ALREADY_EXISTS";
-    string private constant ERROR_TOKEN_DOES_NOT_EXIST = "POOL_TOKEN_DOES_NOT_EXIST";
-    string private constant ERROR_TARGET_IS_GUARDED = "POOL_TARGET_IS_GUARDED";
+    string private constant ERROR_TOKEN_ALREADY_PROTECTED = "POOL_TOKEN_ALREADY_PROTECTED";
+    string private constant ERROR_TOKEN_NOT_PROTECTED = "POOL_TOKEN_NOT_PROTECTED";
+    string private constant ERROR_TARGET_PROTECTED = "POOL_TARGET_PROTECTED";
     string private constant ERROR_BALANCE_NOT_CONSTANT = "POOL_BALANCE_NOT_CONSTANT";
 
-    address[] public collateralTokens;
+    address[] public protectedTokens;
 
     event SafeExecute(address indexed sender, address indexed target, bytes data);
-    event AddCollateralToken(address indexed token);
-    event RemoveCollateralToken(address indexed token);
+    event AddProtectedToken(address indexed token);
+    event RemoveProtectedToken(address indexed token);
 
     /***** external functions *****/
 
@@ -35,14 +35,14 @@ contract Pool is Agent {
     * @return Exits call frame forwarding the return data of the executed call (either error or success data)
     */
     function safeExecute(address _target, bytes _data) external auth(SAFE_EXECUTE_ROLE) {
-        uint256[] memory balances = new uint256[](collateralTokens.length);
+        uint256[] memory balances = new uint256[](protectedTokens.length);
         bytes32 size;
         bytes32 ptr;
 
-        for (uint256 i = 0; i < collateralTokens.length; i++) {
-            address token = collateralTokens[i];
+        for (uint256 i = 0; i < protectedTokens.length; i++) {
+            address token = protectedTokens[i];
             // we don't care if target is ETH [0x00...0] as it can't be spent anyhow [though you can't invoke anything at 0x00...0]
-            require(_target != token || token == ETH, ERROR_TARGET_IS_GUARDED);
+            require(_target != token || token == ETH, ERROR_TARGET_PROTECTED);
             balances[i] = balance(token);
         }
 
@@ -58,8 +58,8 @@ contract Pool is Agent {
 
         if (result) {
             // if the underlying call has succeeded, check protected tokens' balances and return the call's return data
-            for (uint256 j = 0; j < collateralTokens.length; j++) {
-                require(balances[j] == balance(collateralTokens[j]), ERROR_BALANCE_NOT_CONSTANT);
+            for (uint256 j = 0; j < protectedTokens.length; j++) {
+                require(balances[j] == balance(protectedTokens[j]), ERROR_BALANCE_NOT_CONSTANT);
             }
 
             emit SafeExecute(msg.sender, _target, _data);
@@ -76,31 +76,31 @@ contract Pool is Agent {
     }
 
     /**
-    * @notice Add `_token.symbol(): string` as a collateral token to safeguard
-    * @param _token Address of collateral token
+    * @notice Add `_token.symbol(): string` to the list of protected tokens
+    * @param _token Address of the token to be protected
     */
-    function addCollateralToken(address _token) external auth(ADD_COLLATERAL_TOKEN_ROLE) {
+    function addProtectedToken(address _token) external auth(ADD_PROTECTED_TOKEN_ROLE) {
         require(_token == ETH || isContract(_token), ERROR_TOKEN_NOT_ETH_OR_CONTRACT);
-        require(!isTokenProtected(_token), ERROR_TOKEN_ALREADY_EXISTS);
+        require(!isTokenProtected(_token), ERROR_TOKEN_ALREADY_PROTECTED);
 
-        _addCollateralToken(_token);
+        _addProtectedToken(_token);
     }
 
     /**
-    * @notice Remove `_token.symbol(): string` as a collateral token to safeguard
-    * @param _token Address of collateral token
+    * @notice Remove `_token.symbol(): string` from the list of protected tokens
+    * @param _token Address of the token to be unprotected
     */
-    function removeCollateralToken(address _token) external auth(REMOVE_COLLATERAL_TOKEN_ROLE) {
-        require(isTokenProtected(_token), ERROR_TOKEN_DOES_NOT_EXIST);
+    function removeProtectedToken(address _token) external auth(REMOVE_PROTECTED_TOKEN_ROLE) {
+        require(isTokenProtected(_token), ERROR_TOKEN_NOT_PROTECTED);
 
-      _removeCollateralToken(_token);
+      _removeProtectedToken(_token);
     }
 
     /***** public functions *****/
 
     function isTokenProtected(address _token) public view returns (bool) {
-        for (uint256 i = 0; i < collateralTokens.length; i++) {
-            if (collateralTokens[i] == _token) {
+        for (uint256 i = 0; i < protectedTokens.length; i++) {
+            if (protectedTokens[i] == _token) {
                 return true;
             }
         }
@@ -108,29 +108,29 @@ contract Pool is Agent {
         return false;
     }
 
-    function collateralTokenIndex(address _token) public view returns (uint256) {
-        for (uint i = 0; i < collateralTokens.length; i++) {
-            if (collateralTokens[i] == _token) {
+    function protectedTokenIndex(address _token) public view returns (uint256) {
+        for (uint i = 0; i < protectedTokens.length; i++) {
+            if (protectedTokens[i] == _token) {
               return i;
             }
         }
 
-        revert(ERROR_TOKEN_DOES_NOT_EXIST);
+        revert(ERROR_TOKEN_NOT_PROTECTED);
     }
 
     /***** internal functions *****/
 
-    function _addCollateralToken(address _token) internal {
-        collateralTokens.push(_token);
+    function _addProtectedToken(address _token) internal {
+        protectedTokens.push(_token);
 
-        emit AddCollateralToken(_token);
+        emit AddProtectedToken(_token);
     }
 
-    function _removeCollateralToken(address _token) internal {
-        collateralTokens[collateralTokenIndex(_token)] = collateralTokens[collateralTokens.length - 1];
-        delete collateralTokens[collateralTokens.length - 1];
-        collateralTokens.length --;
+    function _removeProtectedToken(address _token) internal {
+        protectedTokens[protectedTokenIndex(_token)] = protectedTokens[protectedTokens.length - 1];
+        delete protectedTokens[protectedTokens.length - 1];
+        protectedTokens.length --;
 
-        emit RemoveCollateralToken(_token);
+        emit RemoveProtectedToken(_token);
     }
 }
