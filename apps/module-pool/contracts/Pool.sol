@@ -98,7 +98,7 @@ contract Pool is Agent {
     function addProtectedToken(address _token) external auth(ADD_PROTECTED_TOKEN_ROLE) {
         require(protectedTokens.length < PROTECTED_TOKENS_CAP, ERROR_TOKENS_CAP_REACHED);
         require(isContract(_token) || _token == ETH, ERROR_TOKEN_NOT_ETH_OR_CONTRACT);
-        require(!isTokenProtected(_token), ERROR_TOKEN_ALREADY_PROTECTED);
+        require(!tokenIsProtected(_token), ERROR_TOKEN_ALREADY_PROTECTED);
 
         _addProtectedToken(_token);
     }
@@ -108,14 +108,14 @@ contract Pool is Agent {
      * @param _token Address of the token to be unprotected
     */
     function removeProtectedToken(address _token) external auth(REMOVE_PROTECTED_TOKEN_ROLE) {
-        require(isTokenProtected(_token), ERROR_TOKEN_NOT_PROTECTED);
+        require(tokenIsProtected(_token), ERROR_TOKEN_NOT_PROTECTED);
 
       _removeProtectedToken(_token);
     }
 
     /***** public functions *****/
 
-    function isTokenProtected(address _token) public view isInitialized returns (bool) {
+    function tokenIsProtected(address _token) public view isInitialized returns (bool) {
         for (uint256 i = 0; i < protectedTokens.length; i++) {
             if (protectedTokens[i] == _token) {
                 return true;
