@@ -14,12 +14,14 @@ contract Pool is Agent {
     bytes32 public constant ADD_PROTECTED_TOKEN_ROLE = keccak256("ADD_PROTECTED_TOKEN_ROLE");
     bytes32 public constant REMOVE_PROTECTED_TOKEN_ROLE = keccak256("REMOVE_PROTECTED_TOKEN_ROLE");
 
+    string private constant ERROR_TOKENS_CAP_REACHED = "POOL_TOKENS_CAP_REACHED";
     string private constant ERROR_TOKEN_NOT_ETH_OR_CONTRACT = "POOL_TOKEN_NOT_ETH_OR_CONTRACT";
     string private constant ERROR_TOKEN_ALREADY_PROTECTED = "POOL_TOKEN_ALREADY_PROTECTED";
     string private constant ERROR_TOKEN_NOT_PROTECTED = "POOL_TOKEN_NOT_PROTECTED";
     string private constant ERROR_TARGET_PROTECTED = "POOL_TARGET_PROTECTED";
     string private constant ERROR_BALANCE_NOT_CONSTANT = "POOL_BALANCE_NOT_CONSTANT";
 
+    uint256 public constant PROTECTED_TOKENS_CAP = 10;
     address[] public protectedTokens;
 
     event SafeExecute(address indexed sender, address indexed target, bytes data);
@@ -80,6 +82,7 @@ contract Pool is Agent {
     * @param _token Address of the token to be protected
     */
     function addProtectedToken(address _token) external auth(ADD_PROTECTED_TOKEN_ROLE) {
+        require(protectedTokens.length < PROTECTED_TOKENS_CAP, ERROR_TOKENS_CAP_REACHED);
         require(_token == ETH || isContract(_token), ERROR_TOKEN_NOT_ETH_OR_CONTRACT);
         require(!isTokenProtected(_token), ERROR_TOKEN_ALREADY_PROTECTED);
 

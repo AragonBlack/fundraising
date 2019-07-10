@@ -85,20 +85,53 @@ contract('Pool app', accounts => {
     context('> sender has ADD_PROTECTED_TOKEN_ROLE', () => {
       context('> and token is ETH or ERC20', () => {
         context('> and token does not already exist', () => {
-          it('it should add protected token', async () => {
-            const token2 = await TokenMock.new(pool.address, 10000)
-            const token3 = await TokenMock.new(pool.address, 10000)
+          context('> and protected tokens cap has not yet been reached', () => {
+            it('it should add protected token', async () => {
+              const token2 = await TokenMock.new(pool.address, 10000)
+              const token3 = await TokenMock.new(pool.address, 10000)
 
-            const receipt1 = await pool.addProtectedToken(ETH, { from: authorized })
-            const receipt2 = await pool.addProtectedToken(token2.address, { from: authorized })
-            const receipt3 = await pool.addProtectedToken(token3.address, { from: authorized })
+              const receipt1 = await pool.addProtectedToken(ETH, { from: authorized })
+              const receipt2 = await pool.addProtectedToken(token2.address, { from: authorized })
+              const receipt3 = await pool.addProtectedToken(token3.address, { from: authorized })
 
-            assertEvent(receipt1, 'AddProtectedToken')
-            assertEvent(receipt2, 'AddProtectedToken')
-            assertEvent(receipt3, 'AddProtectedToken')
-            assert.equal(await pool.protectedTokens(0), ETH)
-            assert.equal(await pool.protectedTokens(1), token2.address)
-            assert.equal(await pool.protectedTokens(2), token3.address)
+              assertEvent(receipt1, 'AddProtectedToken')
+              assertEvent(receipt2, 'AddProtectedToken')
+              assertEvent(receipt3, 'AddProtectedToken')
+              assert.equal(await pool.protectedTokens(0), ETH)
+              assert.equal(await pool.protectedTokens(1), token2.address)
+              assert.equal(await pool.protectedTokens(2), token3.address)
+            })
+          })
+
+          context('> but protected tokens cap has been reached', () => {
+            beforeEach(async () => {
+              const token1 = await TokenMock.new(pool.address, 1000)
+              const token2 = await TokenMock.new(pool.address, 1000)
+              const token3 = await TokenMock.new(pool.address, 1000)
+              const token4 = await TokenMock.new(pool.address, 1000)
+              const token5 = await TokenMock.new(pool.address, 1000)
+              const token6 = await TokenMock.new(pool.address, 1000)
+              const token7 = await TokenMock.new(pool.address, 1000)
+              const token8 = await TokenMock.new(pool.address, 1000)
+              const token9 = await TokenMock.new(pool.address, 1000)
+
+              await pool.addProtectedToken(ETH, { from: authorized })
+              await pool.addProtectedToken(token1.address, { from: authorized })
+              await pool.addProtectedToken(token2.address, { from: authorized })
+              await pool.addProtectedToken(token3.address, { from: authorized })
+              await pool.addProtectedToken(token4.address, { from: authorized })
+              await pool.addProtectedToken(token5.address, { from: authorized })
+              await pool.addProtectedToken(token6.address, { from: authorized })
+              await pool.addProtectedToken(token7.address, { from: authorized })
+              await pool.addProtectedToken(token8.address, { from: authorized })
+              await pool.addProtectedToken(token9.address, { from: authorized })
+            })
+
+            it('it should revert', async () => {
+              const token10 = await TokenMock.new(pool.address, 10000)
+
+              await assertRevert(() => pool.addProtectedToken(token10.address, { from: authorized }))
+            })
           })
         })
 
@@ -173,16 +206,30 @@ contract('Pool app', accounts => {
   context('> #safeExecute', () => {
     const noData = '0x'
     const amount = 1000
-    let target, token1, token2
+    let target, token1, token2, token3, token4, token5, token6, token7, token8, token9
 
     beforeEach(async () => {
       target = await ExecutionTarget.new()
       token1 = await TokenMock.new(pool.address, amount)
       token2 = await TokenMock.new(pool.address, amount)
+      token3 = await TokenMock.new(pool.address, amount)
+      token4 = await TokenMock.new(pool.address, amount)
+      token5 = await TokenMock.new(pool.address, amount)
+      token6 = await TokenMock.new(pool.address, amount)
+      token7 = await TokenMock.new(pool.address, amount)
+      token8 = await TokenMock.new(pool.address, amount)
+      token9 = await TokenMock.new(pool.address, amount)
 
       await pool.addProtectedToken(ETH, { from: authorized })
       await pool.addProtectedToken(token1.address, { from: authorized })
       await pool.addProtectedToken(token2.address, { from: authorized })
+      await pool.addProtectedToken(token3.address, { from: authorized })
+      await pool.addProtectedToken(token4.address, { from: authorized })
+      await pool.addProtectedToken(token5.address, { from: authorized })
+      await pool.addProtectedToken(token6.address, { from: authorized })
+      await pool.addProtectedToken(token7.address, { from: authorized })
+      await pool.addProtectedToken(token8.address, { from: authorized })
+      await pool.addProtectedToken(token9.address, { from: authorized })
 
       assert.equal(await target.counter(), 0)
       assert.equal(await token1.balanceOf(pool.address), amount)
@@ -268,11 +315,12 @@ contract('Pool app', accounts => {
 
       context('> and target is not a protected ERC20 but action affects a protected ERC20 balance', () => {
         it('it should revert', async () => {
-          const token3 = await TokenMock.new(pool.address, amount)
-          const approve = token3.contract.approve.getData(target.address, 10)
-          await pool.safeExecute(token3.address, approve, { from: authorized }) // target is now allowed to transfer on behalf of pool
-          await pool.addProtectedToken(token3.address, { from: authorized }) // token3 is now protected
-          const data = target.contract.transferTokenFrom.getData(token3.address)
+          await pool.removeProtectedToken(token9.address, { from: authorized }) // leave a spot to add a new token
+          const token10 = await TokenMock.new(pool.address, amount)
+          const approve = token10.contract.approve.getData(target.address, 10)
+          await pool.safeExecute(token10.address, approve, { from: authorized }) // target is now allowed to transfer on behalf of pool
+          await pool.addProtectedToken(token10.address, { from: authorized }) // token10 is now protected
+          const data = target.contract.transferTokenFrom.getData(token10.address)
 
           await assertRevert(() => pool.safeExecute(target.address, data, { from: authorized }))
         })
