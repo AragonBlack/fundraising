@@ -115,7 +115,7 @@ contract Pool is Agent {
 
     /***** public functions *****/
 
-    function isTokenProtected(address _token) public view returns (bool) {
+    function isTokenProtected(address _token) public view isInitialized returns (bool) {
         for (uint256 i = 0; i < protectedTokens.length; i++) {
             if (protectedTokens[i] == _token) {
                 return true;
@@ -125,7 +125,7 @@ contract Pool is Agent {
         return false;
     }
 
-    function protectedTokenIndex(address _token) public view returns (uint256) {
+    function protectedTokenIndex(address _token) public view isInitialized returns (uint256) {
         for (uint i = 0; i < protectedTokens.length; i++) {
             if (protectedTokens[i] == _token) {
               return i;
