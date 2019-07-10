@@ -19,6 +19,7 @@ contract Pool is Agent {
     string private constant ERROR_TOKEN_ALREADY_PROTECTED = "POOL_TOKEN_ALREADY_PROTECTED";
     string private constant ERROR_TOKEN_NOT_PROTECTED = "POOL_TOKEN_NOT_PROTECTED";
     string private constant ERROR_TARGET_PROTECTED = "POOL_TARGET_PROTECTED";
+    string private constant ERROR_PROTECTED_TOKENS_MODIFIED = "POOL_PROTECTED_TOKENS_MODIFIED";
     string private constant ERROR_BALANCE_NOT_CONSTANT = "POOL_BALANCE_NOT_CONSTANT";
 
     uint256 public constant PROTECTED_TOKENS_CAP = 10;
@@ -37,6 +38,7 @@ contract Pool is Agent {
     * @return Exits call frame forwarding the return data of the executed call (either error or success data)
     */
     function safeExecute(address _target, bytes _data) external auth(SAFE_EXECUTE_ROLE) {
+        address[] memory _protectedTokens = new address[](protectedTokens.length);
         uint256[] memory balances = new uint256[](protectedTokens.length);
         bytes32 size;
         bytes32 ptr;
@@ -45,6 +47,7 @@ contract Pool is Agent {
             address token = protectedTokens[i];
             // we don't care if target is ETH [0x00...0] as it can't be spent anyhow [though you can't invoke anything at 0x00...0]
             require(_target != token || token == ETH, ERROR_TARGET_PROTECTED);
+            _protectedTokens[i] = token;
             balances[i] = balance(token);
         }
 
@@ -60,8 +63,9 @@ contract Pool is Agent {
 
         if (result) {
             // if the underlying call has succeeded, check protected tokens' balances and return the call's return data
-            for (uint256 j = 0; j < protectedTokens.length; j++) {
-                require(balances[j] == balance(protectedTokens[j]), ERROR_BALANCE_NOT_CONSTANT);
+            for (uint256 j = 0; j < _protectedTokens.length; j++) {
+                require(protectedTokens[j] == _protectedTokens[j], ERROR_PROTECTED_TOKENS_MODIFIED);
+                require(balances[j] == balance(_protectedTokens[j]), ERROR_BALANCE_NOT_CONSTANT);
             }
 
             emit SafeExecute(msg.sender, _target, _data);
