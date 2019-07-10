@@ -3,6 +3,7 @@
   "private": true,
   "scripts": {
     "bootstrap": "lerna bootstrap",
+    "publish": "lerna run publish",
     "fix": "rm -rf **/websocket/.git",
     "clean": "lerna clean"
   },

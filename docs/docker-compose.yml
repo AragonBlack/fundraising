@@ -4,7 +4,7 @@ services:
   docusaurus:
     build: .
     ports:
-      - 3000:3000
+      - 4000:3000
       - 35729:35729
     volumes:
       - ./docs:/app/docs

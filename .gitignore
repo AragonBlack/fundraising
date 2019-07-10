@@ -26,3 +26,6 @@ yarn-error.log
 # Ignore lock files
 package-lock.json
 yarn.lock
+
+# damn you macos
+.DS_Store
