@@ -245,7 +245,9 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
     }
 
     function _removeTappedToken(address _token) internal {
-        taps[_token] = uint256(0); // no need to re-initialize other data as they will be re-initialized if the token is re-added
+        delete taps[_token];
+        delete lastWithdrawals[_token];
+        delete lastTapUpdates[_token];
 
         emit RemoveTappedToken(_token);
     }
