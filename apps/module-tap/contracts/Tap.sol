@@ -5,6 +5,7 @@
 pragma solidity 0.4.24;
 
 import "@aragon/os/contracts/apps/AragonApp.sol";
+import "@aragon/os/contracts/common/TimeHelpers.sol";
 import "@aragon/os/contracts/common/EtherTokenConstant.sol";
 import "@aragon/os/contracts/common/IsContract.sol";
 import "@aragon/os/contracts/common/SafeERC20.sol";
@@ -13,7 +14,7 @@ import "@aragon/os/contracts/lib/math/SafeMath.sol";
 import "@aragon/apps-vault/contracts/Vault.sol";
 
 
-contract Tap is EtherTokenConstant, IsContract, AragonApp {
+contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
     using SafeERC20 for ERC20;
     using SafeMath for uint256;
 
@@ -168,8 +169,8 @@ contract Tap is EtherTokenConstant, IsContract, AragonApp {
         } else {
             // maxTapUpdate = taps[_token] * (1 + maxTapIncreasePctPerSecond / PCT_BASE) ^ (secondsSinceLastUpdate)
             // maxTapUpdate = taps[_token] * (1 + 1 / (PCT_BASE / maxTapIncreasePctPerSecond)) ^ (secondsSinceLastUpdate)
-            // maxTapUpdate = compound(taps[_token], PCT_BASE / maximumTapIncreaseRate, (now).sub(lastTapUpdates[_token]));
-            return compound(taps[_token], PCT_BASE / maximumTapIncreaseRate, (now).sub(lastTapUpdates[_token]));
+            // maxTapUpdate = compound(taps[_token], PCT_BASE / maximumTapIncreaseRate, (getTimestamp()).sub(lastTapUpdates[_token]));
+            return compound(taps[_token], PCT_BASE / maximumTapIncreaseRate, getTimestamp().sub(lastTapUpdates[_token]));
         }
     }
 
@@ -191,7 +192,7 @@ contract Tap is EtherTokenConstant, IsContract, AragonApp {
 
     function getMaxWithdrawal(address _token) public view isInitialized returns (uint256) {
         uint256 balance = balanceOfReserve(_token);
-        uint256 tapped = (now.sub(lastWithdrawals[_token])).mul(taps[_token]);
+        uint256 tapped = (getTimestamp().sub(lastWithdrawals[_token])).mul(taps[_token]);
         return tapped > balance ? balance : tapped;
     }
 
@@ -225,8 +226,8 @@ contract Tap is EtherTokenConstant, IsContract, AragonApp {
 
     function _addTokenTap(address _token, uint256 _tap) internal {
         taps[_token] = _tap;
-        lastWithdrawals[_token] = now;
-        lastTapUpdates[_token] = now;
+        lastWithdrawals[_token] = getTimestamp();
+        lastTapUpdates[_token] = getTimestamp();
 
         emit AddTokenTap(_token, _tap);
     }
@@ -239,13 +240,13 @@ contract Tap is EtherTokenConstant, IsContract, AragonApp {
 
     function _updateTokenTap(address _token, uint256 _tap) internal {
         taps[_token] = _tap;
-        lastTapUpdates[_token] = now;
+        lastTapUpdates[_token] = getTimestamp();
 
         emit UpdateTokenTap(_token, _tap);
     }
 
     function _withdraw(address _token, uint256 _amount) internal {
-        lastWithdrawals[_token] = now;
+        lastWithdrawals[_token] = getTimestamp();
         reserve.transfer(_token, beneficiary, _amount); // vault contract's transfer method already reverts on error
 
         emit Withdraw(_token, _amount);
