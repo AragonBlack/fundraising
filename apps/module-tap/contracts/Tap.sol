@@ -17,7 +17,7 @@ import "@aragon/apps-vault/contracts/Vault.sol";
 contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
     using SafeERC20 for ERC20;
     using SafeMath for uint256;
-
+    /* Hardcoded constants to save gas
     bytes32 public constant UPDATE_RESERVE_ROLE = keccak256("UPDATE_RESERVE_ROLE");
     bytes32 public constant UPDATE_BENEFICIARY_ROLE = keccak256("UPDATE_BENEFICIARY_ROLE");
     bytes32 public constant UPDATE_MAXIMUM_TAP_INCREASE_RATE_ROLE = keccak256("UPDATE_MAXIMUM_TAP_INCREASE_RATE_ROLE");
@@ -25,6 +25,14 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
     bytes32 public constant REMOVE_TAPPED_TOKEN_ROLE = keccak256("REMOVE_TAPPED_TOKEN_ROLE");
     bytes32 public constant UPDATE_TAPPED_TOKEN_ROLE = keccak256("UPDATE_TAPPED_TOKEN_ROLE");
     bytes32 public constant WITHDRAW_ROLE = keccak256("WITHDRAW_ROLE");
+    */
+    bytes32 public constant UPDATE_RESERVE_ROLE = 0x7984c050833e1db850f5aa7476710412fd2983fcec34da049502835ad7aed4f7;
+    bytes32 public constant UPDATE_BENEFICIARY_ROLE = 0xf7ea2b80c7b6a2cab2c11d2290cb005c3748397358a25e17113658c83b732593;
+    bytes32 public constant UPDATE_MAXIMUM_TAP_INCREASE_RATE_ROLE = 0x1cfb12d1da8f09374525828ff7850846684a92f46800ebf298bcbfde60f2321f;
+    bytes32 public constant ADD_TAPPED_TOKEN_ROLE = 0x5bc3b608e6be93b75a1c472a4a5bea3d31eabae46bf968e4bc4c7701562114dc;
+    bytes32 public constant REMOVE_TAPPED_TOKEN_ROLE = 0xd76960be78bfedc5b40ce4fa64a2f8308f39dd2cbb1f9676dbc4ce87b817befd;
+    bytes32 public constant UPDATE_TAPPED_TOKEN_ROLE = 0x83201394534c53ae0b4696fd49a933082d3e0525aa5a3d0a14a2f51e12213288;
+    bytes32 public constant WITHDRAW_ROLE = 0x5d8e12c39142ff96d79d04d15d1ba1269e4fe57bb9d26f43523628b34ba108ec;
 
     uint64 public constant PCT_BASE = 10 ** 18; // 0% = 0; 1% = 10^16; 100% = 10^18
     uint64 public constant COMPOUND_PRECISION = 50; // leads compound computation to cost about 25000 gas
