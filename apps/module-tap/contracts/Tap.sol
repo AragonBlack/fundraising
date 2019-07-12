@@ -21,9 +21,9 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
     bytes32 public constant UPDATE_RESERVE_ROLE = keccak256("UPDATE_RESERVE_ROLE");
     bytes32 public constant UPDATE_BENEFICIARY_ROLE = keccak256("UPDATE_BENEFICIARY_ROLE");
     bytes32 public constant UPDATE_MAXIMUM_TAP_INCREASE_RATE_ROLE = keccak256("UPDATE_MAXIMUM_TAP_INCREASE_RATE_ROLE");
-    bytes32 public constant ADD_TOKEN_TAP_ROLE = keccak256("ADD_TOKEN_TAP_ROLE");
-    bytes32 public constant REMOVE_TOKEN_TAP_ROLE = keccak256("REMOVE_TOKEN_TAP_ROLE");
-    bytes32 public constant UPDATE_TOKEN_TAP_ROLE = keccak256("UPDATE_TOKEN_TAP_ROLE");
+    bytes32 public constant ADD_TAPPED_TOKEN_ROLE = keccak256("ADD_TAPPED_TOKEN_ROLE");
+    bytes32 public constant REMOVE_TAPPED_TOKEN_ROLE = keccak256("REMOVE_TAPPED_TOKEN_ROLE");
+    bytes32 public constant UPDATE_TAPPED_TOKEN_ROLE = keccak256("UPDATE_TAPPED_TOKEN_ROLE");
     bytes32 public constant WITHDRAW_ROLE = keccak256("WITHDRAW_ROLE");
 
     uint64 public constant PCT_BASE = 10 ** 18; // 0% = 0; 1% = 10^16; 100% = 10^18
@@ -31,15 +31,15 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
 
     string private constant ERROR_RESERVE_NOT_CONTRACT = "TAP_RESERVE_NOT_CONTRACT";
     string private constant ERROR_TOKEN_NOT_ETH_OR_CONTRACT = "TAP_TOKEN_NOT_ETH_OR_CONTRACT";
-    string private constant ERROR_TOKEN_TAP_ALREADY_EXISTS = "TAP_TOKEN_TAP_ALREADY_EXISTS";
-    string private constant ERROR_TOKEN_TAP_DOES_NOT_EXIST = "TAP_TOKEN_TAP_DOES_NOT_EXIST";
-    string private constant ERROR_TOKEN_TAP_RATE_ZERO = "TAP_TOKEN_TAP_RATE_ZERO";
+    string private constant ERROR_TOKEN_ALREADY_TAPPED = "TAP_TOKEN_ALREADY_TAPPED";
+    string private constant ERROR_TOKEN_NOT_TAPPED = "TAP_TOKEN_NOT_TAPPED";
+    string private constant ERROR_TAP_RATE_ZERO = "TAP_TAP_RATE_ZERO";
     string private constant ERROR_TAP_INCREASE_EXCEEDS_LIMIT = "TAP_TAP_INCREASE_EXCEEDS_LIMIT";
     string private constant ERROR_WITHDRAWAL_AMOUNT_ZERO = "TAP_WITHDRAWAL_AMOUNT_ZERO";
 
     Vault public reserve;
     address public beneficiary;
-    uint256 public maximumTapIncreaseRate;
+    uint256 public maximumTapIncreaseRate; // expressed in percentage / second
 
     mapping (address => uint256) public taps;
     mapping (address => uint256) public lastWithdrawals;
@@ -48,9 +48,9 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
     event UpdateReserve(address reserve);
     event UpdateBeneficiary(address beneficiary);
     event UpdateMaximumTapIncreaseRate(uint256 maximumTapIncreaseRate);
-    event AddTokenTap(address indexed token, uint256 tap);
-    event RemoveTokenTap(address indexed token);
-    event UpdateTokenTap(address indexed token, uint256 tap);
+    event AddTappedToken(address indexed token, uint256 tap);
+    event RemoveTappedToken(address indexed token);
+    event UpdateTappedToken(address indexed token, uint256 tap);
     event Withdraw(address indexed token, uint256 amount);
 
 
@@ -96,22 +96,22 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
      * @param _token Address of the tapped token
      * @param _tap The tap to be applied applied to that token [in wei / second]
     */
-    function addTokenTap(address _token, uint256 _tap) external auth(ADD_TOKEN_TAP_ROLE) {
-        require(_token == ETH || isContract(_token), ERROR_TOKEN_NOT_ETH_OR_CONTRACT);
-        require(taps[_token] == uint256(0), ERROR_TOKEN_TAP_ALREADY_EXISTS);
-        require(_tap > 0, ERROR_TOKEN_TAP_RATE_ZERO);
+    function addTappedToken(address _token, uint256 _tap) external auth(ADD_TAPPED_TOKEN_ROLE) {
+        require(tokenIsETHOrContract(_token), ERROR_TOKEN_NOT_ETH_OR_CONTRACT);
+        require(!tokenIsTapped(_token), ERROR_TOKEN_ALREADY_TAPPED);
+        require(tapIsValid(_tap), ERROR_TAP_RATE_ZERO);
 
-        _addTokenTap(_token, _tap);
+        _addTappedToken(_token, _tap);
     }
 
     /**
      * @notice Remove tap for `_token.symbol(): string`
      * @param _token Address of the tapped token to remove
     */
-    function removeTokenTap(address _token) external auth(REMOVE_TOKEN_TAP_ROLE) {
-        require(taps[_token] != uint256(0), ERROR_TOKEN_TAP_DOES_NOT_EXIST);
+    function removeTappedToken(address _token) external auth(REMOVE_TAPPED_TOKEN_ROLE) {
+        require(tokenIsTapped(_token), ERROR_TOKEN_NOT_TAPPED);
 
-        _removeTokenTap(_token);
+        _removeTappedToken(_token);
     }
 
     /**
@@ -119,12 +119,12 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
      * @param _token Address of the token whose tap is to be updated
      * @param _tap New tap to be applied to the token [in wei / second]
     */
-    function updateTokenTap(address _token, uint256 _tap) external auth(UPDATE_TOKEN_TAP_ROLE) {
-        require(taps[_token] != uint256(0), ERROR_TOKEN_TAP_DOES_NOT_EXIST);
-        require(_tap > 0, ERROR_TOKEN_TAP_RATE_ZERO);
+    function updateTappedToken(address _token, uint256 _tap) external auth(UPDATE_TAPPED_TOKEN_ROLE) {
+        require(tokenIsTapped(_token), ERROR_TOKEN_NOT_TAPPED);
+        require(tapIsValid(_tap), ERROR_TAP_RATE_ZERO);
         require(tapIncreaseIsValid(_token, _tap), ERROR_TAP_INCREASE_EXCEEDS_LIMIT);
 
-        _updateTokenTap(_token, _tap);
+        _updateTappedToken(_token, _tap);
     }
 
     /**
@@ -132,7 +132,7 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
      * @param _token Address of the token to transfer from reserve to beneficiary
     */
     function withdraw(address _token) external auth(WITHDRAW_ROLE) {
-        require(taps[_token] > 0, ERROR_TOKEN_TAP_DOES_NOT_EXIST);
+        require(tokenIsTapped(_token), ERROR_TOKEN_NOT_TAPPED);
         uint256 amount = getMaxWithdrawal(_token);
         require(amount > 0, ERROR_WITHDRAWAL_AMOUNT_ZERO);
 
@@ -140,6 +140,18 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
     }
 
     /***** public functions *****/
+
+    function tokenIsETHOrContract(address _token) public view isInitialized returns (bool) {
+        return _token == ETH || isContract(_token);
+    }
+
+    function tapIsValid(uint256 _tap) public view isInitialized returns (bool) {
+        return _tap > 0;
+    }
+
+    function tokenIsTapped(address _token) public view isInitialized returns (bool) {
+        return taps[_token] != uint256(0);
+    }
 
     /**
      * @notice Compute the compound result of `k` increasing of 1/`q`th `n` times
@@ -224,25 +236,25 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
         emit UpdateMaximumTapIncreaseRate(_maximumTapIncreaseRate);
     }
 
-    function _addTokenTap(address _token, uint256 _tap) internal {
+    function _addTappedToken(address _token, uint256 _tap) internal {
         taps[_token] = _tap;
         lastWithdrawals[_token] = getTimestamp();
         lastTapUpdates[_token] = getTimestamp();
 
-        emit AddTokenTap(_token, _tap);
+        emit AddTappedToken(_token, _tap);
     }
 
-    function _removeTokenTap(address _token) internal {
+    function _removeTappedToken(address _token) internal {
         taps[_token] = uint256(0); // no need to re-initialize other data as they will be re-initialized if the token is re-added
 
-        emit RemoveTokenTap(_token);
+        emit RemoveTappedToken(_token);
     }
 
-    function _updateTokenTap(address _token, uint256 _tap) internal {
+    function _updateTappedToken(address _token, uint256 _tap) internal {
         taps[_token] = _tap;
         lastTapUpdates[_token] = getTimestamp();
 
-        emit UpdateTokenTap(_token, _tap);
+        emit UpdateTappedToken(_token, _tap);
     }
 
     function _withdraw(address _token, uint256 _amount) internal {
