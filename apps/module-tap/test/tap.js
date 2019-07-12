@@ -341,9 +341,9 @@ contract('Tap app', accounts => {
               await tap.addTappedToken(token1.address, 50, { from: authorized })
               await tap.addTappedToken(token2.address, 100, { from: authorized })
               await timeTravel(20)
-              // maxTapUpdateETH = 10 * (1 + 0.5) ^ 20 = 33 252,5673007965
-              // maxTapUpdateToken1 = 50 * (1 + 0.5) ^ 20 = 166 262,836503982
-              // maxTapUpdateToken2 = 100 * (1 + 0.5) ^ 20 = 332 525,673007965
+              // maxTapUpdateETH = 10 * (1 + 0.5) ^ 20 = 33252,5673007965
+              // maxTapUpdateToken1 = 50 * (1 + 0.5) ^ 20 = 166262,836503982
+              // maxTapUpdateToken2 = 100 * (1 + 0.5) ^ 20 = 332525,673007965
 
               const receipt1 = await tap.updateTappedToken(ETH, 33000, { from: authorized })
               const receipt2 = await tap.updateTappedToken(token1.address, 165000, { from: authorized })
@@ -368,8 +368,8 @@ contract('Tap app', accounts => {
               await tap.addTappedToken(ETH, 10, { from: authorized })
               await tap.addTappedToken(token1.address, 50, { from: authorized })
               await timeTravel(20)
-              // maxTapUpdateETH = 10 * (1 + 0.5) ^ 20 = 33 252,5673007965
-              // maxTapUpdateToken1 = 50 * (1 + 0.5) ^ 20 = 166 262,836503982
+              // maxTapUpdateETH = 10 * (1 + 0.5) ^ 20 = 33252,5673007965
+              // maxTapUpdateToken1 = 50 * (1 + 0.5) ^ 20 = 166262,836503982
 
               await assertRevert(() => tap.updateTappedToken(ETH, 38000, { from: authorized }))
               await assertRevert(() => tap.updateTappedToken(token1.address, 169000, { from: authorized }))
@@ -515,41 +515,41 @@ contract('Tap app', accounts => {
     })
   })
 
-  context('> #tapIncreaseIsValid', () => {
-    context('> tap increase is valid', () => {
-      it('it should return true', async () => {
-        const INITIAL_TAP = 100
+  // context('> #tapIncreaseIsValid', () => {
+  //   context('> tap increase is valid', () => {
+  //     it('it should return true', async () => {
+  //       const INITIAL_TAP = 100
 
-        await tap.addTappedToken(token1.address, INITIAL_TAP, { from: authorized })
-        await timeTravel(20)
-        // maxTapUpdate = 100 * (1 + 0.5) ^ 20 = 332 525,673007965
+  //       await tap.addTappedToken(token1.address, INITIAL_TAP, { from: authorized })
+  //       await timeTravel(20)
+  //       // maxTapUpdate = 100 * (1 + 0.5) ^ 20 = 332525,673007965
 
-        assert.equal(await tap.tapIncreaseIsValid(token1.address, 332500), true)
-      })
-    })
+  //       assert.equal(await tap.tapIncreaseIsValid(token1.address, 332500), true)
+  //     })
+  //   })
 
-    context('> tap increase is not valid', () => {
-      it('it should return false', async () => {
-        const INITIAL_TAP = 100
+  //   context('> tap increase is not valid', () => {
+  //     it('it should return false', async () => {
+  //       const INITIAL_TAP = 100
 
-        await tap.addTappedToken(token1.address, INITIAL_TAP, { from: authorized })
-        await timeTravel(20)
-        // maxTapUpdate = 100 * (1 + 0.5) ^ 20 = 332 525,673007965
+  //       await tap.addTappedToken(token1.address, INITIAL_TAP, { from: authorized })
+  //       await timeTravel(20)
+  //       // maxTapUpdate = 100 * (1 + 0.5) ^ 20 = 332525,673007965
 
-        assert.equal(await tap.tapIncreaseIsValid(token1.address, 332600), false)
-      })
-    })
-  })
+  //       assert.equal(await tap.tapIncreaseIsValid(token1.address, 332600), false)
+  //     })
+  //   })
+  // })
 
-  context('> #getMaxWithdrawal', () => {
+  context('> #maximumWithdrawal', () => {
     context('> tapped amount is inferior to reserve balance', () => {
       it('it should return tapped amount', async () => {
         await tap.addTappedToken(ETH, 1, { from: authorized })
         await tap.addTappedToken(token1.address, 2, { from: authorized })
         await timeTravel(10)
 
-        assert.isAtMost((await tap.getMaxWithdrawal(ETH)).toNumber(), 11)
-        assert.isAtMost((await tap.getMaxWithdrawal(token1.address)).toNumber(), 21)
+        assert.isAtMost((await tap.maximumWithdrawal(ETH)).toNumber(), 11)
+        assert.isAtMost((await tap.maximumWithdrawal(token1.address)).toNumber(), 22)
       })
     })
 
@@ -559,8 +559,8 @@ contract('Tap app', accounts => {
         await tap.addTappedToken(token1.address, INITIAL_TOKEN_BALANCE, { from: authorized })
         await timeTravel(10)
 
-        assert.equal((await tap.getMaxWithdrawal(ETH)).toNumber(), INITIAL_ETH_BALANCE)
-        assert.equal((await tap.getMaxWithdrawal(token1.address)).toNumber(), INITIAL_TOKEN_BALANCE)
+        assert.equal((await tap.maximumWithdrawal(ETH)).toNumber(), INITIAL_ETH_BALANCE)
+        assert.equal((await tap.maximumWithdrawal(token1.address)).toNumber(), INITIAL_TOKEN_BALANCE)
       })
     })
   })

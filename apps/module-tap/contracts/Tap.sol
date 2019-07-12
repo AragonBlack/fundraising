@@ -97,9 +97,9 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
      * @param _tap The tap to be applied applied to that token [in wei / second]
     */
     function addTappedToken(address _token, uint256 _tap) external auth(ADD_TAPPED_TOKEN_ROLE) {
-        require(tokenIsETHOrContract(_token), ERROR_TOKEN_NOT_ETH_OR_CONTRACT);
-        require(!tokenIsTapped(_token), ERROR_TOKEN_ALREADY_TAPPED);
-        require(tapIsValid(_tap), ERROR_TAP_RATE_ZERO);
+        require(_tokenIsETHOrContract(_token), ERROR_TOKEN_NOT_ETH_OR_CONTRACT);
+        require(!_tokenIsTapped(_token), ERROR_TOKEN_ALREADY_TAPPED);
+        require(_tapRateIsNotZero(_tap), ERROR_TAP_RATE_ZERO);
 
         _addTappedToken(_token, _tap);
     }
@@ -109,7 +109,7 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
      * @param _token Address of the tapped token to remove
     */
     function removeTappedToken(address _token) external auth(REMOVE_TAPPED_TOKEN_ROLE) {
-        require(tokenIsTapped(_token), ERROR_TOKEN_NOT_TAPPED);
+        require(_tokenIsTapped(_token), ERROR_TOKEN_NOT_TAPPED);
 
         _removeTappedToken(_token);
     }
@@ -120,20 +120,20 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
      * @param _tap New tap to be applied to the token [in wei / second]
     */
     function updateTappedToken(address _token, uint256 _tap) external auth(UPDATE_TAPPED_TOKEN_ROLE) {
-        require(tokenIsTapped(_token), ERROR_TOKEN_NOT_TAPPED);
-        require(tapIsValid(_tap), ERROR_TAP_RATE_ZERO);
-        require(tapIncreaseIsValid(_token, _tap), ERROR_TAP_INCREASE_EXCEEDS_LIMIT);
+        require(_tokenIsTapped(_token), ERROR_TOKEN_NOT_TAPPED);
+        require(_tapRateIsNotZero(_tap), ERROR_TAP_RATE_ZERO);
+        require(_tapIncreaseIsValid(_token, _tap), ERROR_TAP_INCREASE_EXCEEDS_LIMIT);
 
         _updateTappedToken(_token, _tap);
     }
 
     /**
-     * @notice Transfer about `@tokenAmount(_token, self.getMaxWithdrawal(_token))` from `self.reserve()` to `self.beneficiary()`
+     * @notice Transfer about `@tokenAmount(_token, self.maximalWithdrawal(_token))` from `self.reserve()` to `self.beneficiary()`
      * @param _token Address of the token to transfer from reserve to beneficiary
     */
     function withdraw(address _token) external auth(WITHDRAW_ROLE) {
-        require(tokenIsTapped(_token), ERROR_TOKEN_NOT_TAPPED);
-        uint256 amount = getMaxWithdrawal(_token);
+        require(_tokenIsTapped(_token), ERROR_TOKEN_NOT_TAPPED);
+        uint256 amount = maximumWithdrawal(_token);
         require(amount > 0, ERROR_WITHDRAWAL_AMOUNT_ZERO);
 
         _withdraw(_token, amount);
@@ -141,52 +141,40 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
 
     /***** public functions *****/
 
-    function tokenIsETHOrContract(address _token) public view isInitialized returns (bool) {
-        return _token == ETH || isContract(_token);
-    }
-
-    function tapIsValid(uint256 _tap) public view isInitialized returns (bool) {
-        return _tap > 0;
-    }
-
-    function tokenIsTapped(address _token) public view isInitialized returns (bool) {
-        return taps[_token] != uint256(0);
-    }
-
-    /**
-     * @notice Compute the compound result of `k` increasing of 1/`q`th `n` times
-     * @dev The computed result is an polynomial estimate of the actual result that will alway be lower than the actual result
-     * @dev See https://ethereum.stackexchange.com/questions/10425/is-there-any-efficient-way-to-compute-the-exponentiation-of-a-fraction-and-an-in
-     * @param _k The base of the compound computation
-     * @param _q The inverse percentage of a one step increase
-     * @param _n The number of increase steps
-    */
-    function compound(uint _k, uint _q, uint _n) public view isInitialized returns (uint) {
-        uint s = 0;
-        uint N = 1;
-        uint B = 1;
-
-        for (uint i = 0; i < COMPOUND_PRECISION; ++i) {
-            s += _k * N / B / (_q ** i);
-            N = N * (_n - i);
-            B = B * (i + 1);
-        }
-        
-        return s;
-    }
-
     function maximumNewTap(address _token) public view isInitialized returns (uint256) {
         if (maximumTapIncreaseRate == 0) {
             return taps[_token];
         } else {
-            // maxTapUpdate = taps[_token] * (1 + maxTapIncreasePctPerSecond / PCT_BASE) ^ (secondsSinceLastUpdate)
-            // maxTapUpdate = taps[_token] * (1 + 1 / (PCT_BASE / maxTapIncreasePctPerSecond)) ^ (secondsSinceLastUpdate)
-            // maxTapUpdate = compound(taps[_token], PCT_BASE / maximumTapIncreaseRate, (getTimestamp()).sub(lastTapUpdates[_token]));
-            return compound(taps[_token], PCT_BASE / maximumTapIncreaseRate, getTimestamp().sub(lastTapUpdates[_token]));
+            // maxTap = taps[_token] * (1 + maximumTapIncreaseRate / PCT_BASE) ^ (secondsSinceLastUpdate)
+            // maxTap = taps[_token] * (1 + 1 / (PCT_BASE / maximumTapIncreaseRate)) ^ (secondsSinceLastUpdate)
+            // maxTap = compound(taps[_token], PCT_BASE / maximumTapIncreaseRate, (getTimestamp()).sub(lastTapUpdates[_token]));
+            return _compound(taps[_token], PCT_BASE / maximumTapIncreaseRate, getTimestamp().sub(lastTapUpdates[_token]));
         }
     }
 
-    function tapIncreaseIsValid(address _token, uint256 _tap) public view isInitialized returns (bool) {
+    function maximumWithdrawal(address _token) public view isInitialized returns (uint256) {
+        uint256 balance = _token == ETH ? address(reserve).balance : ERC20(_token).staticBalanceOf(reserve);
+        uint256 tapped = (getTimestamp().sub(lastWithdrawals[_token])).mul(taps[_token]);
+        return tapped > balance ? balance : tapped;
+    }
+
+    /***** internal functions *****/
+
+    /* check functions */
+
+    function _tokenIsETHOrContract(address _token) internal returns (bool) {
+        return isContract(_token) || _token == ETH;
+    }
+
+    function _tokenIsTapped(address _token) internal returns (bool) {
+        return taps[_token] != uint256(0);
+    }
+
+    function _tapRateIsNotZero(uint256 _tap) internal returns (bool) {
+        return _tap > 0;
+    }
+
+    function _tapIncreaseIsValid(address _token, uint256 _tap) internal returns (bool) {
         if (_tap <= taps[_token]) {
             return true;
         }
@@ -202,21 +190,31 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
         return false;
     }
 
-    function getMaxWithdrawal(address _token) public view isInitialized returns (uint256) {
-        uint256 balance = balanceOfReserve(_token);
-        uint256 tapped = (getTimestamp().sub(lastWithdrawals[_token])).mul(taps[_token]);
-        return tapped > balance ? balance : tapped;
-    }
+    /* computation functions */
 
-    function balanceOfReserve(address _token) public view isInitialized returns (uint256) {
-        if (_token == ETH) {
-            return address(reserve).balance;
-        } else {
-            return ERC20(_token).staticBalanceOf(reserve);
+    /**
+     * @notice Compute the compound result of `k` increasing of 1/`q`th `n` times
+     * @dev The computed result is an polynomial estimate of the actual result that will alway be lower than the actual result
+     * @dev See https://ethereum.stackexchange.com/questions/10425/is-there-any-efficient-way-to-compute-the-exponentiation-of-a-fraction-and-an-in
+     * @param _k The base of the compound computation
+     * @param _q The inverse percentage of a one step increase
+     * @param _n The number of increase steps
+    */
+    function _compound(uint256 _k, uint256 _q, uint256 _n) internal returns (uint) {
+        uint256 s = 0;
+        uint256 N = 1;
+        uint256 B = 1;
+
+        for (uint256 i = 0; i < COMPOUND_PRECISION; i++) {
+            s += _k * N / B / (_q ** i);
+            N = N * (_n - i);
+            B = B * (i + 1);
         }
+
+        return s;
     }
 
-    /***** internal functions *****/
+    /* state modifying functions */
 
     function _updateReserve(Vault _reserve) internal {
         reserve = _reserve;
