@@ -25,6 +25,7 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
     bytes32 public constant ADD_COLLATERAL_TOKEN_ROLE = keccak256("ADD_COLLATERAL_TOKEN_ROLE");
     bytes32 public constant UPDATE_COLLATERAL_TOKEN_ROLE = keccak256("UPDATE_COLLATERAL_TOKEN_ROLE");
     bytes32 public constant UPDATE_BENEFICIARY_ROLE = keccak256("UPDATE_BENEFICIARY_ROLE");
+    bytes32 public constant UPDATE_FORMULA_ROLE = keccak256("UPDATE_FORMULA_ROLE");
     bytes32 public constant UPDATE_FEES_ROLE = keccak256("UPDATE_FEES_ROLE");
     bytes32 public constant OPEN_BUY_ORDER_ROLE = keccak256("OPEN_BUY_ORDER_ROLE");
     bytes32 public constant CREATE_SELL_ORDER_ROLE = keccak256("CREATE_SELL_ORDER_ROLE");
@@ -147,44 +148,34 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
     /***** external functions *****/
 
     /**
-      * @notice Add `_collateralToken.symbol(): string` as a whitelisted collateral
-      * @param _collateralToken The address of the collateral token to be added
+      * @notice Add `_collateral.symbol(): string` as a whitelisted collateral token
+      * @param _collateral The address of the collateral token to be whitelisted
       * @param _virtualSupply The virtual supply to be used for that collateral token
       * @param _virtualBalance The virtual balance to be used for that collateral token
       * @param _reserveRatio The reserve ratio to be used for that collateral token [in PPM]
     */
-    function addCollateralToken(
-        address _collateralToken,
-        uint256 _virtualSupply,
-        uint256 _virtualBalance,
-        uint32 _reserveRatio
-    )
+    function addCollateralToken(address _collateral, uint256 _virtualSupply, uint256 _virtualBalance, uint32 _reserveRatio)
         external auth(ADD_COLLATERAL_TOKEN_ROLE)
     {
-        require(isContract(_collateralToken) || _collateralToken == ETH , ERROR_COLLATERAL_NOT_ETH_OR_CONTRACT);
-        require(!_collateralIsWhitelisted(_collateralToken), ERROR_COLLATERAL_ALREADY_WHITELISTED);
+        require(isContract(_collateral) || _collateral == ETH, ERROR_COLLATERAL_NOT_ETH_OR_CONTRACT);
+        require(!_collateralIsWhitelisted(_collateral), ERROR_COLLATERAL_ALREADY_WHITELISTED);
 
-        _addCollateralToken(_collateralToken, _virtualSupply, _virtualBalance, _reserveRatio);
+        _addCollateralToken(_collateral, _virtualSupply, _virtualBalance, _reserveRatio);
     }
 
     /**
-     * @notice Update `_collateralToken.symbol(): string` collateral settings
-     * @param _collateralToken The address of the collateral token whose settings are to be updated
+     * @notice Update `_collateral.symbol(): string` collateralization settings
+     * @param _collateral The address of the collateral token whose collateralization settings are to be updated
      * @param _virtualSupply The new virtual supply to be used for that collateral token
      * @param _virtualBalance The new virtual balance to be used for that collateral token
      * @param _reserveRatio The new reserve ratio to be used for that collateral token [in PPM]
     */
-    function updateCollateralToken(
-        address _collateralToken,
-        uint256 _virtualSupply,
-        uint256 _virtualBalance,
-        uint32 _reserveRatio
-    )
+    function updateCollateralToken(address _collateral, uint256 _virtualSupply, uint256 _virtualBalance, uint32 _reserveRatio)
         external auth(UPDATE_COLLATERAL_TOKEN_ROLE)
     {
-        require(collaterals[_collateralToken].whitelisted, ERROR_COLLATERAL_NOT_WHITELISTED);
+        require(_collateralIsWhitelisted(_collateral), ERROR_COLLATERAL_NOT_WHITELISTED);
 
-        _updateCollateralToken(_collateralToken, _virtualSupply, _virtualBalance, _reserveRatio);
+        _updateCollateralToken(_collateral, _virtualSupply, _virtualBalance, _reserveRatio);
     }
 
     /**
@@ -193,6 +184,16 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
     */
     function updateBeneficiary(address _beneficiary) external auth(UPDATE_BENEFICIARY_ROLE) {
         _updateBeneficiary(_beneficiary);
+    }
+
+    /**
+     * @notice Update the address of the BancorFormula contract to `_formula`
+     * @param _formula The address of the new BancorFormula contract to be used
+    */
+    function updateFormula(IBancorFormula _formula) external auth(UPDATE_FORMULA_ROLE) {
+        require(isContract(_formula), ERROR_FORMULA_NOT_CONTRACT);
+
+        _updateFormula(_formula);
     }
 
     /**
@@ -293,8 +294,8 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
         );
     }
 
-    function getCollateral(address _collateralToken) public view isInitialized returns (bool, uint256, uint256, uint32) {
-        Collateral storage collateral = collaterals[_collateralToken];
+    function getCollateralToken(address _collateral) public view isInitialized returns (bool, uint256, uint256, uint32) {
+        Collateral storage collateral = collaterals[_collateral];
 
         return (collateral.whitelisted, collateral.virtualSupply, collateral.virtualBalance, collateral.reserveRatio);
     }
