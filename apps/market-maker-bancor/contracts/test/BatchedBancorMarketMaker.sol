@@ -290,12 +290,8 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
 
     /***** public view functions *****/
 
-    /**
-     * @dev Get the id [i.e. block number] attached to the current batches of orders
-     * @return The id the current batches of orders
-    */
     function getCurrentBatchId() public view isInitialized returns (uint256) {
-        return (block.number.div(batchBlocks)).mul(batchBlocks);
+        return _currentBatchId();
     }
 
     function getBatch(uint256 _batchId, address _collateral)
@@ -318,7 +314,7 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
         );
     }
 
-    function getcollaterals(address _collateralToken) public view isInitialized returns (bool, uint256, uint256, uint32) {
+    function getCollateral(address _collateralToken) public view isInitialized returns (bool, uint256, uint256, uint32) {
         Collateral storage collateral = collaterals[_collateralToken];
 
         return (collateral.exists, collateral.virtualSupply, collateral.virtualBalance, collateral.reserveRatio);
@@ -329,78 +325,22 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
      *      price = collateral / (tokenSupply * CW)
      *      price = collateral / (tokenSupply * (CW / PPM)
      *      price = (collateral * PPM) / (tokenSupply * CW)
-     * @param _collateralToken The address of the collateral token to be used in the calculation
-     * @param _totalSupply The token supply to be used in the calculation
-     * @param _poolBalance The collateral pool balance to be used in the calculation
-     * @return The current exact price in parts per million as collateral over token
-    */
-    function getPricePPM(
-        address _collateralToken,
-        uint256 _totalSupply,
-        uint256 _poolBalance
-    )
-        public view isInitialized
-        returns (uint256 price)
-    {
-        price = uint256(PPM).mul(
-            _poolBalance.add(
-                collaterals[_collateralToken].virtualBalance)
-            ).div(
-                (_totalSupply.add(collaterals[_collateralToken].virtualSupply)
-            ).mul(collaterals[_collateralToken].reserveRatio)
-        );
-
-        if (price == 0)
-            price = 1;
-    }
-
-    /**
-     * @dev Get the estimate result of a purchase in the scenario that it were the only order within the current batch or orders
-     * @param _collateralToken The address of the collateral token te be used in the calculation
      * @param _supply The token supply to be used in the calculation
      * @param _balance The collateral pool balance to be used in the calculation
-     * @param _buyValue The amount of collateral tokens to be spent in the purchase
-     * @return The number of tokens that would be purchased in this scenario
+     * @param _reserveRatio The reserveRatio to be used in the calculation
+     * @return The current exact price in parts per million as collateral over token
     */
-    function getBuy(
-        address _collateralToken,
-        uint256 _supply,
-        uint256 _balance,
-        uint32 _reserveRatio,
-        uint256 _buyValue
-    )
-        public view isInitialized
-        returns (uint256)
-    {
-        return formula.calculatePurchaseReturn(_supply, _balance, _reserveRatio, _buyValue);
-    }
-
-    /**
-     * @dev Get the estimate result of a sale of tokens in the scenario that it were the only order within the current batch of orders
-     * @param _collateralToken The address of the collateral token to be used in the calculation
-     * @param _totalSupply The token supply to be used in the calculation
-     * @param _poolBalance The collateral pool balance to be used in the calculation
-     * @param _sellAmount The amount of tokens to be sold in the transaction
-     * @return The number of collateral tokens that would be returned in this scenario
-    */
-    function getSell(
-        address _collateralToken,
-        uint256 _totalSupply,
-        uint256 _poolBalance,
-        uint256 _sellAmount
-    )
-        public view isInitialized
-        returns (uint256)
-    {
-        return formula.calculateSaleReturn(
-            _totalSupply.add(collaterals[_collateralToken].virtualSupply),
-            _poolBalance.add(collaterals[_collateralToken].virtualBalance),
-            collaterals[_collateralToken].reserveRatio,
-            _sellAmount
-        );
-    }
+    
 
     /***** internal functions *****/
+
+    function _staticPrice(uint256 _supply, uint256 _balance, uint32 _reserveRatio) internal view returns (uint256) {
+        // uint256 price = uint256(PPM).mul(_balance).div(_supply.mul(uint256(_reserveRatio)));
+
+        // return price != 0 ? price : uint256(1);
+
+        return uint256(PPM).mul(_balance).div(_supply.mul(uint256(_reserveRatio)));
+    }
 
     function _currentBatchId() internal view returns (uint256) {
         return (block.number.div(batchBlocks)).mul(batchBlocks);
@@ -482,17 +422,17 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
     }
 
     function _slippageIsValid(Batch storage _batch) internal view returns (bool) {
-        uint256 staticPrice = _batch.balance.mul(PPM).div(_batch.supply.mul(uint256(_batch.reserveRatio)));
+        uint256 staticPrice = _staticPrice(_batch.supply, _batch.balance, _batch.reserveRatio);
 
         // if static price is zero let's consider that every slippage is valid
         if (staticPrice == 0) {
             return true;
         }
 
-        return _buySlippageIsValid(_batch) && _sellSlippageIsValid(_batch);
+        return _buySlippageIsValid(_batch, staticPrice) && _sellSlippageIsValid(_batch, staticPrice);
     }
 
-    function _buySlippageIsValid(Batch storage _batch) internal view returns (bool) {
+    function _buySlippageIsValid(Batch storage _batch, uint256 _startingPrice) internal view returns (bool) {
         // the case where static price is zero is handled
         // by the meta function _slippageIsValid()
 
@@ -507,15 +447,14 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
             return false;
         }
 
-        uint256 staticPrice = _batch.balance.mul(PPM).div(_batch.supply.mul(uint256(_batch.reserveRatio)));
         uint256 buyPrice = _batch.totalBuySpend.div(_batch.totalBuyReturn);
 
-        // if buyPrice is lower than staticPrice buyers don't care
-        if (buyPrice <= staticPrice) {
+        // if buyPrice is lower than _startingPrice buyers don't care
+        if (buyPrice <= _startingPrice) {
             return true;
         }
 
-        uint256 slippage = (buyPrice.sub(staticPrice)).mul(PCT_BASE).div(staticPrice);
+        uint256 slippage = (buyPrice.sub(_startingPrice)).mul(PCT_BASE).div(_startingPrice);
 
         if (slippage > maximumSlippage) {
             return false;
@@ -524,7 +463,7 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
         return true;
     }
 
-    function _sellSlippageIsValid(Batch storage _batch) internal view returns (bool) {
+    function _sellSlippageIsValid(Batch storage _batch, uint256 _startingPrice) internal view returns (bool) {
         // the case where static price is zero is handled
         // by the meta function _slippageIsValid()
 
@@ -538,15 +477,14 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
             return false;
         }
 
-        uint256 staticPrice = _batch.balance.mul(PPM).div(_batch.supply.mul(uint256(_batch.reserveRatio)));
         uint256 sellPrice = _batch.totalSellSpend.div(_batch.totalSellReturn);
 
-        // if sellPrice is higher than staticPrice sellers don't care
-        if (sellPrice >= staticPrice) {
+        // if sellPrice is higher than _startingPrice sellers don't care
+        if (sellPrice >= _startingPrice) {
             return true;
         }
 
-        uint256 slippage = (staticPrice.sub(sellPrice)).mul(PCT_BASE).div(staticPrice);
+        uint256 slippage = (_startingPrice.sub(sellPrice)).mul(PCT_BASE).div(_startingPrice);
 
         if (slippage > maximumSlippage) {
             return false;
@@ -579,6 +517,12 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
 
         emit UpdateBeneficiary(_beneficiary);
     }
+
+    // function _updateFormula(address _formula) internal {
+    //     formula = _formula;
+
+    //     emit UpdateFormula(_formula);
+    // }
 
     function _updateFees(uint256 _buyFee, uint256 _sellFee) internal {
         buyFeePct = _buyFee;
@@ -632,81 +576,6 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
         emit NewSellOrder(_seller, _collateralToken, _amount, batchId);
     }
 
-    function _price(Batch storage batch, address collateralToken) internal {
-        // Batch storage batch = collaterals[collateralToken].batches[waitingClear]; // clearing batch
-
-        // do nothing if there are no orders
-        if (batch.totalSellSpend == 0 && batch.totalBuySpend == 0)
-            return;
-
-        // the static price is the current exact price in collateral
-        // per token according to the initial state of the batch
-        uint256 staticPrice = getPricePPM(collateralToken, batch.supply, batch.balance);
-
-        // We want to find out if there are more buy orders or more sell orders.
-        // To do this we check the result of all sells and all buys at the current
-        // exact price. If the result of sells is larger than the pending buys, there are more sells.
-        // If the result of buys is larger than the pending sells, there are more buys.
-        // Of course we don't really need to check both, if one is true then the other is false.
-        uint256 resultOfSell = batch.totalSellSpend.mul(staticPrice).div(PPM);
-
-        // We check if the result of the sells was more than the bending buys to determine
-        // if there were more sells than buys. If that is the case we will execute all pending buy
-        // orders at the current exact price, because there is at least one sell order for each buy.
-        // The remaining sell orders will be executed using the traditional bonding curve.
-        // The final sell price will be a combination of the exact price and the bonding curve price.
-        // Further down we will do the opposite if there are more buys than sells.
-
-        // if more sells than buys
-        if (resultOfSell >= batch.totalBuySpend) {
-            // totalBuyReturn is the number of tokens bought as a result of all buy orders combined at the
-            // current exact price. We have already determined that this number is less than the
-            // total amount of tokens to be sold.
-            // tokens = totalBuySpend / staticPrice. staticPrice is in PPM, to avoid
-            // rounding errors it has been re-arranged with PPM as a numerator
-            batch.totalBuyReturn = batch.totalBuySpend.mul(PPM).div(staticPrice); // tokens
-
-            // we know there should be some tokens left over to be sold with the curve.
-            // these should be the difference between the original total sell order
-            // and the result of executing all of the buys.
-            uint256 remainingSell = batch.totalSellSpend.sub(batch.totalBuyReturn); // tokens
-
-            // now that we know how many tokens are left to be sold we can get the amount of collateral
-            // generated by selling them through a normal bonding curve execution, based on the
-            // original totalSupply and poolBalance (as if the buy orders never existed and the sell
-            // order was just smaller than originally thought).
-            uint256 remainingSellReturn = getSell(collateralToken, batch.supply, batch.balance, remainingSell);
-
-            // the total result of all sells is the original amount of buys which were matched, plus the remaining
-            // sells which were executed with the bonding curve
-            batch.totalSellReturn = batch.totalBuySpend.add(remainingSellReturn);
-
-
-        // more buys than sells
-        } else {
-
-            // Now in this scenario there were more buys than sells. That means that resultOfSell that we
-            // calculated earlier is the total result of sell.
-            batch.totalSellReturn = resultOfSell;
-
-            // there is some collateral left over to be spent as buy orders. this should be the difference between
-            // the original total buy order, and the result of executing all of the sells.
-            uint256 remainingBuy = batch.totalBuySpend.sub(resultOfSell);
-
-            // now that we know how much collateral is left to be spent we can get the amount of tokens
-            // generated by spending it through a normal bonding curve execution, based on the
-            // original totalSupply and poolBalance (as if the sell orders never existed and the buy
-            // order was just smaller than originally thought).
-            uint256 remainingBuyReturn = getBuy(collateralToken, batch.supply, batch.balance, batch.reserveRatio, remainingBuy);
-
-            // remainingBuyReturn becomes the combintation of all the sell orders
-            // plus the resulting tokens from the remaining buy orders
-            batch.totalBuyReturn = batch.totalSellSpend.add(remainingBuyReturn);
-        }
-
-        
-    }
-
     function _claimBuyOrder(address _buyer, uint256 _batchId, address _collateral) internal {
         Batch storage batch = metaBatches[_batchId].batches[_collateral];
         uint256 buyReturn = (batch.buyers[_buyer].mul(batch.totalBuyReturn)).div(batch.totalBuySpend);
@@ -740,6 +609,81 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
 
 
         emit ReturnSell(_seller, _collateralToken, amountAfterFee);
+    }
+
+    function _price(Batch storage batch, address collateralToken) internal {
+        // Batch storage batch = collaterals[collateralToken].batches[waitingClear]; // clearing batch
+
+        // do nothing if there are no orders
+        if (batch.totalSellSpend == 0 && batch.totalBuySpend == 0)
+            return;
+
+        // the static price is the current exact price in collateral
+        // per token according to the initial state of the batch
+        uint256 staticPrice = _staticPrice(batch.supply, batch.balance, batch.reserveRatio);
+
+        // We want to find out if there are more buy orders or more sell orders.
+        // To do this we check the result of all sells and all buys at the current
+        // exact price. If the result of sells is larger than the pending buys, there are more sells.
+        // If the result of buys is larger than the pending sells, there are more buys.
+        // Of course we don't really need to check both, if one is true then the other is false.
+        uint256 resultOfSell = batch.totalSellSpend.mul(staticPrice).div(PPM);
+
+        // We check if the result of the sells was more than the bending buys to determine
+        // if there were more sells than buys. If that is the case we will execute all pending buy
+        // orders at the current exact price, because there is at least one sell order for each buy.
+        // The remaining sell orders will be executed using the traditional bonding curve.
+        // The final sell price will be a combination of the exact price and the bonding curve price.
+        // Further down we will do the opposite if there are more buys than sells.
+
+        // if more sells than buys
+        if (resultOfSell >= batch.totalBuySpend) {
+            // totalBuyReturn is the number of tokens bought as a result of all buy orders combined at the
+            // current exact price. We have already determined that this number is less than the
+            // total amount of tokens to be sold.
+            // tokens = totalBuySpend / staticPrice. staticPrice is in PPM, to avoid
+            // rounding errors it has been re-arranged with PPM as a numerator
+            batch.totalBuyReturn = batch.totalBuySpend.mul(PPM).div(staticPrice); // tokens
+
+            // we know there should be some tokens left over to be sold with the curve.
+            // these should be the difference between the original total sell order
+            // and the result of executing all of the buys.
+            uint256 remainingSell = batch.totalSellSpend.sub(batch.totalBuyReturn); // tokens
+
+            // now that we know how many tokens are left to be sold we can get the amount of collateral
+            // generated by selling them through a normal bonding curve execution, based on the
+            // original totalSupply and poolBalance (as if the buy orders never existed and the sell
+            // order was just smaller than originally thought).
+            uint256 remainingSellReturn = formula.calculateSaleReturn(batch.supply, batch.balance, batch.reserveRatio, remainingSell);
+            
+            // the total result of all sells is the original amount of buys which were matched, plus the remaining
+            // sells which were executed with the bonding curve
+            batch.totalSellReturn = batch.totalBuySpend.add(remainingSellReturn);
+
+
+        // more buys than sells
+        } else {
+
+            // Now in this scenario there were more buys than sells. That means that resultOfSell that we
+            // calculated earlier is the total result of sell.
+            batch.totalSellReturn = resultOfSell;
+
+            // there is some collateral left over to be spent as buy orders. this should be the difference between
+            // the original total buy order, and the result of executing all of the sells.
+            uint256 remainingBuy = batch.totalBuySpend.sub(resultOfSell);
+
+            // now that we know how much collateral is left to be spent we can get the amount of tokens
+            // generated by spending it through a normal bonding curve execution, based on the
+            // original totalSupply and poolBalance (as if the sell orders never existed and the buy
+            // order was just smaller than originally thought).
+            uint256 remainingBuyReturn = formula.calculatePurchaseReturn(batch.supply, batch.balance, batch.reserveRatio, remainingBuy);
+            
+            // remainingBuyReturn becomes the combintation of all the sell orders
+            // plus the resulting tokens from the remaining buy orders
+            batch.totalBuyReturn = batch.totalSellSpend.add(remainingBuyReturn);
+        }
+
+        
     }
 
     function _transfer(address _from, address _to, address _collateralToken, uint256 _amount) internal {
