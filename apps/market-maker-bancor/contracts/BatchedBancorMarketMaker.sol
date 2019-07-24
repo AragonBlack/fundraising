@@ -53,21 +53,6 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
     string private constant ERROR_BATCH_NOT_OVER = "BMM_BATCH_NOT_OVER";
     string private constant ERROR_TRANSFER_FROM_FAILED = "BMM_TRANSFER_FROM_FAILED";
 
-
-    // struct Batch {
-    //     bool    initialized;
-    //     uint256 supply;
-    //     uint256 balance;
-    //     uint32  reserveRatio;
-    //     uint256 totalBuySpend;
-    //     uint256 totalBuyReturn;
-    //     uint256 totalSellSpend;
-    //     uint256 totalSellReturn;
-    //     mapping(address => uint256) buyers;
-    //     mapping(address => uint256) sellers;
-    // }
-
-    // We need the initialized supply to be the same for all token
     struct MetaBatch {
         bool    initialized;
         uint256 realSupply;
@@ -92,9 +77,6 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
         uint256 virtualSupply;
         uint256 virtualBalance;
         uint32  reserveRatio;
-        mapping(uint256 => Batch) batches;
-        mapping(address => uint256) buyers;
-        mapping(address => uint256) sellers;
     }
 
     uint256 public waitingClear;
@@ -112,23 +94,21 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
     uint256 public maximumSlippage;
     uint256 public tokensToBeMinted;
     mapping(address => uint256) public collateralsToBeClaimed;
-
-    // uint256 public collateralTokensLength;
-    // mapping(uint256 => address) public collateralTokens;
     mapping(address => Collateral) public collaterals;
-    mapping(uint256 => MetaBatch) public metaBatches;
+    mapping(uint256 => MetaBatch)  public metaBatches;
 
-    event AddCollateralToken(address indexed collateralToken, uint256 virtualSupply, uint256 virtualBalance, uint32 reserveRatio);
-    event UpdateCollateralToken(address indexed collateralToken, uint256 virtualSupply, uint256 virtualBalance, uint32 reserveRatio);
-    event UpdateBeneficiary(address beneficiary);
+    event AddCollateralToken(address indexed collateral, uint256 virtualSupply, uint256 virtualBalance, uint32 reserveRatio);
+    event RemoveCollateralToken(address indexed collateral);
+    event UpdateCollateralToken(address indexed collateral, uint256 virtualSupply, uint256 virtualBalance, uint32 reserveRatio);
+    event UpdateBeneficiary(address indexed beneficiary);
+    event UpdateFormula(address indexed formula);
     event UpdateFees(uint256 buyFee, uint256 sellFee);
     event NewMetaBatch(uint256 indexed id, uint256 supply);
     event NewBatch(uint256 indexed id, address indexed collateral, uint256 supply, uint256 balance, uint32 reserveRatio);
     event NewBuyOrder(address indexed buyer, uint256 indexed batchId, address indexed collateral, uint256 fee, uint256 value);
-    event NewSellOrder(address indexed seller, address indexed collateralToken, uint256 amount, uint256 batchId);
-    event ClearBatch(address indexed collateralToken, uint256 batchId);
+    event NewSellOrder(address indexed seller, address indexed collateral, uint256 amount, uint256 batchId); // toUpdate
     event ReturnBuyOrder(address indexed buyer, uint256 indexed batchId, address indexed collateral, uint256 amount);
-    event ReturnSell(address indexed seller, address indexed collateralToken, uint256 value);
+    event ReturnSell(address indexed seller, address indexed collateral, uint256 value); // to update
 
     function initialize(
         IMarketMakerController _controller,
@@ -280,10 +260,10 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
      * @param _batchId The id of the batch used
     */
     function claimSell(address _seller, address _collateralToken, uint256 _batchId) external isInitialized {
-        require(collaterals[_collateralToken].exists, ERROR_COLLATERAL_NOT_WHITELISTED);
-        Batch storage batch = collaterals[_collateralToken].batches[_batchId];
-        // require(batch.cleared, ERROR_BATCH_NOT_CLEARED);
-        require(batch.sellers[_seller] != 0, ERROR_NOTHING_TO_CLAIM);
+        // require(collaterals[_collateralToken].exists, ERROR_COLLATERAL_NOT_WHITELISTED);
+        // Batch storage batch = collaterals[_collateralToken].batches[_batchId];
+        // // require(batch.cleared, ERROR_BATCH_NOT_CLEARED);
+        // require(batch.sellers[_seller] != 0, ERROR_NOTHING_TO_CLAIM);
 
         _claimSell(_seller, _collateralToken, _batchId);
     }
@@ -405,13 +385,13 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
 
     /* internal check functions */
 
-    function _collateralIsWhitelisted(address _token) internal view returns (bool) {
-        return collaterals[_token].exists;
+    function _collateralIsWhitelisted(address _collateral) internal view returns (bool) {
+        return collaterals[_collateral].exists;
     }
 
-    function _collateralValueIsSufficient(address _buyer, address _collateral, uint256 _value, uint256 msgValue) internal view returns (bool) {
+    function _collateralValueIsSufficient(address _buyer, address _collateral, uint256 _value, uint256 _msgValue) internal view returns (bool) {
         if (_collateral == ETH) {
-            return msgValue >= _value;
+            return _msgValue >= _value;
         } else {
             return controller.balanceOf(_buyer, _collateral) >= _value;
         }
@@ -433,7 +413,7 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
     }
 
     function _buySlippageIsValid(Batch storage _batch, uint256 _startingPrice) internal view returns (bool) {
-        // the case where static price is zero is handled
+        // the case where starting price is zero is handled
         // by the meta function _slippageIsValid()
 
         // if there are no buy orders price can't go up and buyers don't care
@@ -464,7 +444,7 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
     }
 
     function _sellSlippageIsValid(Batch storage _batch, uint256 _startingPrice) internal view returns (bool) {
-        // the case where static price is zero is handled
+        // the case where starting price is zero is handled
         // by the meta function _slippageIsValid()
 
         // if there are no sell orders price can't go down and sellers don't care
@@ -472,7 +452,7 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
             return true;
 
         // if there are sell orders but no collateral to transfer back
-        // [cause price is too low] the order should be discarded
+        // [cause price is too low or order too small] the order should be discarded
         if (_batch.totalSellReturn == 0) {
             return false;
         }
@@ -592,23 +572,23 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
     }
 
     function _claimSell(address _seller, address _collateralToken, uint256 _batchId) internal {
-        Batch storage batch = collaterals[_collateralToken].batches[_batchId];
-        uint256 sellReturn = (batch.sellers[_seller].mul(batch.totalSellReturn)).div(batch.totalSellSpend);
-        uint256 fee = sellReturn.mul(sellFeePct).div(PCT_BASE);
-        uint256 amountAfterFee = sellReturn.sub(fee);
+        // Batch storage batch = collaterals[_collateralToken].batches[_batchId];
+        // uint256 sellReturn = (batch.sellers[_seller].mul(batch.totalSellReturn)).div(batch.totalSellSpend);
+        // uint256 fee = sellReturn.mul(sellFeePct).div(PCT_BASE);
+        // uint256 amountAfterFee = sellReturn.sub(fee);
 
-        batch.sellers[_seller] = 0;
+        // batch.sellers[_seller] = 0;
 
-        if (amountAfterFee > 0) {
-            reserve.transfer(_collateralToken, _seller, amountAfterFee);
-            // also update collateralsToBeClaimed;
-        }
-        if (fee > 0) {
-            reserve.transfer(_collateralToken, beneficiary, fee);
-        }
+        // if (amountAfterFee > 0) {
+        //     reserve.transfer(_collateralToken, _seller, amountAfterFee);
+        //     // also update collateralsToBeClaimed;
+        // }
+        // if (fee > 0) {
+        //     reserve.transfer(_collateralToken, beneficiary, fee);
+        // }
 
 
-        emit ReturnSell(_seller, _collateralToken, amountAfterFee);
+        // emit ReturnSell(_seller, _collateralToken, amountAfterFee);
     }
 
     function _price(Batch storage batch, address collateralToken) internal {
