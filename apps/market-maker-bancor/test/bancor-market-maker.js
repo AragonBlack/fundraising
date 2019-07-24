@@ -1637,6 +1637,37 @@ contract('BancorMarketMaker app', accounts => {
         collateralToken = typeof _token.address === 'undefined' ? ETH : _token.address
       })
 
+      context('> getPricePPM function', () => {
+        it('it should be the correct price', async () => {
+          const actualTotalSupply =( await token.totalSupply())
+          const actualBalance = await controller.balanceOf(pool.address, collateralToken)
+
+          // contract calculated virtualSupply and virtualBalance
+          const currentPricePPM = await curve.getPricePPM(collateralToken, actualTotalSupply.toString(10), actualBalance.toString(10))
+
+
+          // price = collateral / (tokenSupply * CW)
+          // price = collateral / (tokenSupply * (CW / PPM))
+          // price = (collateral * PPM) / (tokenSupply * CW)
+         const pricePPM = new web3.BigNumber(PPM)
+          .mul(
+              actualBalance.add(balance).mul(PPM).div(
+                actualTotalSupply.add(totalSupply).mul(RESERVE_RATIOS[collateralTokenIndex])
+              )
+          )
+
+          numerator = pricePPM.gt(currentPricePPM) ? currentPricePPM : pricePPM
+          denominator = pricePPM.gt(currentPricePPM) ? pricePPM : currentPricePPM
+          percentageOffset = numerator.div(denominator)
+
+          assert(
+            percentageOffset.gt(percentageOffsetErrorMargin),
+            `pricePPM: ${pricePPM.toString()} currentPricePPM: ${currentPricePPM.toString(10)} percentageOffset: ${percentageOffset.toString(10)}`
+          )
+
+        })
+      })
+
       // #region buyOrders
       context('> there are just buy orders', () => {
         it('it should return the correct estimate', async () => {

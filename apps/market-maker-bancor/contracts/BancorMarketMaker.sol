@@ -338,7 +338,7 @@ contract BancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
     /**
      * @dev Get the current exact price [with no slippage] of the token with respect to a specific collateral token [returned as parts per million for precision].
      *      price = collateral / (tokenSupply * CW)
-     *      price = collateral / (tokenSupply * (CW / PPM)
+     *      price = collateral / (tokenSupply * (CW / PPM))
      *      price = (collateral * PPM) / (tokenSupply * CW)
      * @param _collateralToken The address of the collateral token to be used in the calculation
      * @param _totalSupply The token supply to be used in the calculation
@@ -353,12 +353,17 @@ contract BancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
         public view isInitialized
         returns (uint256 price)
     {
-        price = uint256(PPM).mul(
-            _poolBalance.add(
-                collateralTokenInfo[_collateralToken].virtualBalance)
+        price = (
+            (
+                uint256(PPM).mul(
+                    uint256(PPM).mul(
+                        _poolBalance.add(collateralTokenInfo[_collateralToken].virtualBalance)
+                    )
+                )
             ).div(
-                (_totalSupply.add(collateralTokenInfo[_collateralToken].virtualSupply)
-            ).mul(collateralTokenInfo[_collateralToken].reserveRatio)
+                _totalSupply.add(collateralTokenInfo[_collateralToken].virtualSupply)
+                .mul(collateralTokenInfo[_collateralToken].reserveRatio)
+            )
         );
 
         if (price == 0)
