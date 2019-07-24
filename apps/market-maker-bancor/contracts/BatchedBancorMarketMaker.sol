@@ -512,6 +512,7 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
         _transfer(_buyer, address(reserve), _collateral, value);
 
         // update batch
+        uint256 deprecatedBuyReturn = batch.totalBuyReturn;
         batch.totalBuySpend = batch.totalBuySpend.add(value);
         batch.buyers[_buyer] = batch.buyers[_buyer].add(value);
 
@@ -522,7 +523,7 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
         require(_slippageIsValid(batch), ERROR_SLIPPAGE_EXCEEDS_LIMIT);
 
         // update the amount of tokens to be minted
-        tokensToBeMinted = tokensToBeMinted.add(batch.totalBuyReturn);
+        tokensToBeMinted = tokensToBeMinted.sub(deprecatedBuyReturn).add(batch.totalBuyReturn);
 
         emit NewBuyOrder(_buyer, batchId, _collateral, fee, value);
     }
