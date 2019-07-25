@@ -448,7 +448,7 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
             return false;
         }
 
-        uint256 sellPrice = _batch.totalSellSpend.div(_batch.totalSellReturn);
+        uint256 sellPrice = _batch.totalSellReturn.div(_batch.totalSellSpend);
 
         // if sellPrice is higher than _startingPrice sellers don't care
         if (sellPrice >= _startingPrice) {
