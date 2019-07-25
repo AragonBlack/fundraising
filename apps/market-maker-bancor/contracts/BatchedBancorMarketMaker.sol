@@ -48,6 +48,7 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
     string private constant ERROR_SELL_AMOUNT_ZERO = "BMM_SELL_AMOUNT_ZERO";
     string private constant ERROR_INSUFFICIENT_COLLATERAL_VALUE = "BMM_INSUFFICIENT_COLLATERAL_VALUE";
     string private constant ERROR_INSUFFICIENT_BALANCE = "BMM_INSUFFICIENT_BALANCE";
+    string private constant ERROR_INSUFFICIENT_POOL_BALANCE = "BMM_INSUFFICIENT_POOL_BALANCE";
     string private constant ERROR_NOTHING_TO_CLAIM = "BMM_NOTHING_TO_CLAIM";
     string private constant ERROR_BATCHES_ALREADY_CLEARED = "BMM_BATCHES_ALREADY_CLEARED";
     string private constant ERROR_BATCH_NOT_CLEARED = "BMM_BATCH_NOT_CLEARED";
@@ -367,6 +368,10 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
 
     /* internal check functions */
 
+    function _batchIsOver(uint256 _batchId) internal view returns (bool) {
+        return _batchId < _currentBatchId();
+    }
+
     function _collateralIsWhitelisted(address _collateral) internal view returns (bool) {
         return collaterals[_collateral].whitelisted;
     }
@@ -383,8 +388,8 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
         return tokenManager.spendableBalanceOf(_seller) >= _amount;
     }
 
-    function _batchIsOver(uint256 _batchId) internal view returns (bool) {
-        return _batchId < _currentBatchId();
+    function _poolBalanceIsSufficient(address _collateral) internal view returns (bool) {
+        return controller.balanceOf(address(reserve), _collateral) >= collateralsToBeClaimed[_collateral];
     }
 
     function _slippageIsValid(Batch storage _batch) internal view returns (bool) {
@@ -518,11 +523,11 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
         // update pricing
         _updatePricing(batch, batchId, _collateral);
 
-        // sanity checks
-        require(_slippageIsValid(batch), ERROR_SLIPPAGE_EXCEEDS_LIMIT);
-
         // update the amount of tokens to be minted
         tokensToBeMinted = tokensToBeMinted.sub(deprecatedBuyReturn).add(batch.totalBuyReturn);
+
+        // sanity checks
+        require(_slippageIsValid(batch), ERROR_SLIPPAGE_EXCEEDS_LIMIT);
 
         emit NewBuyOrder(_buyer, batchId, _collateral, fee, value);
     }
@@ -541,12 +546,13 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
         // update pricing
         _updatePricing(batch, batchId, _collateral);
 
-        // sanity checks
-        require(_slippageIsValid(batch), ERROR_SLIPPAGE_EXCEEDS_LIMIT);
-        // require(_poolBalanceIsSufficient(batch), ERROR_INSUFFICIENT_POOL_BALANCE);
-
         // update the amount of tokens collaterals to be claimed
         collateralsToBeClaimed[_collateral] = collateralsToBeClaimed[_collateral].sub(deprecatedSellReturn).add(batch.totalSellReturn);
+
+        // sanity checks
+        require(_slippageIsValid(batch), ERROR_SLIPPAGE_EXCEEDS_LIMIT);
+        require(_poolBalanceIsSufficient(_collateral), ERROR_INSUFFICIENT_POOL_BALANCE);
+
 
         emit NewSellOrder(_seller, batchId, _collateral, _amount);
     }
