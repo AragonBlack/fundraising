@@ -575,24 +575,24 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
         emit ReturnBuyOrder(_buyer, _batchId, _collateral, buyReturn);
     }
 
-    function _claimSellOrder(address _seller, uint256 _batchId, address _collateralToken) internal {
-        // Batch storage batch = collaterals[_collateralToken].batches[_batchId];
-        // uint256 sellReturn = (batch.sellers[_seller].mul(batch.totalSellReturn)).div(batch.totalSellSpend);
-        // uint256 fee = sellReturn.mul(sellFeePct).div(PCT_BASE);
-        // uint256 amountAfterFee = sellReturn.sub(fee);
+    function _claimSellOrder(address _seller, uint256 _batchId, address _collateral) internal {
+        Batch storage batch = metaBatches[_batchId].batches[_collateral];
+        uint256 saleReturn = (batch.sellers[_seller].mul(batch.totalSellReturn)).div(batch.totalSellSpend);
+        uint256 fee = saleReturn.mul(sellFeePct).div(PCT_BASE);
+        uint256 value = saleReturn.sub(fee);
 
-        // batch.sellers[_seller] = 0;
+        batch.sellers[_seller] = 0;
 
-        // if (amountAfterFee > 0) {
-        //     reserve.transfer(_collateralToken, _seller, amountAfterFee);
-        //     // also update collateralsToBeClaimed;
-        // }
-        // if (fee > 0) {
-        //     reserve.transfer(_collateralToken, beneficiary, fee);
-        // }
+        if (value > 0) {
+            collateralsToBeClaimed[_collateral] = collateralsToBeClaimed[_collateral].sub(saleReturn);
+            reserve.transfer(_collateral, _seller, value);
+        }
+        if (fee > 0) {
+            reserve.transfer(_collateral, beneficiary, fee);
+        }
 
 
-        // emit ReturnSellOrder(_seller, _batchId, _collateral, fee, amountAfterFee);
+        emit ReturnSellOrder(_seller, _batchId, _collateral, fee, value);
     }
 
     function _updatePricing(Batch storage batch, uint256 _batchId, address _collateral) internal {
