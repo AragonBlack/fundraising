@@ -60,6 +60,7 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
         uint256 virtualSupply;
         uint256 virtualBalance;
         uint32  reserveRatio;
+        uint256 slippage;
     }
 
     struct MetaBatch {
@@ -89,7 +90,6 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
     IBancorFormula         public formula;
 
     uint256 public batchBlocks;
-    uint256 public maximumSlippage;
     uint256 public buyFeePct;
     uint256 public sellFeePct;
     uint256 public tokensToBeMinted;
@@ -97,9 +97,9 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
     mapping(address => Collateral) public collaterals;
     mapping(uint256 => MetaBatch)  public metaBatches;
 
-    event AddCollateralToken(address indexed collateral, uint256 virtualSupply, uint256 virtualBalance, uint32 reserveRatio);
+    event AddCollateralToken(address indexed collateral, uint256 virtualSupply, uint256 virtualBalance, uint32 reserveRatio, uint256 slippage);
     event RemoveCollateralToken(address indexed collateral);
-    event UpdateCollateralToken(address indexed collateral, uint256 virtualSupply, uint256 virtualBalance, uint32 reserveRatio);
+    event UpdateCollateralToken(address indexed collateral, uint256 virtualSupply, uint256 virtualBalance, uint32 reserveRatio, uint256 slippage);
     event UpdateBeneficiary(address indexed beneficiary);
     event UpdateFormula(address indexed formula);
     event UpdateFees(uint256 buyFee, uint256 sellFee);
@@ -119,8 +119,7 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
         IBancorFormula         _formula,
         uint256                _batchBlocks,
         uint256                _buyFee,
-        uint256                _sellFee,
-        uint256                _maximumSlippage
+        uint256                _sellFee
     )
         external onlyInit
     {
@@ -143,7 +142,6 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
         batchBlocks = _batchBlocks;
         buyFeePct = _buyFee;
         sellFeePct = _sellFee;
-        maximumSlippage = _maximumSlippage;
     }
 
     /***** external functions *****/
@@ -155,13 +153,13 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
       * @param _virtualBalance The virtual balance to be used for that collateral token
       * @param _reserveRatio The reserve ratio to be used for that collateral token [in PPM]
     */
-    function addCollateralToken(address _collateral, uint256 _virtualSupply, uint256 _virtualBalance, uint32 _reserveRatio)
+    function addCollateralToken(address _collateral, uint256 _virtualSupply, uint256 _virtualBalance, uint32 _reserveRatio, uint256 _slippage)
         external auth(ADD_COLLATERAL_TOKEN_ROLE)
     {
         require(isContract(_collateral) || _collateral == ETH, ERROR_COLLATERAL_NOT_ETH_OR_CONTRACT);
         require(!_collateralIsWhitelisted(_collateral), ERROR_COLLATERAL_ALREADY_WHITELISTED);
 
-        _addCollateralToken(_collateral, _virtualSupply, _virtualBalance, _reserveRatio);
+        _addCollateralToken(_collateral, _virtualSupply, _virtualBalance, _reserveRatio, _slippage);
     }
 
     /**
@@ -171,12 +169,12 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
      * @param _virtualBalance The new virtual balance to be used for that collateral token
      * @param _reserveRatio The new reserve ratio to be used for that collateral token [in PPM]
     */
-    function updateCollateralToken(address _collateral, uint256 _virtualSupply, uint256 _virtualBalance, uint32 _reserveRatio)
+    function updateCollateralToken(address _collateral, uint256 _virtualSupply, uint256 _virtualBalance, uint32 _reserveRatio, uint256 _slippage)
         external auth(UPDATE_COLLATERAL_TOKEN_ROLE)
     {
         require(_collateralIsWhitelisted(_collateral), ERROR_COLLATERAL_NOT_WHITELISTED);
 
-        _updateCollateralToken(_collateral, _virtualSupply, _virtualBalance, _reserveRatio);
+        _updateCollateralToken(_collateral, _virtualSupply, _virtualBalance, _reserveRatio, _slippage);
     }
 
     /**
@@ -392,18 +390,18 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
         return controller.balanceOf(address(reserve), _collateral) >= collateralsToBeClaimed[_collateral];
     }
 
-    function _slippageIsValid(Batch storage _batch) internal view returns (bool) {
+    function _slippageIsValid(Batch storage _batch, address _collateral) internal view returns (bool) {
         uint256 staticPrice = _staticPrice(_batch.supply, _batch.balance, _batch.reserveRatio);
-
+        uint256 maximumSlippage = collaterals[_collateral].slippage;
         // if static price is zero let's consider that every slippage is valid
         if (staticPrice == 0) {
             return true;
         }
 
-        return _buySlippageIsValid(_batch, staticPrice) && _sellSlippageIsValid(_batch, staticPrice);
+        return _buySlippageIsValid(_batch, staticPrice, maximumSlippage) && _sellSlippageIsValid(_batch, staticPrice, maximumSlippage);
     }
 
-    function _buySlippageIsValid(Batch storage _batch, uint256 _startingPrice) internal view returns (bool) {
+    function _buySlippageIsValid(Batch storage _batch, uint256 _startingPrice, uint256 _maximumSlippage) internal view returns (bool) {
         // the case where starting price is zero is handled
         // by the meta function _slippageIsValid()
 
@@ -427,14 +425,14 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
 
         uint256 slippage = (buyPrice.sub(_startingPrice)).mul(PCT_BASE).div(_startingPrice);
 
-        if (slippage > maximumSlippage) {
+        if (slippage > _maximumSlippage) {
             return false;
         }
 
         return true;
     }
 
-    function _sellSlippageIsValid(Batch storage _batch, uint256 _startingPrice) internal view returns (bool) {
+    function _sellSlippageIsValid(Batch storage _batch, uint256 _startingPrice, uint256 _maximumSlippage) internal view returns (bool) {
         // the case where starting price is zero is handled
         // by the meta function _slippageIsValid()
 
@@ -457,7 +455,7 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
 
         uint256 slippage = (_startingPrice.sub(sellPrice)).mul(PCT_BASE).div(_startingPrice);
 
-        if (slippage > maximumSlippage) {
+        if (slippage > _maximumSlippage) {
             return false;
         }
 
@@ -466,21 +464,27 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
 
     /* internal business logic functions */
 
-    function _addCollateralToken(address _collateral, uint256 _virtualSupply, uint256 _virtualBalance, uint32 _reserveRatio) internal {
+    function _addCollateralToken(address _collateral, uint256 _virtualSupply, uint256 _virtualBalance, uint32 _reserveRatio, uint256 _slippage)
+        internal
+    {
         collaterals[_collateral].whitelisted = true;
         collaterals[_collateral].virtualSupply = _virtualSupply;
         collaterals[_collateral].virtualBalance = _virtualBalance;
         collaterals[_collateral].reserveRatio = _reserveRatio;
+        collaterals[_collateral].slippage = _slippage;
 
-        emit AddCollateralToken(_collateral, _virtualSupply, _virtualBalance, _reserveRatio);
+        emit AddCollateralToken(_collateral, _virtualSupply, _virtualBalance, _reserveRatio, _slippage);
     }
 
-    function _updateCollateralToken(address _collateral, uint256 _virtualSupply, uint256 _virtualBalance, uint32 _reserveRatio) internal {
+    function _updateCollateralToken(address _collateral, uint256 _virtualSupply, uint256 _virtualBalance, uint32 _reserveRatio, uint256 _slippage)
+        internal
+    {
         collaterals[_collateral].virtualSupply = _virtualSupply;
         collaterals[_collateral].virtualBalance = _virtualBalance;
         collaterals[_collateral].reserveRatio = _reserveRatio;
+        collaterals[_collateral].slippage = _slippage;
 
-        emit UpdateCollateralToken(_collateral, _virtualSupply, _virtualBalance, _reserveRatio);
+        emit UpdateCollateralToken(_collateral, _virtualSupply, _virtualBalance, _reserveRatio, _slippage);
     }
 
     function _updateBeneficiary(address _beneficiary) internal {
@@ -527,7 +531,7 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
         tokensToBeMinted = tokensToBeMinted.sub(deprecatedBuyReturn).add(batch.totalBuyReturn);
 
         // sanity checks
-        require(_slippageIsValid(batch), ERROR_SLIPPAGE_EXCEEDS_LIMIT);
+        require(_slippageIsValid(batch, _collateral), ERROR_SLIPPAGE_EXCEEDS_LIMIT);
 
         emit NewBuyOrder(_buyer, batchId, _collateral, fee, value);
     }
@@ -550,7 +554,7 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
         collateralsToBeClaimed[_collateral] = collateralsToBeClaimed[_collateral].sub(deprecatedSellReturn).add(batch.totalSellReturn);
 
         // sanity checks
-        require(_slippageIsValid(batch), ERROR_SLIPPAGE_EXCEEDS_LIMIT);
+        require(_slippageIsValid(batch, _collateral), ERROR_SLIPPAGE_EXCEEDS_LIMIT);
         require(_poolBalanceIsSufficient(_collateral), ERROR_INSUFFICIENT_POOL_BALANCE);
 
 
