@@ -71,7 +71,7 @@ const randomReserveRatio = () => {
 
 const randomSlippage = () => {
   const PCT_BASE = 1000000000000000000
-  
+
   return Math.floor(Math.random() * PCT_BASE) + 1
 }
 
@@ -252,12 +252,13 @@ contract('BatchedBancorMarketMaker app', accounts => {
   }
 
   const getBatch = async (batchNumber, collateralToken) => {
-    let [initialized, supply, balance, reserveRatio, totalBuySpend, totalBuyReturn, totalSellSpend, totalSellReturn] = await curve.getBatch(
+    let [initialized, cancelled, supply, balance, reserveRatio, totalBuySpend, totalBuyReturn, totalSellSpend, totalSellReturn] = await curve.getBatch(
       batchNumber,
       collateralToken
     )
     return {
       initialized,
+      cancelled,
       supply,
       balance,
       reserveRatio,
