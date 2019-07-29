@@ -45,7 +45,7 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
     string private constant ERROR_SLIPPAGE_EXCEEDS_LIMIT = "BMM_SLIPPAGE_EXCEEDS_LIMIT";
     string private constant ERROR_SELL_AMOUNT_ZERO = "BMM_SELL_AMOUNT_ZERO";
     string private constant ERROR_INVALID_COLLATERAL_VALUE = "BMM_INVALID_COLLATERAL_VALUE";
-    string private constant ERROR_INSUFFICIENT_BALANCE = "BMM_INSUFFICIENT_BALANCE";
+    string private constant ERROR_INVALID_BOND_AMOUNT = "BMM_INVALID_BOND_AMOUNT";
     string private constant ERROR_INSUFFICIENT_POOL_BALANCE = "BMM_INSUFFICIENT_POOL_BALANCE";
     string private constant ERROR_NOTHING_TO_CLAIM = "BMM_NOTHING_TO_CLAIM";
     string private constant ERROR_BATCH_NOT_OVER = "BMM_BATCH_NOT_OVER";
@@ -245,10 +245,9 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
      * @param _amount The amount of bonded token to be spent
     */
     function openSellOrder(address _seller, address _collateral, uint256 _amount) external auth(OPEN_SELL_ORDER_ROLE) {
-        require(_amount != 0, ERROR_SELL_AMOUNT_ZERO);
         require(_collateralIsWhitelisted(_collateral), ERROR_COLLATERAL_NOT_WHITELISTED);
-        require(_bondBalanceIsSufficient(_seller, _amount), ERROR_INSUFFICIENT_BALANCE);
         require(!_batchIsCancelled(_currentBatchId(), _collateral), ERROR_BATCH_CANCELLED);
+        require(_bondAmountIsValid(_seller, _amount), ERROR_INVALID_BOND_AMOUNT);
 
         _openSellOrder(_seller, _collateral, _amount);
     }
@@ -455,8 +454,8 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
         return _msgValue == 0 && controller.balanceOf(_buyer, _collateral) >= _value;
     }
 
-    function _bondBalanceIsSufficient(address _seller, uint256 _amount) internal view returns (bool) {
-        return tokenManager.spendableBalanceOf(_seller) >= _amount;
+    function _bondAmountIsValid(address _seller, uint256 _amount) internal view returns (bool) {
+        return _amount != 0 && tokenManager.spendableBalanceOf(_seller) >= _amount;
     }
 
     function _poolBalanceIsSufficient(address _collateral) internal view returns (bool) {
@@ -466,7 +465,7 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
     function _slippageIsValid(Batch storage _batch, address _collateral) internal view returns (bool) {
         uint256 staticPrice = _staticPrice(_batch.supply, _batch.balance, _batch.reserveRatio);
         uint256 maximumSlippage = collaterals[_collateral].slippage;
-        
+
         // if static price is zero let's consider that every slippage is valid
         if (staticPrice == 0) {
             return true;
@@ -496,30 +495,23 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
         // the case where starting price is zero is handled
         // by the meta function _slippageIsValid()
 
-        // if there are no sell orders price can't go down and sellers don't care
-        if (_batch.totalSellSpend == 0)
-            return true;
-
-        // if there are sell orders but no collateral to transfer back
-        // [cause price is too low or order too small] the order should be discarded
-        if (_batch.totalSellReturn == 0) {
-            return false;
-        }
-
-        uint256 sellPrice = _batch.totalSellReturn.div(_batch.totalSellSpend);
-
-        // if sellPrice is higher than _startingPrice sellers don't care
-        if (sellPrice >= _startingPrice) {
+        // if allowed sell slippage >= 100%
+        // then any sell slippage is valid
+        if (_maximumSlippage >= PCT_BASE) {
             return true;
         }
 
-        uint256 slippage = (_startingPrice.sub(sellPrice)).mul(PCT_BASE).div(_startingPrice);
+        // slippage is valid if:
+        // totalSellReturn >= startingPrice * (1 - maxSlippage) * totalBuySpend
+        // totalSellReturn >= startingPrice * (1 - maximumSlippage / PCT_BASE) * totalBuySpend
+        // totalSellReturn >= startingPrice * (PCT_BASE - maximumSlippage) * totalBuySpend / PCT_BASE
+        // totalSellReturn * PCT_BASE >= startingPrice * (PCT_BASE - maximumSlippage) * totalBuySpend
 
-        if (slippage > _maximumSlippage) {
-            return false;
+        if (_batch.totalSellReturn.mul(PCT_BASE) >= _startingPrice.mul(PCT_BASE.sub(_maximumSlippage)).mul(_batch.totalSellSpend)) {
+            return true;
         }
 
-        return true;
+        return false;
     }
 
     /* internal business logic functions */
