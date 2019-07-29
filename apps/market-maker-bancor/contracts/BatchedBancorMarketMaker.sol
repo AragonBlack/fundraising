@@ -31,7 +31,7 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
     bytes32 public constant OPEN_BUY_ORDER_ROLE = keccak256("OPEN_BUY_ORDER_ROLE");
     bytes32 public constant OPEN_SELL_ORDER_ROLE = keccak256("OPEN_SELL_ORDER_ROLE");
 
-    uint64 public constant PCT_BASE = 10 ** 18; // 0% = 0; 1% = 10^16; 100% = 10^18
+    uint256 public constant PCT_BASE = 10 ** 18; // 0% = 0; 1% = 10^16; 100% = 10^18
     uint32 public constant PPM = 1000000;
 
     string private constant ERROR_CONTRACT_IS_EOA = "BMM_CONTRACT_IS_EOA";
@@ -43,9 +43,8 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
     string private constant ERROR_COLLATERAL_ALREADY_WHITELISTED = "BMM_COLLATERAL_ALREADY_WHITELISTED";
     string private constant ERROR_COLLATERAL_NOT_WHITELISTED = "BMM_COLLATERAL_NOT_WHITELISTED";
     string private constant ERROR_SLIPPAGE_EXCEEDS_LIMIT = "BMM_SLIPPAGE_EXCEEDS_LIMIT";
-    string private constant ERROR_BUY_VALUE_ZERO = "BMM_BUY_VALUE_ZERO";
     string private constant ERROR_SELL_AMOUNT_ZERO = "BMM_SELL_AMOUNT_ZERO";
-    string private constant ERROR_INSUFFICIENT_COLLATERAL_VALUE = "BMM_INSUFFICIENT_COLLATERAL_VALUE";
+    string private constant ERROR_INVALID_COLLATERAL_VALUE = "BMM_INVALID_COLLATERAL_VALUE";
     string private constant ERROR_INSUFFICIENT_BALANCE = "BMM_INSUFFICIENT_BALANCE";
     string private constant ERROR_INSUFFICIENT_POOL_BALANCE = "BMM_INSUFFICIENT_POOL_BALANCE";
     string private constant ERROR_NOTHING_TO_CLAIM = "BMM_NOTHING_TO_CLAIM";
@@ -234,8 +233,7 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
     function openBuyOrder(address _buyer, address _collateral, uint256 _value) external payable auth(OPEN_BUY_ORDER_ROLE) {
         require(_collateralIsWhitelisted(_collateral), ERROR_COLLATERAL_NOT_WHITELISTED);
         require(!_batchIsCancelled(_currentBatchId(), _collateral), ERROR_BATCH_CANCELLED);
-        require(_value > 0, ERROR_BUY_VALUE_ZERO);
-        require(_collateralValueIsSufficient(_buyer, _collateral, _value, msg.value), ERROR_INSUFFICIENT_COLLATERAL_VALUE);
+        require(_collateralValueIsValid(_buyer, _collateral, _value, msg.value), ERROR_INVALID_COLLATERAL_VALUE);
 
         _openBuyOrder(_buyer, _collateral, _value);
     }
@@ -445,12 +443,16 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
         return batch.sellers[_user] > 0;
     }
 
-    function _collateralValueIsSufficient(address _buyer, address _collateral, uint256 _value, uint256 _msgValue) internal view returns (bool) {
-        if (_collateral == ETH) {
-            return _msgValue >= _value;
-        } else {
-            return controller.balanceOf(_buyer, _collateral) >= _value;
+    function _collateralValueIsValid(address _buyer, address _collateral, uint256 _value, uint256 _msgValue) internal view returns (bool) {
+        if (_value == 0) {
+            return false;
         }
+
+        if (_collateral == ETH) {
+            return _msgValue == _value;
+        }
+
+        return _msgValue == 0 && controller.balanceOf(_buyer, _collateral) >= _value;
     }
 
     function _bondBalanceIsSufficient(address _seller, uint256 _amount) internal view returns (bool) {
@@ -464,6 +466,7 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
     function _slippageIsValid(Batch storage _batch, address _collateral) internal view returns (bool) {
         uint256 staticPrice = _staticPrice(_batch.supply, _batch.balance, _batch.reserveRatio);
         uint256 maximumSlippage = collaterals[_collateral].slippage;
+        
         // if static price is zero let's consider that every slippage is valid
         if (staticPrice == 0) {
             return true;
@@ -476,31 +479,17 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
         // the case where starting price is zero is handled
         // by the meta function _slippageIsValid()
 
-        // if there are no buy orders price can't go up and buyers don't care
-        if (_batch.totalBuySpend == 0)
-            return true;
+        // slippage is valid if:
+        // totalBuyReturn >= totalBuySpend / (startingPrice * (1 + maxSlippage))
+        // totalBuyReturn >= totalBuySpend / (startingPrice * (1 + maximumSlippage / PCT_BASE))
+        // totalBuyReturn >= totalBuySpend / (startingPrice * (PCT + maximumSlippage) / PCT_BASE)
+        // totalBuyReturn * startingPrice * ( PCT + maximumSlippage) >= totalBuySpend * PCT_BASE
 
-        // if there are buy orders but no token to mint
-        // [cause price is too high or order too small]
-        // the order should be discarded
-        if (_batch.totalBuyReturn == 0) {
-            return false;
-        }
-
-        uint256 buyPrice = _batch.totalBuySpend.div(_batch.totalBuyReturn);
-
-        // if buyPrice is lower than _startingPrice buyers don't care
-        if (buyPrice <= _startingPrice) {
+        if (_batch.totalBuyReturn.mul(_startingPrice).mul(PCT_BASE.add(_maximumSlippage)) >= _batch.totalBuySpend.mul(PCT_BASE)) {
             return true;
         }
 
-        uint256 slippage = (buyPrice.sub(_startingPrice)).mul(PCT_BASE).div(_startingPrice);
-
-        if (slippage > _maximumSlippage) {
-            return false;
-        }
-
-        return true;
+        return false;
     }
 
     function _sellSlippageIsValid(Batch storage _batch, uint256 _startingPrice, uint256 _maximumSlippage) internal view returns (bool) {
