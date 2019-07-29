@@ -232,11 +232,10 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
      * @param _value The amount of collateral token to be spent
     */
     function openBuyOrder(address _buyer, address _collateral, uint256 _value) external payable auth(OPEN_BUY_ORDER_ROLE) {
-        require(_value > 0, ERROR_BUY_VALUE_ZERO);
         require(_collateralIsWhitelisted(_collateral), ERROR_COLLATERAL_NOT_WHITELISTED);
-        require(_collateralValueIsSufficient(_buyer, _collateral, _value, msg.value), ERROR_INSUFFICIENT_COLLATERAL_VALUE);
         require(!_batchIsCancelled(_currentBatchId(), _collateral), ERROR_BATCH_CANCELLED);
-
+        require(_value > 0, ERROR_BUY_VALUE_ZERO);
+        require(_collateralValueIsSufficient(_buyer, _collateral, _value, msg.value), ERROR_INSUFFICIENT_COLLATERAL_VALUE);
 
         _openBuyOrder(_buyer, _collateral, _value);
     }
@@ -388,6 +387,7 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
              * virtualSupply can technically be updated during a batch: the on-going batch will still use
              * its value at the time of initialization [it's up to the updater to act wisely]
             */
+
             /**
              * NOTE: balance(batch) = poolBalance(batchInitialization) - collateralsToBeClaimed(batchInitialization) + virtualBalance(metaBatchInitialization)
              * 1. buy and sell orders incoming during the current batch and affecting poolBalance or collateralsToBeClaimed
@@ -398,7 +398,6 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
              * 3. virtualBalance can technically be updated during a batch: the on-going batch will still use
              * its value at the time of initialization [it's up to the updater to act wisely]
             */
-            batch.cancelled = false;
             batch.supply = metaBatch.realSupply.add(collaterals[_collateral].virtualSupply);
             batch.balance = controller.balanceOf(address(reserve), _collateral).sub(collateralsToBeClaimed[_collateral]).add(collaterals[_collateral].virtualBalance);
             batch.reserveRatio = collaterals[_collateral].reserveRatio;
