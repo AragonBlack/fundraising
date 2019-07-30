@@ -652,6 +652,60 @@ contract('BatchedBancorMarketMaker app', accounts => {
   })
   // #endregion
 
+  // #region removeCollateralToken
+  context('> #removeCollateralToken', () => {
+    context('> sender has REMOVE_COLLATERAL_TOKEN_ROLE', () => {
+      context('> and collateral token is whitelisted', () => {
+        it('it should remove collateral token', async () => {
+          const receipt = await curve.removeCollateralToken(token1.address, { from: authorized })
+          const collateral = await getCollateralToken(token1.address)
+
+          assertEvent(receipt, 'RemoveCollateralToken')
+          assert.equal(collateral.whitelisted, false)
+          assert.equal(collateral.virtualSupply.toNumber(), 0)
+          assert.equal(collateral.virtualBalance.toNumber(), 0)
+          assert.equal(collateral.reserveRatio.toNumber(), 0)
+          assert.equal(collateral.slippage.toNumber(), 0)
+        })
+
+        it('it should cancel current batch', async () => {
+          const _balance = await openAndClaimBuyOrder(authorized, token1.address, randomSmallAmount(), { from: authorized })
+
+          const amount = randomSmallAmount()
+          const fee = computeBuyFee(amount)
+          await openBuyOrder(authorized, token1.address, amount, { from: authorized })
+          await openSellOrder(authorized, token1.address, _balance, { from: authorized })
+          await curve.removeCollateralToken(token1.address, { from: authorized })
+
+          const batchId = await curve.getCurrentBatchId()
+          const batch = await getBatch(batchId, token1.address)
+
+          const tokensToBeMinted = await curve.tokensToBeMinted()
+          const collateralsToBeClaimed = await curve.collateralsToBeClaimed(token1.address)
+
+          assert.equal(batch.cancelled, true)
+          assert.equal(tokensToBeMinted.toNumber(), _balance.toNumber())
+          assert.equal(collateralsToBeClaimed.toNumber(), amount.minus(fee).toNumber())
+        })
+      })
+
+      context('> but collateral token is not whitelisted', () => {
+        it('it should revert', async () => {
+          const unlisted = await TokenMock.new(authorized, INITIAL_TOKEN_BALANCE)
+
+          await assertRevert(() => curve.removeCollateralToken(unlisted.address, { from: authorized }))
+        })
+      })
+    })
+
+    context('> sender does not have REMOVE_COLLATERAL_TOKEN_ROLE', () => {
+      it('it should revert', async () => {
+        await assertRevert(() => curve.removeCollateralToken(token1.address, { from: unauthorized }))
+      })
+    })
+  })
+  // #endregion
+
   // #region updateCollateralToken
   context('> #updateCollateralToken', () => {
     context('> sender has UPDATE_COLLATERAL_TOKEN_ROLE', () => {
@@ -1493,6 +1547,144 @@ contract('BatchedBancorMarketMaker app', accounts => {
           await progressToNextBatch()
 
           await assertRevert(() => curve.claimSellOrder(authorized, batchId, unlisted.address))
+        })
+      })
+    })
+  })
+  // #endregion
+
+  // #region claimCancelledBuyOrder
+  context('> #claimCancelledBuyOrder', () => {
+    forEach(['ETH', 'ERC20']).describe(`> %s`, round => {
+      const index = round === 'ETH' ? 0 : 1
+
+      context('> batch is cancelled', () => {
+        context('> and there are collaterals to claim', () => {
+          it('it should register claim', async () => {
+            const amount = randomSmallAmount()
+
+            const receipt1 = await openBuyOrder(authorized, collaterals[index], amount, { from: authorized })
+            const batchId = getBuyOrderBatchId(receipt1)
+
+            await curve.removeCollateralToken(collaterals[index], { from: authorized })
+            const receipt2 = await curve.claimCancelledBuyOrder(authorized, batchId, collaterals[index])
+
+            assertEvent(receipt2, 'ReturnCancelledBuyOrder')
+          })
+
+          it('it should return collateral', async () => {
+            const amount = randomSmallAmount()
+            const fee = computeBuyFee(amount)
+
+            const receipt1 = await openBuyOrder(authorized, collaterals[index], amount, { from: authorized })
+            const batchId = getBuyOrderBatchId(receipt1)
+            const oldBalance = await balance(collaterals[index], authorized)
+
+            await curve.removeCollateralToken(collaterals[index], { from: authorized })
+            await curve.claimCancelledBuyOrder(authorized, batchId, collaterals[index])
+            const newBalance = await balance(collaterals[index], authorized)
+
+            assert.isAbove(newBalance.toNumber(), oldBalance.toNumber())
+          })
+
+          it('it should update the amount of collateral to be claimed', async () => {
+            const receipt1 = await openBuyOrder(authorized, collaterals[index], randomSmallAmount(), { from: authorized })
+            const batchId = getBuyOrderBatchId(receipt1)
+
+            await curve.removeCollateralToken(collaterals[index], { from: authorized })
+            await curve.claimCancelledBuyOrder(authorized, batchId, collaterals[index])
+            const collateralsToBeClaimed = await curve.collateralsToBeClaimed(collaterals[index])
+
+            assert.equal(collateralsToBeClaimed.toNumber(), 0)
+          })
+        })
+
+        context('> but there are no collateral to claim', () => {
+          it('it should revert', async () => {
+            const receipt1 = await openBuyOrder(authorized, collaterals[index], randomSmallAmount(), { from: authorized })
+            const batchId = getBuyOrderBatchId(receipt1)
+            await curve.removeCollateralToken(collaterals[index], { from: authorized })
+
+            await assertRevert(() => curve.claimCancelledBuyOrder(authorized2, batchId, collaterals[index]))
+          })
+        })
+      })
+
+      context('> but batch is not cancelled', () => {
+        it('it should revert', async () => {
+          const receipt1 = await openBuyOrder(authorized, collaterals[index], randomSmallAmount(), { from: authorized })
+          const batchId = getBuyOrderBatchId(receipt1)
+
+          await assertRevert(() => curve.claimCancelledBuyOrder(authorized, batchId, collaterals[index]))
+        })
+      })
+    })
+  })
+  // #endregion
+
+  // #region claimCancelledSellOrder
+  context('> #claimCancelledSellOrder', () => {
+    forEach(['ETH', 'ERC20']).describe(`> %s`, round => {
+      const index = round === 'ETH' ? 0 : 1
+
+      context('> batch is cancelled', () => {
+        context('> and there are bonds to claim', () => {
+          it('it should register claim', async () => {
+            const _balance = await openAndClaimBuyOrder(authorized, collaterals[index], randomSmallAmount(), { from: authorized })
+            const receipt1 = await openSellOrder(authorized, collaterals[index], _balance, { from: authorized })
+            const batchId = getSellOrderBatchId(receipt1)
+
+            await curve.removeCollateralToken(collaterals[index], { from: authorized })
+            const receipt2 = await curve.claimCancelledSellOrder(authorized, batchId, collaterals[index])
+
+            assertEvent(receipt2, 'ReturnCancelledSellOrder')
+          })
+
+          it('it should return bonds', async () => {
+            const _balance = await openAndClaimBuyOrder(authorized, collaterals[index], randomSmallAmount(), { from: authorized })
+            const receipt1 = await openSellOrder(authorized, collaterals[index], _balance, { from: authorized })
+            const oldBalance = await balance(token.address, authorized)
+            const batchId = getSellOrderBatchId(receipt1)
+
+            await curve.removeCollateralToken(collaterals[index], { from: authorized })
+            await curve.claimCancelledSellOrder(authorized, batchId, collaterals[index])
+            const newBalance = await balance(token.address, authorized)
+
+            assert.equal(newBalance.toNumber(), oldBalance.add(_balance).toNumber())
+          })
+
+          it('it should update the amount of tokens to be minted', async () => {
+            const _balance = await openAndClaimBuyOrder(authorized, collaterals[index], randomSmallAmount(), { from: authorized })
+            const receipt1 = await openSellOrder(authorized, collaterals[index], _balance, { from: authorized })
+            const batchId = getSellOrderBatchId(receipt1)
+
+            await curve.removeCollateralToken(collaterals[index], { from: authorized })
+            await curve.claimCancelledSellOrder(authorized, batchId, collaterals[index])
+            const tokensToBeMinted = await curve.tokensToBeMinted()
+
+            assert.equal(tokensToBeMinted.toNumber(), 0)
+          })
+        })
+
+        context('> but there are no bond to claim', () => {
+          it('it should revert', async () => {
+            const _balance = await openAndClaimBuyOrder(authorized, collaterals[index], randomSmallAmount(), { from: authorized })
+            const receipt1 = await openSellOrder(authorized, collaterals[index], _balance, { from: authorized })
+            const batchId = getSellOrderBatchId(receipt1)
+            await curve.removeCollateralToken(collaterals[index], { from: authorized })
+
+            await assertRevert(() => curve.claimCancelledSellOrder(authorized2, batchId, collaterals[index]))
+          })
+        })
+      })
+
+      context('> but batch is not cancelled', () => {
+        it('it should revert', async () => {
+          const _balance = await openAndClaimBuyOrder(authorized, collaterals[index], randomSmallAmount(), { from: authorized })
+          const receipt1 = await openSellOrder(authorized, collaterals[index], _balance, { from: authorized })
+          const batchId = getSellOrderBatchId(receipt1)
+
+          await assertRevert(() => curve.claimCancelledSellOrder(authorized, batchId, collaterals[index]))
         })
       })
     })
