@@ -596,16 +596,20 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
         }
         _transfer(_buyer, address(reserve), _collateral, value);
 
-        // update batch
+        // save batch
         uint256 deprecatedBuyReturn = batch.totalBuyReturn;
+        uint256 deprecatedSellReturn = batch.totalSellReturn;
+
+        // update batch
         batch.totalBuySpend = batch.totalBuySpend.add(value);
         batch.buyers[_buyer] = batch.buyers[_buyer].add(value);
 
         // update pricing
         _updatePricing(batch, batchId, _collateral);
 
-        // update the amount of tokens to be minted
+        // update the amount of tokens to be minted and collaterals to be claimed
         tokensToBeMinted = tokensToBeMinted.sub(deprecatedBuyReturn).add(batch.totalBuyReturn);
+        collateralsToBeClaimed[_collateral] = collateralsToBeClaimed[_collateral].sub(deprecatedSellReturn).add(batch.totalSellReturn);
 
         // sanity checks
         require(_slippageIsValid(batch, _collateral), ERROR_SLIPPAGE_EXCEEDS_LIMIT);
@@ -619,21 +623,24 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
         // burn bonds
         tokenManager.burn(_seller, _amount);
 
-        // update batch
+        // save batch
+        uint256 deprecatedBuyReturn = batch.totalBuyReturn;
         uint256 deprecatedSellReturn = batch.totalSellReturn;
+
+        // update batch
         batch.totalSellSpend = batch.totalSellSpend.add(_amount);
         batch.sellers[_seller] = batch.sellers[_seller].add(_amount);
 
         // update pricing
         _updatePricing(batch, batchId, _collateral);
 
-        // update the amount of tokens collaterals to be claimed
+        // update the amount of tokens to be minted and collaterals to be claimed
+        tokensToBeMinted = tokensToBeMinted.sub(deprecatedBuyReturn).add(batch.totalBuyReturn);
         collateralsToBeClaimed[_collateral] = collateralsToBeClaimed[_collateral].sub(deprecatedSellReturn).add(batch.totalSellReturn);
 
         // sanity checks
         require(_slippageIsValid(batch, _collateral), ERROR_SLIPPAGE_EXCEEDS_LIMIT);
         require(_poolBalanceIsSufficient(_collateral), ERROR_INSUFFICIENT_POOL_BALANCE);
-
 
         emit NewSellOrder(_seller, batchId, _collateral, _amount);
     }
