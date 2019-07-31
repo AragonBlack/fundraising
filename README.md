@@ -1,4 +1,9 @@
 # Aragon Fundraising App
+Aragon Fundraising, previously called Apiary, is an app built on top of Aragon, providing Aragon users an easy way to raise funds through an emergent organization.
+
+Blog posts:
+- [Introducing Aragon Fundraising](https://blog.aragon.org/introducing-aragon-fundraising/)
+- [Aragon Fundraising and the return of the commons](https://blog.aragon.black/aragon-fundraising-the-return-of-the-commons/)
 
 ## Architecture
 
