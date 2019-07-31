@@ -37,6 +37,7 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
     uint64 public constant PCT_BASE = 10 ** 18; // 0% = 0; 1% = 10^16; 100% = 10^18
     uint64 public constant COMPOUND_PRECISION = 50; // leads compound computation to cost about 25000 gas
 
+    string private constant ERROR_BATCH_BLOCKS_ZERO = "TAP_BATCH_BLOCKS_ZERO";
     string private constant ERROR_RESERVE_NOT_CONTRACT = "TAP_RESERVE_NOT_CONTRACT";
     string private constant ERROR_TOKEN_NOT_ETH_OR_CONTRACT = "TAP_TOKEN_NOT_ETH_OR_CONTRACT";
     string private constant ERROR_TOKEN_ALREADY_TAPPED = "TAP_TOKEN_ALREADY_TAPPED";
@@ -47,6 +48,7 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
 
     Vault public reserve;
     address public beneficiary;
+    uint256 public batchBlocks;
     uint256 public maximumTapIncreaseRate; // expressed in percentage / second
 
     mapping (address => uint256) public taps;
@@ -64,12 +66,14 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
 
     /***** external function *****/
 
-    function initialize(Vault _reserve, address _beneficiary, uint256 _maximumTapIncreaseRate) external onlyInit {
+    function initialize(Vault _reserve, address _beneficiary, uint256 _batchBlocks, uint256 _maximumTapIncreaseRate) external onlyInit {
         require(isContract(_reserve), ERROR_RESERVE_NOT_CONTRACT);
+        require(_batchBlocks != 0, ERROR_BATCH_BLOCKS_ZERO);
 
         initialized();
         reserve = _reserve;
         beneficiary = _beneficiary;
+        batchBlocks = _batchBlocks;
         maximumTapIncreaseRate = _maximumTapIncreaseRate;
     }
 
@@ -100,9 +104,9 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
     }
 
     /**
-     * @notice Add tap for `_token.symbol(): string` at the pace of `@tokenAmount(_token, _tap)` per second
+     * @notice Add tap for `_token.symbol(): string` at the pace of `@tokenAmount(_token, _tap)` per block
      * @param _token Address of the tapped token
-     * @param _tap The tap to be applied applied to that token [in wei / second]
+     * @param _tap The tap to be applied applied to that token [in wei / block]
     */
     function addTappedToken(address _token, uint256 _tap) external auth(ADD_TAPPED_TOKEN_ROLE) {
         require(_tokenIsETHOrContract(_token), ERROR_TOKEN_NOT_ETH_OR_CONTRACT);
@@ -123,9 +127,9 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
     }
 
     /**
-     * @notice Update tap for `_token.symbol(): string` to the pace of `@tokenAmount(_token, _tap)` per second
+     * @notice Update tap for `_token.symbol(): string` to the pace of `@tokenAmount(_token, _tap)` per block
      * @param _token Address of the token whose tap is to be updated
-     * @param _tap New tap to be applied to the token [in wei / second]
+     * @param _tap New tap to be applied to the token [in wei / block]
     */
     function updateTappedToken(address _token, uint256 _tap) external auth(UPDATE_TAPPED_TOKEN_ROLE) {
         require(_tokenIsTapped(_token), ERROR_TOKEN_NOT_TAPPED);
@@ -162,13 +166,15 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
 
     function maximumWithdrawal(address _token) public view isInitialized returns (uint256) {
         uint256 balance = _token == ETH ? address(reserve).balance : ERC20(_token).staticBalanceOf(reserve);
-        uint256 tapped = (getTimestamp().sub(lastWithdrawals[_token])).mul(taps[_token]);
+        uint256 tapped = (_currentBatchId().sub(lastWithdrawals[_token])).mul(taps[_token]);
         return tapped > balance ? balance : tapped;
     }
 
     /***** internal functions *****/
 
-    /* check functions */
+    function _currentBatchId() internal view returns (uint256) {
+        return (block.number.div(batchBlocks)).mul(batchBlocks);
+    }
 
     function _tokenIsETHOrContract(address _token) internal returns (bool) {
         return isContract(_token) || _token == ETH;
@@ -244,7 +250,7 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
 
     function _addTappedToken(address _token, uint256 _tap) internal {
         taps[_token] = _tap;
-        lastWithdrawals[_token] = getTimestamp();
+        lastWithdrawals[_token] = _currentBatchId();
         lastTapUpdates[_token] = getTimestamp();
 
         emit AddTappedToken(_token, _tap);
@@ -266,7 +272,7 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
     }
 
     function _withdraw(address _token, uint256 _amount) internal {
-        lastWithdrawals[_token] = getTimestamp();
+        lastWithdrawals[_token] = _currentBatchId();
         reserve.transfer(_token, beneficiary, _amount); // vault contract's transfer method already reverts on error
 
         emit Withdraw(_token, _amount);
