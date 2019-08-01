@@ -35,8 +35,7 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
     bytes32 public constant UPDATE_TAPPED_TOKEN_ROLE = 0x83201394534c53ae0b4696fd49a933082d3e0525aa5a3d0a14a2f51e12213288;
     bytes32 public constant WITHDRAW_ROLE = 0x5d8e12c39142ff96d79d04d15d1ba1269e4fe57bb9d26f43523628b34ba108ec;
 
-    uint64 public constant PCT_BASE = 10 ** 18; // 0% = 0; 1% = 10^16; 100% = 10^18
-    uint64 public constant COMPOUND_PRECISION = 50; // leads compound computation to cost about 25000 gas
+    uint256 public constant PCT_BASE = 10 ** 18; // 0% = 0; 1% = 10^16; 100% = 10^18
 
     string private constant ERROR_CONTRACT_IS_EOA = "TAP_CONTRACT_IS_EOA";
     string private constant ERROR_BATCH_BLOCKS_ZERO = "TAP_BATCH_BLOCKS_ZERO";
@@ -44,14 +43,14 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
     string private constant ERROR_TOKEN_ALREADY_TAPPED = "TAP_TOKEN_ALREADY_TAPPED";
     string private constant ERROR_TOKEN_NOT_TAPPED = "TAP_TOKEN_NOT_TAPPED";
     string private constant ERROR_TAP_RATE_ZERO = "TAP_TAP_RATE_ZERO";
-    string private constant ERROR_TAP_INCREASE_EXCEEDS_LIMIT = "TAP_TAP_INCREASE_EXCEEDS_LIMIT";
+    string private constant ERROR_INVALID_TAP_INCREASE = "TAP_INVALID_TAP_INCREASE";
     string private constant ERROR_WITHDRAWAL_AMOUNT_ZERO = "TAP_WITHDRAWAL_AMOUNT_ZERO";
 
     IMarketMakerController public controller;
     Vault                  public reserve;
     address                public beneficiary;
     uint256                public batchBlocks;
-    uint256                public maximumTapIncreaseRate; // expressed in percentage / second
+    uint256                public maximumTapIncreaseRate; // expressed in PCT_BASE
 
     mapping (address => uint256) public taps;
     mapping (address => uint256) public floors;
@@ -142,7 +141,7 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
     function updateTappedToken(address _token, uint256 _tap, uint256 _floor) external auth(UPDATE_TAPPED_TOKEN_ROLE) {
         require(_tokenIsTapped(_token), ERROR_TOKEN_NOT_TAPPED);
         require(_tapRateIsNotZero(_tap), ERROR_TAP_RATE_ZERO);
-        require(_tapIncreaseIsValid(_token, _tap), ERROR_TAP_INCREASE_EXCEEDS_LIMIT);
+        require(_tapIncreaseIsValid(_token, _tap), ERROR_INVALID_TAP_INCREASE);
 
         _updateTappedToken(_token, _tap, _floor);
     }
@@ -153,7 +152,7 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
     */
     function withdraw(address _token) external auth(WITHDRAW_ROLE) {
         require(_tokenIsTapped(_token), ERROR_TOKEN_NOT_TAPPED);
-        uint256 amount = getMaximumWithdrawal(_token);
+        uint256 amount = _maximumWithdrawal(_token);
         require(amount > 0, ERROR_WITHDRAWAL_AMOUNT_ZERO);
 
         _withdraw(_token, amount);
@@ -165,18 +164,18 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
         return _currentBatchId();
     }
 
-    function maximumNewTap(address _token) public view isInitialized returns (uint256) {
-        if (maximumTapIncreaseRate == 0) {
-            return taps[_token];
-        } else {
-            // maxTap = taps[_token] * (1 + maximumTapIncreaseRate / PCT_BASE) ^ (secondsSinceLastUpdate)
-            // maxTap = taps[_token] * (1 + 1 / (PCT_BASE / maximumTapIncreaseRate)) ^ (secondsSinceLastUpdate)
-            // maxTap = compound(taps[_token], PCT_BASE / maximumTapIncreaseRate, (getTimestamp()).sub(lastTapUpdates[_token]));
-            return _compound(taps[_token], PCT_BASE / maximumTapIncreaseRate, getTimestamp().sub(lastTapUpdates[_token]));
-        }
-    }
 
     function getMaximumWithdrawal(address _token) public view isInitialized returns (uint256) {
+        return _maximumWithdrawal(_token);
+    }
+
+    /***** internal functions *****/
+
+    function _currentBatchId() internal view returns (uint256) {
+        return (block.number.div(batchBlocks)).mul(batchBlocks);
+    }
+
+    function _maximumWithdrawal(address _token) internal view returns (uint256) {
         uint256 hold = controller.tokensToHold(_token);
         uint256 floor = floors[_token];
         uint256 minimum = hold.add(floor);
@@ -194,12 +193,6 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
         return balance.sub(minimum);
     }
 
-    /***** internal functions *****/
-
-    function _currentBatchId() internal view returns (uint256) {
-        return (block.number.div(batchBlocks)).mul(batchBlocks);
-    }
-
     function _tokenIsETHOrContract(address _token) internal view returns (bool) {
         return isContract(_token) || _token == ETH;
     }
@@ -213,46 +206,16 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
     }
 
     function _tapIncreaseIsValid(address _token, uint256 _tap) internal view returns (bool) {
-        if (_tap <= taps[_token]) {
-            return true;
-        }
-
-        if (maximumTapIncreaseRate == 0) {
+        if(getTimestamp() < lastTapUpdates[_token] + 30 days) {
             return false;
         }
 
-        if (_tap <= maximumNewTap(_token)) {
-            return true;
+        if(taps[_token].mul(PCT_BASE.add(maximumTapIncreaseRate)) < _tap.mul(PCT_BASE)) {
+            return false;
         }
 
-        return false;
+        return true;
     }
-
-    /* computation functions */
-
-    /**
-     * @notice Compute the compound result of `k` increasing of 1/`q`th `n` times
-     * @dev The computed result is an polynomial estimate of the actual result that will alway be lower than the actual result
-     * @dev See https://ethereum.stackexchange.com/questions/10425/is-there-any-efficient-way-to-compute-the-exponentiation-of-a-fraction-and-an-in
-     * @param _k The base of the compound computation
-     * @param _q The inverse percentage of a one step increase
-     * @param _n The number of increase steps
-    */
-    function _compound(uint256 _k, uint256 _q, uint256 _n) internal returns (uint) {
-        uint256 s = 0;
-        uint256 N = 1;
-        uint256 B = 1;
-
-        for (uint256 i = 0; i < COMPOUND_PRECISION; i++) {
-            s += _k * N / B / (_q ** i);
-            N = N * (_n - i);
-            B = B * (i + 1);
-        }
-
-        return s;
-    }
-
-    /* state modifying functions */
 
     function _updateReserve(Vault _reserve) internal {
         reserve = _reserve;

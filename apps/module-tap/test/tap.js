@@ -408,85 +408,99 @@ contract('Tap app', accounts => {
   //   })
   // })
 
-  // context('> #updateTappedToken', () => {
-  //   context('> sender has UPDATE_TAPPED_TOKEN_ROLE', () => {
-  //     context('> and token is tapped', () => {
-  //       context('> and new tap rate is above zero', () => {
-  //         context('> and tap increase is within monthly limit', () => {
-  //           it('it should update tap rate', async () => {
-  //             await tap.addTappedToken(ETH, 10, 5, { from: authorized })
-  //             await tap.addTappedToken(token1.address, 50, 5, { from: authorized })
-  //             await tap.addTappedToken(token2.address, 100, 5, { from: authorized })
-  //             await timeTravel(20)
-  //             // maxTapUpdateETH = 10 * (1 + 0.5) ^ 20 = 33252,5673007965
-  //             // maxTapUpdateToken1 = 50 * (1 + 0.5) ^ 20 = 166262,836503982
-  //             // maxTapUpdateToken2 = 100 * (1 + 0.5) ^ 20 = 332525,673007965
+  context('> #updateTappedToken', () => {
+    context('> sender has UPDATE_TAPPED_TOKEN_ROLE', () => {
+      context('> and token is tapped', () => {
+        context('> and new tap rate is above zero', () => {
+          context('> and new tap is lower than old tap', () => {})
+          context('> and new tap is higher than old tap', () => {
+            context('> and tap has not been updated in the last 30 days', () => {
+              context('> and tap increase is below the allowed limit', () => {
+                it('it should update tap rate', async () => {
+                  await tap.addTappedToken(ETH, 10, 5, { from: authorized })
+                  await tap.addTappedToken(token1.address, 5000, 5, { from: authorized })
+                  // move forward of one month
+                  await timeTravel(2592000)
 
-  //             const receipt1 = await tap.updateTappedToken(ETH, 33000, 10, { from: authorized })
-  //             const receipt2 = await tap.updateTappedToken(token1.address, 165000, 7, { from: authorized })
-  //             const receipt3 = await tap.updateTappedToken(token2.address, 330000, 8, { from: authorized })
+                  const receipt1 = await tap.updateTappedToken(ETH, 14, 10, { from: authorized })
+                  const receipt2 = await tap.updateTappedToken(token1.address, 7500, 7, { from: authorized })
 
-  //             assertEvent(receipt1, 'UpdateTappedToken')
-  //             assertEvent(receipt2, 'UpdateTappedToken')
-  //             assertEvent(receipt3, 'UpdateTappedToken')
+                  assertEvent(receipt1, 'UpdateTappedToken')
+                  assertEvent(receipt2, 'UpdateTappedToken')
 
-  //             assert.equal(await tap.taps(ETH), 33000)
-  //             assert.equal(await tap.taps(token1.address), 165000)
-  //             assert.equal(await tap.taps(token2.address), 330000)
+                  assert.equal(await tap.taps(ETH), 14)
+                  assert.equal(await tap.taps(token1.address), 7500)
 
-  //             assert.equal(await tap.floors(ETH), 10)
-  //             assert.equal(await tap.floors(token1.address), 7)
-  //             assert.equal(await tap.floors(token2.address), 8)
+                  assert.equal(await tap.floors(ETH), 10)
+                  assert.equal(await tap.floors(token1.address), 7)
 
-  //             assert.equal(await tap.lastTapUpdates(ETH), getTimestamp(receipt1))
-  //             assert.equal(await tap.lastTapUpdates(token1.address), getTimestamp(receipt2))
-  //             assert.equal(await tap.lastTapUpdates(token2.address), getTimestamp(receipt3))
-  //           })
-  //         })
+                  assert.equal(await tap.lastTapUpdates(ETH), getTimestamp(receipt1))
+                  assert.equal(await tap.lastTapUpdates(token1.address), getTimestamp(receipt2))
+                })
+              })
 
-  //         context('> but tap increase is above monthly limit', () => {
-  //           it('it should revert', async () => {
-  //             await tap.addTappedToken(ETH, 10, 10, { from: authorized })
-  //             await tap.addTappedToken(token1.address, 50, 10, { from: authorized })
-  //             await timeTravel(20)
-  //             // maxTapUpdateETH = 10 * (1 + 0.5) ^ 20 = 33252,5673007965
-  //             // maxTapUpdateToken1 = 50 * (1 + 0.5) ^ 20 = 166262,836503982
+              context('> but tap increase is above the allowed limit', () => {
+                it('it should revert', async () => {
+                  await tap.addTappedToken(ETH, 10, 5, { from: authorized })
+                  await tap.addTappedToken(token1.address, 5000, 5, { from: authorized })
+                  // move forward of one month
+                  await timeTravel(2592000)
+                  // maxTapUpdateETH = 10 * (1 + 0.5) ^ 20 = 33252,5673007965
+                  // maxTapUpdateToken1 = 50 * (1 + 0.5) ^ 20 = 166262,836503982
 
-  //             // await assertRevert(() => tap.updateTappedToken(ETH, 38000, 5, { from: authorized }))
-  //             // await assertRevert(() => tap.updateTappedToken(token1.address, 169000, 5, { from: authorized }))
-  //           })
-  //         })
-  //       })
+                  await assertRevert(() => tap.updateTappedToken(ETH, 16, 5, { from: authorized }))
+                  await assertRevert(() => tap.updateTappedToken(token1.address, 7501, 5, { from: authorized }))
+                })
+              })
+            })
 
-  //       context('> but new tap rate is zero', () => {
-  //         it('it should revert', async () => {
-  //           await tap.addTappedToken(ETH, 10, 5, { from: authorized })
-  //           await tap.addTappedToken(token1.address, 50, 5, { from: authorized })
+            context('> but tap has been updated in the last 30 days', () => {
+              it('it should revert', async () => {
+                await tap.addTappedToken(ETH, 10, 5, { from: authorized })
+                await tap.addTappedToken(token1.address, 50, 5, { from: authorized })
+                // move forward of one month minus one second
+                await timeTravel(2591999)
 
-  //           await assertRevert(() => tap.updateTappedToken(ETH, 0, 5, { from: authorized }))
-  //           await assertRevert(() => tap.updateTappedToken(token1.address, 0, 5, { from: authorized }))
-  //         })
-  //       })
-  //     })
+                await assertRevert(() => tap.updateTappedToken(ETH, 11, 5, { from: authorized }))
+                await assertRevert(() => tap.updateTappedToken(token1.address, 51, 5, { from: authorized }))
+              })
+            })
+          })
+        })
 
-  //     context('> but token is not tapped', () => {
-  //       it('it should revert', async () => {
-  //         await assertRevert(() => tap.updateTappedToken(ETH, 10, 5, { from: authorized }))
-  //         await assertRevert(() => tap.updateTappedToken(token1.address, 50, 5, { from: authorized }))
-  //       })
-  //     })
-  //   })
+        context('> but new tap rate is zero', () => {
+          it('it should revert', async () => {
+            await tap.addTappedToken(ETH, 10, 5, { from: authorized })
+            await tap.addTappedToken(token1.address, 50, 5, { from: authorized })
+            // move forward of one month
+            await timeTravel(2592000)
 
-  //   context('> sender does not have UPDATE_TAPPED_TOKEN_ROLE', () => {
-  //     it('it should revert', async () => {
-  //       await tap.addTappedToken(ETH, 10, 5, { from: authorized })
-  //       await tap.addTappedToken(token1.address, 50, 5, { from: authorized })
+            await assertRevert(() => tap.updateTappedToken(ETH, 0, 5, { from: authorized }))
+            await assertRevert(() => tap.updateTappedToken(token1.address, 0, 5, { from: authorized }))
+          })
+        })
+      })
 
-  //       await assertRevert(() => tap.updateTappedToken(ETH, 9, 10, { from: unauthorized }))
-  //       await assertRevert(() => tap.updateTappedToken(token1.address, 49, 10, { from: unauthorized }))
-  //     })
-  //   })
-  // })
+      context('> but token is not tapped', () => {
+        it('it should revert', async () => {
+          await assertRevert(() => tap.updateTappedToken(ETH, 10, 5, { from: authorized }))
+          await assertRevert(() => tap.updateTappedToken(token1.address, 50, 5, { from: authorized }))
+        })
+      })
+    })
+
+    context('> sender does not have UPDATE_TAPPED_TOKEN_ROLE', () => {
+      it('it should revert', async () => {
+        await tap.addTappedToken(ETH, 10, 5, { from: authorized })
+        await tap.addTappedToken(token1.address, 50, 5, { from: authorized })
+        // move forward of one month
+        await timeTravel(2592000)
+
+        await assertRevert(() => tap.updateTappedToken(ETH, 9, 10, { from: unauthorized }))
+        await assertRevert(() => tap.updateTappedToken(token1.address, 49, 10, { from: unauthorized }))
+      })
+    })
+  })
 
   // context('> #withdraw', () => {
   //   context('> sender has WITHDRAW_ROLE', () => {
@@ -596,95 +610,71 @@ contract('Tap app', accounts => {
   //   })
   // })
 
-  // context('> #tapIncreaseIsValid', () => {
-  //   context('> tap increase is valid', () => {
-  //     it('it should return true', async () => {
-  //       const INITIAL_TAP = 100
+  // })
 
-  //       await tap.addTappedToken(token1.address, INITIAL_TAP, { from: authorized })
-  //       await timeTravel(20)
-  //       // maxTapUpdate = 100 * (1 + 0.5) ^ 20 = 332525,673007965
+  // context('> #getMaximumWithdrawal', () => {
+  //   context('tokens to hold + floor is inferior to balance', () => {
+  //     context('> tapped amount + tokens to hold + floor is inferior to balance', () => {
+  //       it('it should return a batched tapped amount', async () => {
+  //         // start a new batch
+  //         await progressToNextBatch()
+  //         // add tapped tokens
+  //         await tap.addTappedToken(ETH, 1, 2, { from: authorized })
+  //         await tap.addTappedToken(token1.address, 2, 3, { from: authorized })
+  //         // move two batches further
+  //         await progressToNextBatch()
+  //         await progressToNextBatch()
+  //         // test maximum withdrawal
+  //         assert.equal((await tap.getMaximumWithdrawal(ETH)).toNumber(), 1 * 2 * BATCH_BLOCKS)
+  //         assert.equal((await tap.getMaximumWithdrawal(token1.address)).toNumber(), 2 * 2 * BATCH_BLOCKS)
+  //         // move of a few blocks in the same batch
+  //         await increaseBlocks(5)
+  //         // test maximum withdrawal
+  //         assert.equal((await tap.getMaximumWithdrawal(ETH)).toNumber(), 1 * 2 * BATCH_BLOCKS)
+  //         assert.equal((await tap.getMaximumWithdrawal(token1.address)).toNumber(), 2 * 2 * BATCH_BLOCKS)
+  //         // move the next batch again
+  //         await progressToNextBatch()
+  //         // test maximum withdrawal
+  //         assert.equal((await tap.getMaximumWithdrawal(ETH)).toNumber(), 1 * 3 * BATCH_BLOCKS)
+  //         assert.equal((await tap.getMaximumWithdrawal(token1.address)).toNumber(), 2 * 3 * BATCH_BLOCKS)
+  //       })
+  //     })
 
-  //       assert.equal(await tap.tapIncreaseIsValid(token1.address, 332500), true)
+  //     context('> tapped amount + tokens to hold + floor is superior to balance ', () => {
+  //       it('it should return a smaller batched tapped amount to save enough collateral', async () => {
+  //         // start a new batch
+  //         await progressToNextBatch()
+  //         // add tapped tokens
+  //         await tap.addTappedToken(ETH, INITIAL_ETH_BALANCE / 10, 1500, { from: authorized })
+  //         await tap.addTappedToken(token1.address, INITIAL_TOKEN_BALANCE / 10, 150, { from: authorized })
+  //         // move to next batch
+  //         await progressToNextBatch()
+  //         await progressToNextBatch()
+  //         // test maximum withdrawal
+  //         // mock SimpleMarketMakerController enforces 5 ETH and 10 tokens to be hold
+  //         assert.equal((await tap.getMaximumWithdrawal(ETH)).toNumber(), INITIAL_ETH_BALANCE - 5 - 1500)
+  //         assert.equal((await tap.getMaximumWithdrawal(token1.address)).toNumber(), INITIAL_TOKEN_BALANCE - 10 - 150)
+  //       })
   //     })
   //   })
 
-  //   context('> tap increase is not valid', () => {
-  //     it('it should return false', async () => {
-  //       const INITIAL_TAP = 100
-
-  //       await tap.addTappedToken(token1.address, INITIAL_TAP, { from: authorized })
-  //       await timeTravel(20)
-  //       // maxTapUpdate = 100 * (1 + 0.5) ^ 20 = 332525,673007965
-
-  //       assert.equal(await tap.tapIncreaseIsValid(token1.address, 332600), false)
+  //   context('tokens to hold + floor is superior to balance', () => {
+  //     it('it should return zero', async () => {
+  //       // move funds out of the reserve
+  //       // mock SimpleMarketMakerController enforces 5 ETH and 10 tokens to be hold
+  //       await reserve.transfer(ETH, root, INITIAL_ETH_BALANCE - 1500 - 5)
+  //       await reserve.transfer(token1.address, root, INITIAL_TOKEN_BALANCE - 150 - 10)
+  //       // start a new batch
+  //       await progressToNextBatch()
+  //       // add tapped tokens
+  //       await tap.addTappedToken(ETH, 25, 1500, { from: authorized })
+  //       await tap.addTappedToken(token1.address, 40, 150, { from: authorized })
+  //       // move to next batch
+  //       await progressToNextBatch()
+  //       // test maximum withdrawal
+  //       assert.equal((await tap.getMaximumWithdrawal(ETH)).toNumber(), 0)
+  //       assert.equal((await tap.getMaximumWithdrawal(token1.address)).toNumber(), 0)
   //     })
   //   })
   // })
-
-  context('> #getMaximumWithdrawal', () => {
-    context('tokens to hold + floor is inferior to balance', () => {
-      context('> tapped amount + tokens to hold + floor is inferior to balance', () => {
-        it('it should return a batched tapped amount', async () => {
-          // start a new batch
-          await progressToNextBatch()
-          // add tapped tokens
-          await tap.addTappedToken(ETH, 1, 2, { from: authorized })
-          await tap.addTappedToken(token1.address, 2, 3, { from: authorized })
-          // move two batches further
-          await progressToNextBatch()
-          await progressToNextBatch()
-          // test maximum withdrawal
-          assert.equal((await tap.getMaximumWithdrawal(ETH)).toNumber(), 1 * 2 * BATCH_BLOCKS)
-          assert.equal((await tap.getMaximumWithdrawal(token1.address)).toNumber(), 2 * 2 * BATCH_BLOCKS)
-          // move of a few blocks in the same batch
-          await increaseBlocks(5)
-          // test maximum withdrawal
-          assert.equal((await tap.getMaximumWithdrawal(ETH)).toNumber(), 1 * 2 * BATCH_BLOCKS)
-          assert.equal((await tap.getMaximumWithdrawal(token1.address)).toNumber(), 2 * 2 * BATCH_BLOCKS)
-          // move the next batch again
-          await progressToNextBatch()
-          // test maximum withdrawal
-          assert.equal((await tap.getMaximumWithdrawal(ETH)).toNumber(), 1 * 3 * BATCH_BLOCKS)
-          assert.equal((await tap.getMaximumWithdrawal(token1.address)).toNumber(), 2 * 3 * BATCH_BLOCKS)
-        })
-      })
-
-      context('> tapped amount + tokens to hold + floor is superior to balance ', () => {
-        it('it should return a smaller batched tapped amount to save enough collateral', async () => {
-          // start a new batch
-          await progressToNextBatch()
-          // add tapped tokens
-          await tap.addTappedToken(ETH, INITIAL_ETH_BALANCE / 10, 1500, { from: authorized })
-          await tap.addTappedToken(token1.address, INITIAL_TOKEN_BALANCE / 10, 150, { from: authorized })
-          // move to next batch
-          await progressToNextBatch()
-          await progressToNextBatch()
-          // test maximum withdrawal
-          // mock SimpleMarketMakerController enforces 5 ETH and 10 tokens to be hold
-          assert.equal((await tap.getMaximumWithdrawal(ETH)).toNumber(), INITIAL_ETH_BALANCE - 5 - 1500)
-          assert.equal((await tap.getMaximumWithdrawal(token1.address)).toNumber(), INITIAL_TOKEN_BALANCE - 10 - 150)
-        })
-      })
-    })
-
-    context('tokens to hold + floor is superior to balance', () => {
-      it('it should return zero', async () => {
-        // move funds out of the reserve
-        // mock SimpleMarketMakerController enforces 5 ETH and 10 tokens to be hold
-        await reserve.transfer(ETH, root, INITIAL_ETH_BALANCE - 1500 - 5)
-        await reserve.transfer(token1.address, root, INITIAL_TOKEN_BALANCE - 150 - 10)
-        // start a new batch
-        await progressToNextBatch()
-        // add tapped tokens
-        await tap.addTappedToken(ETH, 25, 1500, { from: authorized })
-        await tap.addTappedToken(token1.address, 40, 150, { from: authorized })
-        // move to next batch
-        await progressToNextBatch()
-        // test maximum withdrawal
-        assert.equal((await tap.getMaximumWithdrawal(ETH)).toNumber(), 0)
-        assert.equal((await tap.getMaximumWithdrawal(token1.address)).toNumber(), 0)
-      })
-    })
-  })
 })
