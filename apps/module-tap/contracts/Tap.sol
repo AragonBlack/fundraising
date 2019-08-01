@@ -52,15 +52,16 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
     uint256 public maximumTapIncreaseRate; // expressed in percentage / second
 
     mapping (address => uint256) public taps;
+    mapping (address => uint256) public floors;
     mapping (address => uint256) public lastWithdrawals;
     mapping (address => uint256) public lastTapUpdates;
 
     event UpdateReserve(address indexed reserve);
     event UpdateBeneficiary(address indexed beneficiary);
     event UpdateMaximumTapIncreaseRate(uint256 maximumTapIncreaseRate);
-    event AddTappedToken(address indexed token, uint256 tap);
+    event AddTappedToken(address indexed token, uint256 tap, uint256 floor);
     event RemoveTappedToken(address indexed token);
-    event UpdateTappedToken(address indexed token, uint256 tap);
+    event UpdateTappedToken(address indexed token, uint256 tap, uint256 floor);
     event Withdraw(address indexed token, uint256 amount);
 
 
@@ -104,21 +105,23 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
     }
 
     /**
-     * @notice Add tap for `_token.symbol(): string` at the pace of `@tokenAmount(_token, _tap)` per block
-     * @param _token Address of the tapped token
-     * @param _tap The tap to be applied applied to that token [in wei / block]
+     * @notice Add tap for `_token.symbol(): string` with a pace of `@tokenAmount(_token, _tap)` per block and a floor of `@tokenAmount(_token, _floor)`
+     * @param _token The address of the token to be tapped
+     * @param _tap The tap to be applied to that token [in wei / block]
+     * @param _floor The floor to be applied to that token
+
     */
-    function addTappedToken(address _token, uint256 _tap) external auth(ADD_TAPPED_TOKEN_ROLE) {
+    function addTappedToken(address _token, uint256 _tap, uint256 _floor) external auth(ADD_TAPPED_TOKEN_ROLE) {
         require(_tokenIsETHOrContract(_token), ERROR_TOKEN_NOT_ETH_OR_CONTRACT);
         require(!_tokenIsTapped(_token), ERROR_TOKEN_ALREADY_TAPPED);
         require(_tapRateIsNotZero(_tap), ERROR_TAP_RATE_ZERO);
 
-        _addTappedToken(_token, _tap);
+        _addTappedToken(_token, _tap, _floor);
     }
 
     /**
      * @notice Remove tap for `_token.symbol(): string`
-     * @param _token Address of the tapped token to remove
+     * @param _token The address of the token to be un-tapped
     */
     function removeTappedToken(address _token) external auth(REMOVE_TAPPED_TOKEN_ROLE) {
         require(_tokenIsTapped(_token), ERROR_TOKEN_NOT_TAPPED);
@@ -127,16 +130,17 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
     }
 
     /**
-     * @notice Update tap for `_token.symbol(): string` to the pace of `@tokenAmount(_token, _tap)` per block
-     * @param _token Address of the token whose tap is to be updated
-     * @param _tap New tap to be applied to the token [in wei / block]
+     * @notice Update tap for `_token.symbol(): string` with a pace of `@tokenAmount(_token, _tap)` per block and a floor of `@tokenAmount(_token, _floor)`
+     * @param _token The address of the token whose tap and floor are to be updated
+     * @param _tap The new tap to be applied to that token [in wei / block]
+     * @param _floor The new floor to be applied to that token
     */
-    function updateTappedToken(address _token, uint256 _tap) external auth(UPDATE_TAPPED_TOKEN_ROLE) {
+    function updateTappedToken(address _token, uint256 _tap, uint256 _floor) external auth(UPDATE_TAPPED_TOKEN_ROLE) {
         require(_tokenIsTapped(_token), ERROR_TOKEN_NOT_TAPPED);
         require(_tapRateIsNotZero(_tap), ERROR_TAP_RATE_ZERO);
         require(_tapIncreaseIsValid(_token, _tap), ERROR_TAP_INCREASE_EXCEEDS_LIMIT);
 
-        _updateTappedToken(_token, _tap);
+        _updateTappedToken(_token, _tap, _floor);
     }
 
     /**
@@ -176,19 +180,19 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
         return (block.number.div(batchBlocks)).mul(batchBlocks);
     }
 
-    function _tokenIsETHOrContract(address _token) internal returns (bool) {
+    function _tokenIsETHOrContract(address _token) internal view returns (bool) {
         return isContract(_token) || _token == ETH;
     }
 
-    function _tokenIsTapped(address _token) internal returns (bool) {
+    function _tokenIsTapped(address _token) internal view returns (bool) {
         return taps[_token] != uint256(0);
     }
 
-    function _tapRateIsNotZero(uint256 _tap) internal returns (bool) {
+    function _tapRateIsNotZero(uint256 _tap) internal view returns (bool) {
         return _tap > 0;
     }
 
-    function _tapIncreaseIsValid(address _token, uint256 _tap) internal returns (bool) {
+    function _tapIncreaseIsValid(address _token, uint256 _tap) internal view returns (bool) {
         if (_tap <= taps[_token]) {
             return true;
         }
@@ -248,27 +252,30 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
         emit UpdateMaximumTapIncreaseRate(_maximumTapIncreaseRate);
     }
 
-    function _addTappedToken(address _token, uint256 _tap) internal {
+    function _addTappedToken(address _token, uint256 _tap, uint256 _floor) internal {
         taps[_token] = _tap;
+        floors[_token] = _floor;
         lastWithdrawals[_token] = _currentBatchId();
         lastTapUpdates[_token] = getTimestamp();
 
-        emit AddTappedToken(_token, _tap);
+        emit AddTappedToken(_token, _tap, _floor);
     }
 
     function _removeTappedToken(address _token) internal {
         delete taps[_token];
+        delete floors[_token];
         delete lastWithdrawals[_token];
         delete lastTapUpdates[_token];
 
         emit RemoveTappedToken(_token);
     }
 
-    function _updateTappedToken(address _token, uint256 _tap) internal {
+    function _updateTappedToken(address _token, uint256 _tap, uint256 _floor) internal {
         taps[_token] = _tap;
+        floors[_token] = _floor;
         lastTapUpdates[_token] = getTimestamp();
 
-        emit UpdateTappedToken(_token, _tap);
+        emit UpdateTappedToken(_token, _tap, _floor);
     }
 
     function _withdraw(address _token, uint256 _amount) internal {
