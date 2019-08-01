@@ -12,6 +12,7 @@ import "@aragon/os/contracts/common/SafeERC20.sol";
 import "@aragon/os/contracts/lib/token/ERC20.sol";
 import "@aragon/os/contracts/lib/math/SafeMath.sol";
 import "@aragon/apps-vault/contracts/Vault.sol";
+import "@ablack/fundraising-interface-core/contracts/IMarketMakerController.sol";
 
 
 contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
@@ -37,8 +38,8 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
     uint64 public constant PCT_BASE = 10 ** 18; // 0% = 0; 1% = 10^16; 100% = 10^18
     uint64 public constant COMPOUND_PRECISION = 50; // leads compound computation to cost about 25000 gas
 
+    string private constant ERROR_CONTRACT_IS_EOA = "TAP_CONTRACT_IS_EOA";
     string private constant ERROR_BATCH_BLOCKS_ZERO = "TAP_BATCH_BLOCKS_ZERO";
-    string private constant ERROR_RESERVE_NOT_CONTRACT = "TAP_RESERVE_NOT_CONTRACT";
     string private constant ERROR_TOKEN_NOT_ETH_OR_CONTRACT = "TAP_TOKEN_NOT_ETH_OR_CONTRACT";
     string private constant ERROR_TOKEN_ALREADY_TAPPED = "TAP_TOKEN_ALREADY_TAPPED";
     string private constant ERROR_TOKEN_NOT_TAPPED = "TAP_TOKEN_NOT_TAPPED";
@@ -46,10 +47,11 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
     string private constant ERROR_TAP_INCREASE_EXCEEDS_LIMIT = "TAP_TAP_INCREASE_EXCEEDS_LIMIT";
     string private constant ERROR_WITHDRAWAL_AMOUNT_ZERO = "TAP_WITHDRAWAL_AMOUNT_ZERO";
 
-    Vault public reserve;
-    address public beneficiary;
-    uint256 public batchBlocks;
-    uint256 public maximumTapIncreaseRate; // expressed in percentage / second
+    IMarketMakerController public controller;
+    Vault                  public reserve;
+    address                public beneficiary;
+    uint256                public batchBlocks;
+    uint256                public maximumTapIncreaseRate; // expressed in percentage / second
 
     mapping (address => uint256) public taps;
     mapping (address => uint256) public floors;
@@ -67,11 +69,13 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
 
     /***** external function *****/
 
-    function initialize(Vault _reserve, address _beneficiary, uint256 _batchBlocks, uint256 _maximumTapIncreaseRate) external onlyInit {
-        require(isContract(_reserve), ERROR_RESERVE_NOT_CONTRACT);
+    function initialize(IMarketMakerController _controller, Vault _reserve, address _beneficiary, uint256 _batchBlocks, uint256 _maximumTapIncreaseRate) external onlyInit {
+        require(isContract(_controller), ERROR_CONTRACT_IS_EOA);
+        require(isContract(_reserve), ERROR_CONTRACT_IS_EOA);
         require(_batchBlocks != 0, ERROR_BATCH_BLOCKS_ZERO);
 
         initialized();
+        controller = _controller;
         reserve = _reserve;
         beneficiary = _beneficiary;
         batchBlocks = _batchBlocks;
@@ -83,7 +87,7 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
      * @param _reserve Address of the new reserve
     */
     function updateReserve(Vault _reserve) external auth(UPDATE_RESERVE_ROLE) {
-        require(isContract(_reserve), ERROR_RESERVE_NOT_CONTRACT);
+        require(isContract(_reserve), ERROR_CONTRACT_IS_EOA);
 
         _updateReserve(_reserve);
     }
@@ -149,13 +153,17 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
     */
     function withdraw(address _token) external auth(WITHDRAW_ROLE) {
         require(_tokenIsTapped(_token), ERROR_TOKEN_NOT_TAPPED);
-        uint256 amount = maximumWithdrawal(_token);
+        uint256 amount = getMaximumWithdrawal(_token);
         require(amount > 0, ERROR_WITHDRAWAL_AMOUNT_ZERO);
 
         _withdraw(_token, amount);
     }
 
     /***** public functions *****/
+
+    function getCurrentBatchId() public view isInitialized returns (uint256) {
+        return _currentBatchId();
+    }
 
     function maximumNewTap(address _token) public view isInitialized returns (uint256) {
         if (maximumTapIncreaseRate == 0) {
@@ -168,10 +176,22 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
         }
     }
 
-    function maximumWithdrawal(address _token) public view isInitialized returns (uint256) {
+    function getMaximumWithdrawal(address _token) public view isInitialized returns (uint256) {
+        uint256 hold = controller.tokensToHold(_token);
+        uint256 floor = floors[_token];
+        uint256 minimum = hold.add(floor);
         uint256 balance = _token == ETH ? address(reserve).balance : ERC20(_token).staticBalanceOf(reserve);
         uint256 tapped = (_currentBatchId().sub(lastWithdrawals[_token])).mul(taps[_token]);
-        return tapped > balance ? balance : tapped;
+
+        if(minimum >= balance) {
+            return 0;
+        }
+
+        if (balance >= tapped.add(minimum)) {
+            return tapped;
+        }
+
+        return balance.sub(minimum);
     }
 
     /***** internal functions *****/
@@ -189,7 +209,7 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
     }
 
     function _tapRateIsNotZero(uint256 _tap) internal view returns (bool) {
-        return _tap > 0;
+        return _tap != 0;
     }
 
     function _tapIncreaseIsValid(address _token, uint256 _tap) internal view returns (bool) {
@@ -197,7 +217,7 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
             return true;
         }
 
-         if (maximumTapIncreaseRate == 0) {
+        if (maximumTapIncreaseRate == 0) {
             return false;
         }
 

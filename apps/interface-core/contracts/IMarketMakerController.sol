@@ -9,5 +9,6 @@ contract IMarketMakerController {
     // address public pool;
     // address public beneficiary;
 
+    function tokensToHold(address _token) public view returns (uint256);
     function balanceOf(address _who, address _token) public view returns (uint256);
 }

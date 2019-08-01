@@ -30,7 +30,8 @@
   ],
   "dependencies": {
     "@aragon/apps-vault": "4.1.0",
-    "@aragon/os": "4.2.0"
+    "@aragon/os": "4.2.0",
+    "@ablack/fundraising-interface-core": "^0.1.0"
   },
   "devDependencies": {
     "@ablack/eslint-config-tests": "^1.0.0",
