@@ -43,7 +43,7 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
     string private constant ERROR_TOKEN_ALREADY_TAPPED = "TAP_TOKEN_ALREADY_TAPPED";
     string private constant ERROR_TOKEN_NOT_TAPPED = "TAP_TOKEN_NOT_TAPPED";
     string private constant ERROR_TAP_RATE_ZERO = "TAP_TAP_RATE_ZERO";
-    string private constant ERROR_INVALID_TAP_INCREASE = "TAP_INVALID_TAP_INCREASE";
+    string private constant ERROR_INVALID_TAP_UPDATE = "TAP_INVALID_TAP_UPDATE";
     string private constant ERROR_WITHDRAWAL_AMOUNT_ZERO = "TAP_WITHDRAWAL_AMOUNT_ZERO";
 
     IMarketMakerController public controller;
@@ -141,7 +141,7 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
     function updateTappedToken(address _token, uint256 _tap, uint256 _floor) external auth(UPDATE_TAPPED_TOKEN_ROLE) {
         require(_tokenIsTapped(_token), ERROR_TOKEN_NOT_TAPPED);
         require(_tapRateIsNotZero(_tap), ERROR_TAP_RATE_ZERO);
-        require(_tapIncreaseIsValid(_token, _tap), ERROR_INVALID_TAP_INCREASE);
+        require(_tapUpdateIsValid(_token, _tap), ERROR_INVALID_TAP_UPDATE);
 
         _updateTappedToken(_token, _tap, _floor);
     }
@@ -205,12 +205,18 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
         return _tap != 0;
     }
 
-    function _tapIncreaseIsValid(address _token, uint256 _tap) internal view returns (bool) {
+    function _tapUpdateIsValid(address _token, uint256 _tap) internal view returns (bool) {
+        uint256 tap = taps[_token];
+
+        if (_tap <= tap) {
+            return true;
+        }
+
         if(getTimestamp() < lastTapUpdates[_token] + 30 days) {
             return false;
         }
 
-        if(taps[_token].mul(PCT_BASE.add(maximumTapIncreaseRate)) < _tap.mul(PCT_BASE)) {
+        if(tap.mul(PCT_BASE.add(maximumTapIncreaseRate)) < _tap.mul(PCT_BASE)) {
             return false;
         }
 
