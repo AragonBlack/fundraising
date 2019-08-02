@@ -1,6 +1,6 @@
 /*
  * SPDX-License-Identitifer:    GPL-3.0-or-later
- */
+*/
 
 pragma solidity 0.4.24;
 
@@ -19,17 +19,19 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
     using SafeERC20 for ERC20;
     using SafeMath for uint256;
     /* Hardcoded constants to save gas
+    bytes32 public constant UPDATE_CONTROLLER_ROLE = keccak256("UPDATE_CONTROLLER_ROLE");
     bytes32 public constant UPDATE_RESERVE_ROLE = keccak256("UPDATE_RESERVE_ROLE");
     bytes32 public constant UPDATE_BENEFICIARY_ROLE = keccak256("UPDATE_BENEFICIARY_ROLE");
-    bytes32 public constant UPDATE_MAXIMUM_TAP_INCREASE_RATE_ROLE = keccak256("UPDATE_MAXIMUM_TAP_INCREASE_RATE_ROLE");
+    bytes32 public constant UPDATE_MAXIMUM_TAP_INCREASE_PCT_ROLE = keccak256("UPDATE_MAXIMUM_TAP_INCREASE_PCT_ROLE");
     bytes32 public constant ADD_TAPPED_TOKEN_ROLE = keccak256("ADD_TAPPED_TOKEN_ROLE");
     bytes32 public constant REMOVE_TAPPED_TOKEN_ROLE = keccak256("REMOVE_TAPPED_TOKEN_ROLE");
     bytes32 public constant UPDATE_TAPPED_TOKEN_ROLE = keccak256("UPDATE_TAPPED_TOKEN_ROLE");
     bytes32 public constant WITHDRAW_ROLE = keccak256("WITHDRAW_ROLE");
     */
+    bytes32 public constant UPDATE_CONTROLLER_ROLE = 0x454b5d0dbb74f012faf1d3722ea441689f97dc957dd3ca5335b4969586e5dc30;
     bytes32 public constant UPDATE_RESERVE_ROLE = 0x7984c050833e1db850f5aa7476710412fd2983fcec34da049502835ad7aed4f7;
     bytes32 public constant UPDATE_BENEFICIARY_ROLE = 0xf7ea2b80c7b6a2cab2c11d2290cb005c3748397358a25e17113658c83b732593;
-    bytes32 public constant UPDATE_MAXIMUM_TAP_INCREASE_RATE_ROLE = 0x1cfb12d1da8f09374525828ff7850846684a92f46800ebf298bcbfde60f2321f;
+    bytes32 public constant UPDATE_MAXIMUM_TAP_INCREASE_PCT_ROLE = 0x568011701fb830cea21c0d7c56aef68ffd80cfdd79c0e3c46844d9b8a725cf38;
     bytes32 public constant ADD_TAPPED_TOKEN_ROLE = 0x5bc3b608e6be93b75a1c472a4a5bea3d31eabae46bf968e4bc4c7701562114dc;
     bytes32 public constant REMOVE_TAPPED_TOKEN_ROLE = 0xd76960be78bfedc5b40ce4fa64a2f8308f39dd2cbb1f9676dbc4ce87b817befd;
     bytes32 public constant UPDATE_TAPPED_TOKEN_ROLE = 0x83201394534c53ae0b4696fd49a933082d3e0525aa5a3d0a14a2f51e12213288;
@@ -38,6 +40,7 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
     uint256 public constant PCT_BASE = 10 ** 18; // 0% = 0; 1% = 10^16; 100% = 10^18
 
     string private constant ERROR_CONTRACT_IS_EOA = "TAP_CONTRACT_IS_EOA";
+    string private constant ERROR_INVALID_BENEFICIARY = "TAP_INVALID_BENEFICIARY";
     string private constant ERROR_BATCH_BLOCKS_ZERO = "TAP_BATCH_BLOCKS_ZERO";
     string private constant ERROR_TOKEN_NOT_ETH_OR_CONTRACT = "TAP_TOKEN_NOT_ETH_OR_CONTRACT";
     string private constant ERROR_TOKEN_ALREADY_TAPPED = "TAP_TOKEN_ALREADY_TAPPED";
@@ -50,16 +53,17 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
     Vault                  public reserve;
     address                public beneficiary;
     uint256                public batchBlocks;
-    uint256                public maximumTapIncreaseRate; // expressed in PCT_BASE
+    uint256                public maximumTapIncreasePct; // expressed in PCT_BASE
 
     mapping (address => uint256) public taps;
     mapping (address => uint256) public floors;
     mapping (address => uint256) public lastWithdrawals;
     mapping (address => uint256) public lastTapUpdates;
 
+    event UpdateController(address indexed controller);
     event UpdateReserve(address indexed reserve);
     event UpdateBeneficiary(address indexed beneficiary);
-    event UpdateMaximumTapIncreaseRate(uint256 maximumTapIncreaseRate);
+    event UpdateMaximumTapIncreasePct(uint256 maximumTapIncreasePct);
     event AddTappedToken(address indexed token, uint256 tap, uint256 floor);
     event RemoveTappedToken(address indexed token);
     event UpdateTappedToken(address indexed token, uint256 tap, uint256 floor);
@@ -68,9 +72,18 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
 
     /***** external function *****/
 
-    function initialize(IMarketMakerController _controller, Vault _reserve, address _beneficiary, uint256 _batchBlocks, uint256 _maximumTapIncreaseRate) external onlyInit {
+    function initialize(
+        IMarketMakerController _controller,
+        Vault _reserve,
+        address _beneficiary,
+        uint256 _batchBlocks,
+        uint256 _maximumTapIncreasePct
+    )
+        external onlyInit
+    {
         require(isContract(_controller), ERROR_CONTRACT_IS_EOA);
         require(isContract(_reserve), ERROR_CONTRACT_IS_EOA);
+        require(_beneficiaryIsValid(_beneficiary), ERROR_INVALID_BENEFICIARY);
         require(_batchBlocks != 0, ERROR_BATCH_BLOCKS_ZERO);
 
         initialized();
@@ -78,12 +91,22 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
         reserve = _reserve;
         beneficiary = _beneficiary;
         batchBlocks = _batchBlocks;
-        maximumTapIncreaseRate = _maximumTapIncreaseRate;
+        maximumTapIncreasePct = _maximumTapIncreasePct;
+    }
+
+    /**
+     * @notice Update controller to `_controller`
+     * @param _controller The address of the new controller
+    */
+    function updateController(IMarketMakerController _controller) external auth(UPDATE_CONTROLLER_ROLE) {
+        require(isContract(_controller), ERROR_CONTRACT_IS_EOA);
+
+        _updateController(_controller);
     }
 
     /**
      * @notice Update reserve to `_reserve`
-     * @param _reserve Address of the new reserve
+     * @param _reserve The address of the new reserve
     */
     function updateReserve(Vault _reserve) external auth(UPDATE_RESERVE_ROLE) {
         require(isContract(_reserve), ERROR_CONTRACT_IS_EOA);
@@ -93,18 +116,20 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
 
     /**
      * @notice Update beneficiary to `_beneficiary`
-     * @param _beneficiary Address of the new beneficiary
+     * @param _beneficiary The address of the new beneficiary
     */
     function updateBeneficiary(address _beneficiary) external auth(UPDATE_BENEFICIARY_ROLE) {
+        require(_beneficiaryIsValid(_beneficiary), ERROR_INVALID_BENEFICIARY);
+
         _updateBeneficiary(_beneficiary);
     }
 
     /**
-     * @notice Update maximum tap increase rate to `@formatPct(_maximumTapIncreaseRate)`% per second
-     * @param _maximumTapIncreaseRate New maximum tap increase rate
+     * @notice Update maximum tap increase percentage to `@formatPct(_maximumTapIncreasePct)`%
+     * @param _maximumTapIncreasePct The new maximum tap increase percentage
     */
-    function updateMaximumTapIncreaseRate(uint256 _maximumTapIncreaseRate) external auth(UPDATE_MAXIMUM_TAP_INCREASE_RATE_ROLE) {
-        _updateMaximumTapIncreaseRate(_maximumTapIncreaseRate);
+    function updateMaximumTapIncreasePct(uint256 _maximumTapIncreasePct) external auth(UPDATE_MAXIMUM_TAP_INCREASE_PCT_ROLE) {
+        _updateMaximumTapIncreasePct(_maximumTapIncreasePct);
     }
 
     /**
@@ -147,8 +172,8 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
     }
 
     /**
-     * @notice Transfer about `@tokenAmount(_token, self.maximalWithdrawal(_token))` from `self.reserve()` to `self.beneficiary()`
-     * @param _token Address of the token to transfer from reserve to beneficiary
+     * @notice Transfer about `@tokenAmount(_token, self.getMaximalWithdrawal(_token))` from `self.reserve()` to `self.beneficiary()`
+     * @param _token The address of the token to be transfered from reserve to beneficiary
     */
     function withdraw(address _token) external auth(WITHDRAW_ROLE) {
         require(_tokenIsTapped(_token), ERROR_TOKEN_NOT_TAPPED);
@@ -163,7 +188,6 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
     function getCurrentBatchId() public view isInitialized returns (uint256) {
         return _currentBatchId();
     }
-
 
     function getMaximumWithdrawal(address _token) public view isInitialized returns (uint256) {
         return _maximumWithdrawal(_token);
@@ -182,7 +206,7 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
         uint256 balance = _token == ETH ? address(reserve).balance : ERC20(_token).staticBalanceOf(reserve);
         uint256 tapped = (_currentBatchId().sub(lastWithdrawals[_token])).mul(taps[_token]);
 
-        if(minimum >= balance) {
+        if (minimum >= balance) {
             return 0;
         }
 
@@ -193,6 +217,10 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
         return balance.sub(minimum);
     }
 
+    function _beneficiaryIsValid(address _beneficiary) internal pure returns (bool) {
+        return _beneficiary != address(0);
+    }
+
     function _tokenIsETHOrContract(address _token) internal view returns (bool) {
         return isContract(_token) || _token == ETH;
     }
@@ -201,7 +229,7 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
         return taps[_token] != uint256(0);
     }
 
-    function _tapRateIsNotZero(uint256 _tap) internal view returns (bool) {
+    function _tapRateIsNotZero(uint256 _tap) internal pure returns (bool) {
         return _tap != 0;
     }
 
@@ -212,15 +240,21 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
             return true;
         }
 
-        if(getTimestamp() < lastTapUpdates[_token] + 30 days) {
+        if (getTimestamp() < lastTapUpdates[_token] + 30 days) {
             return false;
         }
 
-        if(tap.mul(PCT_BASE.add(maximumTapIncreaseRate)) < _tap.mul(PCT_BASE)) {
-            return false;
+        if (_tap.mul(PCT_BASE) <= tap.mul(PCT_BASE.add(maximumTapIncreasePct))) {
+            return true;
         }
 
-        return true;
+        return false;
+    }
+
+    function _updateController(IMarketMakerController _controller) internal {
+        controller = _controller;
+
+        emit UpdateController(address(_controller));
     }
 
     function _updateReserve(Vault _reserve) internal {
@@ -235,13 +269,20 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
         emit UpdateBeneficiary(_beneficiary);
     }
 
-    function _updateMaximumTapIncreaseRate(uint256 _maximumTapIncreaseRate) internal {
-        maximumTapIncreaseRate = _maximumTapIncreaseRate;
+    function _updateMaximumTapIncreasePct(uint256 _maximumTapIncreasePct) internal {
+        maximumTapIncreasePct = _maximumTapIncreasePct;
 
-        emit UpdateMaximumTapIncreaseRate(_maximumTapIncreaseRate);
+        emit UpdateMaximumTapIncreasePct(_maximumTapIncreasePct);
     }
 
     function _addTappedToken(address _token, uint256 _tap, uint256 _floor) internal {
+        /*
+         * NOTE: if _token is tapped at the end of one batch it will
+         * reach the next batch quickly [e.g. one block later] which
+         * will allow a higher withdrawal than expected
+         * NOTE: this is not a problem because this extra amount is static
+         * [at most taps[_token] * batchBlocks] and does not increase in time
+        */
         taps[_token] = _tap;
         floors[_token] = _floor;
         lastWithdrawals[_token] = _currentBatchId();
