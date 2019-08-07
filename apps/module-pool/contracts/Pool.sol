@@ -7,41 +7,57 @@ pragma solidity 0.4.24;
 import "@aragon/apps-agent/contracts/Agent.sol";
 
 
-contract Pool is Agent {
-    bytes32 public constant SAFE_EXECUTE_ROLE = keccak256("SAFE_EXECUTE_ROLE");
-    bytes32 public constant ADD_COLLATERAL_TOKEN_ROLE = keccak256("ADD_COLLATERAL_TOKEN_ROLE");
-    bytes32 public constant REMOVE_COLLATERAL_TOKEN_ROLE = keccak256("REMOVE_COLLATERAL_TOKEN_ROLE");
+/*
+ * NOTE: `Agent` is already an `AragonApp` [so `Pool` is too]
+ * NOTE: the `initialize` function is implemented in the Agent contract
+*/
 
+contract Pool is Agent {
+    /* Hardcoded constants to save gas
+    bytes32 public constant SAFE_EXECUTE_ROLE = keccak256("SAFE_EXECUTE_ROLE");
+    bytes32 public constant ADD_PROTECTED_TOKEN_ROLE = keccak256("ADD_PROTECTED_TOKEN_ROLE");
+    bytes32 public constant REMOVE_PROTECTED_TOKEN_ROLE = keccak256("REMOVE_PROTECTED_TOKEN_ROLE");
+    */
+    bytes32 public constant SAFE_EXECUTE_ROLE = 0x0a1ad7b87f5846153c6d5a1f761d71c7d0cfd122384f56066cd33239b7933694;
+    bytes32 public constant ADD_PROTECTED_TOKEN_ROLE = 0x6eb2a499556bfa2872f5aa15812b956cc4a71b4d64eb3553f7073c7e41415aaa;
+    bytes32 public constant REMOVE_PROTECTED_TOKEN_ROLE = 0x71eee93d500f6f065e38b27d242a756466a00a52a1dbcd6b4260f01a8640402a;
+
+    string private constant ERROR_TOKENS_CAP_REACHED = "POOL_TOKENS_CAP_REACHED";
     string private constant ERROR_TOKEN_NOT_ETH_OR_CONTRACT = "POOL_TOKEN_NOT_ETH_OR_CONTRACT";
-    string private constant ERROR_TOKEN_ALREADY_EXISTS = "POOL_TOKEN_ALREADY_EXISTS";
-    string private constant ERROR_TOKEN_DOES_NOT_EXIST = "POOL_TOKEN_DOES_NOT_EXIST";
-    string private constant ERROR_TARGET_IS_GUARDED = "POOL_TARGET_IS_GUARDED";
+    string private constant ERROR_TOKEN_ALREADY_PROTECTED = "POOL_TOKEN_ALREADY_PROTECTED";
+    string private constant ERROR_TOKEN_NOT_PROTECTED = "POOL_TOKEN_NOT_PROTECTED";
+    string private constant ERROR_TARGET_PROTECTED = "POOL_TARGET_PROTECTED";
+    string private constant ERROR_PROTECTED_TOKENS_MODIFIED = "POOL_PROTECTED_TOKENS_MODIFIED";
     string private constant ERROR_BALANCE_NOT_CONSTANT = "POOL_BALANCE_NOT_CONSTANT";
 
-    mapping (uint256 => address) public collateralTokens;
-    uint256 public collateralTokensLength;
+    uint256 public constant PROTECTED_TOKENS_CAP = 10;
+    address[] public protectedTokens;
 
     event SafeExecute(address indexed sender, address indexed target, bytes data);
-    event AddCollateralToken(address indexed token);
-    event RemoveCollateralToken(address indexed token);
+    event AddProtectedToken(address indexed token);
+    event RemoveProtectedToken(address indexed token);
 
     /***** external functions *****/
 
     /**
-    * @notice Safe execute '`@radspec(_target, _data)`' on `_target`
-    * @param _target Address where the action is being executed
-    * @param _data Calldata for the action
-    * @return Exits call frame forwarding the return data of the executed call (either error or success data)
+     * @notice Safe execute '`@radspec(_target, _data)`' on `_target`
+     * @param _target Address where the action is to be executed
+     * @param _data Calldata for the action to be executed
+     * @return Exits call frame forwarding the return data of the executed call [either error or success data]
     */
     function safeExecute(address _target, bytes _data) external auth(SAFE_EXECUTE_ROLE) {
-        uint256[] memory balances = new uint256[](collateralTokensLength);
+        address[] memory _protectedTokens = new address[](protectedTokens.length);
+        uint256[] memory balances = new uint256[](protectedTokens.length);
         bytes32 size;
         bytes32 ptr;
 
-        for (uint256 i = 0; i < collateralTokensLength; i++) {
-            address token = collateralTokens[i + 1];
-            // we don't care if target is ETH [0x00...] as it can't be spent anyhow and users may will to burn non-guarded tokens for some reason ...
-            require(token == ETH || token != _target, ERROR_TARGET_IS_GUARDED);
+        for (uint256 i = 0; i < protectedTokens.length; i++) {
+            address token = protectedTokens[i];
+            // we don't care if target is ETH [0x00...0] as it can't be spent anyhow [though you can't invoke anything at 0x00...0]
+            require(_target != token || token == ETH, ERROR_TARGET_PROTECTED);
+            // we copy the protected tokens array to check whether the storage array has been modified during the underlying call
+            _protectedTokens[i] = token;
+            // we copy the balances to check whether they have been modified during the underlying call
             balances[i] = balance(token);
         }
 
@@ -50,74 +66,88 @@ contract Pool is Agent {
         assembly {
             size := returndatasize
             ptr := mload(0x40)
-            // new "memory end" including padding
-            mstore(0x40, add(ptr, and(add(add(size, 0x20), 0x1f), not(0x1f))))
+            mstore(0x40, add(ptr, size))
             returndatacopy(ptr, 0, size)
         }
 
         if (result) {
-          for (uint256 j = 0; j < collateralTokensLength; j++) {
-              require(balances[j] == balance(collateralTokens[j + 1]), ERROR_BALANCE_NOT_CONSTANT);
-          }
+            // if the underlying call has succeeded, we check that the protected tokens
+            // and their balances have not been modified and return the call's return data
+            for (uint256 j = 0; j < _protectedTokens.length; j++) {
+                require(protectedTokens[j] == _protectedTokens[j], ERROR_PROTECTED_TOKENS_MODIFIED);
+                require(balances[j] == balance(_protectedTokens[j]), ERROR_BALANCE_NOT_CONSTANT);
+            }
+
             emit SafeExecute(msg.sender, _target, _data);
-        }
 
-        assembly {
-            // revert instead of invalid() bc if the underlying call failed with invalid() it already wasted gas.
-            // if the call returned error data, forward it
-            switch result case 0 { revert(ptr, size) }
-            default { return(ptr, size) }
+            assembly {
+                return(ptr, size)
+            }
+        } else {
+            // if the underlying call has failed, we revert and forward [possible] returned error data
+            assembly {
+                revert(ptr, size)
+            }
         }
     }
 
     /**
-    * @notice Add `_token.symbol(): string` as a collateral token to safeguard
-    * @param _token Address of collateral token
+     * @notice Add `_token.symbol(): string` to the list of protected tokens
+     * @param _token Address of the token to be protected
     */
-    function addCollateralToken(address _token) external auth(ADD_COLLATERAL_TOKEN_ROLE) {
-        require(_token == ETH || isContract(_token), ERROR_TOKEN_NOT_ETH_OR_CONTRACT);
-        require(collateralTokenIndex(_token) == 0, ERROR_TOKEN_ALREADY_EXISTS);
+    function addProtectedToken(address _token) external auth(ADD_PROTECTED_TOKEN_ROLE) {
+        require(protectedTokens.length < PROTECTED_TOKENS_CAP, ERROR_TOKENS_CAP_REACHED);
+        require(isContract(_token) || _token == ETH, ERROR_TOKEN_NOT_ETH_OR_CONTRACT);
+        require(!tokenIsProtected(_token), ERROR_TOKEN_ALREADY_PROTECTED);
 
-        _addCollateralToken(_token);
+        _addProtectedToken(_token);
     }
 
     /**
-    * @notice Remove `_token.symbol(): string` as a collateral token to safeguard
-    * @param _token Address of collateral token
+     * @notice Remove `_token.symbol(): string` from the list of protected tokens
+     * @param _token Address of the token to be unprotected
     */
-    function removeCollateralToken(address _token) external auth(REMOVE_COLLATERAL_TOKEN_ROLE) {
-      uint256 index = collateralTokenIndex(_token);
-      require(index != 0, ERROR_TOKEN_DOES_NOT_EXIST);
+    function removeProtectedToken(address _token) external auth(REMOVE_PROTECTED_TOKEN_ROLE) {
+        require(tokenIsProtected(_token), ERROR_TOKEN_NOT_PROTECTED);
 
-      _removeCollateralToken(index, _token);
+      _removeProtectedToken(_token);
     }
 
     /***** public functions *****/
 
-    function collateralTokenIndex(address _token) public view returns (uint256) {
-        for (uint i = 1; i <= collateralTokensLength; i++) {
-            if (collateralTokens[i] == _token) {
+    function tokenIsProtected(address _token) public view isInitialized returns (bool) {
+        for (uint256 i = 0; i < protectedTokens.length; i++) {
+            if (protectedTokens[i] == _token) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    function protectedTokenIndex(address _token) public view isInitialized returns (uint256) {
+        for (uint i = 0; i < protectedTokens.length; i++) {
+            if (protectedTokens[i] == _token) {
               return i;
             }
         }
 
-        return uint256(0);
+        revert(ERROR_TOKEN_NOT_PROTECTED);
     }
 
     /***** internal functions *****/
 
-    function _addCollateralToken(address _token) internal {
-        collateralTokensLength = collateralTokensLength + 1;
-        collateralTokens[collateralTokensLength] = _token;
+    function _addProtectedToken(address _token) internal {
+        protectedTokens.push(_token);
 
-        emit AddCollateralToken(_token);
+        emit AddProtectedToken(_token);
     }
 
-    function _removeCollateralToken(uint256 _index, address _token) internal {
-        collateralTokens[_index] = collateralTokens[collateralTokensLength];
-        collateralTokens[collateralTokensLength] = address(0);
-        collateralTokensLength = collateralTokensLength - 1;
+    function _removeProtectedToken(address _token) internal {
+        protectedTokens[protectedTokenIndex(_token)] = protectedTokens[protectedTokens.length - 1];
+        delete protectedTokens[protectedTokens.length - 1];
+        protectedTokens.length --;
 
-        emit RemoveCollateralToken(_token);
+        emit RemoveProtectedToken(_token);
     }
 }
