@@ -7,9 +7,7 @@ pragma solidity 0.4.24;
 import "@aragon/os/contracts/apps/AragonApp.sol";
 import "@aragon/os/contracts/common/SafeERC20.sol";
 import "@aragon/os/contracts/lib/token/ERC20.sol";
-
 import "@ablack/fundraising-interface-core/contracts/IMarketMakerController.sol";
-import { BancorMarketMaker } from "../../BancorMarketMaker.sol";
 
 
 contract SimpleMarketMakerController is IMarketMakerController, AragonApp {
@@ -19,8 +17,16 @@ contract SimpleMarketMakerController is IMarketMakerController, AragonApp {
         initialized();
     }
 
-    function balanceOf(address _who, address _token) public view returns (uint256) {
+    function tokensToHold(address _token) public view returns (uint256) {
          if (_token == ETH) {
+            return uint256(5);
+        } else {
+            return uint256(10);
+        }
+    }
+
+    function balanceOf(address _who, address _token) public view returns (uint256) {
+        if (_token == ETH) {
             return _who.balance;
         } else {
             return ERC20(_token).staticBalanceOf(_who);
