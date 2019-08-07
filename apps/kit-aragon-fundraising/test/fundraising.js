@@ -262,13 +262,14 @@ contract('FundraisingKit', accounts => {
         await checkRole(poolAddress, await pool.TRANSFER_ROLE(), votingAddress, 'Pool', 'TRANSFER_ROLE', marketMakerAddress)
 
         // tap
-        await checkRole(tapAddress, await tap.UPDATE_BENEFICIARY_ROLE(), multisigAddress, 'Tap', 'UPDATE_BENEFICIARY_ROLE')
+        await checkRole(tapAddress, await tap.UPDATE_BENEFICIARY_ROLE(), votingAddress, 'Tap', 'UPDATE_BENEFICIARY_ROLE', controllerAddress)
         await checkRole(tapAddress, await tap.UPDATE_MONTHLY_TAP_INCREASE_ROLE(), votingAddress, 'Tap', 'UPDATE_MONTHLY_TAP_INCREASE_ROLE', controllerAddress)
         await checkRole(tapAddress, await tap.ADD_TOKEN_TAP_ROLE(), votingAddress, 'Tap', 'ADD_TOKEN_TAP_ROLE', controllerAddress)
         await checkRole(tapAddress, await tap.UPDATE_TOKEN_TAP_ROLE(), votingAddress, 'Tap', 'UPDATE_TOKEN_TAP_ROLE', controllerAddress)
         await checkRole(tapAddress, await tap.WITHDRAW_ROLE(), multisigAddress, 'Tap', 'WITHDRAW_ROLE', controllerAddress)
 
         // controller
+        await checkRole(controllerAddress, await controller.UPDATE_BENEFICIARY_ROLE(), votingAddress, 'Controller', 'UPDATE_BENEFICIARY_ROLE', multisigAddress)
         await checkRole(controllerAddress, await controller.ADD_COLLATERAL_TOKEN_ROLE(), votingAddress, 'Controller', 'ADD_COLLATERAL_TOKEN_ROLE')
         await checkRole(controllerAddress, await controller.UPDATE_TOKEN_TAP_ROLE(), votingAddress, 'Controller', 'UPDATE_TOKEN_TAP_ROLE')
         await checkRole(controllerAddress, await controller.UPDATE_MONTHLY_TAP_INCREASE_ROLE(), votingAddress, 'Controller', 'UPDATE_MONTHLY_TAP_INCREASE_ROLE')
@@ -293,6 +294,15 @@ contract('FundraisingKit', accounts => {
           'UPDATE_COLLATERAL_TOKEN_ROLE',
           controllerAddress
         )
+        await checkRole(
+          controllerAddress,
+          await marketMaker.UPDATE_BENEFICIARY_ROLE(),
+          votingAddress,
+          'MarketMaker',
+          'UPDATE_BENEFICIARY_ROLE',
+          multisigAddress
+        )
+
         await checkRole(marketMakerAddress, await marketMaker.UPDATE_FEES_ROLE(), votingAddress, 'Controller', 'UPDATE_FEES_ROLE', controllerAddress)
 
         await checkRole(marketMakerAddress, await marketMaker.CREATE_BUY_ORDER_ROLE(), votingAddress, 'Controller', 'CREATE_BUY_ORDER_ROLE', controllerAddress)

@@ -202,13 +202,14 @@ contract FundraisingKit is APMNamehash, IsContract, KitBase {
         acl.createBurnedPermission(voting, voting.MODIFY_SUPPORT_ROLE());
 
         // Tap
-        acl.createPermission(multisig, tap, tap.UPDATE_BENEFICIARY_ROLE(), multisig);
+        acl.createPermission(controller, tap, tap.UPDATE_BENEFICIARY_ROLE(), voting);
         acl.createPermission(controller, tap, tap.UPDATE_MONTHLY_TAP_INCREASE_ROLE(), voting);
         acl.createPermission(controller, tap, tap.ADD_TOKEN_TAP_ROLE(), voting);
         acl.createPermission(controller, tap, tap.UPDATE_TOKEN_TAP_ROLE(), voting);
         acl.createPermission(controller, tap, tap.WITHDRAW_ROLE(), multisig);
 
         // BancorMarketMaker
+        acl.createPermission(controller, marketMaker, marketMaker.UPDATE_BENEFICIARY_ROLE(), voting);
         acl.createPermission(controller, marketMaker, marketMaker.ADD_COLLATERAL_TOKEN_ROLE(), voting);
         acl.createPermission(controller, marketMaker, marketMaker.UPDATE_COLLATERAL_TOKEN_ROLE(), voting);
         acl.createPermission(controller, marketMaker, marketMaker.UPDATE_FEES_ROLE(), voting);
@@ -224,6 +225,7 @@ contract FundraisingKit is APMNamehash, IsContract, KitBase {
 
         // Controller
         acl.createPermission(this, controller, controller.ADD_COLLATERAL_TOKEN_ROLE(), this);
+        acl.createPermission(multisig, controller, controller.UPDATE_BENEFICIARY_ROLE(), voting);
         acl.createPermission(voting, controller, controller.UPDATE_TOKEN_TAP_ROLE(), voting);
         acl.createPermission(voting, controller, controller.UPDATE_MONTHLY_TAP_INCREASE_ROLE(), voting);
         acl.createPermission(address(-1), controller, controller.CREATE_BUY_ORDER_ROLE(), voting);

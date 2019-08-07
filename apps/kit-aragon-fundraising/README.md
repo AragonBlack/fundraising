@@ -26,7 +26,7 @@ The fundraising kit relies on two category of actors: the project managers and t
 | Token Manager (BON) | BURN                        | MarketMaker         | Voting (BON) |
 | Voting (BON)        | CREATE_VOTES                | Token Manager (BON) | Voting (BON) |
 | Voting (BON)        | MODIFY_QUORUM               | Voting (BON)        | Voting (BON) |
-| Tap                 | UPDATE_BENEFICIARY          | Voting (PRO)        | Voting (PRO) |
+| Tap                 | UPDATE_BENEFICIARY          | Controller          | Voting (BON) |
 | Tap                 | UPDATE_MONTHLY_TAP_INCREASE | Controller          | Voting (BON) |
 | Tap                 | ADD_TOKEN_TAP               | Controller          | Voting (BON) |
 | Tap                 | UPDATE_TOKEN_TAP            | Controller          | Voting (BON) |
@@ -34,11 +34,13 @@ The fundraising kit relies on two category of actors: the project managers and t
 | Pool                | SAFE_EXECUTE                | Voting (BON)        | Voting (BON) |
 | Pool                | ADD_COLLATERAL_TOKEN        | Controller          | Voting (BON) |
 | Pool                | TRANSFER                    | Tap, Controller     | Voting (BON) |
+| MarketMaker         | UPDATE_BENEFICIARY          | Controller          | Voting (BON) |
 | MarketMaket         | ADD_COLLATERAL_TOKEN        | Controller          | Voting (BON) |
 | MarketMaket         | UPDATE_COLLATERAL_TOKEN     | Controller          | Voting (BON) |
 | MarketMaket         | UPDATE_FEE                  | Controller          | Voting (BON) |
 | MarketMaket         | CREATE_BUY_ORDER            | Controller          | Voting (BON) |
 | MarketMaket         | CREATE_SELL_ORDER           | Controller          | Voting (BON) |
+| Controller          | UPDATE_BENEFICIARY          | Voting (PRO)        | Voting (BON) |
 | Controller          | ADD_COLLATERAL_TOKEN        | Voting (BON)        | Voting (BON) |
 | Controller          | UPDATE_TOKEN_TAP            | Voting (BON)        | Voting (BON) |
 | Controller          | UPDATE_MONTHLY_TAP_INCREASE | Voting (BON)        | Voting (BON) |
