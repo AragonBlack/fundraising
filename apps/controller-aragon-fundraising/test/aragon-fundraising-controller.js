@@ -4,7 +4,7 @@ const blockNumber = require('@aragon/test-helpers/blockNumber')(web3)
 const timeTravel = require('@aragon/test-helpers/timeTravel')(web3)
 const { hash } = require('eth-ens-namehash')
 const sha3 = require('js-sha3').keccak_256
-const coder = require('web3/lib/solidity/coder.js')
+const AllEvents = require('web3/lib/web3/allevents')
 
 const Kernel = artifacts.require('Kernel')
 const ACL = artifacts.require('ACL')
@@ -16,7 +16,7 @@ const Vault = artifacts.require('Vault')
 const Pool = artifacts.require('Pool')
 const Tap = artifacts.require('Tap')
 const Formula = artifacts.require('BancorFormula')
-const MarketMaker = artifacts.require('BancorMarketMaker')
+const MarketMaker = artifacts.require('BatchedBancorMarketMaker')
 const Controller = artifacts.require('AragonFundraisingController')
 
 const EtherTokenConstantMock = artifacts.require('EtherTokenConstantMock')
@@ -49,8 +49,16 @@ const randomReserveRatio = () => {
   return Math.floor(Math.random() * 999999) + 1
 }
 
+const randomSlippage = () => {
+  return Math.floor(Math.random() * 1000000000000000000) + 1
+}
+
 const randomTap = () => {
   return Math.floor(Math.random() * 999) + 1
+}
+
+const randomFloor = () => {
+  return Math.floor(Math.random() * 999999) + 1
 }
 
 contract('AragonFundraisingController app', accounts => {
@@ -61,23 +69,29 @@ contract('AragonFundraisingController app', accounts => {
     APP_MANAGER_ROLE,
     TM_MINT_ROLE,
     TM_BURN_ROLE,
-    POOL_ADD_COLLATERAL_TOKEN_ROLE,
+    POOL_ADD_PROTECTED_TOKEN_ROLE,
+    // POOL_REMOVE_PROTECTED_TOKEN_ROLE,
     POOL_TRANSFER_ROLE,
     MM_UPDATE_FEES_ROLE,
     MM_UPDATE_BENEFICIARY_ROLE,
     MM_ADD_COLLATERAL_TOKEN_ROLE,
-    MM_CREATE_BUY_ORDER_ROLE,
-    MM_CREATE_SELL_ORDER_ROLE,
+    MM_REMOVE_COLLATERAL_TOKEN_ROLE,
+    MM_UPDATE_COLLATERAL_TOKEN_ROLE,
+    MM_OPEN_BUY_ORDER_ROLE,
+    MM_OPEN_SELL_ORDER_ROLE,
     TAP_UPDATE_BENEFICIARY_ROLE,
-    TAP_ADD_TOKEN_TAP_ROLE,
-    TAP_UPDATE_TOKEN_TAP_ROLE,
-    TAP_UPDATE_MONTHLY_TAP_INCREASE_ROLE,
+    TAP_ADD_TAPPED_TOKEN_ROLE,
+    // TAP_REMOVE_TAPPED_TOKEN_ROLE,
+    TAP_UPDATE_TAPPED_TOKEN_ROLE,
+    TAP_UPDATE_MAXIMUM_TAP_INCREASE_PCT_ROLE,
     TAP_WITHDRAW_ROLE,
-    CONTROLLER_UPDATE_FEES_ROLE,
     CONTROLLER_UPDATE_BENEFICIARY_ROLE,
+    CONTROLLER_UPDATE_FEES_ROLE,
+    CONTROLLER_UPDATE_MAXIMUM_TAP_INCREASE_PCT_ROLE,
     CONTROLLER_ADD_COLLATERAL_TOKEN_ROLE,
+    CONTROLLER_REMOVE_COLLATERAL_TOKEN_ROLE,
+    CONTROLLER_UPDATE_COLLATERAL_TOKEN_ROLE,
     CONTROLLER_UPDATE_TOKEN_TAP_ROLE,
-    CONTROLLER_UPDATE_MONTHLY_TAP_INCREASE_ROLE,
     CONTROLLER_CREATE_BUY_ORDER_ROLE,
     CONTROLLER_CREATE_SELL_ORDER_ROLE,
     CONTROLLER_WITHDRAW_ROLE
@@ -89,13 +103,19 @@ contract('AragonFundraisingController app', accounts => {
   const MARKET_MAKER_ID = hash('bancor-market-maker.aragonpm.eth')
   const FUNDRAISING_CONTROLLER_ID = hash('fundraising-controller.aragonpm.eth')
 
+  const PPM = 1000000
+
   const INITIAL_ETH_BALANCE = 500
   const INITIAL_TOKEN_BALANCE = 1000
-  const MAX_MONTHLY_TAP_INCREASE_RATE = 50 * Math.pow(10, 16)
+  const MAXIMUM_TAP_INCREASE_PCT = 50 * Math.pow(10, 16)
 
   const BLOCKS_IN_BATCH = 10
   const BUY_FEE_PERCENT = 100000000000000000 // 1%
   const SELL_FEE_PERCENT = 100000000000000000
+
+  const VIRTUAL_SUPPLIES = [10 * Math.pow(10, 18), 100 * Math.pow(10, 18)]
+  const VIRTUAL_BALANCES = [1 * Math.pow(10, 18), 1 * Math.pow(10, 18)]
+  const RESERVE_RATIOS = [(PPM * 10) / 100, (PPM * 1) / 100]
 
   const root = accounts[0]
   const authorized = accounts[1]
@@ -132,22 +152,26 @@ contract('AragonFundraisingController app', accounts => {
     await acl.createPermission(marketMaker.address, tokenManager.address, TM_BURN_ROLE, root, { from: root })
     await acl.createPermission(marketMaker.address, pool.address, POOL_TRANSFER_ROLE, root, { from: root })
     await acl.grantPermission(tap.address, pool.address, POOL_TRANSFER_ROLE, { from: root })
-    await acl.createPermission(controller.address, pool.address, POOL_ADD_COLLATERAL_TOKEN_ROLE, root, { from: root })
+    await acl.createPermission(controller.address, pool.address, POOL_ADD_PROTECTED_TOKEN_ROLE, root, { from: root })
     await acl.createPermission(controller.address, tap.address, TAP_UPDATE_BENEFICIARY_ROLE, root, { from: root })
-    await acl.createPermission(controller.address, tap.address, TAP_ADD_TOKEN_TAP_ROLE, root, { from: root })
-    await acl.createPermission(controller.address, tap.address, TAP_UPDATE_TOKEN_TAP_ROLE, root, { from: root })
-    await acl.createPermission(controller.address, tap.address, TAP_UPDATE_MONTHLY_TAP_INCREASE_ROLE, root, { from: root })
+    await acl.createPermission(controller.address, tap.address, TAP_ADD_TAPPED_TOKEN_ROLE, root, { from: root })
+    await acl.createPermission(controller.address, tap.address, TAP_UPDATE_TAPPED_TOKEN_ROLE, root, { from: root })
+    await acl.createPermission(controller.address, tap.address, TAP_UPDATE_MAXIMUM_TAP_INCREASE_PCT_ROLE, root, { from: root })
     await acl.createPermission(controller.address, tap.address, TAP_WITHDRAW_ROLE, root, { from: root })
     await acl.createPermission(controller.address, marketMaker.address, MM_UPDATE_FEES_ROLE, root, { from: root })
     await acl.createPermission(controller.address, marketMaker.address, MM_UPDATE_BENEFICIARY_ROLE, root, { from: root })
     await acl.createPermission(controller.address, marketMaker.address, MM_ADD_COLLATERAL_TOKEN_ROLE, root, { from: root })
-    await acl.createPermission(controller.address, marketMaker.address, MM_CREATE_BUY_ORDER_ROLE, root, { from: root })
-    await acl.createPermission(controller.address, marketMaker.address, MM_CREATE_SELL_ORDER_ROLE, root, { from: root })
-    await acl.createPermission(authorized, controller.address, CONTROLLER_UPDATE_FEES_ROLE, root, { from: root })
+    await acl.createPermission(controller.address, marketMaker.address, MM_REMOVE_COLLATERAL_TOKEN_ROLE, root, { from: root })
+    await acl.createPermission(controller.address, marketMaker.address, MM_UPDATE_COLLATERAL_TOKEN_ROLE, root, { from: root })
+    await acl.createPermission(controller.address, marketMaker.address, MM_OPEN_BUY_ORDER_ROLE, root, { from: root })
+    await acl.createPermission(controller.address, marketMaker.address, MM_OPEN_SELL_ORDER_ROLE, root, { from: root })
     await acl.createPermission(authorized, controller.address, CONTROLLER_UPDATE_BENEFICIARY_ROLE, root, { from: root })
+    await acl.createPermission(authorized, controller.address, CONTROLLER_UPDATE_FEES_ROLE, root, { from: root })
+    await acl.createPermission(authorized, controller.address, CONTROLLER_UPDATE_MAXIMUM_TAP_INCREASE_PCT_ROLE, root, { from: root })
     await acl.createPermission(authorized, controller.address, CONTROLLER_ADD_COLLATERAL_TOKEN_ROLE, root, { from: root })
+    await acl.createPermission(authorized, controller.address, CONTROLLER_REMOVE_COLLATERAL_TOKEN_ROLE, root, { from: root })
+    await acl.createPermission(authorized, controller.address, CONTROLLER_UPDATE_COLLATERAL_TOKEN_ROLE, root, { from: root })
     await acl.createPermission(authorized, controller.address, CONTROLLER_UPDATE_TOKEN_TAP_ROLE, root, { from: root })
-    await acl.createPermission(authorized, controller.address, CONTROLLER_UPDATE_MONTHLY_TAP_INCREASE_ROLE, root, { from: root })
     await acl.createPermission(authorized, controller.address, CONTROLLER_CREATE_BUY_ORDER_ROLE, root, { from: root })
     await acl.createPermission(authorized, controller.address, CONTROLLER_CREATE_SELL_ORDER_ROLE, root, { from: root })
     await acl.createPermission(authorized, controller.address, CONTROLLER_WITHDRAW_ROLE, root, { from: root })
@@ -160,7 +184,7 @@ contract('AragonFundraisingController app', accounts => {
     await tokenManager.initialize(token.address, true, 0)
     await vault.initialize()
     await pool.initialize()
-    await tap.initialize(pool.address, vault.address, MAX_MONTHLY_TAP_INCREASE_RATE)
+    await tap.initialize(controller.address, pool.address, vault.address, BLOCKS_IN_BATCH, MAXIMUM_TAP_INCREASE_PCT)
     await controller.initialize(marketMaker.address, pool.address, tap.address)
     await marketMaker.initialize(
       controller.address,
@@ -180,37 +204,43 @@ contract('AragonFundraisingController app', accounts => {
     return new web3.BigNumber(Math.floor(Math.random() * Math.floor(INITIAL_TOKEN_BALANCE / 3)) + 1)
   }
 
-  const getBuyOrderBatchId = tx => {
-    const events = tx.receipt.logs.filter(l => {
-      return l.topics[0] === '0x' + sha3('NewBuyOrder(address,address,uint256,uint256)')
-    })
-    const data = coder.decodeParams(['uint256', 'uint256'], events[0].data.replace('0x', ''))
+  const decodeEventsForContract = (contract, receipt) => {
+    const ae = new AllEvents(contract._web3, contract.abi, contract.address)
 
-    return data[1]
+    // ae.decode mutates the args, so we deep copy
+    return JSON.parse(JSON.stringify(receipt))
+      .logs.filter(l => l.address === contract.address)
+      .map(l => ae.decode(l))
+  }
+
+  const getBuyOrderBatchId = tx => {
+    const events = decodeEventsForContract(marketMaker, tx.receipt)
+    const event = events.filter(l => {
+      return l.event === 'NewBuyOrder'
+    })[0]
+
+    return event.args.batchId
   }
 
   const getSellOrderBatchId = tx => {
-    const events = tx.receipt.logs.filter(l => {
-      return l.topics[0] === '0x' + sha3('NewSellOrder(address,address,uint256,uint256)')
-    })
-    const data = coder.decodeParams(['uint256', 'uint256'], events[0].data.replace('0x', ''))
+    const events = decodeEventsForContract(marketMaker, tx.receipt)
+    const event = events.filter(l => {
+      return l.event === 'NewSellOrder'
+    })[0]
 
-    return data[1]
+    return event.args.batchId
   }
 
-  const createAndClaimBuyOrder = async ({ address, collateralToken, amount, from }) => {
-    from = from || address
+  const openAndClaimBuyOrder = async (collateral, amount, { from } = {}) => {
     // create buy order
-    const receipt = await controller.createBuyOrder(collateralToken, amount, { from, value: collateralToken === ETH ? amount : 0 })
+    const receipt = await controller.openBuyOrder(collateral, amount, { from, value: collateral === ETH ? amount : 0 })
     const batchId = getBuyOrderBatchId(receipt)
     // move to next batch
     await progressToNextBatch()
-    // clear batch
-    await controller.clearBatches()
     // claim bonds
-    await controller.claimBuy(collateralToken, batchId, { from: address })
+    await controller.claimBuyOrder(batchId, collateral, { from })
     // return balance
-    const balance = await token.balanceOf(address)
+    const balance = await token.balanceOf(from)
 
     return balance
   }
@@ -250,6 +280,17 @@ contract('AragonFundraisingController app', accounts => {
     return forceSend.sendByDying(to, { value })
   }
 
+  const addCollateralToken = async (token, { virtualSupply, virtualBalance, reserveRatio, slippage, tap, floor } = {}) => {
+    virtualSupply = virtualSupply || randomVirtualSupply()
+    virtualBalance = virtualBalance || randomVirtualBalance()
+    reserveRatio = reserveRatio || randomReserveRatio()
+    slippage = slippage || randomSlippage()
+    tap = tap || randomTap()
+    floor = typeof floor !== 'undefined' ? floor : randomFloor()
+
+    return controller.addCollateralToken(token, virtualSupply, virtualBalance, reserveRatio, slippage, tap, floor, { from: authorized })
+  }
+
   before(async () => {
     // factory
     const kBase = await Kernel.new(true) // petrify immediately
@@ -269,23 +310,29 @@ contract('AragonFundraisingController app', accounts => {
     APP_MANAGER_ROLE = await kBase.APP_MANAGER_ROLE()
     TM_MINT_ROLE = await tmBase.MINT_ROLE()
     TM_BURN_ROLE = await tmBase.BURN_ROLE()
-    POOL_ADD_COLLATERAL_TOKEN_ROLE = await pBase.ADD_COLLATERAL_TOKEN_ROLE()
+    POOL_ADD_PROTECTED_TOKEN_ROLE = await pBase.ADD_PROTECTED_TOKEN_ROLE()
+    POOL_REMOVE_PROTECTED_TOKEN_ROLE = await pBase.REMOVE_PROTECTED_TOKEN_ROLE()
     POOL_TRANSFER_ROLE = await pBase.TRANSFER_ROLE()
     TAP_UPDATE_BENEFICIARY_ROLE = await tBase.UPDATE_BENEFICIARY_ROLE()
-    TAP_ADD_TOKEN_TAP_ROLE = await tBase.ADD_TOKEN_TAP_ROLE()
-    TAP_UPDATE_TOKEN_TAP_ROLE = await tBase.UPDATE_TOKEN_TAP_ROLE()
-    TAP_UPDATE_MONTHLY_TAP_INCREASE_ROLE = await tBase.UPDATE_MONTHLY_TAP_INCREASE_ROLE()
+    TAP_ADD_TAPPED_TOKEN_ROLE = await tBase.ADD_TAPPED_TOKEN_ROLE()
+    TAP_REMOVE_TAPPED_TOKEN_ROLE = await tBase.REMOVE_TAPPED_TOKEN_ROLE()
+    TAP_UPDATE_TAPPED_TOKEN_ROLE = await tBase.UPDATE_TAPPED_TOKEN_ROLE()
+    TAP_UPDATE_MAXIMUM_TAP_INCREASE_PCT_ROLE = await tBase.UPDATE_MAXIMUM_TAP_INCREASE_PCT_ROLE()
     TAP_WITHDRAW_ROLE = await tBase.WITHDRAW_ROLE()
     MM_UPDATE_FEES_ROLE = await mmBase.UPDATE_FEES_ROLE()
     MM_UPDATE_BENEFICIARY_ROLE = await mmBase.UPDATE_BENEFICIARY_ROLE()
     MM_ADD_COLLATERAL_TOKEN_ROLE = await mmBase.ADD_COLLATERAL_TOKEN_ROLE()
-    MM_CREATE_BUY_ORDER_ROLE = await mmBase.CREATE_BUY_ORDER_ROLE()
-    MM_CREATE_SELL_ORDER_ROLE = await mmBase.CREATE_SELL_ORDER_ROLE()
-    CONTROLLER_UPDATE_FEES_ROLE = await cBase.UPDATE_FEES_ROLE()
+    MM_REMOVE_COLLATERAL_TOKEN_ROLE = await mmBase.REMOVE_COLLATERAL_TOKEN_ROLE()
+    MM_UPDATE_COLLATERAL_TOKEN_ROLE = await mmBase.UPDATE_COLLATERAL_TOKEN_ROLE()
+    MM_OPEN_BUY_ORDER_ROLE = await mmBase.OPEN_BUY_ORDER_ROLE()
+    MM_OPEN_SELL_ORDER_ROLE = await mmBase.OPEN_SELL_ORDER_ROLE()
     CONTROLLER_UPDATE_BENEFICIARY_ROLE = await cBase.UPDATE_BENEFICIARY_ROLE()
+    CONTROLLER_UPDATE_FEES_ROLE = await cBase.UPDATE_FEES_ROLE()
+    CONTROLLER_UPDATE_MAXIMUM_TAP_INCREASE_PCT_ROLE = await cBase.UPDATE_MAXIMUM_TAP_INCREASE_PCT_ROLE()
     CONTROLLER_ADD_COLLATERAL_TOKEN_ROLE = await cBase.ADD_COLLATERAL_TOKEN_ROLE()
+    CONTROLLER_REMOVE_COLLATERAL_TOKEN_ROLE = await cBase.REMOVE_COLLATERAL_TOKEN_ROLE()
+    CONTROLLER_UPDATE_COLLATERAL_TOKEN_ROLE = await cBase.UPDATE_COLLATERAL_TOKEN_ROLE()
     CONTROLLER_UPDATE_TOKEN_TAP_ROLE = await cBase.UPDATE_TOKEN_TAP_ROLE()
-    CONTROLLER_UPDATE_MONTHLY_TAP_INCREASE_ROLE = await cBase.UPDATE_MONTHLY_TAP_INCREASE_ROLE()
     CONTROLLER_CREATE_BUY_ORDER_ROLE = await cBase.CREATE_BUY_ORDER_ROLE()
     CONTROLLER_CREATE_SELL_ORDER_ROLE = await cBase.CREATE_SELL_ORDER_ROLE()
     CONTROLLER_WITHDRAW_ROLE = await cBase.WITHDRAW_ROLE()
@@ -297,15 +344,15 @@ contract('AragonFundraisingController app', accounts => {
 
   // #region initialize
   context('> #initialize', () => {
-    context('> initialization parameters are correct', () => {
-      it('it should initialize aragon fundraising controller', async () => {
+    context('> initialization parameters are valid', () => {
+      it('it should initialize controller', async () => {
         assert.equal(await controller.marketMaker(), marketMaker.address)
         assert.equal(await controller.reserve(), pool.address)
         assert.equal(await controller.tap(), tap.address)
       })
     })
 
-    context('> initialization parameters are not correct', () => {
+    context('> initialization parameters are not valid', () => {
       it('it should revert [market maker is not a contract]', async () => {
         const cReceipt = await dao.newAppInstance(FUNDRAISING_CONTROLLER_ID, cBase.address, '0x', false)
         const uninitialized = await Controller.at(getEvent(cReceipt, 'NewAppProxy', 'proxy'))
@@ -334,24 +381,6 @@ contract('AragonFundraisingController app', accounts => {
   })
   // #endregion
 
-  // #region updateFees
-  context('> #updateFees', () => {
-    context('> sender has UPDATE_FEES_ROLE', () => {
-      it('it should update fees', async () => {
-        const receipt = await controller.updateFees(BUY_FEE_PERCENT - 10, SELL_FEE_PERCENT + 1, { from: authorized })
-
-        assertExternalEvent(receipt, 'UpdateFees(uint256,uint256)')
-      })
-    })
-
-    context('> sender does not have UPDATE_FEES_ROLE', () => {
-      it('it should revert', async () => {
-        await assertRevert(() => controller.updateFees(BUY_FEE_PERCENT - 10, SELL_FEE_PERCENT + 1, { from: unauthorized }))
-      })
-    })
-  })
-  // #endregion
-
   // #region updateBeneficiary
   context('> #updateBeneficiary', () => {
     context('> sender has UPDATE_BENEFICIARY_ROLE', () => {
@@ -372,45 +401,188 @@ contract('AragonFundraisingController app', accounts => {
   })
   // #endregion
 
+  // #region updateFees
+  context('> #updateFees', () => {
+    context('> sender has UPDATE_FEES_ROLE', () => {
+      it('it should update fees', async () => {
+        const receipt = await controller.updateFees(5, 7, { from: authorized })
+
+        assertExternalEvent(receipt, 'UpdateFees(uint256,uint256)')
+        assert.equal((await marketMaker.buyFeePct()).toNumber(), 5)
+        assert.equal((await marketMaker.sellFeePct()).toNumber(), 7)
+      })
+    })
+
+    context('> sender does not have UPDATE_FEES_ROLE', () => {
+      it('it should revert', async () => {
+        await assertRevert(() => controller.updateFees(5, 7, { from: unauthorized }))
+      })
+    })
+  })
+  // #endregion
+
+  // #region updateMaximumTapIncreasePct
+  context('> #updateMaximumTapIncreasePct', () => {
+    context('> sender has UPDATE_MAXIMUM_TAP_INCREASE_PCT_ROLE', () => {
+      it('it should update maximum tap increase percentage', async () => {
+        const receipt = await controller.updateMaximumTapIncreasePct(70 * Math.pow(10, 16), { from: authorized })
+
+        assertExternalEvent(receipt, 'UpdateMaximumTapIncreasePct(uint256)') // tap
+      })
+    })
+
+    context('> sender does not have UPDATE_MAXIMUM_TAP_INCREASE_PCT_ROLE', () => {
+      it('it should revert', async () => {
+        await assertRevert(() => controller.updateMaximumTapIncreasePct(70 * Math.pow(10, 16), { from: unauthorized }))
+      })
+    })
+  })
+  // #endregion
+
   // #region addCollateralToken
   context('> #addCollateralToken', () => {
     context('> sender has ADD_COLLATERAL_TOKEN_ROLE', () => {
       it('it should add collateral token', async () => {
-        const receipt = await controller.addCollateralToken(token1.address, randomVirtualSupply(), randomVirtualBalance(), randomReserveRatio(), randomTap(), {
-          from: authorized,
-        })
+        const receipt1 = await controller.addCollateralToken(
+          token1.address,
+          randomVirtualSupply(),
+          randomVirtualBalance(),
+          randomReserveRatio(),
+          randomSlippage(),
+          randomTap(),
+          randomFloor(),
+          {
+            from: authorized,
+          }
+        )
 
-        assertExternalEvent(receipt, 'AddTokenTap(address,uint256)') // tap
-        assertExternalEvent(receipt, 'AddCollateralToken(address)') // pool
-        assertExternalEvent(receipt, 'AddCollateralToken(address,uint256,uint256,uint32)') // market maker
+        const receipt2 = await controller.addCollateralToken(
+          ETH,
+          randomVirtualSupply(),
+          randomVirtualBalance(),
+          randomReserveRatio(),
+          randomSlippage(),
+          randomTap(),
+          randomFloor(),
+          {
+            from: authorized,
+          }
+        )
+
+        assertExternalEvent(receipt1, 'AddCollateralToken(address,uint256,uint256,uint32,uint256)') // market maker
+        assertExternalEvent(receipt1, 'AddTappedToken(address,uint256,uint256)') // tap
+        assertExternalEvent(receipt1, 'AddProtectedToken(address)') // pool
+
+        assertExternalEvent(receipt2, 'AddCollateralToken(address,uint256,uint256,uint32,uint256)') // market maker
+        assertExternalEvent(receipt2, 'AddTappedToken(address,uint256,uint256)') // tap
+        assertExternalEvent(receipt2, 'AddProtectedToken(address)', 0) // ETH should not be added as a protected token into the pool
       })
     })
 
     context('> sender does not have ADD_COLLATERAL_TOKEN_ROLE', () => {
       it('it should revert', async () => {
         await assertRevert(() =>
-          controller.addCollateralToken(token1.address, randomVirtualSupply(), randomVirtualBalance(), randomReserveRatio(), randomTap(), {
-            from: unauthorized,
-          })
+          controller.addCollateralToken(
+            token1.address,
+            randomVirtualSupply(),
+            randomVirtualBalance(),
+            randomReserveRatio(),
+            randomSlippage(),
+            randomTap(),
+            randomFloor(),
+            {
+              from: unauthorized,
+            }
+          )
         )
       })
     })
   })
   // #endregion
 
-  // #region updateMaxMonthlyTapIncreaseRate
-  context('> #updateMaxMonthlyTapIncreasePct', () => {
-    context('> sender has UPDATE_MONTHLY_TAP_INCREASE_ROLE', () => {
-      it('it should update maximum monthly tap increase rate', async () => {
-        const receipt = await controller.updateMaxMonthlyTapIncreasePct(70 * Math.pow(10, 16), { from: authorized })
+  // #region removeCollateralToken
+  context('> #removeCollateralToken', () => {
+    beforeEach(async () => {
+      await controller.addCollateralToken(
+        token1.address,
+        randomVirtualSupply(),
+        randomVirtualBalance(),
+        randomReserveRatio(),
+        randomSlippage(),
+        randomTap(),
+        randomFloor(),
+        {
+          from: authorized,
+        }
+      )
 
-        assertExternalEvent(receipt, 'UpdateMaxMonthlyTapIncreasePct(uint256)') // tap
+      await controller.addCollateralToken(
+        ETH,
+        randomVirtualSupply(),
+        randomVirtualBalance(),
+        randomReserveRatio(),
+        randomSlippage(),
+        randomTap(),
+        randomFloor(),
+        {
+          from: authorized,
+        }
+      )
+    })
+
+    context('> sender has REMOVE_COLLATERAL_TOKEN_ROLE', () => {
+      it('it should remove collateral token', async () => {
+        const receipt1 = await controller.removeCollateralToken(token1.address, { from: authorized })
+        const receipt2 = await controller.removeCollateralToken(ETH, { from: authorized })
+
+        assertExternalEvent(receipt1, 'RemoveCollateralToken(address)') // market maker
+        assertExternalEvent(receipt2, 'RemoveCollateralToken(address)') // market maker
       })
     })
 
-    context('> sender does not have UPDATE_MONTHLY_TAP_INCREASE_ROLE', () => {
+    context('> sender does not have REMOVE_COLLATERAL_TOKEN_ROLE', () => {
       it('it should revert', async () => {
-        await assertRevert(() => controller.updateMaxMonthlyTapIncreasePct(70 * Math.pow(10, 16), { from: unauthorized }))
+        controller.removeCollateralToken(token1.address, { from: authorized })
+      })
+    })
+  })
+  // #endregion
+
+  // #region updateCollateralToken
+  context('> #updateCollateralToken', () => {
+    context('> sender has UPDATE_COLLATERAL_TOKEN_ROLE', () => {
+      beforeEach(async () => {
+        await controller.addCollateralToken(
+          token1.address,
+          randomVirtualSupply(),
+          randomVirtualBalance(),
+          randomReserveRatio(),
+          randomSlippage(),
+          randomTap(),
+          randomFloor(),
+          {
+            from: authorized,
+          }
+        )
+      })
+
+      it('it should update collateral token', async () => {
+        const receipt = await controller.updateCollateralToken(
+          token1.address,
+          randomVirtualSupply(),
+          randomVirtualBalance(),
+          randomReserveRatio(),
+          randomSlippage(),
+          { from: authorized }
+        )
+
+        assertExternalEvent(receipt, 'UpdateCollateralToken(address,uint256,uint256,uint32,uint256)') // market maker
+      })
+    })
+
+    context('> sender does not have UPDATE_COLLATERAL_TOKEN_ROLE', () => {
+      it('it should revert', async () => {
+        await assertRevert(() => controller.updateTokenTap(token1.address, randomTap(), randomFloor(), { from: unauthorized }))
       })
     })
   })
@@ -419,22 +591,33 @@ contract('AragonFundraisingController app', accounts => {
   // #region updateTokenTap
   context('> #updateTokenTap', () => {
     context('> sender has UPDATE_TOKEN_TAP_ROLE', () => {
+      beforeEach(async () => {
+        await controller.addCollateralToken(
+          token1.address,
+          randomVirtualSupply(),
+          randomVirtualBalance(),
+          randomReserveRatio(),
+          randomSlippage(),
+          randomTap(),
+          randomFloor(),
+          {
+            from: authorized,
+          }
+        )
+
+        await timeTravel(2592001) // 1 month = 2592000 seconds
+      })
+
       it('it should update token tap', async () => {
-        await controller.addCollateralToken(token1.address, randomVirtualSupply(), randomVirtualBalance(), randomReserveRatio(), 10, { from: authorized })
-        await timeTravel(2592000) // 1 month = 2592000 seconds
+        const receipt = await controller.updateTokenTap(token1.address, randomTap(), randomFloor(), { from: authorized })
 
-        const receipt = await controller.updateTokenTap(token1.address, 14, { from: authorized })
-
-        assertExternalEvent(receipt, 'UpdateTokenTap(address,uint256)') // tap
+        assertExternalEvent(receipt, 'UpdateTappedToken(address,uint256,uint256)') // tap
       })
     })
 
     context('> sender does not have UPDATE_TOKEN_TAP_ROLE', () => {
       it('it should revert', async () => {
-        await controller.addCollateralToken(token1.address, randomVirtualSupply(), randomVirtualBalance(), randomReserveRatio(), 10, { from: authorized })
-        await timeTravel(2592000) // 1 month = 2592000 seconds
-
-        await assertRevert(() => controller.updateTokenTap(token1.address, 14, { from: unauthorized }))
+        await assertRevert(() => controller.updateTokenTap(token1.address, randomTap(), randomFloor(), { from: unauthorized }))
       })
     })
   })
@@ -442,28 +625,29 @@ contract('AragonFundraisingController app', accounts => {
 
   // #region withdraw
   context('> #withdraw', () => {
+    beforeEach(async () => {
+      await forceSendETH(pool.address, INITIAL_ETH_BALANCE)
+      await token1.transfer(pool.address, INITIAL_TOKEN_BALANCE, { from: authorized })
+
+      await controller.addCollateralToken(ETH, randomVirtualSupply(), randomVirtualBalance(), randomReserveRatio(), randomSlippage(), 10, 0, {
+        from: authorized,
+      })
+
+      await controller.addCollateralToken(token1.address, randomVirtualSupply(), randomVirtualBalance(), randomReserveRatio(), randomSlippage(), 10, 0, {
+        from: authorized,
+      })
+
+      await increaseBlocks(1000)
+    })
+
     context('> sender has WITHDRAW_ROLE', () => {
-      it('it should transfer funds from the reserve to the beneficiary [ETH]', async () => {
-        await forceSendETH(pool.address, INITIAL_ETH_BALANCE)
-
-        await controller.addCollateralToken(ETH, randomVirtualSupply(), randomVirtualBalance(), randomReserveRatio(), randomTap(), {
-          from: authorized,
-        })
-        await timeTravel(2592000)
-
+      it('it should transfer funds from reserve to beneficiary [ETH]', async () => {
         const receipt = await controller.withdraw(ETH, { from: authorized })
 
         assertExternalEvent(receipt, 'Withdraw(address,uint256)') // tap
       })
 
-      it('it should transfer funds from the reserve to the beneficiary [ERC20]', async () => {
-        await token1.transfer(pool.address, INITIAL_TOKEN_BALANCE / 2, { from: authorized })
-
-        await controller.addCollateralToken(token1.address, randomVirtualSupply(), randomVirtualBalance(), randomReserveRatio(), randomTap(), {
-          from: authorized,
-        })
-        await timeTravel(2592000)
-
+      it('it should transfer funds from reserve to beneficiary [ERC20]', async () => {
         const receipt = await controller.withdraw(token1.address, { from: authorized })
 
         assertExternalEvent(receipt, 'Withdraw(address,uint256)') // tap
@@ -472,287 +656,190 @@ contract('AragonFundraisingController app', accounts => {
 
     context('> sender does not have WITHDRAW_ROLE', () => {
       it('it should revert [ETH]', async () => {
-        await forceSendETH(pool.address, INITIAL_ETH_BALANCE)
-
-        await controller.addCollateralToken(ETH, randomVirtualSupply(), randomVirtualBalance(), randomReserveRatio(), randomTap(), {
-          from: authorized,
-        })
-        await timeTravel(2592000)
-
         await assertRevert(() => controller.withdraw(ETH, { from: unauthorized }))
       })
 
       it('it should revert [ERC20]', async () => {
-        await token1.transfer(pool.address, INITIAL_TOKEN_BALANCE / 2, { from: authorized })
-
-        await controller.addCollateralToken(token1.address, randomVirtualSupply(), randomVirtualBalance(), randomReserveRatio(), randomTap(), {
-          from: authorized,
-        })
-        await timeTravel(2592000)
-
         await assertRevert(() => controller.withdraw(token1.address, { from: unauthorized }))
       })
     })
   })
   // #endregion
 
-  // #region createBuyOrder
-  context('> #createBuyOrder', () => {
-    context('> sender has CREATE_BUY_ORDER_ROLE', () => {
-      it('it should create buy order [ETH]', async () => {
-        await controller.addCollateralToken(ETH, randomVirtualSupply(), randomVirtualBalance(), randomReserveRatio(), randomTap(), { from: authorized })
-
-        const amount = randomAmount()
-        const receipt = await controller.createBuyOrder(ETH, amount, { from: authorized, value: amount })
-
-        assertExternalEvent(receipt, 'NewBuyOrder(address,address,uint256,uint256)') // market maker
+  // #region openBuyOrder
+  context('> #openBuyOrder', () => {
+    beforeEach(async () => {
+      await addCollateralToken(ETH, {
+        virtualSupply: VIRTUAL_SUPPLIES[0],
+        virtualBalance: VIRTUAL_BALANCES[0],
+        reserveRatio: RESERVE_RATIOS[0],
+        slippage: Math.pow(10, 22),
       })
-
-      it('it should create buy order [ERC20]', async () => {
-        await controller.addCollateralToken(token1.address, randomVirtualSupply(), randomVirtualBalance(), randomReserveRatio(), randomTap(), {
-          from: authorized,
-        })
-
-        const receipt = await controller.createBuyOrder(token1.address, randomAmount(), { from: authorized })
-
-        assertExternalEvent(receipt, 'NewBuyOrder(address,address,uint256,uint256)') // market maker
+      await addCollateralToken(token1.address, {
+        virtualSupply: VIRTUAL_SUPPLIES[1],
+        virtualBalance: VIRTUAL_BALANCES[1],
+        reserveRatio: RESERVE_RATIOS[1],
+        slippage: Math.pow(10, 22),
       })
     })
 
-    context('> sender does not have CREATE_BUY_ORDER_ROLE', () => {
+    context('> sender has OPEN_BUY_ORDER_ROLE', () => {
+      it('it should open buy order [ETH]', async () => {
+        const amount = randomAmount()
+        const receipt = await controller.openBuyOrder(ETH, amount, { from: authorized, value: amount })
+
+        assertExternalEvent(receipt, 'NewBuyOrder(address,uint256,address,uint256,uint256)') // market maker
+      })
+
+      it('it should open buy order [ERC20]', async () => {
+        const receipt = await controller.openBuyOrder(token1.address, randomAmount(), { from: authorized })
+
+        assertExternalEvent(receipt, 'NewBuyOrder(address,uint256,address,uint256,uint256)') // market maker
+      })
+    })
+
+    context('> sender does not have OPEN_BUY_ORDER_ROLE', () => {
       it('it should revert [ETH]', async () => {
-        await controller.addCollateralToken(ETH, randomVirtualSupply(), randomVirtualBalance(), randomReserveRatio(), randomTap(), { from: authorized })
         const amount = randomAmount()
 
-        await assertRevert(() => controller.createBuyOrder(ETH, amount, { from: unauthorized, value: amount }))
+        await assertRevert(() => controller.openBuyOrder(ETH, amount, { from: unauthorized, value: amount }))
       })
 
       it('it should revert [ERC20]', async () => {
-        await controller.addCollateralToken(token1.address, randomVirtualSupply(), randomVirtualBalance(), randomReserveRatio(), randomTap(), {
-          from: authorized,
-        })
-
-        await assertRevert(() => controller.createBuyOrder(token1.address, randomAmount(), { from: unauthorized }))
+        await assertRevert(() => controller.openBuyOrder(token1.address, randomAmount(), { from: unauthorized }))
       })
     })
   })
   // #endregion
 
-  // #region createSellOrder
-  context('> #createSellOrder', () => {
-    context('> sender has CREATE_SELL_ORDER_ROLE', () => {
-      it('it should create sell order [ETH]', async () => {
-        await controller.addCollateralToken(ETH, randomVirtualSupply(), randomVirtualBalance(), randomReserveRatio(), randomTap(), { from: authorized })
-
-        const balance = await createAndClaimBuyOrder({ address: authorized, collateralToken: ETH, amount: randomAmount() })
-        const receipt = await controller.createSellOrder(ETH, balance, { from: authorized })
-
-        assertExternalEvent(receipt, 'NewSellOrder(address,address,uint256,uint256)') // market maker
+  // #region openSellOrder
+  context('> #openSellOrder', () => {
+    beforeEach(async () => {
+      await addCollateralToken(ETH, {
+        virtualSupply: VIRTUAL_SUPPLIES[0],
+        virtualBalance: VIRTUAL_BALANCES[0],
+        reserveRatio: RESERVE_RATIOS[0],
+        slippage: Math.pow(10, 22),
       })
-
-      it('it should create sell order [ERC20]', async () => {
-        await controller.addCollateralToken(token1.address, randomVirtualSupply(), randomVirtualBalance(), randomReserveRatio(), randomTap(), {
-          from: authorized,
-        })
-
-        const balance = await createAndClaimBuyOrder({ address: authorized, collateralToken: token1.address, amount: randomAmount() })
-        const receipt = await controller.createSellOrder(token1.address, balance, { from: authorized })
-
-        assertExternalEvent(receipt, 'NewSellOrder(address,address,uint256,uint256)') // market maker
+      await addCollateralToken(token1.address, {
+        virtualSupply: VIRTUAL_SUPPLIES[1],
+        virtualBalance: VIRTUAL_BALANCES[1],
+        reserveRatio: RESERVE_RATIOS[1],
+        slippage: Math.pow(10, 22),
       })
     })
 
-    context('> sender does not have CREATE_SELL_ORDER_ROLE', () => {
+    context('> sender has OPEN_SELL_ORDER_ROLE', () => {
+      it('it should open sell order [ETH]', async () => {
+        const balance = await openAndClaimBuyOrder(ETH, randomAmount(), { from: authorized })
+        const receipt = await controller.openSellOrder(ETH, balance, { from: authorized })
+
+        assertExternalEvent(receipt, 'NewSellOrder(address,uint256,address,uint256)') // market maker
+      })
+
+      it('it should open sell order [ERC20]', async () => {
+        const balance = await openAndClaimBuyOrder(token1.address, randomAmount(), { from: authorized })
+        const receipt = await controller.openSellOrder(token1.address, balance, { from: authorized })
+
+        assertExternalEvent(receipt, 'NewSellOrder(address,uint256,address,uint256)') // market maker
+      })
+    })
+
+    context('> sender does not have OPEN_SELL_ORDER_ROLE', () => {
       it('it should revert [ETH]', async () => {
-        await controller.addCollateralToken(ETH, randomVirtualSupply(), randomVirtualBalance(), randomReserveRatio(), randomTap(), { from: authorized })
+        const balance = await openAndClaimBuyOrder(ETH, randomAmount(), { from: authorized })
 
-        const balance = await createAndClaimBuyOrder({ address: authorized, collateralToken: ETH, amount: randomAmount() })
-
-        await assertRevert(() => controller.createSellOrder(ETH, balance, { from: unauthorized }))
+        await assertRevert(() => controller.openSellOrder(ETH, balance, { from: unauthorized }))
       })
 
       it('it should revert [ERC20]', async () => {
-        await controller.addCollateralToken(token1.address, randomVirtualSupply(), randomVirtualBalance(), randomReserveRatio(), randomTap(), {
-          from: authorized,
-        })
+        const balance = await openAndClaimBuyOrder(token1.address, randomAmount(), { from: authorized })
 
-        const balance = await createAndClaimBuyOrder({ address: authorized, collateralToken: token1.address, amount: randomAmount() })
-
-        await assertRevert(() => controller.createSellOrder(token1.address, balance, { from: unauthorized }))
+        await assertRevert(() => controller.openSellOrder(token1.address, balance, { from: unauthorized }))
       })
     })
   })
   // #endregion
 
-  // #region clearBatches
-  context('> #clearBatches', () => {
-    it('it should clear batches [ETH]', async () => {
-      await controller.addCollateralToken(ETH, randomVirtualSupply(), randomVirtualBalance(), randomReserveRatio(), randomTap(), { from: authorized })
-
-      const amount = randomAmount()
-      await controller.createBuyOrder(ETH, amount, { from: authorized, value: amount })
-
-      await progressToNextBatch()
-
-      const receipt = await controller.clearBatches()
-
-      assertExternalEvent(receipt, 'ClearBatch(address,uint256)') // market maker
-    })
-
-    it('it should clear batches [ERC20]', async () => {
-      await controller.addCollateralToken(token1.address, randomVirtualSupply(), randomVirtualBalance(), randomReserveRatio(), randomTap(), {
-        from: authorized,
+  // #region claimBuyOrderOrder
+  context('> #claimBuyOrder', () => {
+    beforeEach(async () => {
+      await addCollateralToken(ETH, {
+        virtualSupply: VIRTUAL_SUPPLIES[0],
+        virtualBalance: VIRTUAL_BALANCES[0],
+        reserveRatio: RESERVE_RATIOS[0],
+        slippage: Math.pow(10, 22),
       })
-
-      await controller.createBuyOrder(token1.address, randomAmount(), { from: authorized })
-
-      await progressToNextBatch()
-
-      const receipt = await controller.clearBatches()
-
-      assertExternalEvent(receipt, 'ClearBatch(address,uint256)') // market maker
+      await addCollateralToken(token1.address, {
+        virtualSupply: VIRTUAL_SUPPLIES[1],
+        virtualBalance: VIRTUAL_BALANCES[1],
+        reserveRatio: RESERVE_RATIOS[1],
+        slippage: Math.pow(10, 22),
+      })
     })
-  })
-  // #endregion
 
-  // #region claimBuy
-  context('> #claimBuy', () => {
     it('it should return bonds [ETH]', async () => {
-      await controller.addCollateralToken(ETH, randomVirtualSupply(), randomVirtualBalance(), randomReserveRatio(), randomTap(), { from: authorized })
-
       const amount = randomAmount()
-      const receipt1 = await controller.createBuyOrder(ETH, amount, { from: authorized, value: amount })
+      const receipt1 = await controller.openBuyOrder(ETH, amount, { from: authorized, value: amount })
       const batchId = getBuyOrderBatchId(receipt1)
 
       await progressToNextBatch()
-      await controller.clearBatches()
+      const receipt2 = await controller.claimBuyOrder(batchId, ETH, { from: authorized })
 
-      const receipt2 = await controller.claimBuy(ETH, batchId, { from: authorized })
-
-      assertExternalEvent(receipt2, 'ReturnBuy(address,address,uint256)') // market maker
+      assertExternalEvent(receipt2, 'ReturnBuyOrder(address,uint256,address,uint256)') // market maker
     })
 
     it('it should return bonds [ERC20]', async () => {
-      await controller.addCollateralToken(token1.address, randomVirtualSupply(), randomVirtualBalance(), randomReserveRatio(), randomTap(), {
-        from: authorized,
-      })
-
-      const receipt1 = await controller.createBuyOrder(token1.address, randomAmount(), { from: authorized })
+      const receipt1 = await controller.openBuyOrder(token1.address, randomAmount(), { from: authorized })
       const batchId = getBuyOrderBatchId(receipt1)
 
       await progressToNextBatch()
-      await controller.clearBatches()
+      const receipt2 = await controller.claimBuyOrder(batchId, token1.address, { from: authorized })
 
-      const receipt2 = await controller.claimBuy(token1.address, batchId, { from: authorized })
-
-      assertExternalEvent(receipt2, 'ReturnBuy(address,address,uint256)') // market maker
+      assertExternalEvent(receipt2, 'ReturnBuyOrder(address,uint256,address,uint256)') // market maker
     })
   })
   // #endregion
 
-  // #region claimSell
-  context('> #claimSell', () => {
-    it('it should return collateral [ETH]', async () => {
-      await controller.addCollateralToken(ETH, randomVirtualSupply(), randomVirtualBalance(), randomReserveRatio(), randomTap(), { from: authorized })
-      const balance = await createAndClaimBuyOrder({ address: authorized, collateralToken: ETH, amount: randomAmount() })
+  // #region claimSellOrder
+  context('> #claimSellOrder', () => {
+    beforeEach(async () => {
+      await addCollateralToken(ETH, {
+        virtualSupply: VIRTUAL_SUPPLIES[0],
+        virtualBalance: VIRTUAL_BALANCES[0],
+        reserveRatio: RESERVE_RATIOS[0],
+        slippage: Math.pow(10, 22),
+      })
+      await addCollateralToken(token1.address, {
+        virtualSupply: VIRTUAL_SUPPLIES[1],
+        virtualBalance: VIRTUAL_BALANCES[1],
+        reserveRatio: RESERVE_RATIOS[1],
+        slippage: Math.pow(10, 22),
+      })
+    })
 
-      const receipt1 = await controller.createSellOrder(ETH, balance, { from: authorized })
+    it('it should return collateral [ETH]', async () => {
+      const balance = await openAndClaimBuyOrder(ETH, randomAmount(), { from: authorized })
+      const receipt1 = await controller.openSellOrder(ETH, balance, { from: authorized })
       const batchId = getSellOrderBatchId(receipt1)
 
       await progressToNextBatch()
-      await controller.clearBatches()
 
-      const receipt2 = await controller.claimSell(ETH, batchId, { from: authorized })
+      const receipt2 = await controller.claimSellOrder(batchId, ETH, { from: authorized })
 
-      assertExternalEvent(receipt2, 'ReturnSell(address,address,uint256)') // market maker
+      assertExternalEvent(receipt2, 'ReturnSellOrder(address,uint256,address,uint256,uint256)') // market maker
     })
 
     it('it should return collateral [ERC20]', async () => {
-      await controller.addCollateralToken(token1.address, randomVirtualSupply(), randomVirtualBalance(), randomReserveRatio(), randomTap(), {
-        from: authorized,
-      })
-      const balance = await createAndClaimBuyOrder({ address: authorized, collateralToken: token1.address, amount: randomAmount() })
-
-      const receipt1 = await controller.createSellOrder(token1.address, balance, { from: authorized })
-      const batchId = getSellOrderBatchId(receipt1)
-
-      await progressToNextBatch()
-      await controller.clearBatches()
-
-      const receipt2 = await controller.claimSell(token1.address, batchId, { from: authorized })
-
-      assertExternalEvent(receipt2, 'ReturnSell(address,address,uint256)') // market maker
-    })
-  })
-  // #endregion
-
-  // #region clearBatchesAndClaimBuy
-  context('> #clearBatchesAndClaimBuy', () => {
-    it('it should clear batches and return bonds [ETH]', async () => {
-      await controller.addCollateralToken(ETH, randomVirtualSupply(), randomVirtualBalance(), randomReserveRatio(), randomTap(), { from: authorized })
-
-      const amount = randomAmount()
-      const receipt1 = await controller.createBuyOrder(ETH, amount, { from: authorized, value: amount })
-      const batchId = getBuyOrderBatchId(receipt1)
-
-      await progressToNextBatch()
-
-      const receipt2 = await controller.clearBatchesAndClaimBuy(ETH, batchId, { from: authorized })
-
-      assertExternalEvent(receipt2, 'ClearBatch(address,uint256)') // market maker
-      assertExternalEvent(receipt2, 'ReturnBuy(address,address,uint256)') // market maker
-    })
-
-    it('it should clear batches and return bonds [ERC20]', async () => {
-      await controller.addCollateralToken(token1.address, randomVirtualSupply(), randomVirtualBalance(), randomReserveRatio(), randomTap(), {
-        from: authorized,
-      })
-
-      const receipt1 = await controller.createBuyOrder(token1.address, randomAmount(), { from: authorized })
-      const batchId = getBuyOrderBatchId(receipt1)
-
-      await progressToNextBatch()
-
-      const receipt2 = await controller.clearBatchesAndClaimBuy(token1.address, batchId, { from: authorized })
-
-      assertExternalEvent(receipt2, 'ClearBatch(address,uint256)') // market maker
-      assertExternalEvent(receipt2, 'ReturnBuy(address,address,uint256)') // market maker
-    })
-  })
-  // #endregion
-
-  // #region clearBatchesAndClaimSell
-  context('> #clearBatchesAndClaimSell', () => {
-    it('it should clear batches and return collateral [ETH]', async () => {
-      await controller.addCollateralToken(ETH, randomVirtualSupply(), randomVirtualBalance(), randomReserveRatio(), randomTap(), { from: authorized })
-      const balance = await createAndClaimBuyOrder({ address: authorized, collateralToken: ETH, amount: randomAmount() })
-
-      const receipt1 = await controller.createSellOrder(ETH, balance, { from: authorized })
+      const balance = await openAndClaimBuyOrder(token1.address, randomAmount(), { from: authorized })
+      const receipt1 = await controller.openSellOrder(token1.address, balance, { from: authorized })
       const batchId = getSellOrderBatchId(receipt1)
 
       await progressToNextBatch()
 
-      const receipt2 = await controller.clearBatchesAndClaimSell(ETH, batchId, { from: authorized })
+      const receipt2 = await controller.claimSellOrder(batchId, token1.address, { from: authorized })
 
-      assertExternalEvent(receipt2, 'ClearBatch(address,uint256)') // market maker
-      assertExternalEvent(receipt2, 'ReturnSell(address,address,uint256)') // market maker
-    })
-
-    it('it should clear batches and return collateral [ERC20]', async () => {
-      await controller.addCollateralToken(token1.address, randomVirtualSupply(), randomVirtualBalance(), randomReserveRatio(), randomTap(), {
-        from: authorized,
-      })
-      const balance = await createAndClaimBuyOrder({ address: authorized, collateralToken: token1.address, amount: randomAmount() })
-
-      const receipt1 = await controller.createSellOrder(token1.address, balance, { from: authorized })
-      const batchId = getSellOrderBatchId(receipt1)
-
-      await progressToNextBatch()
-
-      const receipt2 = await controller.clearBatchesAndClaimSell(token1.address, batchId, { from: authorized })
-
-      assertExternalEvent(receipt2, 'ClearBatch(address,uint256)') // market maker
-      assertExternalEvent(receipt2, 'ReturnSell(address,address,uint256)') // market maker
+      assertExternalEvent(receipt2, 'ReturnSellOrder(address,uint256,address,uint256,uint256)') // market maker
     })
   })
   // #endregion
@@ -762,20 +849,22 @@ contract('AragonFundraisingController app', accounts => {
     context('> reserve', () => {
       it('it should return available reserve balance [ETH]', async () => {
         await forceSendETH(pool.address, INITIAL_ETH_BALANCE)
+        await addCollateralToken(ETH, { tap: 10, floor: 0 })
 
-        await controller.addCollateralToken(ETH, randomVirtualSupply(), randomVirtualBalance(), randomReserveRatio(), 10, { from: authorized })
-        await timeTravel(10)
+        await progressToNextBatch()
+        await progressToNextBatch()
 
-        assert.isAtMost((await controller.balanceOf(pool.address, ETH)).toNumber(), INITIAL_ETH_BALANCE - 10 * 10)
+        assert.equal((await controller.balanceOf(pool.address, ETH)).toNumber(), INITIAL_ETH_BALANCE - 10 * 2 * BLOCKS_IN_BATCH)
       })
 
-      it('it should return available pool balance [ERC20]', async () => {
+      it('it should return available reserve balance [ERC20]', async () => {
         const collateral = await TokenMock.new(pool.address, INITIAL_TOKEN_BALANCE)
+        await addCollateralToken(collateral.address, { tap: 7, floor: 0 })
 
-        await controller.addCollateralToken(collateral.address, randomVirtualSupply(), randomVirtualBalance(), randomReserveRatio(), 20, { from: authorized })
-        await timeTravel(10)
+        await progressToNextBatch()
+        await progressToNextBatch()
 
-        assert.isAtMost((await controller.balanceOf(pool.address, collateral.address)).toNumber(), INITIAL_TOKEN_BALANCE - 20 * 10)
+        assert.equal((await controller.balanceOf(pool.address, collateral.address)).toNumber(), INITIAL_TOKEN_BALANCE - 7 * 2 * BLOCKS_IN_BATCH)
       })
     })
     context('> other', () => {
@@ -785,6 +874,49 @@ contract('AragonFundraisingController app', accounts => {
 
       it('it should return balance [ETH]', async () => {
         assert.equal((await controller.balanceOf(authorized, token1.address)).toNumber(), (await token1.balanceOf(authorized)).toNumber())
+      })
+    })
+  })
+  // #endregion
+
+  // #region tokensToHold
+  context('> #tokensToHold', () => {
+    beforeEach(async () => {
+      await addCollateralToken(ETH, {
+        virtualSupply: VIRTUAL_SUPPLIES[0],
+        virtualBalance: VIRTUAL_BALANCES[0],
+        reserveRatio: RESERVE_RATIOS[0],
+        slippage: Math.pow(10, 22),
+      })
+      await addCollateralToken(token1.address, {
+        virtualSupply: VIRTUAL_SUPPLIES[1],
+        virtualBalance: VIRTUAL_BALANCES[1],
+        reserveRatio: RESERVE_RATIOS[1],
+        slippage: Math.pow(10, 22),
+      })
+    })
+
+    context('> collaterals', () => {
+      it('it should return collaterals to be claimed [ETH]', async () => {
+        const balance = await openAndClaimBuyOrder(ETH, randomAmount(), { from: authorized })
+        await controller.openSellOrder(ETH, balance, { from: authorized })
+        const collateralsToBeClaimed = await marketMaker.collateralsToBeClaimed(ETH)
+
+        assert.equal((await controller.tokensToHold(ETH)).toNumber(), collateralsToBeClaimed.toNumber())
+      })
+
+      it('it should return collaterals to be claimed [ERC20]', async () => {
+        const balance = await openAndClaimBuyOrder(token1.address, randomAmount(), { from: authorized })
+        await controller.openSellOrder(token1.address, balance, { from: authorized })
+        const collateralsToBeClaimed = await marketMaker.collateralsToBeClaimed(token1.address)
+
+        assert.equal((await controller.tokensToHold(token1.address)).toNumber(), collateralsToBeClaimed.toNumber())
+      })
+    })
+    context('> other', () => {
+      it('it should return zero', async () => {
+        const collateral = await TokenMock.new(pool.address, INITIAL_TOKEN_BALANCE)
+        assert.equal((await controller.tokensToHold(collateral.address)).toNumber(), 0)
       })
     })
   })
