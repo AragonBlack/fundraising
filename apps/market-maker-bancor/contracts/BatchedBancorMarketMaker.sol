@@ -195,7 +195,7 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
 
     /**
      * @notice Update the beneficiary to `_beneficiary`
-     * @param _beneficiary The new beneficiary to be used
+     * @param _beneficiary The address of the new beneficiary to be used
     */
     function updateBeneficiary(address _beneficiary) external auth(UPDATE_BENEFICIARY_ROLE) {
         require(_beneficiaryIsValid(_beneficiary), ERROR_INVALID_BENEFICIARY);
@@ -204,7 +204,7 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
     }
 
     /**
-     * @notice Update the address of the BancorFormula contract to `_formula`
+     * @notice Update the BancorFormula contract to `_formula`
      * @param _formula The address of the new BancorFormula contract to be used
     */
     function updateFormula(IBancorFormula _formula) external auth(UPDATE_FORMULA_ROLE) {

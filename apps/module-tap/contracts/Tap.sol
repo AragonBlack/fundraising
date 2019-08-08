@@ -105,8 +105,8 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
     }
 
     /**
-     * @notice Update reserve to `_reserve`
-     * @param _reserve The address of the new reserve
+     * @notice Update the reserve to `_reserve`
+     * @param _reserve The address of the new reserve to be used
     */
     function updateReserve(Vault _reserve) external auth(UPDATE_RESERVE_ROLE) {
         require(isContract(_reserve), ERROR_CONTRACT_IS_EOA);
@@ -115,8 +115,8 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
     }
 
     /**
-     * @notice Update beneficiary to `_beneficiary`
-     * @param _beneficiary The address of the new beneficiary
+     * @notice Update the beneficiary to `_beneficiary`
+     * @param _beneficiary The address of the new beneficiary to be used
     */
     function updateBeneficiary(address _beneficiary) external auth(UPDATE_BENEFICIARY_ROLE) {
         require(_beneficiaryIsValid(_beneficiary), ERROR_INVALID_BENEFICIARY);
@@ -126,7 +126,7 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
 
     /**
      * @notice Update maximum tap increase percentage to `@formatPct(_maximumTapIncreasePct)`%
-     * @param _maximumTapIncreasePct The new maximum tap increase percentage
+     * @param _maximumTapIncreasePct The new maximum tap increase percentage to be used
     */
     function updateMaximumTapIncreasePct(uint256 _maximumTapIncreasePct) external auth(UPDATE_MAXIMUM_TAP_INCREASE_PCT_ROLE) {
         _updateMaximumTapIncreasePct(_maximumTapIncreasePct);
