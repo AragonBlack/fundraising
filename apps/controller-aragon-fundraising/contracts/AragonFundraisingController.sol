@@ -27,8 +27,8 @@ contract AragonFundraisingController is EtherTokenConstant, IsContract, IMarketM
     bytes32 public constant REMOVE_COLLATERAL_TOKEN_ROLE = keccak256("REMOVE_COLLATERAL_TOKEN_ROLE");
     bytes32 public constant UPDATE_COLLATERAL_TOKEN_ROLE = keccak256("UPDATE_COLLATERAL_TOKEN_ROLE");
     bytes32 public constant UPDATE_TOKEN_TAP_ROLE = keccak256("UPDATE_TOKEN_TAP_ROLE");
-    bytes32 public constant CREATE_BUY_ORDER_ROLE = keccak256("CREATE_BUY_ORDER_ROLE");
-    bytes32 public constant CREATE_SELL_ORDER_ROLE = keccak256("CREATE_SELL_ORDER_ROLE");
+    bytes32 public constant OPEN_BUY_ORDER_ROLE = keccak256("OPEN_BUY_ORDER_ROLE");
+    bytes32 public constant OPEN_SELL_ORDER_ROLE = keccak256("OPEN_SELL_ORDER_ROLE");
     bytes32 public constant WITHDRAW_ROLE = keccak256("WITHDRAW_ROLE");
 
     string private constant ERROR_CONTRACT_IS_EOA = "FUNDRAISING_CONTRACT_IS_EOA";
@@ -141,11 +141,11 @@ contract AragonFundraisingController is EtherTokenConstant, IsContract, IMarketM
         tap.withdraw(_token);
     }
 
-    function openBuyOrder(address _collateral, uint256 _value) external payable auth(CREATE_BUY_ORDER_ROLE) {
+    function openBuyOrder(address _collateral, uint256 _value) external payable auth(OPEN_BUY_ORDER_ROLE) {
         marketMaker.openBuyOrder.value(msg.value)(msg.sender, _collateral, _value);
     }
 
-    function openSellOrder(address _collateral, uint256 _amount) external auth(CREATE_SELL_ORDER_ROLE) {
+    function openSellOrder(address _collateral, uint256 _amount) external auth(OPEN_SELL_ORDER_ROLE) {
         marketMaker.openSellOrder(msg.sender, _collateral, _amount);
     }
 

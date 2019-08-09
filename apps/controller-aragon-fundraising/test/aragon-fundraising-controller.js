@@ -92,8 +92,8 @@ contract('AragonFundraisingController app', accounts => {
     CONTROLLER_REMOVE_COLLATERAL_TOKEN_ROLE,
     CONTROLLER_UPDATE_COLLATERAL_TOKEN_ROLE,
     CONTROLLER_UPDATE_TOKEN_TAP_ROLE,
-    CONTROLLER_CREATE_BUY_ORDER_ROLE,
-    CONTROLLER_CREATE_SELL_ORDER_ROLE,
+    CONTROLLER_OPEN_BUY_ORDER_ROLE,
+    CONTROLLER_OPEN_SELL_ORDER_ROLE,
     CONTROLLER_WITHDRAW_ROLE
 
   const TOKEN_MANAGER_ID = hash('token-manager.aragonpm.eth')
@@ -172,8 +172,8 @@ contract('AragonFundraisingController app', accounts => {
     await acl.createPermission(authorized, controller.address, CONTROLLER_REMOVE_COLLATERAL_TOKEN_ROLE, root, { from: root })
     await acl.createPermission(authorized, controller.address, CONTROLLER_UPDATE_COLLATERAL_TOKEN_ROLE, root, { from: root })
     await acl.createPermission(authorized, controller.address, CONTROLLER_UPDATE_TOKEN_TAP_ROLE, root, { from: root })
-    await acl.createPermission(authorized, controller.address, CONTROLLER_CREATE_BUY_ORDER_ROLE, root, { from: root })
-    await acl.createPermission(authorized, controller.address, CONTROLLER_CREATE_SELL_ORDER_ROLE, root, { from: root })
+    await acl.createPermission(authorized, controller.address, CONTROLLER_OPEN_BUY_ORDER_ROLE, root, { from: root })
+    await acl.createPermission(authorized, controller.address, CONTROLLER_OPEN_SELL_ORDER_ROLE, root, { from: root })
     await acl.createPermission(authorized, controller.address, CONTROLLER_WITHDRAW_ROLE, root, { from: root })
     // collaterals
     token1 = await TokenMock.new(authorized, INITIAL_TOKEN_BALANCE)
@@ -333,8 +333,8 @@ contract('AragonFundraisingController app', accounts => {
     CONTROLLER_REMOVE_COLLATERAL_TOKEN_ROLE = await cBase.REMOVE_COLLATERAL_TOKEN_ROLE()
     CONTROLLER_UPDATE_COLLATERAL_TOKEN_ROLE = await cBase.UPDATE_COLLATERAL_TOKEN_ROLE()
     CONTROLLER_UPDATE_TOKEN_TAP_ROLE = await cBase.UPDATE_TOKEN_TAP_ROLE()
-    CONTROLLER_CREATE_BUY_ORDER_ROLE = await cBase.CREATE_BUY_ORDER_ROLE()
-    CONTROLLER_CREATE_SELL_ORDER_ROLE = await cBase.CREATE_SELL_ORDER_ROLE()
+    CONTROLLER_OPEN_BUY_ORDER_ROLE = await cBase.OPEN_BUY_ORDER_ROLE()
+    CONTROLLER_OPEN_SELL_ORDER_ROLE = await cBase.OPEN_SELL_ORDER_ROLE()
     CONTROLLER_WITHDRAW_ROLE = await cBase.WITHDRAW_ROLE()
   })
 
