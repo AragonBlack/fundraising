@@ -598,7 +598,7 @@ contract('AragonFundraisingController app', accounts => {
           randomVirtualBalance(),
           randomReserveRatio(),
           randomSlippage(),
-          randomTap(),
+          10,
           randomFloor(),
           {
             from: authorized,
@@ -609,7 +609,7 @@ contract('AragonFundraisingController app', accounts => {
       })
 
       it('it should update token tap', async () => {
-        const receipt = await controller.updateTokenTap(token1.address, randomTap(), randomFloor(), { from: authorized })
+        const receipt = await controller.updateTokenTap(token1.address, 14, randomFloor(), { from: authorized })
 
         assertExternalEvent(receipt, 'UpdateTappedToken(address,uint256,uint256)') // tap
       })
