@@ -126,11 +126,11 @@ module.exports = async (
 
     if ((await ens.owner(fundraisingAppIds[0])) == '0x0000000000000000000000000000000000000000') {
       log('Deploying fundraising apps in local network')
-      await newRepo(apm, 'fundraising-market-maker-bancor', owner, 'BancorMarketMaker')
-      await newRepo(apm, 'fundraising-controller-aragon-fundraising', owner, 'AragonFundraisingController')
-      await newRepo(apm, 'fundraising-module-tap', owner, 'Tap')
-      await newRepo(apm, 'fundraising-module-pool', owner, 'Pool')
-      await newRepo(apm, 'fundraising-formula-bancor', owner, 'BancorFormula')
+      await newRepo(apm, 'batched-bancor-market-maker', owner, 'BatchedBancorMarketMaker')
+      await newRepo(apm, 'aragon-fundraising', owner, 'AragonFundraisingController')
+      await newRepo(apm, 'batched-tap', owner, 'Tap')
+      await newRepo(apm, 'pool', owner, 'Pool')
+      await newRepo(apm, 'bancor-formula', owner, 'BancorFormula')
     }
 
     if ((await ens.owner(namehash(kitEnsName))) == '0x0000000000000000000000000000000000000000') {

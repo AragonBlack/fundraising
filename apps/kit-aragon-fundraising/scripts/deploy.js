@@ -1,10 +1,10 @@
-require('dotenv').config({ path: '../.env'})
+require('dotenv').config({ path: '../.env' })
 const deploy_ens = require('@aragon/os/scripts/deploy-test-ens.js')
 const deploy_apm = require('@aragon/os/scripts/deploy-apm.js')
 const deploy_id = require('@aragon/id/scripts/deploy-beta-aragonid.js')
 const deploy_kit = require('./deploy_kit.js')
 
-module.exports = async (callback) => {
+module.exports = async callback => {
   console.log(`Deploying Fundraising Kit, Owner ${process.env.OWNER}`)
 
   if (process.argv.length < 5) {
