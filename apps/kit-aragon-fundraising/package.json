@@ -37,7 +37,8 @@
     "deploy:kit:rinkeby": "aragon contracts compile --all && ENS=0x98Df287B6C145399Aaa709692c8D308357bC085D aragon contracts exec --network rinkeby scripts/fundraising-deploy.js",
     "publish:mainnet": "aragon apm publish major $(npm run deploy:kit:mainnet | tail -n 1) --environment mainnet",
     "deploy:kit:mainnet": "aragon contracts compile --all && ENS=0x314159265dd8dbb310642f98f50c066173c1259b aragon contracts exec --network mainnet scripts/fundraising-deploy.js",
-    "deploy:dao:rpc": "truffle exec scripts/deploy_dao.js --network rpc $(aragon apm versions | tail -n 1 | cut -d ' ' -f 4)"
+    "deploy:dao:rpc": "truffle exec scripts/deploy_dao.js --network rpc $(aragon apm versions | tail -n 1 | cut -d ' ' -f 4)",
+    "publish": "npm run publish:rpc"
   },
   "files": [
     "abi/",
