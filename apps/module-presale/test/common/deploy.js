@@ -201,8 +201,6 @@ const deploy = {
       params.percentSupplyOffered,
       params.fundingPeriod,
       params.pool,
-      params.fundraising,
-      params.tapRate,
       params.beneficiaryAddress,
       params.percentFundingForBeneficiary
     ]
@@ -219,8 +217,6 @@ const deploy = {
       percentSupplyOffered: PERCENT_SUPPLY_OFFERED,
       fundingPeriod: FUNDING_PERIOD,
       pool: test.pool.address,
-      fundraising: test.fundraising.address,
-      tapRate: TAP_RATE,
       beneficiaryAddress,
       percentFundingForBeneficiary: PERCENT_FUNDING_FOR_BENEFICIARY
     }
@@ -245,31 +241,31 @@ const deploy = {
     await deploy.deployTokens(test)
     await deploy.deployTokenManager(test, appManager)
 
-		await deploy.deployBancorFormula(test, appManager)
+		// await deploy.deployBancorFormula(test, appManager)
 
-    await deploy.deployVault(test, appManager)
+    // await deploy.deployVault(test, appManager)
     await deploy.deployPool(test, appManager)
-    await deploy.deployTap(test, appManager)
-    await deploy.deployMarketMaker(test, appManager)
-    await deploy.deployFundraising(test, appManager)
+    // await deploy.deployTap(test, appManager)
+    // await deploy.deployMarketMaker(test, appManager)
+    // await deploy.deployFundraising(test, appManager)
     await deploy.deployPresale(test, appManager)
     await deploy.deployMarketMakerController(test, appManager)
 
-    await deploy.setVaultPermissions(test, appManager)
+    // await deploy.setVaultPermissions(test, appManager)
     await deploy.setPoolPermissions(test, appManager)
-    await deploy.setTapPermissions(test, appManager)
-    await deploy.setFundraisingPermissions(test, appManager)
-    await deploy.setMarketMakerPermissions(test, appManager)
+    // await deploy.setTapPermissions(test, appManager)
+    // await deploy.setFundraisingPermissions(test, appManager)
+    // await deploy.setMarketMakerPermissions(test, appManager)
     await deploy.setPresalePermissions(test, appManager)
     await deploy.setTokenManagerPermissions(test, appManager)
-    await deploy.setMarketMakerControllerPermissions(test, appManager)
+    // await deploy.setMarketMakerControllerPermissions(test, appManager)
 
-    await deploy.initializeVault(test)
+    // await deploy.initializeVault(test)
     await deploy.initializePool(test)
-    await deploy.initializeMarketMakerController(test)
-    await deploy.initializeTap(test, appManager)
-    await deploy.initializeFundraising(test)
-    await deploy.initializeMarketMaker(test, appManager)
+    // await deploy.initializeMarketMakerController(test)
+    // await deploy.initializeTap(test, appManager)
+    // await deploy.initializeFundraising(test)
+    // await deploy.initializeMarketMaker(test, appManager)
     await deploy.initializeTokenManager(test)
   },
   deployDefaultSetup: async (test, appManager) => {

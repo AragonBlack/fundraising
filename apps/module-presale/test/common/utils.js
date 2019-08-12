@@ -10,14 +10,6 @@ const utils = {
 
   getEvent: (tx, eventName) => tx.logs.filter(log => log.event.includes(eventName))[0],
 
-  assertExternalEvent: (tx, eventName, instances = 1) => {
-    const events = tx.receipt.logs.filter(l => {
-      return l.topics[0] === '0x' + sha3(eventName)
-    })
-    assert.equal(events.length, instances, `'${eventName}' event should have been fired ${instances} times`)
-    return events
-  },
-
   daiToProjectTokens: (dai) => {
     return dai * utils.daiToProjectTokenExchangeRate()
   },

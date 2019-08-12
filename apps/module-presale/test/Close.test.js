@@ -60,7 +60,7 @@ contract('Close', ([anyone, appManager, buyer1]) => {
         )
       })
 
-      it('Fundraising app should be initialized correctly', async () => {
+      it('Emitted a SaleClosed event', async () => {
         expect(getEvent(closeReceipt, 'SaleClosed')).to.exist
       })
     })

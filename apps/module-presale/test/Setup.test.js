@@ -38,13 +38,8 @@ contract('Setup', ([anyone, appManager, someEOA]) => {
       expect(gasUsed).to.be.below(3.38e6)
     })
 
-    it('Deploys the Fundraising, and other apps correctly', async () => {
+    it('Deploys fundraising related apps', async () => {
       expect(web3.isAddress(this.pool.address)).to.equal(true)
-      expect(web3.isAddress(this.tap.address)).to.equal(true)
-      expect(web3.isAddress(this.fundraising.address)).to.equal(true)
-      expect(web3.isAddress(this.marketMaker.address)).to.equal(true)
-      expect(web3.isAddress(this.formula.address)).to.equal(true)
-      expect(web3.isAddress(this.vault.address)).to.equal(true)
     })
 
     it('Funding goal and percentage offered are set', async () => {
@@ -60,10 +55,6 @@ contract('Setup', ([anyone, appManager, someEOA]) => {
 
     it('Initial state is Pending', async () => {
       expect((await this.presale.currentSaleState()).toNumber()).to.equal(SALE_STATE.PENDING)
-    })
-
-    it('Tap rate is properly set', async () => {
-      expect((await this.presale.tapRate()).toNumber()).to.equal(TAP_RATE)
     })
 
     it('Project token is deployed and set in the app', async () => {
@@ -113,14 +104,6 @@ contract('Setup', ([anyone, appManager, someEOA]) => {
       )
     })
 
-    it('Reverts when setting an invalid fundraising controller', async () => {
-      await assertRevert(
-        initializePresale(this, { ...defaultParams,
-          fundraising: someEOA
-        }), 'PRESALE_INVALID_FUNDRAISING_CONTROLLER'
-      )
-    })
-
     it('Reverts when setting an invalid fundraising pool', async () => {
       await assertRevert(
         initializePresale(this, { ...defaultParams,
@@ -152,14 +135,6 @@ contract('Setup', ([anyone, appManager, someEOA]) => {
         initializePresale(this, { ...defaultParams,
           daiFundingGoal: 0
         }), 'PRESALE_INVALID_DAI_FUNDING_GOAL'
-      )
-    })
-
-    it('Reverts when setting an invalid tap rate', async () => {
-      await assertRevert(
-        initializePresale(this, { ...defaultParams,
-          tapRate: 0
-        }), 'PRESALE_INVALID_TAP_RATE'
       )
     })
 
