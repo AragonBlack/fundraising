@@ -20,7 +20,6 @@
     "@aragon/apps-shared-minime": "^1.0.1",
     "@aragon/apps-token-manager": "^2.1.0",
     "@aragon/apps-vault": "^4.1.0",
-    "@aragon/apps-voting": "2.1.0",
     "@aragon/os": "^4.2.1"
   },
   "devDependencies": {
