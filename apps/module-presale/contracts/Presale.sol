@@ -110,6 +110,8 @@ contract Presale is AragonApp {
      */
 
     bool private saleClosed;
+    uint64 private vestingCliffDate;
+    uint64 private vestingCompleteDate;
 
     // No state variable keeps track of the current state, but is rather
     // calculated from other variables. See: currentSaleState().
@@ -197,6 +199,8 @@ contract Presale is AragonApp {
     function start() public auth(START_ROLE) {
         require(currentSaleState() == SaleState.Pending, ERROR_INVALID_STATE);
         startDate = getTimestamp64();
+        vestingCliffDate = startDate.add(vestingCliffPeriod);
+        vestingCompleteDate = startDate.add(vestingCompletePeriod);
         emit SaleStarted();
     }
 
@@ -220,8 +224,8 @@ contract Presale is AragonApp {
             msg.sender,
             tokensToSell,
             startDate,
-            startDate.add(vestingCliffPeriod),
-            startDate.add(vestingCompletePeriod),
+            vestingCliffDate,
+            vestingCompleteDate,
             true /* revokable */
         );
         totalDaiRaised = totalDaiRaised.add(_daiToSpend);
