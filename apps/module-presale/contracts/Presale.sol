@@ -27,19 +27,19 @@ contract Presale is AragonApp {
      * Errors
      */
 
-    string private constant ERROR_INVALID_STATE                  = "PRESALE_INVALID_STATE";
-    string private constant ERROR_INSUFFICIENT_ALLOWANCE         = "PRESALE_INSUFFICIENT_ALLOWANCE";
-    string private constant ERROR_INSUFFICIENT_BALANCE           = "PRESALE_INSUFFICIENT_BALANCE";
-    string private constant ERROR_INVALID_TOKEN_CONTROLLER       = "PRESALE_INVALID_TOKEN_CONTROLLER";
-    string private constant ERROR_NOTHING_TO_REFUND              = "PRESALE_NOTHING_TO_REFUND";
-    string private constant ERROR_TOKEN_TRANSFER_REVERTED        = "PRESALE_TOKEN_TRANSFER_REVERTED";
-    string private constant ERROR_INVALID_CONTRIBUTION_TOKEN     = "PRESALE_INVALID_CONTRIBUTION_TOKEN";
-    string private constant ERROR_INVALID_TIME_PERIOD            = "PRESALE_INVALID_TIME_PERIOD";
-    string private constant ERROR_INVALID_FUNDING_GOAL           = "PRESALE_INVALID_FUNDING_GOAL";
-    string private constant ERROR_INVALID_PERCENT_VALUE          = "PRESALE_INVALID_PERCENT_VALUE";
-    string private constant ERROR_INVALID_POOL                   = "PRESALE_INVALID_POOL";
-    string private constant ERROR_INVALID_BENEFICIARY_ADDRESS    = "PRESALE_INVALID_BENEFICIARY_ADDRESS";
-    string private constant ERROR_EXCEEDS_FUNDING_GOAL           = "PRESALE_EXCEEDS_FUNDING_GOAL";
+    string private constant ERROR_INVALID_STATE            = "PRESALE_INVALID_STATE";
+    string private constant ERROR_INSUFFICIENT_ALLOWANCE   = "PRESALE_INSUFFICIENT_ALLOWANCE";
+    string private constant ERROR_INSUFFICIENT_BALANCE     = "PRESALE_INSUFFICIENT_BALANCE";
+    string private constant ERROR_INVALID_TOKEN_CONTROLLER = "PRESALE_INVALID_TOKEN_CONTROLLER";
+    string private constant ERROR_NOTHING_TO_REFUND        = "PRESALE_NOTHING_TO_REFUND";
+    string private constant ERROR_TOKEN_TRANSFER_REVERTED  = "PRESALE_TOKEN_TRANSFER_REVERTED";
+    string private constant ERROR_INVALID_CONTRIBUTE_TOKEN = "PRESALE_INVALID_CONTRIBUTE_TOKEN";
+    string private constant ERROR_INVALID_TIME_PERIOD      = "PRESALE_INVALID_TIME_PERIOD";
+    string private constant ERROR_INVALID_FUNDING_GOAL     = "PRESALE_INVALID_FUNDING_GOAL";
+    string private constant ERROR_INVALID_PERCENT_VALUE    = "PRESALE_INVALID_PERCENT_VALUE";
+    string private constant ERROR_INVALID_POOL             = "PRESALE_INVALID_POOL";
+    string private constant ERROR_INVALID_BENEFIC_ADDRESS  = "PRESALE_INVALID_BENEFIC_ADDRESS";
+    string private constant ERROR_EXCEEDS_FUNDING_GOAL     = "PRESALE_EXCEEDS_FUNDING_GOAL";
 
     /*
      * Roles
@@ -157,7 +157,7 @@ contract Presale is AragonApp {
         external
         onlyInit
     {
-        require(isContract(_contributionToken), ERROR_INVALID_CONTRIBUTION_TOKEN);
+        require(isContract(_contributionToken), ERROR_INVALID_CONTRIBUTE_TOKEN);
         require(isContract(_fundraisingPool), ERROR_INVALID_POOL);
         require(_fundingPeriod > 0, ERROR_INVALID_TIME_PERIOD);
         require(_vestingCliffPeriod > _fundingPeriod, ERROR_INVALID_TIME_PERIOD);
@@ -165,7 +165,7 @@ contract Presale is AragonApp {
         require(_fundingGoal > 0, ERROR_INVALID_FUNDING_GOAL);
         require(_percentSupplyOffered > 0, ERROR_INVALID_PERCENT_VALUE);
         require(_percentSupplyOffered < PPM, ERROR_INVALID_PERCENT_VALUE);
-        require(_beneficiaryAddress != 0x0, ERROR_INVALID_BENEFICIARY_ADDRESS);
+        require(_beneficiaryAddress != 0x0, ERROR_INVALID_BENEFIC_ADDRESS);
         require(_percentFundingForBenefiriary > 0, ERROR_INVALID_PERCENT_VALUE);
         require(_percentFundingForBenefiriary < PPM, ERROR_INVALID_PERCENT_VALUE);
 

@@ -100,7 +100,7 @@ contract('Setup', ([anyone, appManager, someEOA]) => {
       await assertRevert(
         initializePresale(this, { ...defaultParams,
           contributionToken: someEOA
-        }), 'PRESALE_INVALID_CONTRIBUTION_TOKEN'
+        }), 'PRESALE_INVALID_CONTRIBUTE_TOKEN'
       )
     })
 
@@ -167,7 +167,7 @@ contract('Setup', ([anyone, appManager, someEOA]) => {
     it('Reverts when setting an invalid beneficiary address', async () => {
       initializePresale(this, { ...defaultParams,
         beneficiaryAddresss: ZERO_ADDRESS
-      }), 'PRESALE_INVALID_PERCENT_VALUE'
+      }), 'PRESALE_INVALID_BENEFIC_ADDRESS'
     })
   })
 })
