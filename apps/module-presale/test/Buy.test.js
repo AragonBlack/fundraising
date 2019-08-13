@@ -121,13 +121,6 @@ contract('Buy', ([anyone, appManager, buyer1, buyer2]) => {
           expect((await this.presale.purchases(buyer2, 2)).toNumber()).to.equal(3)
         })
 
-        it('A purchase cannot cause totalDaiRaised to be greater than the fundingGoal', async () => {
-          await assertRevert(
-            this.presale.buy(DAI_FUNDING_GOAL * 2, { from: buyer2 }),
-            'PRESALE_EXCEEDS_FUNDING_GOAL'
-          )
-        })
-
         describe('When the sale is Refunding', () => {
 
           before(async () => {
@@ -149,10 +142,17 @@ contract('Buy', ([anyone, appManager, buyer1, buyer2]) => {
         describe('When the sale state is GoalReached', () => {
 
           before(async () => {
-            await this.presale.mockSetTimestamp(startTime + 1)
+            await this.presale.mockSetTimestamp(startTime + FUNDING_PERIOD / 2)
+          })
 
-            const totalDaiRaised = (await this.presale.totalDaiRaised()).toNumber()
-            await this.presale.buy(DAI_FUNDING_GOAL - totalDaiRaised, { from: buyer2 })
+          it('A purchase cannot cause totalDaiRaised to be greater than the fundingGoal', async () => {
+            const raised = (await this.presale.totalDaiRaised()).toNumber()
+            const remainingToFundingGoal = DAI_FUNDING_GOAL - raised
+            const userBalanceBeforePurchase = (await this.daiToken.balanceOf(buyer2))
+            await this.presale.buy(DAI_FUNDING_GOAL * 2, { from: buyer2 })
+            const userBalanceAfterPurchase = (await this.daiToken.balanceOf(buyer2))
+            const daiUsedInPurchase = userBalanceBeforePurchase - userBalanceAfterPurchase
+            expect(daiUsedInPurchase).to.equal(remainingToFundingGoal)
           })
 
           it('Sale state is GoalReached', async () => {

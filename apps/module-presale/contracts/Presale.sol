@@ -205,20 +205,25 @@ contract Presale is AragonApp {
     }
 
     /**
-    * @notice Buys project tokens using the provided `_daiToSpend` dai tokens. To calculate how many project tokens will be sold for the provided, dai amount, use daiToProjectTokens(). Each purchase generates a numeric vestedPurchaseId (0, 1, 2, etc) for the caller, which can be obtained in the TokensPurchased event emitted, and is required for later refunds.
+    * @notice Buys project tokens using the provided `_daiToSpend` dai tokens. To calculate how many project tokens will be sold for the provided, dai amount, use daiToProjectTokens(). Each purchase generates a numeric vestedPurchaseId (0, 1, 2, etc) for the caller, which can be obtained in the TokensPurchased event emitted, and is required for later refunds. Note: If `_daiToSpend` + `totalDaiRaised` exceends `daiFundingGoal`, only part of it will be used so that the funding goal is never exceeded.
     * @param _daiToSpend The amount of dai to spend to obtain project tokens.
     */
     function buy(uint256 _daiToSpend) public auth(BUY_ROLE) {
         require(currentSaleState() == SaleState.Funding, ERROR_INVALID_STATE);
-        require(daiToken.balanceOf(msg.sender) >= _daiToSpend, ERROR_INSUFFICIENT_DAI);
-        require(daiToken.allowance(msg.sender, address(this)) >= _daiToSpend, ERROR_INSUFFICIENT_DAI_ALLOWANCE);
-        require(totalDaiRaised.add(_daiToSpend) <= daiFundingGoal, ERROR_EXCEEDS_FUNDING_GOAL);
+
+        uint256 daiToUse = _daiToSpend;
+        if (totalDaiRaised.add(daiToUse) > daiFundingGoal) {
+            daiToUse = daiFundingGoal.sub(totalDaiRaised);
+        }
+
+        require(daiToken.balanceOf(msg.sender) >= daiToUse, ERROR_INSUFFICIENT_DAI);
+        require(daiToken.allowance(msg.sender, address(this)) >= daiToUse, ERROR_INSUFFICIENT_DAI_ALLOWANCE);
 
         // (buyer) ~~~> dai ~~~> (presale)
-        require(daiToken.transferFrom(msg.sender, address(this), _daiToSpend), ERROR_DAI_TRANSFER_REVERTED);
+        require(daiToken.transferFrom(msg.sender, address(this), daiToUse), ERROR_DAI_TRANSFER_REVERTED);
 
         // (mint ✨) ~~~> project tokens ~~~> (buyer)
-        uint256 tokensToSell = daiToProjectTokens(_daiToSpend);
+        uint256 tokensToSell = daiToProjectTokens(daiToUse);
         projectTokenManager.issue(tokensToSell);
         uint256 vestedPurchaseId = projectTokenManager.assignVested(
             msg.sender,
@@ -228,12 +233,12 @@ contract Presale is AragonApp {
             vestingCompleteDate,
             true /* revokable */
         );
-        totalDaiRaised = totalDaiRaised.add(_daiToSpend);
+        totalDaiRaised = totalDaiRaised.add(daiToUse);
 
         // Keep track of dai spent in this purchase for later refunding.
-        purchases[msg.sender][vestedPurchaseId] = _daiToSpend;
+        purchases[msg.sender][vestedPurchaseId] = daiToUse;
 
-        emit TokensPurchased(msg.sender, _daiToSpend, tokensToSell, vestedPurchaseId);
+        emit TokensPurchased(msg.sender, daiToUse, tokensToSell, vestedPurchaseId);
     }
 
     /**
@@ -255,7 +260,7 @@ contract Presale is AragonApp {
         // (buyer) ~~~> project tokens ~~~> (Token manager)
         // Note: this assumes that the buyer didn't transfer any of the vested tokens.
         // The assumption can be made, considering the imposed restriction of fundingPeriod < vestingCliffPeriod < vestingCompletePeriod.
-        (uint256 tokensSold,,,,,) = projectTokenManager.getVesting(_buyer, _vestedPurchaseId);
+        (uint256 tokensSold,,,,) = projectTokenManager.getVesting(_buyer, _vestedPurchaseId);
         projectTokenManager.revokeVesting(_buyer, _vestedPurchaseId);
 
         // (Token manager) ~~~> project tokens ~~~> (burn 💥)
@@ -318,7 +323,7 @@ contract Presale is AragonApp {
      * Internal
      */
 
-    function _timeSinceFundingStarted() private returns (uint64) {
+    function _timeSinceFundingStarted() private view returns (uint64) {
         if (startDate == 0) {
             return 0;
         } else {
