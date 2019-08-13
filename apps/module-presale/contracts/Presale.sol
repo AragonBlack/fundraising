@@ -20,8 +20,8 @@ contract Presale is AragonApp {
 
     event SaleStarted();
     event SaleClosed();
-    event TokensPurchased(address indexed buyer, uint256 daiSpent, uint256 tokensPurchased, uint256 purchaseId);
-    event TokensRefunded(address indexed buyer, uint256 daiRefunded, uint256 tokensBurned, uint256 purchaseId);
+    event TokensPurchased(address indexed buyer, uint256 daiSpent, uint256 tokensPurchased, uint256 vestedPurchaseId);
+    event TokensRefunded(address indexed buyer, uint256 daiRefunded, uint256 tokensBurned, uint256 vestedPurchaseId);
 
     /*
      * Errors
@@ -105,7 +105,7 @@ contract Presale is AragonApp {
     mapping(address => mapping(uint256 => uint256)) public purchases;
     /*      |                  |          |
      *      |                  |          daiSpent
-     *      |                  purchaseId
+     *      |                  vestedPurchaseId
      *      buyer
      */
 
@@ -205,7 +205,7 @@ contract Presale is AragonApp {
     }
 
     /**
-    * @notice Buys project tokens using the provided `_daiToSpend` dai tokens. To calculate how many project tokens will be sold for the provided, dai amount, use daiToProjectTokens(). Each purchase generates a numeric purchaseId (0, 1, 2, etc) for the caller, which can be obtained in the TokensPurchased event emitted, and is required for later refunds.
+    * @notice Buys project tokens using the provided `_daiToSpend` dai tokens. To calculate how many project tokens will be sold for the provided, dai amount, use daiToProjectTokens(). Each purchase generates a numeric vestedPurchaseId (0, 1, 2, etc) for the caller, which can be obtained in the TokensPurchased event emitted, and is required for later refunds.
     * @param _daiToSpend The amount of dai to spend to obtain project tokens.
     */
     function buy(uint256 _daiToSpend) public auth(BUY_ROLE) {
@@ -220,7 +220,7 @@ contract Presale is AragonApp {
         // (mint ✨) ~~~> project tokens ~~~> (buyer)
         uint256 tokensToSell = daiToProjectTokens(_daiToSpend);
         projectTokenManager.issue(tokensToSell);
-        uint256 purchaseId = projectTokenManager.assignVested(
+        uint256 vestedPurchaseId = projectTokenManager.assignVested(
             msg.sender,
             tokensToSell,
             startDate,
@@ -231,23 +231,23 @@ contract Presale is AragonApp {
         totalDaiRaised = totalDaiRaised.add(_daiToSpend);
 
         // Keep track of dai spent in this purchase for later refunding.
-        purchases[msg.sender][purchaseId] = _daiToSpend;
+        purchases[msg.sender][vestedPurchaseId] = _daiToSpend;
 
-        emit TokensPurchased(msg.sender, _daiToSpend, tokensToSell, purchaseId);
+        emit TokensPurchased(msg.sender, _daiToSpend, tokensToSell, vestedPurchaseId);
     }
 
     /**
-    * @notice Refunds a purchase made by `_buyer`, with id `_purchaseId`. Each purchase has a purchase id, and needs to be refunded separately.
+    * @notice Refunds a purchase made by `_buyer`, with id `_vestedPurchaseId`. Each purchase has a purchase id, and needs to be refunded separately.
     * @param _buyer address The buyer address to refund.
-    * @param _purchaseId uint256 The purchase id to refund.
+    * @param _vestedPurchaseId uint256 The purchase id to refund.
     */
-    function refund(address _buyer, uint256 _purchaseId) public {
+    function refund(address _buyer, uint256 _vestedPurchaseId) public {
         require(currentSaleState() == SaleState.Refunding, ERROR_INVALID_STATE);
 
         // Recall how much dai to refund for this purchase.
-        uint256 daiToRefund = purchases[_buyer][_purchaseId];
+        uint256 daiToRefund = purchases[_buyer][_vestedPurchaseId];
         require(daiToRefund > 0, ERROR_NOTHING_TO_REFUND);
-        purchases[_buyer][_purchaseId] = 0;
+        purchases[_buyer][_vestedPurchaseId] = 0;
 
         // (presale) ~~~> dai ~~~> (buyer)
         require(daiToken.transfer(_buyer, daiToRefund), ERROR_DAI_TRANSFER_REVERTED);
@@ -255,13 +255,13 @@ contract Presale is AragonApp {
         // (buyer) ~~~> project tokens ~~~> (Token manager)
         // Note: this assumes that the buyer didn't transfer any of the vested tokens.
         // The assumption can be made, considering the imposed restriction of fundingPeriod < vestingCliffPeriod < vestingCompletePeriod.
-        (uint256 tokensSold,,,,,) = projectTokenManager.getVesting(_buyer, _purchaseId);
-        projectTokenManager.revokeVesting(_buyer, _purchaseId);
+        (uint256 tokensSold,,,,,) = projectTokenManager.getVesting(_buyer, _vestedPurchaseId);
+        projectTokenManager.revokeVesting(_buyer, _vestedPurchaseId);
 
         // (Token manager) ~~~> project tokens ~~~> (burn 💥)
         projectTokenManager.burn(address(projectTokenManager), tokensSold);
 
-        emit TokensRefunded(_buyer, daiToRefund, tokensSold, _purchaseId);
+        emit TokensRefunded(_buyer, daiToRefund, tokensSold, _vestedPurchaseId);
     }
 
     /**

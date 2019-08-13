@@ -98,7 +98,7 @@ contract('Buy', ([anyone, appManager, buyer1, buyer2]) => {
           expect(event.args.buyer).to.equal(buyer1)
           expect(event.args.daiSpent.toNumber()).to.equal(BUYER_1_DAI_BALANCE)
           expect(event.args.tokensPurchased.toNumber()).to.equal(expectedAmount)
-          expect(event.args.purchaseId.toNumber()).to.equal(0)
+          expect(event.args.vestedPurchaseId.toNumber()).to.equal(0)
         })
 
         it('The purchase produces a valid purchase id for the buyer', async () => {
@@ -106,7 +106,7 @@ contract('Buy', ([anyone, appManager, buyer1, buyer2]) => {
           await this.presale.buy(2, { from: buyer2 })
           const tx = await this.presale.buy(3, { from: buyer2 })
           const event = getEvent(tx, 'TokensPurchased')
-          expect(event.args.purchaseId.toNumber()).to.equal(2)
+          expect(event.args.vestedPurchaseId.toNumber()).to.equal(2)
         })
 
         it('Keeps track of total dai raised', async () => {

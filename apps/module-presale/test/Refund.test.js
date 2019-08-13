@@ -78,7 +78,7 @@ contract('Refund', ([anyone, appManager, buyer1, buyer2, buyer3, buyer4, buyer5]
       expect(event.args.buyer).to.equal(buyer5)
       expect(event.args.daiRefunded.toNumber()).to.equal(1)
       expect(event.args.tokensBurned.toNumber()).to.equal(expectedAmount)
-      expect(event.args.purchaseId.toNumber()).to.equal(0)
+      expect(event.args.vestedPurchaseId.toNumber()).to.equal(0)
     })
 
     it('Project tokens are burnt once refunded', async () => {
