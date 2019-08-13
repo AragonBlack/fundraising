@@ -6,6 +6,7 @@ import "@aragon/os/contracts/factory/DAOFactory.sol";
 import "@aragon/os/contracts/factory/EVMScriptRegistryFactory.sol";
 
 import "@ablack/fundraising-market-maker-bancor/contracts/BatchedBancorMarketMaker.sol";
+import "@ablack/fundraising-controller-aragon-fundraising/contracts/AragonFundraisingController.sol";
 
 // You might think this file is a bit odd, but let me explain.
 // We only use some contracts in our tests, which means Truffle
