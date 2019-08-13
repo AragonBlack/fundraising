@@ -342,7 +342,7 @@ contract Presale is AragonApp {
 
     function _setProjectToken(MiniMeToken _projectToken, TokenManager _projectTokenManager) private {
         require(isContract(_projectTokenManager), ERROR_INVALID_TOKEN_CONTROLLER);
-        require(_projectToken.controller() != address(projectTokenManager), ERROR_INVALID_TOKEN_CONTROLLER);
+        require(_projectTokenManager.token() == address(_projectToken), ERROR_INVALID_TOKEN_CONTROLLER);
         projectToken = _projectToken;
         projectTokenManager = _projectTokenManager;
     }
