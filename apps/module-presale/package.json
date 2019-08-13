@@ -8,7 +8,7 @@
   "repository": "github:AragonBlack/fundraising",
   "homepage": "https://github.com/AragonBlack/fundraising",
   "bugs": "https://github.com/AragonBlack/fundraising/issues",
-  "license": "(GPL-3.0-or-later OR MIT)",
+  "license": "(GPL-3.0-or-later OR AGPL-3.0-or-later)",
   "dependencies": {
     "@ablack/fundraising-interface-core": "^0.1.0",
     "@ablack/fundraising-formula-bancor": "^0.1.0",
