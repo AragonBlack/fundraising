@@ -49,6 +49,18 @@ contract Presale is AragonApp {
     bytes32 public constant BUY_ROLE   = keccak256("BUY_ROLE");
 
     /*
+     * Constants
+     */
+
+    // Percentages are represented in the PPM range (Parts per Million) [0, 1000000]
+    // 25% => 0.25 * 1e6
+    // 50% => 0.50 * 1e6
+    uint256 public constant PPM = 1000000;
+
+    // Used to calculate tokenExchangeRate.
+    uint256 public constant CONNECTOR_WEIGHT_PPM = 100000; // 10%
+
+    /*
      * Properties
      */
 
@@ -91,14 +103,6 @@ contract Presale is AragonApp {
     // Number of project tokens that will be sold for each contribution token.
     // Calculated after initialization from the values CONNECTOR_WEIGHT_PPM and percentSupplyOffered.
     uint256 public tokenExchangeRate;
-
-    // Percentages are represented in the PPM range (Parts per Million) [0, 1000000]
-    // 25% => 0.25 * 1e6
-    // 50% => 0.50 * 1e6
-    uint256 public constant PPM = 1000000;
-
-    // Used to calculate tokenExchangeRate.
-    uint256 public constant CONNECTOR_WEIGHT_PPM = 100000; // 10%
 
     // Keeps track of how much contribution tokens are spent, per purchase, per buyer.
     // This is used when refunding purchases.
