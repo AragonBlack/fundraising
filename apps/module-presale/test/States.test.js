@@ -1,6 +1,6 @@
 const {
   FUNDING_PERIOD,
-  DAI_FUNDING_GOAL,
+  FUNDING_GOAL,
   SALE_STATE
 } = require('./common/constants')
 const { deployDefaultSetup } = require('./common/deploy')
@@ -16,8 +16,8 @@ contract('States', ([anyone, appManager, buyer]) => {
 
     before(async () => {
       await deployDefaultSetup(this, appManager)
-      await this.daiToken.generateTokens(buyer, DAI_FUNDING_GOAL)
-      await this.daiToken.approve(this.presale.address, DAI_FUNDING_GOAL, { from: buyer })
+      await this.contributionToken.generateTokens(buyer, FUNDING_GOAL)
+      await this.contributionToken.approve(this.presale.address, FUNDING_GOAL, { from: buyer })
     })
 
     it('Initial state is Pending', async () => {
@@ -55,7 +55,7 @@ contract('States', ([anyone, appManager, buyer]) => {
         describe('When purchases are made, not reaching the funding goal', () => {
 
           before(async () => {
-            await this.presale.buy(DAI_FUNDING_GOAL / 2, { from: buyer })
+            await this.presale.buy(FUNDING_GOAL / 2, { from: buyer })
           })
 
           it('The state is still Funding', async () => {
@@ -78,7 +78,7 @@ contract('States', ([anyone, appManager, buyer]) => {
 
           before(async () => {
             await this.presale.mockSetTimestamp(startDate + FUNDING_PERIOD / 2)
-            await this.presale.buy(DAI_FUNDING_GOAL / 2, { from: buyer })
+            await this.presale.buy(FUNDING_GOAL / 2, { from: buyer })
           })
 
           it('The state is GoalReached', async () => {

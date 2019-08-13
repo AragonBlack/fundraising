@@ -3,9 +3,9 @@ const {
   VESTING_COMPLETE_PERIOD
 } = require('./common/constants')
 const { deployDefaultSetup } = require('./common/deploy')
-const { daiToProjectTokens } = require('./common/utils')
+const { contributionToProjectTokens } = require('./common/utils')
 
-const BUYER_DAI_BALANCE = 20000
+const BUYER_BALANCE = 20000
 
 contract('Vesting', ([anyone, appManager, buyer]) => {
 
@@ -17,13 +17,13 @@ contract('Vesting', ([anyone, appManager, buyer]) => {
 
     before(async () => {
       await deployDefaultSetup(this, appManager)
-      await this.daiToken.generateTokens(buyer, BUYER_DAI_BALANCE)
-      await this.daiToken.approve(this.presale.address, BUYER_DAI_BALANCE, { from: buyer })
+      await this.contributionToken.generateTokens(buyer, BUYER_BALANCE)
+      await this.contributionToken.approve(this.presale.address, BUYER_BALANCE, { from: buyer })
 
       startDate = Math.floor(new Date().getTime() / 1000)
       await this.presale.start({ from: appManager })
 
-      await this.presale.buy(BUYER_DAI_BALANCE, { from: buyer })
+      await this.presale.buy(BUYER_BALANCE, { from: buyer })
 
       const vestingData = await this.tokenManager.getVesting(buyer, 0)
       vestedAmount = vestingData[0]
@@ -34,7 +34,7 @@ contract('Vesting', ([anyone, appManager, buyer]) => {
     })
 
     it('Token manager registers the correct vested amount', async () => {
-      const expectedAmount = daiToProjectTokens(BUYER_DAI_BALANCE)
+      const expectedAmount = contributionToProjectTokens(BUYER_BALANCE)
       expect(vestedAmount.toNumber()).to.equal(expectedAmount)
     })
 

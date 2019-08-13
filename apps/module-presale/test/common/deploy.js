@@ -21,7 +21,7 @@ const {
   ZERO_ADDRESS,
   VESTING_CLIFF_PERIOD,
   VESTING_COMPLETE_PERIOD,
-  DAI_FUNDING_GOAL,
+  FUNDING_GOAL,
   PERCENT_SUPPLY_OFFERED,
   FUNDING_PERIOD,
   TAP_RATE,
@@ -192,12 +192,12 @@ const deploy = {
   },
   initializePresale: async (test, params) => {
     const paramsArr = [
-      params.daiToken,
+      params.contributionToken,
       params.projectToken,
       params.tokenManager,
       params.vestingCliffPeriod,
       params.vestingCompletePeriod,
-      params.daiFundingGoal,
+      params.fundingGoal,
       params.percentSupplyOffered,
       params.fundingPeriod,
       params.pool,
@@ -208,12 +208,12 @@ const deploy = {
   },
   defaultDeployParams: (test, beneficiaryAddress) => {
     return {
-      daiToken: test.daiToken.address,
+      contributionToken: test.contributionToken.address,
       projectToken: test.projectToken.address,
       tokenManager: test.tokenManager.address,
       vestingCliffPeriod: VESTING_CLIFF_PERIOD,
       vestingCompletePeriod: VESTING_COMPLETE_PERIOD,
-      daiFundingGoal: DAI_FUNDING_GOAL,
+      fundingGoal: FUNDING_GOAL,
       percentSupplyOffered: PERCENT_SUPPLY_OFFERED,
       fundingPeriod: FUNDING_PERIOD,
       pool: test.pool.address,
@@ -229,7 +229,7 @@ const deploy = {
 
   /* TOKENS */
   deployTokens: async (test) => {
-    test.daiToken = await MiniMeToken.new(ZERO_ADDRESS, ZERO_ADDRESS, 0, 'DaiToken', 18, 'DAI', true)
+    test.contributionToken = await MiniMeToken.new(ZERO_ADDRESS, ZERO_ADDRESS, 0, 'DaiToken', 18, 'DAI', true)
     test.projectToken = await MiniMeToken.new(ZERO_ADDRESS, ZERO_ADDRESS, 0, 'ProjectToken', 18, 'PRO', true)
   },
 

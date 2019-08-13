@@ -1,5 +1,5 @@
 const {
-  DAI_FUNDING_GOAL,
+  FUNDING_GOAL,
   PERCENT_SUPPLY_OFFERED,
   VESTING_CLIFF_PERIOD,
   VESTING_COMPLETE_PERIOD,
@@ -16,7 +16,7 @@ const {
   defaultDeployParams,
   deployDefaultSetup
 } = require('./common/deploy')
-const { daiToProjectTokenExchangeRate } = require('./common/utils')
+const { tokenExchangeRate } = require('./common/utils')
 const { assertRevert } = require('@aragon/test-helpers/assertThrow')
 
 contract('Setup', ([anyone, appManager, someEOA]) => {
@@ -43,7 +43,7 @@ contract('Setup', ([anyone, appManager, someEOA]) => {
     })
 
     it('Funding goal and percentage offered are set', async () => {
-      expect((await this.presale.daiFundingGoal()).toNumber()).to.equal(DAI_FUNDING_GOAL)
+      expect((await this.presale.fundingGoal()).toNumber()).to.equal(FUNDING_GOAL)
       expect((await this.presale.percentSupplyOffered()).toNumber()).to.equal(PERCENT_SUPPLY_OFFERED)
     })
 
@@ -62,9 +62,9 @@ contract('Setup', ([anyone, appManager, someEOA]) => {
       expect((await this.presale.projectToken())).to.equal(this.projectToken.address)
     })
 
-    it('Dai token is deployed and set in the app', async () => {
-      expect(web3.isAddress(this.daiToken.address)).to.equal(true)
-      expect((await this.presale.daiToken())).to.equal(this.daiToken.address)
+    it('Contribution token is deployed and set in the app', async () => {
+      expect(web3.isAddress(this.contributionToken.address)).to.equal(true)
+      expect((await this.presale.contributionToken())).to.equal(this.contributionToken.address)
     })
 
     it('TokenManager is deployed, set in the app, and controls the project token', async () => {
@@ -73,8 +73,8 @@ contract('Setup', ([anyone, appManager, someEOA]) => {
     })
 
     it('Exchange rate is calculated to the expected value', async () => {
-      const receivedValue = (await this.presale.daiToProjectTokenExchangeRate()).toNumber()
-      const expectedValue = daiToProjectTokenExchangeRate()
+      const receivedValue = (await this.presale.tokenExchangeRate()).toNumber()
+      const expectedValue = tokenExchangeRate()
       expect(receivedValue).to.equal(expectedValue)
     })
 
@@ -96,11 +96,11 @@ contract('Setup', ([anyone, appManager, someEOA]) => {
       defaultParams = defaultDeployParams(this, appManager)
     })
 
-    it('Reverts when setting an invalid dai token', async () => {
+    it('Reverts when setting an invalid contribution token', async () => {
       await assertRevert(
         initializePresale(this, { ...defaultParams,
-          daiToken: someEOA
-        }), 'PRESALE_INVALID_DAI_TOKEN'
+          contributionToken: someEOA
+        }), 'PRESALE_INVALID_CONTRIBUTION_TOKEN'
       )
     })
 
@@ -133,8 +133,8 @@ contract('Setup', ([anyone, appManager, someEOA]) => {
     it('Reverts when setting an invalid funding goal', async () => {
       await assertRevert(
         initializePresale(this, { ...defaultParams,
-          daiFundingGoal: 0
-        }), 'PRESALE_INVALID_DAI_FUNDING_GOAL'
+          fundingGoal: 0
+        }), 'PRESALE_INVALID_FUNDING_GOAL'
       )
     })
 

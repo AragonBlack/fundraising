@@ -1,13 +1,13 @@
 const {
   FUNDING_PERIOD,
   SALE_STATE,
-  DAI_FUNDING_GOAL
+  FUNDING_GOAL
 } = require('./common/constants')
-const { daiToProjectTokens, getEvent } = require('./common/utils')
+const { contributionToProjectTokens, getEvent } = require('./common/utils')
 const { deployDefaultSetup } = require('./common/deploy')
 const { assertRevert } = require('@aragon/test-helpers/assertThrow')
 
-const BUYERS_DAI_BALANCE = 1000
+const BUYER_BALANCE = 1000
 
 contract('Refund', ([anyone, appManager, buyer1, buyer2, buyer3, buyer4, buyer5]) => {
 
@@ -16,15 +16,15 @@ contract('Refund', ([anyone, appManager, buyer1, buyer2, buyer3, buyer4, buyer5]
   before(async () => {
     await deployDefaultSetup(this, appManager)
 
-    await this.daiToken.generateTokens(buyer1, BUYERS_DAI_BALANCE)
-    await this.daiToken.generateTokens(buyer2, BUYERS_DAI_BALANCE)
-    await this.daiToken.generateTokens(buyer3, BUYERS_DAI_BALANCE)
-    await this.daiToken.generateTokens(buyer5, BUYERS_DAI_BALANCE)
+    await this.contributionToken.generateTokens(buyer1, BUYER_BALANCE)
+    await this.contributionToken.generateTokens(buyer2, BUYER_BALANCE)
+    await this.contributionToken.generateTokens(buyer3, BUYER_BALANCE)
+    await this.contributionToken.generateTokens(buyer5, BUYER_BALANCE)
 
-    await this.daiToken.approve(this.presale.address, BUYERS_DAI_BALANCE, { from: buyer1 })
-    await this.daiToken.approve(this.presale.address, BUYERS_DAI_BALANCE, { from: buyer2 })
-    await this.daiToken.approve(this.presale.address, BUYERS_DAI_BALANCE, { from: buyer3 })
-    await this.daiToken.approve(this.presale.address, BUYERS_DAI_BALANCE, { from: buyer5 })
+    await this.contributionToken.approve(this.presale.address, BUYER_BALANCE, { from: buyer1 })
+    await this.contributionToken.approve(this.presale.address, BUYER_BALANCE, { from: buyer2 })
+    await this.contributionToken.approve(this.presale.address, BUYER_BALANCE, { from: buyer3 })
+    await this.contributionToken.approve(this.presale.address, BUYER_BALANCE, { from: buyer5 })
 
     startTime = new Date().getTime() / 1000
     await this.presale.start({ from: appManager })
@@ -34,10 +34,10 @@ contract('Refund', ([anyone, appManager, buyer1, buyer2, buyer3, buyer4, buyer5]
 
     before(async () => {
       // Make a few purchases, careful not to reach the funding goal.
-      await this.presale.buy(BUYERS_DAI_BALANCE, { from: buyer1 }) // Spends everything in one purchase
-      await this.presale.buy(BUYERS_DAI_BALANCE / 2, { from: buyer2 })
-      await this.presale.buy(BUYERS_DAI_BALANCE / 2, { from: buyer2 }) // Spends everything in two purchases
-      await this.presale.buy(BUYERS_DAI_BALANCE / 2, { from: buyer3 }) // Spends half
+      await this.presale.buy(BUYER_BALANCE, { from: buyer1 }) // Spends everything in one purchase
+      await this.presale.buy(BUYER_BALANCE / 2, { from: buyer2 })
+      await this.presale.buy(BUYER_BALANCE / 2, { from: buyer2 }) // Spends everything in two purchases
+      await this.presale.buy(BUYER_BALANCE / 2, { from: buyer3 }) // Spends half
       await this.presale.buy(1, { from: buyer5 }) // Spends a miserable amount xD
       await this.presale.buy(1, { from: buyer5 }) // And again
 
@@ -48,41 +48,41 @@ contract('Refund', ([anyone, appManager, buyer1, buyer2, buyer3, buyer4, buyer5]
       expect((await this.presale.currentSaleState()).toNumber()).to.equal(SALE_STATE.REFUNDING)
     })
 
-    it('Buyers obtained project tokens for their dai', async () => {
-      expect((await this.daiToken.balanceOf(buyer1)).toNumber()).to.equal(0)
-      expect((await this.daiToken.balanceOf(buyer2)).toNumber()).to.equal(0)
-      expect((await this.daiToken.balanceOf(buyer3)).toNumber()).to.equal(BUYERS_DAI_BALANCE / 2)
+    it('Buyers obtained project tokens for their contribution tokens', async () => {
+      expect((await this.contributionToken.balanceOf(buyer1)).toNumber()).to.equal(0)
+      expect((await this.contributionToken.balanceOf(buyer2)).toNumber()).to.equal(0)
+      expect((await this.contributionToken.balanceOf(buyer3)).toNumber()).to.equal(BUYER_BALANCE / 2)
 
-      expect((await this.projectToken.balanceOf(buyer1)).toNumber()).to.equal(daiToProjectTokens(BUYERS_DAI_BALANCE))
-      expect((await this.projectToken.balanceOf(buyer2)).toNumber()).to.equal(daiToProjectTokens(BUYERS_DAI_BALANCE))
-      expect((await this.projectToken.balanceOf(buyer3)).toNumber()).to.equal(daiToProjectTokens(BUYERS_DAI_BALANCE / 2))
+      expect((await this.projectToken.balanceOf(buyer1)).toNumber()).to.equal(contributionToProjectTokens(BUYER_BALANCE))
+      expect((await this.projectToken.balanceOf(buyer2)).toNumber()).to.equal(contributionToProjectTokens(BUYER_BALANCE))
+      expect((await this.projectToken.balanceOf(buyer3)).toNumber()).to.equal(contributionToProjectTokens(BUYER_BALANCE / 2))
     })
 
     it('Allows a buyer who made a single purchase to get refunded', async () => {
       await this.presale.refund(buyer1, 0)
-      expect((await this.daiToken.balanceOf(buyer1)).toNumber()).to.equal(BUYERS_DAI_BALANCE)
+      expect((await this.contributionToken.balanceOf(buyer1)).toNumber()).to.equal(BUYER_BALANCE)
       expect((await this.projectToken.balanceOf(buyer1)).toNumber()).to.equal(0)
     })
 
     it('Allows a buyer who made multiple purchases to get refunded', async () => {
       await this.presale.refund(buyer2, 0)
       await this.presale.refund(buyer2, 1)
-      expect((await this.daiToken.balanceOf(buyer2)).toNumber()).to.equal(BUYERS_DAI_BALANCE)
+      expect((await this.contributionToken.balanceOf(buyer2)).toNumber()).to.equal(BUYER_BALANCE)
     })
 
     it('A TokensRefunded event is emitted', async () => {
       const refundTx = await this.presale.refund(buyer5, 0)
-      const expectedAmount = daiToProjectTokens(1)
+      const expectedAmount = contributionToProjectTokens(1)
       const event = getEvent(refundTx, 'TokensRefunded')
       expect(event).to.exist
       expect(event.args.buyer).to.equal(buyer5)
-      expect(event.args.daiRefunded.toNumber()).to.equal(1)
+      expect(event.args.tokensRefunded.toNumber()).to.equal(1)
       expect(event.args.tokensBurned.toNumber()).to.equal(expectedAmount)
       expect(event.args.vestedPurchaseId.toNumber()).to.equal(0)
     })
 
     it('Project tokens are burnt once refunded', async () => {
-      const expectedAmount = daiToProjectTokens(1)
+      const expectedAmount = contributionToProjectTokens(1)
       const initialProjectTokenSupply = (await this.projectToken.totalSupply()).toNumber()
       await this.presale.refund(buyer5, 1)
       expect((await this.projectToken.totalSupply()).toNumber()).to.equal(initialProjectTokenSupply - expectedAmount)
@@ -125,11 +125,11 @@ contract('Refund', ([anyone, appManager, buyer1, buyer2, buyer3, buyer4, buyer5]
 
     before(async () => {
       await this.presale.mockSetTimestamp(startTime)
-      await this.daiToken.generateTokens(buyer4, DAI_FUNDING_GOAL)
-      await this.daiToken.approve(this.presale.address, DAI_FUNDING_GOAL, { from: buyer4 })
+      await this.contributionToken.generateTokens(buyer4, FUNDING_GOAL)
+      await this.contributionToken.approve(this.presale.address, FUNDING_GOAL, { from: buyer4 })
 
-      const totalDaiRaised = (await this.presale.totalDaiRaised()).toNumber()
-      await this.presale.buy(DAI_FUNDING_GOAL - totalDaiRaised, {  from: buyer4 })
+      const totalRaised = (await this.presale.totalRaised()).toNumber()
+      await this.presale.buy(FUNDING_GOAL - totalRaised, {  from: buyer4 })
     })
 
     it('Sale state is GoalReached', async () => {

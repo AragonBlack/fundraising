@@ -1,5 +1,5 @@
 const {
-  DAI_FUNDING_GOAL,
+  FUNDING_GOAL,
   CONNECTOR_WEIGHT,
   PERCENT_SUPPLY_OFFERED,
   PPM
@@ -10,15 +10,15 @@ const utils = {
 
   getEvent: (tx, eventName) => tx.logs.filter(log => log.event.includes(eventName))[0],
 
-  daiToProjectTokens: (dai) => {
-    return dai * utils.daiToProjectTokenExchangeRate()
+  contributionToProjectTokens: (dai) => {
+    return dai * utils.tokenExchangeRate()
   },
 
-  daiToProjectTokenExchangeRate: () => {
+  tokenExchangeRate: () => {
     const connectorWeightDec = CONNECTOR_WEIGHT / PPM;
     const supplyOfferedDec = PERCENT_SUPPLY_OFFERED / PPM;
     return Math.floor(
-      (DAI_FUNDING_GOAL / connectorWeightDec) * supplyOfferedDec
+      (FUNDING_GOAL / connectorWeightDec) * supplyOfferedDec
     )
   },
 

@@ -10,7 +10,7 @@ const { deployDefaultSetup } = require('./common/deploy')
 const { getEvent } = require('./common/utils')
 const { assertRevert } = require('@aragon/test-helpers/assertThrow')
 
-const BUYERS_DAI_BALANCE = 20000
+const BUYER_BALANCE = 20000
 
 contract('Close', ([anyone, appManager, buyer1]) => {
 
@@ -18,12 +18,12 @@ contract('Close', ([anyone, appManager, buyer1]) => {
 
     before(async () => {
       await deployDefaultSetup(this, appManager)
-      await this.daiToken.generateTokens(buyer1, BUYERS_DAI_BALANCE)
-      await this.daiToken.approve(this.presale.address, BUYERS_DAI_BALANCE, { from: buyer1 })
+      await this.contributionToken.generateTokens(buyer1, BUYER_BALANCE)
+      await this.contributionToken.approve(this.presale.address, BUYER_BALANCE, { from: buyer1 })
       await this.presale.start({ from: appManager })
 
       // Make a single purchase that reaches the funding goal
-      await this.presale.buy(BUYERS_DAI_BALANCE, { from: buyer1 })
+      await this.presale.buy(BUYER_BALANCE, { from: buyer1 })
     })
 
     it('Sale state is GoalReached', async () => {
@@ -43,14 +43,14 @@ contract('Close', ([anyone, appManager, buyer1]) => {
       })
 
       it('Raised funds are transferred to the fundraising pool and the beneficiary address', async () => {
-        expect((await this.daiToken.balanceOf(this.presale.address)).toNumber()).to.equal(0)
+        expect((await this.contributionToken.balanceOf(this.presale.address)).toNumber()).to.equal(0)
 
-        const totalDaiRaised = (await this.presale.totalDaiRaised()).toNumber()
-        const daiForBeneficiary = Math.floor(totalDaiRaised * PERCENT_FUNDING_FOR_BENEFICIARY / PPM)
-        const daiForPool = totalDaiRaised - daiForBeneficiary
+        const totalRaised = (await this.presale.totalRaised()).toNumber()
+        const tokensForBeneficiary = Math.floor(totalRaised * PERCENT_FUNDING_FOR_BENEFICIARY / PPM)
+        const tokensForPool = totalRaised - tokensForBeneficiary
         const fundraisingPool = await this.presale.fundraisingPool()
-        expect((await this.daiToken.balanceOf(appManager)).toNumber()).to.equal(daiForBeneficiary)
-        expect((await this.daiToken.balanceOf(fundraisingPool)).toNumber()).to.equal(daiForPool)
+        expect((await this.contributionToken.balanceOf(appManager)).toNumber()).to.equal(tokensForBeneficiary)
+        expect((await this.contributionToken.balanceOf(fundraisingPool)).toNumber()).to.equal(tokensForPool)
       })
 
       it('Sale cannot be closed again', async () => {
