@@ -11,7 +11,6 @@ The fundraising kit relies on two category of actors: the project managers and t
 
 ### Kernel and ACL
 
-
 | App    | Permission         | Grantee      | Manager      |
 | ------ | ------------------ | ------------ | ------------ |
 | Kernel | APP_MANAGER        | Voting [BON] | Voting [BON] |
@@ -19,16 +18,16 @@ The fundraising kit relies on two category of actors: the project managers and t
 
 ### Multisig
 
-| App                 | Permission      | Grantee             | Manager      |
-| ------------------- | --------------- | ------------------- | ------------ |
-| Token Manager [PRO] | ASSIGN          | Voting [PRO]        | Voting [PRO] |
-| Token Manager [PRO] | REVOKE_VESTINGS | Voting [PRO]        | Voting [PRO] |
-| Voting [PRO]        | CREATE_VOTES    | Token Manager [PRO] | Voting [PRO] |
-| Voting [PRO]        | MODIFY_QUORUM   | Voting [PRO]        | Voting [PRO] |
-| Voting [PRO]        | MODIFY_SUPPORT  | Voting [PRO]        | Voting [PRO] |
-
+| App                 | Permission     | Grantee             | Manager      |
+| ------------------- | -------------- | ------------------- | ------------ |
+| Token Manager [PRO] | MINT           | Voting [PRO]        | Voting [PRO] |
+| Token Manager [PRO] | BURN           | Voting [PRO]        | Voting [PRO] |
+| Voting [PRO]        | CREATE_VOTES   | Token Manager [PRO] | Voting [PRO] |
+| Voting [PRO]        | MODIFY_QUORUM  | Voting [PRO]        | Voting [PRO] |
+| Voting [PRO]        | MODIFY_SUPPORT | Voting [PRO]        | Voting [PRO] |
 
 ### Vaut and Finance
+
 _Handle beneficiary's funds_
 
 | App     | Permission       | Grantee      | Manager      |
@@ -39,6 +38,7 @@ _Handle beneficiary's funds_
 | Finance | MANAGE_PAYMENTS  | Voting [PRO] | Voting [PRO] |
 
 ### TokenManager [BON]
+
 _Handle bonds minting and burning_
 
 | App                 | Permission | Grantee     | Manager      |
@@ -48,12 +48,14 @@ _Handle bonds minting and burning_
 
 ### Voting app [BON]
 
-| App          | Permission    | Grantee             | Manager      |
-| ------------ | ------------- | ------------------- | ------------ |
-| Voting [BON] | CREATE_VOTES  | Token Manager [PRO] | Voting [BON] |
-| Voting [BON] | MODIFY_QUORUM | Voting [BON]        | Voting [BON] |
+| App          | Permission     | Grantee             | Manager      |
+| ------------ | -------------- | ------------------- | ------------ |
+| Voting [BON] | CREATE_VOTES   | Token Manager [PRO] | Voting [BON] |
+| Voting [BON] | MODIFY_QUORUM  | Voting [BON]        | Voting [BON] |
+| Voting [BON] | MODIFY_SUPPORT | Voting [BON]        | Voting [BON] |
 
 ### MarketMaker
+
 _Handle buy and sell orders_
 
 | App         | Permission              | Grantee    | Manager      |
@@ -68,6 +70,7 @@ _Handle buy and sell orders_
 | MarketMaker | OPEN_SELL_ORDER         | Controller | Voting [BON] |
 
 ### Tap
+
 _Handle transfer of funds from reserve to beneficiary_
 
 | App | Permission                      | Grantee    | Manager      |
@@ -82,6 +85,7 @@ _Handle transfer of funds from reserve to beneficiary_
 | Tap | WITHDRAW                        | Controller | Voting [PRO] |
 
 ### Pool
+
 _Handle reserve funds_
 
 | App  | Permission             | Grantee          | Manager      |
@@ -96,11 +100,13 @@ _Handle reserve funds_
 | Pool | TRANSFER               | Tap, MarketMaker | Voting [BON] |
 
 ### Controller
+
 _API contract forwarding transactions to relevant contracts_
 
 | App        | Permission                      | Grantee      | Manager      |
 | ---------- | ------------------------------- | ------------ | ------------ |
 | Controller | UPDATE_BENEFICIARY              | Voting [PRO] | Voting [PRO] |
+| Controller | WITHDRAW                        | Voting [PRO] | Voting [PRO] |
 | Controller | UPDATE_FEES                     | Voting [BON] | Voting [BON] |
 | Controller | UPDATE_MAXIMUM_TAP_INCREASE_PCT | Voting [BON] | Voting [BON] |
 | Controller | ADD_COLLATERAL_TOKEN            | Voting [BON] | Voting [BON] |
@@ -109,7 +115,6 @@ _API contract forwarding transactions to relevant contracts_
 | Controller | UPDATE_TOKEN_TAP                | Voting [BON] | Voting [BON] |
 | Controller | OPEN_BUY_ORDER                  | Any          | Voting [BON] |
 | Controller | OPEN_SELL_ORDER                 | Any          | Voting [BON] |
-| Controller | WITHDRAW                        | Voting [PRO] | Voting [PRO] |
 
 ## Gas usage
 
