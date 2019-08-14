@@ -14,6 +14,10 @@ const utils = {
     return dai * utils.tokenExchangeRate()
   },
 
+  now: () => {
+    return Math.floor(new Date().getTime() / 1000)
+  },
+
   tokenExchangeRate: () => {
     const connectorWeightDec = CONNECTOR_WEIGHT / PPM;
     const supplyOfferedDec = PERCENT_SUPPLY_OFFERED / PPM;

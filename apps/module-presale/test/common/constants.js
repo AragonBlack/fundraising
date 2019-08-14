@@ -1,5 +1,5 @@
 // Generic
-const NOW = new Date().getTime() / 1000
+const NOW = Math.floor(new Date().getTime() / 1000)
 const DAYS = 24 * 3600
 const PPM = 1e6 /* "Parts per million", used to represent percentages; 100% = 1e6, 50% = 0.5 * 1e6, etc... */
 const ANY_ADDRESS = '0xffffffffffffffffffffffffffffffffffffffff'

@@ -2,58 +2,72 @@ const {
   VESTING_CLIFF_PERIOD,
   VESTING_COMPLETE_PERIOD
 } = require('./common/constants')
-const { deployDefaultSetup } = require('./common/deploy')
-const { contributionToProjectTokens } = require('./common/utils')
+const { prepareDefaultSetup, defaultDeployParams, initializePresale } = require('./common/deploy')
+const { contributionToProjectTokens, now } = require('./common/utils')
 
 const BUYER_BALANCE = 20000
 
-contract('Vesting', ([anyone, appManager, buyer]) => {
+contract('Presale, vesting functionality', ([anyone, appManager, buyer]) => {
 
-  describe('When a purchase produces vested tokens', () => {
+  const itVestsTokensCorrectly = (startDate) => {
 
-    let startDate
+    describe('When a purchase produces vested tokens', () => {
 
-    let vestedAmount, vestingStartDate, vestingCliffDate, vestingCompleteDate, vestingRevokable
+      let vestedAmount, vestingStartDate, vestingCliffDate, vestingCompleteDate, vestingRevokable
 
-    before(async () => {
-      await deployDefaultSetup(this, appManager)
-      await this.contributionToken.generateTokens(buyer, BUYER_BALANCE)
-      await this.contributionToken.approve(this.presale.address, BUYER_BALANCE, { from: buyer })
+      before(async () => {
+        await prepareDefaultSetup(this, appManager)
+        await initializePresale(this, { ...defaultDeployParams(this, appManager), startDate })
 
-      startDate = Math.floor(new Date().getTime() / 1000)
-      await this.presale.start({ from: appManager })
+        await this.contributionToken.generateTokens(buyer, BUYER_BALANCE)
+        await this.contributionToken.approve(this.presale.address, BUYER_BALANCE, { from: buyer })
 
-      await this.presale.buy(BUYER_BALANCE, { from: buyer })
+        if (startDate == 0) {
+          startDate = now()
+          await this.presale.start({ from: appManager })
+        }
+        await this.presale.mockSetTimestamp(startDate + 1)
 
-      const vestingData = await this.tokenManager.getVesting(buyer, 0)
-      vestedAmount = vestingData[0]
-      vestingStartDate = vestingData[1]
-      vestingCliffDate = vestingData[2]
-      vestingCompleteDate = vestingData[3]
-      vestingRevokable = vestingData[4]
+        await this.presale.buy(BUYER_BALANCE, { from: buyer })
+
+        const vestingData = await this.tokenManager.getVesting(buyer, 0)
+        vestedAmount = vestingData[0]
+        vestingStartDate = vestingData[1]
+        vestingCliffDate = vestingData[2]
+        vestingCompleteDate = vestingData[3]
+        vestingRevokable = vestingData[4]
+      })
+
+      it('Token manager registers the correct vested amount', async () => {
+        const expectedAmount = contributionToProjectTokens(BUYER_BALANCE)
+        expect(vestedAmount.toNumber()).to.equal(expectedAmount)
+      })
+
+      it('Token manager registers the correct vesting start date', async () => {
+        expect(vestingStartDate.toNumber()).to.equal(startDate)
+      })
+
+      it('Token manager registers the correct vesting cliff date', async () => {
+        const cliffDate = startDate + VESTING_CLIFF_PERIOD
+        expect(vestingCliffDate.toNumber()).to.equal(cliffDate)
+      })
+
+      it('Token manager registers the correct vesting complete date', async () => {
+        const completeDate = startDate + VESTING_COMPLETE_PERIOD
+        expect(vestingCompleteDate.toNumber()).to.equal(completeDate)
+      })
+
+      it('Token manager registers the vestings as revokable', async () => {
+        expect(vestingRevokable).to.equal(true)
+      })
     })
+  }
 
-    it('Token manager registers the correct vested amount', async () => {
-      const expectedAmount = contributionToProjectTokens(BUYER_BALANCE)
-      expect(vestedAmount.toNumber()).to.equal(expectedAmount)
-    })
+  describe('When no startDate is specified upon initialization', () => {
+    itVestsTokensCorrectly(0)
+  })
 
-    it('Token manager registers the correct vesting start date', async () => {
-      expect(vestingStartDate.toNumber()).to.equal(startDate)
-    })
-
-    it('Token manager registers the correct vesting cliff date', async () => {
-      const cliffDate = startDate + VESTING_CLIFF_PERIOD
-      expect(vestingCliffDate.toNumber()).to.equal(cliffDate)
-    })
-
-    it('Token manager registers the correct vesting complete date', async () => {
-      const completeDate = startDate + VESTING_COMPLETE_PERIOD
-      expect(vestingCompleteDate.toNumber()).to.equal(completeDate)
-    })
-
-    it('Token manager registers the vestings as revokable', async () => {
-      expect(vestingRevokable).to.equal(true)
-    })
+  describe('When a startDate is specified upon initialization', () => {
+    itVestsTokensCorrectly(now() + 3600)
   })
 })

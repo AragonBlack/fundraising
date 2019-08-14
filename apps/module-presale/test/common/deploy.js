@@ -202,7 +202,8 @@ const deploy = {
       params.fundingPeriod,
       params.pool,
       params.beneficiaryAddress,
-      params.percentFundingForBeneficiary
+      params.percentFundingForBeneficiary,
+      params.startDate
     ]
     return test.presale.initialize(...paramsArr)
   },
@@ -218,7 +219,8 @@ const deploy = {
       fundingPeriod: FUNDING_PERIOD,
       pool: test.pool.address,
       beneficiaryAddress,
-      percentFundingForBeneficiary: PERCENT_FUNDING_FOR_BENEFICIARY
+      percentFundingForBeneficiary: PERCENT_FUNDING_FOR_BENEFICIARY,
+      startDate: 0
     }
   },
 

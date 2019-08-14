@@ -18,7 +18,6 @@ contract Presale is AragonApp {
      * Events
      */
 
-    event SaleStarted();
     event SaleClosed();
     event TokensPurchased(address indexed buyer, uint256 tokensSpent, uint256 tokensPurchased, uint256 vestedPurchaseId);
     event TokensRefunded(address indexed buyer, uint256 tokensRefunded, uint256 tokensBurned, uint256 vestedPurchaseId);
@@ -132,7 +131,7 @@ contract Presale is AragonApp {
      */
 
     /**
-    * @notice Initialize Presale app with `_contributionToken` to be used for purchasing `_projectToken`, controlled by `_projectTokenManager`. Project tokens are provided in vested form using `_vestingCliffPeriod` and `_vestingCompletePeriod`. The Presale accepts tokens until `_fundingGoal` is reached. `percentSupplyOffered` is used to calculate the contribution token to project token exchange rate. The presale allows project token purchases for `_fundingPeriod` after the sale is started. If the funding goal is reached, part of the raised funds are sent to `_fundraisingPool`, associated with a Fundraising app. The raised funds that are not sent to the fundraising pool are sent to `_beneficiaryAddress` according to the ratio specified in `_percentFundingForBenefiriary`.
+    * @notice Initialize Presale app with `_contributionToken` to be used for purchasing `_projectToken`, controlled by `_projectTokenManager`. Project tokens are provided in vested form using `_vestingCliffPeriod` and `_vestingCompletePeriod`. The Presale accepts tokens until `_fundingGoal` is reached. `percentSupplyOffered` is used to calculate the contribution token to project token exchange rate. The presale allows project token purchases for `_fundingPeriod` after the sale is started. If the funding goal is reached, part of the raised funds are sent to `_fundraisingPool`, associated with a Fundraising app. The raised funds that are not sent to the fundraising pool are sent to `_beneficiaryAddress` according to the ratio specified in `_percentFundingForBenefiriary`. Optionally, if a non-zero `_startDate` is provided, the sale will start at the specified date, without the need of the owner of the START_ROLE calling `start()`.
     * @param _contributionToken ERC20 Token accepted for purchasing project tokens.
     * @param _projectToken MiniMeToken project tokens being offered for sale in vested form.
     * @param _projectTokenManager TokenManager Token manager in control of the offered project tokens.
@@ -144,6 +143,7 @@ contract Presale is AragonApp {
     * @param _fundraisingPool Pool The fundraising pool associated with the Fundraising app where part of the raised contribution tokens will be sent to, if this sale is succesful.
     * @param _beneficiaryAddress address The address to which part of the raised contribution tokens will be sent to, if this sale is successful.
     * @param _percentFundingForBenefiriary uint256 The percentage of the raised contribution tokens that will be sent to the beneficiary address, instead of the fundraising pool, when this sale is closed.
+    * @param _startDate uint64 Optional start date of the sale, ignored if 0.
     */
     function initialize(
         ERC20 _contributionToken,
@@ -156,7 +156,8 @@ contract Presale is AragonApp {
         uint64 _fundingPeriod,
         address _fundraisingPool,
         address _beneficiaryAddress,
-        uint256 _percentFundingForBenefiriary
+        uint256 _percentFundingForBenefiriary,
+        uint64 _startDate
     )
         external
         onlyInit
@@ -190,6 +191,10 @@ contract Presale is AragonApp {
         fundingGoal = _fundingGoal;
         percentSupplyOffered = _percentSupplyOffered;
 
+        if (_startDate != 0) {
+            _setStartDate(_startDate);
+        }
+
         _calculateExchangeRate();
     }
 
@@ -202,14 +207,11 @@ contract Presale is AragonApp {
     */
     function start() public auth(START_ROLE) {
         require(currentSaleState() == SaleState.Pending, ERROR_INVALID_STATE);
-        startDate = getTimestamp64();
-        vestingCliffDate = startDate.add(vestingCliffPeriod);
-        vestingCompleteDate = startDate.add(vestingCompletePeriod);
-        emit SaleStarted();
+        _setStartDate(getTimestamp64());
     }
 
     /**
-    * @notice Buys project tokens using the provided `_tokensToSpend` contribution tokens. To calculate how many project tokens will be sold for the provided contribution tokens amount, use contributionToProjectTokens(). Each purchase generates a numeric vestedPurchaseId (0, 1, 2, etc) for the caller, which can be obtained in the TokensPurchased event emitted, and is required for later refunds. Note: If `_tokensToSpend` + `totalRaised` exceends `fundingGoal`, only part of it will be used so that the funding goal is never exceeded.
+    * @notice Buys project tokens using the provided `_tokensToSpend` contribution tokens. To calculate how many project tokens will be sold for the provided contribution tokens amount, use contributionToProjectTokens(). Each purchase generates a numeric vestedPurchaseId (0, 1, 2, etc) for the caller, which can be obtained in the TokensPurchased event emitted, and is required for later refunds. Note: If `_tokensToSpend` + `totalRaised` is larger than `fundingGoal`, only part of it will be used so that the funding goal is never exceeded.
     * @param _tokensToSpend The amount of contribution tokens to spend to obtain project tokens.
     */
     function buy(uint256 _tokensToSpend) public auth(BUY_ROLE) {
@@ -308,15 +310,20 @@ contract Presale is AragonApp {
     * @notice Calculates the current state of the sale.
     */
     function currentSaleState() public view returns (SaleState) {
-        if (startDate == 0) {
+
+        if (startDate == 0 || startDate > getTimestamp64()) {
             return SaleState.Pending;
-        } else if (totalRaised >= fundingGoal) {
+        }
+
+        if (totalRaised >= fundingGoal) {
             if (saleClosed) {
                 return SaleState.Closed;
             } else {
                 return SaleState.GoalReached;
             }
-        } else if (_timeSinceFundingStarted() < fundingPeriod) {
+        }
+
+        if (_timeSinceFundingStarted() < fundingPeriod) {
             return SaleState.Funding;
         } else {
             return SaleState.Refunding;
@@ -326,6 +333,17 @@ contract Presale is AragonApp {
     /*
      * Internal
      */
+
+    function _setStartDate(uint64 _date) internal {
+        require(_date >= getTimestamp64(), ERROR_INVALID_TIME_PERIOD);
+        startDate = _date;
+        _setVestingDatesWhenStartDateIsKnown();
+    }
+
+    function _setVestingDatesWhenStartDateIsKnown() internal {
+        vestingCliffDate = startDate.add(vestingCliffPeriod);
+        vestingCompleteDate = startDate.add(vestingCompletePeriod);
+    }
 
     function _timeSinceFundingStarted() private view returns (uint64) {
         if (startDate == 0) {
