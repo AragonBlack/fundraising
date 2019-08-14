@@ -1,9 +1,15 @@
-# aragon-cli
-**/**/artifact.json
-
-# Dependencies
+# dependencies
 node_modules
 **/*/node_modules
+
+# lerna
+lerna-debug.log
+
+# lock files
+yarn.lock
+package-lock.json
+**/**/yarn.lock
+**/**/package-lock.json
 
 # coverage
 */**/coverage
@@ -12,17 +18,17 @@ node_modules
 */**/allFiredEvents
 */**/scTopics
 
-# lerna
-lerna-debug.log
+# truffle and aragon build artifacts
+*/**/abi
+*/**/build
+*/**/abis.json
+**/**/artifact.json
+*/**/arapp_local.json
+*/**/flattened_contracts
+
+# macOS shit
+*/**/.DS_Store
 
 # truffle build artifacts
 */**/abi
 */**/build
-*/**/.DS_Store
-
-# yarn
-yarn-error.log
-
-# Ignore lock files
-package-lock.json
-yarn.lock
