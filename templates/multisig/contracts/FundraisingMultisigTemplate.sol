@@ -15,8 +15,11 @@ pragma solidity 0.4.24;
 // import "@aragon/apps-finance/contracts/Finance.sol";
 import "@ablack/fundraising-module-pool/contracts/Pool.sol";
 import "@ablack/fundraising-module-tap/contracts/Tap.sol";
-import "@ablack/fundraising-controller-aragon-fundraising/contracts/AragonFundraisingController.sol";
-import "@ablack/fundraising-market-maker-bancor/contracts/BatchedBancorMarketMaker.sol";
+import {AragonFundraisingController as Controller} from "@ablack/fundraising-controller-aragon-fundraising/contracts/AragonFundraisingController.sol";
+import {BatchedBancorMarketMaker as MarketMaker} from "@ablack/fundraising-market-maker-bancor/contracts/BatchedBancorMarketMaker.sol";
+// import "@ablack/fundraising-controller-aragon-fundraising/contracts/Controller.sol";
+// import "@ablack/fundraising-market-maker-bancor/contracts/BatMarketMaker.sol";
+
 import "@ablack/fundraising-formula-bancor/contracts/BancorFormula.sol";
 
 import "@aragon/templates-shared/contracts/BaseTemplate.sol";
@@ -38,6 +41,12 @@ contract FundraisingMultisigTemplate is BaseTemplate {
     uint8   constant private SHARE_TOKEN_DECIMALS = uint8(18);
     uint256 constant private SHARE_MAX_PER_ACCOUNT = uint256(0);
 
+    uint64 constant private SHARE_VOTE_DURATION = uint64(1 weeks);
+    uint64 constant private SHARE_SUPPORT_REQUIRED = uint64(50 * 10**16);
+    uint64 constant private SHARE_MIN_ACCEPTANCE_QUORUM = uint64(0);
+    uint64[3]       private SHARE_VOTING_SETTINGS = [SHARE_SUPPORT_REQUIRED, SHARE_MIN_ACCEPTANCE_QUORUM, SHARE_VOTE_DURATION];
+
+
     uint64 constant private DEFAULT_FINANCE_PERIOD = uint64(30 days);
 
     uint256 constant BATCH_BLOCKS = uint256(1);
@@ -49,6 +58,13 @@ contract FundraisingMultisigTemplate is BaseTemplate {
         address boardTokenManager;
         address boardVoting;
         address vault;
+        address finance;
+        address shareVoting;
+        address shareTokenManager;
+        address reserve;
+        address marketMaker;
+        address tap;
+        address controller;
     }
 
     mapping (address => Cache) internal cache;
@@ -73,298 +89,322 @@ contract FundraisingMultisigTemplate is BaseTemplate {
     {
         require(_boardVotingSettings.length == 3, ERROR_BAD_VOTE_SETTINGS);
 
-        MiniMeToken boardToken = _createToken(_boardTokenName, _boardTokenSymbol, BOARD_TOKEN_DECIMALS);
 
         (Kernel dao, ACL acl) = _createDAO();
 
-        TokenManager boardTokenManager = _installTokenManagerApp(dao, boardToken, BOARD_TRANSFERABLE, BOARD_MAX_PER_ACCOUNT);
-        Voting boardVoting = _installVotingApp(dao, boardToken, _boardVotingSettings);
-        Vault vault = _installVaultApp(dao);
-        Finance finance = _installFinanceApp(dao, vault, _financePeriod == 0 ? DEFAULT_FINANCE_PERIOD : _financePeriod);
+        MiniMeToken boardToken = _createToken(_boardTokenName, _boardTokenSymbol, BOARD_TOKEN_DECIMALS);
+        (TokenManager tm, Voting voting, Vault vault, Finance finance) = _installBoardApps(dao, boardToken, _boardVotingSettings, _financePeriod);
+
+        // TokenManager boardTokenManager = _installTokenManagerApp(dao, boardToken, BOARD_TRANSFERABLE, BOARD_MAX_PER_ACCOUNT);
+        // Voting boardVoting = _installVotingApp(dao, boardToken, _boardVotingSettings);
+        // Vault vault = _installVaultApp(dao);
+        // Finance finance = _installFinanceApp(dao, vault, _financePeriod == 0 ? DEFAULT_FINANCE_PERIOD : _financePeriod);
 
         _mintTokens(acl, boardTokenManager, _boardMembers, 1);
 
-        _cachePreparedDao(dao, boardTokenManager, boardVoting, vault);
+
+        // _setupBoardPermissions(dao, boardTokenManager, boardVoting, vault, finance);
+
+        // // _createEvmScriptsRegistryPermissions(_acl, _voting, _voting);
+
+
+        // _cachePreparedDao(dao, boardTokenManager, boardVoting, vault);
     }
 
 
-    function finalizeInstance(
-        string _id,
-        string _shareTokenName,
-        string _shareTokenSymbol,
-        uint64[3] _shareVotingSettings
-        // address[] _shareHolders,
-        // uint256[] _shareStakes,
-        // address[] _boardMembers,
-        // uint64 _financePeriod,
-        // bool _useAgentAsVault
-    )
-        external
+    // function finalizeInstance(string _shareTokenName, string _shareTokenSymbol, uint64[3] _shareVotingSettings) external {
+    //     // _ensureFinalizationSettings(_shareHolders, _shareStakes, _boardMembers);
+
+    //     Kernel dao = _popDaoCache();
+    //     MiniMeToken shareToken = _createToken(_shareTokenName, _shareTokenSymbol, SHARE_TOKEN_DECIMALS);
+    //     (TokenManager shareTokenManager, Voting shareVoting) = _installShareApps(dao, shareToken, _shareVotingSettings);
+    //     // (Pool reserve, MarketMaker marketMaker, Tap tap, Controller controller) = _installFundraisingApps(dao, shareTokenManager, boardVoting, shareVoting, vault);
+
+    //     // _setupSharePermissions(dao, shareTokenManager, shareVoting, boardTokenManager, marketMaker);
+    //     // _setupFundraisingPermissions(dao, reserve, marketMaker, tap, controller, boardVoting, shareVoting);
+
+
+    //     // // _initializeReserve(reserve);
+
+    //     // reserve.initialize();
+    //     // marketMaker.initialize(controller, shareTokenManager, reserve, vault, IBancorFormula(_latestVersionAppBase("bancor-formula")), BATCH_BLOCKS, BUY_FEE, SELL_FEE);
+
+
+    //     // _registerID(_id, address(dao));
+
+
+    
+    //     // (Kernel dao, Voting shareVoting, Voting boardVoting) = _popDaoCache();
+
+    //     // _setupVaultAndFinanceApps(dao, _financePeriod, _useAgentAsVault, shareVoting, boardVoting);
+    //     // _finalizeApps(dao, _shareHolders, _shareStakes, _boardMembers, shareVoting, boardVoting);
+
+    //     // _transferRootPermissionsFromTemplate(dao, boardVoting, shareVoting);
+    //     // _registerID(_id, address(dao));
+    // }
+
+    function _installBoardApps(Kernel _dao, MiniMeToken _token, uint64[3] _votingSettings, uint64 _financePeriod)
+        internal
+        returns (TokenManager tm, Voting voting, Vault vault, Finance finance)
     {
-        // _ensureFinalizationSettings(_shareHolders, _shareStakes, _boardMembers);
-
-        
-
-        MiniMeToken shareToken = _createToken(_shareTokenName, _shareTokenSymbol, SHARE_TOKEN_DECIMALS);
-
-        (Kernel dao, TokenManager boardTokenManager, Voting boardVoting, Vault vault) = _popDaoCache();
-
-        TokenManager shareTokenManager = _installTokenManagerApp(dao, shareToken, SHARE_TRANSFERABLE, SHARE_MAX_PER_ACCOUNT);
-        Voting shareVoting = _installVotingApp(dao, shareToken, _shareVotingSettings);
-
-        
-        // (Pool reserve, BatchedBancorMarketMaker marketMaker, Tap tap, AragonFundraisingController controller) = _registerFundraisingApps(dao);
-
-        // bytes32[4] memory apps = [
-        //     apmNamehash("pool"),   // 0
-        //     // apmNamehash("bancor-formula"), //4
-        //     apmNamehash("batched-bancor-market-maker"), // 3
-        //     apmNamehash("tap"),    // 1
-        //     apmNamehash("aragon-fundraising")        // 2
-        // ];
-
-        // Pool reserve = Pool(_registerApp(dao, apps[0]));
-        // BatchedBancorMarketMaker marketMaker = BatchedBancorMarketMaker(_registerApp(dao, apps[1]));
-        // Tap tap = Tap(_registerApp(dao, apps[2]));
-        // AragonFundraisingController controller = AragonFundraisingController(_registerApp(dao, apps[3]));
-
-        _installFundraisingApps(dao, shareTokenManager, vault);
-
-        // // _initializeReserve(reserve);
-
-        // reserve.initialize();
-        // marketMaker.initialize(controller, shareTokenManager, reserve, vault, IBancorFormula(_latestVersionAppBase("bancor-formula")), BATCH_BLOCKS, BUY_FEE, SELL_FEE);
-
-
-
-        // (Kernel dao, Voting shareVoting, Voting boardVoting) = _popDaoCache();
-
-        // _setupVaultAndFinanceApps(dao, _financePeriod, _useAgentAsVault, shareVoting, boardVoting);
-        // _finalizeApps(dao, _shareHolders, _shareStakes, _boardMembers, shareVoting, boardVoting);
-
-        // _transferRootPermissionsFromTemplate(dao, boardVoting, shareVoting);
-        _registerID(_id, address(dao));
+        tm = _installTokenManagerApp(_dao, _token, BOARD_TRANSFERABLE, BOARD_MAX_PER_ACCOUNT);
+        voting = _installVotingApp(_dao, _token, _votingSettings);
+        vault = _installVaultApp(_dao);
+        finance = _installFinanceApp(_dao, vault, _financePeriod == 0 ? DEFAULT_FINANCE_PERIOD : _financePeriod);
     }
 
-    function _installFundraisingApps(Kernel _dao, TokenManager _shareTokenManager, Vault _beneficiary) internal returns (Pool reserve, BatchedBancorMarketMaker marketMaker, Tap tap, AragonFundraisingController controller) {
-        bytes32[4] memory apps = [
-            apmNamehash("pool"),   // 0
-            // apmNamehash("bancor-formula"), //4
-            apmNamehash("batched-bancor-market-maker"), // 3
-            apmNamehash("tap"),    // 1
-            apmNamehash("aragon-fundraising")        // 2
-        ];
-
-        reserve = Pool(_registerApp(_dao, apps[0]));
-        marketMaker = BatchedBancorMarketMaker(_registerApp(_dao, apps[1]));
-        tap = Tap(_registerApp(_dao, apps[2]));
-        controller = AragonFundraisingController(_registerApp(_dao, apps[3]));
-
-
-        reserve.initialize();
-        marketMaker.initialize(controller, _shareTokenManager, reserve, _beneficiary, IBancorFormula(_latestVersionAppBase(apmNamehash("bancor-formula"))), BATCH_BLOCKS, BUY_FEE, SELL_FEE);
-        tap.initialize(controller, reserve, _beneficiary, BATCH_BLOCKS, uint256(50 * 10 ** 16));
-        controller.initialize(marketMaker, reserve, tap);
-    }
-
-    function _registerApp(Kernel _dao, bytes32 _appId) internal returns (address) {
-        address proxy = _dao.newAppInstance(_appId, _latestVersionAppBase(_appId));
-        emit InstalledApp(proxy, _appId);
-
-        return proxy;
-    }
-
-    // function _initializeReserve(Pool _reserve) internal {
-    //     _reserve.initialize();
+    // function _installShareApps(Kernel _dao, MiniMeToken _shareToken, uint64[3] _shareVotingSettings) internal returns (TokenManager tm, Voting voting) {
+    //     tm = _installTokenManagerApp(_dao, _shareToken, SHARE_TRANSFERABLE, SHARE_MAX_PER_ACCOUNT);
+    //     voting = _installVotingApp(_dao, _shareToken, _shareVotingSettings);
     // }
 
-    // function _initializeMarketMaker(BatchedBancorMarketMaker _marketMaker, AragonFundraisingController _controller, TokenManager _shareTokenManager,  Vault _reserve, Vault _beneficiary) internal {
-    //     _marketMaker.initialize(_controller, _shareTokenManager, _reserve, _beneficiary, IBancorFormula(_latestVersionAppBase("bancor-formula")), BATCH_BLOCKS, BUY_FEE, SELL_FEE);
+    // function _installFundraisingApps(Kernel _dao, TokenManager _shareTokenManager, Voting _boardVoting, Voting _shareVoting, Vault _beneficiary) internal returns (Pool reserve, MarketMaker marketMaker, Tap tap, Controller controller) {
+    //     bytes32[4] memory apps = [
+    //         apmNamehash("pool"),   // 0
+    //         // apmNamehash("bancor-formula"), //4
+    //         apmNamehash("batched-bancor-market-maker"), // 3
+    //         apmNamehash("tap"),    // 1
+    //         apmNamehash("aragon-fundraising")        // 2
+    //     ];
+
+    //     reserve = Pool(_registerApp(_dao, apps[0]));
+    //     marketMaker = MarketMaker(_registerApp(_dao, apps[1]));
+    //     tap = Tap(_registerApp(_dao, apps[2]));
+    //     controller = Controller(_registerApp(_dao, apps[3]));
+
+
+    //     reserve.initialize();
+    //     marketMaker.initialize(controller, _shareTokenManager, reserve, _beneficiary, IBancorFormula(_latestVersionAppBase(apmNamehash("bancor-formula"))), BATCH_BLOCKS, BUY_FEE, SELL_FEE);
+    //     tap.initialize(controller, reserve, _beneficiary, BATCH_BLOCKS, uint256(50 * 10 ** 16));
+    //     controller.initialize(marketMaker, reserve, tap);
     // }
 
-    //  pool.initialize();
-    //     tap.initialize(controller, Vault(pool), address(vault), 1, uint256(50 * 10 ** 16));
-    //     marketMaker.initialize(
-    //       controller,
-    //       tokenManager,
-    //       Vault(pool),
-    //       address(vault),
-    //       BancorFormula(latestVersionAppBase(apps[4])),
-    //       uint256(1),
-    //       uint256(0),
-    //       uint256(0)
-    //     );
-    //     controller.initialize(marketMaker, pool, tap);
+    // function _registerApp(Kernel _dao, bytes32 _appId) internal returns (address) {
+    //     address proxy = _dao.newAppInstance(_appId, _latestVersionAppBase(_appId));
+    //     emit InstalledApp(proxy, _appId);
 
-    // function _setupPermissions(
+    //     return proxy;
+    // }
+
+    // function _setupBoardPermissions(Kernel _dao, TokenManager _tm, Voting _voting, Vault _vault, Finance _finance) internal {
+    //     ACL acl = ACL(_dao.acl());
+
+    //     _createTokenManagerPermissions(acl, _tm, _voting, _voting);
+    //     _createVotingPermissions(acl, _voting, _voting, _tm, _voting);
+    //     _createVaultPermissions(acl, _vault, _finance, _voting);
+    //     _createFinancePermissions(acl, _finance, _voting, _voting);
+    // }
+
+    // function _setupSharePermissions(Kernel _dao, TokenManager _shareTM, Voting _voting, TokenManager _boardTM, MarketMaker _mm) internal {
+    //     ACL acl = ACL(_dao.acl());
+
+    //     _createTokenManagerPermissions(acl, _shareTM, _mm, _voting);
+    //     _createVotingPermissions(acl, _voting, _voting, _boardTM, _voting);
+    // }
+
+    // function _setupFundraisingPermissions(Kernel _dao) internal {
+
+    //     // (
+    //     //     Kernel _dao,
+    //     //     Pool _reserve,
+    //     //     MarketMaker _marketMaker,
+    //     //     Tap _tap,
+    //     //     Controller
+    //     //     _controller,
+    //     //     Voting _boardVoting,
+    //     //     Voting _shareVoting
+    //     // ) = _popDaoCache();
+
+    //     ACL acl = ACL(_dao.acl());
+    //     (, Voting _boardVoting,,) = _popBoardCache();
+    //     (, Voting _shareVoting) = _popShareCache();
+    //     // (Pool _reserve, MarketMaker _marketMaker, Tap _tap, Controller _controller) = _popFundraisingCache();
+
+
+
+    //     // TokenManager boardTokenManager
+    //     // Voting boardVoting,
+    //     // Vault vault,
+    //     // Finance finance
+
+    //     // _createReservePermissions(acl, _reserve, _marketMaker, _tap, _controller, _shareVoting);
+    //     // _createMarketMakerPermissions (acl, _marketMaker, _controller, _shareVoting);
+    //     // _createTapPermissions(acl, _tap, _controller, _boardVoting, _shareVoting);
+    //     // _createControllerPermissions(acl, _controller, _boardVoting, _shareVoting);
+    
+    // }
+
+    // function _createReservePermissions(
     //     ACL _acl,
-    //     Vault _agentOrVault,
-    //     Voting _voting,
-    //     Finance _finance,
-    //     TokenManager _tokenManager,
-    //     bool _useAgentAsVault
+    //     Pool _reserve,
+    //     MarketMaker _marketMaker,
+    //     Tap _tap,
+    //     Controller _controller,
+    //     Voting _shareVoting
     // )
     //     internal
     // {
-    //     if (_useAgentAsVault) {
-    //         _createAgentPermissions(_acl, Agent(_agentOrVault), _voting, _voting);
-    //     }
-    //     _createVaultPermissions(_acl, _agentOrVault, _finance, _voting);
-    //     _createFinancePermissions(_acl, _finance, _voting, _voting);
-    //     _createEvmScriptsRegistryPermissions(_acl, _voting, _voting);
-    //     _createVotingPermissions(_acl, _voting, _voting, _tokenManager, _voting);
-    //     _createTokenManagerPermissions(_acl, _tokenManager, _voting, _voting);
+    //     address[] memory grantees = new address[](2);
+    //     grantees[0] = address(_tap);
+    //     grantees[1] = address(_marketMaker);
+
+    //     _acl.createPermission(_shareVoting, _reserve, _reserve.SAFE_EXECUTE_ROLE(), _shareVoting);
+    //     _acl.createPermission(_controller, _reserve, _reserve.ADD_PROTECTED_TOKEN_ROLE(), _shareVoting);
+    //     _createPermissions(_acl, grantees, _reserve, _reserve.TRANSFER_ROLE(), _shareVoting);
     // }
 
-    /**
-    * @dev Finalize a previously prepared DAO instance cached by the user
-    * @param _id String with the name for org, will assign `[id].aragonid.eth`
-    * @param _shareHolders Array of share holder addresses
-    * @param _shareStakes Array of token stakes for share holders (token has 18 decimals, multiply token amount `* 10^18`)
-    * @param _boardMembers Array of board member addresses (1 token will be minted for each board member)
-    * @param _financePeriod Initial duration for accounting periods, it can be set to zero in order to use the default of 30 days.
-    * @param _useAgentAsVault Boolean to tell whether to use an Agent app as a more advanced form of Vault app
-    * @param _payrollSettings Array of [address denominationToken , IFeed priceFeed, uint64 rateExpiryTime, address employeeManager]
-             for the payroll app. The `employeeManager` can be set to `0x0` in order to use the board voting app as the employee manager.
-    */
-    function finalizeInstance(
-        string _id,
-        address[] _shareHolders,
-        uint256[] _shareStakes,
-        address[] _boardMembers,
-        uint64 _financePeriod,
-        bool _useAgentAsVault,
-        uint256[4] _payrollSettings
-    )
-        external
-    {
-        _ensureFinalizationSettings(_shareHolders, _shareStakes, _boardMembers);
-        require(_payrollSettings.length == 4, ERROR_BAD_PAYROLL_SETTINGS);
+    // function _createMarketMakerPermissions(ACL _acl, MarketMaker _marketMaker, Controller _controller, Voting _shareVoting) internal {
+    //     _acl.createPermission(_controller, _marketMaker, _marketMaker.ADD_COLLATERAL_TOKEN_ROLE(), _shareVoting);
+    //     _acl.createPermission(_controller, _marketMaker, _marketMaker.REMOVE_COLLATERAL_TOKEN_ROLE(), _shareVoting);
+    //     _acl.createPermission(_controller, _marketMaker, _marketMaker.UPDATE_COLLATERAL_TOKEN_ROLE(), _shareVoting);
+    //     _acl.createPermission(_controller, _marketMaker, _marketMaker.UPDATE_BENEFICIARY_ROLE(), _shareVoting);
+    //     _acl.createPermission(_controller, _marketMaker, _marketMaker.UPDATE_FEES_ROLE(), _shareVoting);
+    //     _acl.createPermission(_controller, _marketMaker, _marketMaker.OPEN_BUY_ORDER_ROLE(), _shareVoting);
+    //     _acl.createPermission(_controller, _marketMaker, _marketMaker.OPEN_SELL_ORDER_ROLE(), _shareVoting);
+    // }
 
-        // (Kernel dao, Voting shareVoting, Voting boardVoting) = _popDaoCache();
-        (Kernel dao, TokenManager boardTokenManager, Voting boardVoting, Vault vault) = _popDaoCache();
+    // function _createTapPermissions(ACL _acl, Tap _tap, Controller _controller, Voting _boardVoting, Voting _shareVoting) internal {
+    //     _acl.createPermission(_controller, _tap, _tap.UPDATE_BENEFICIARY_ROLE(), _shareVoting);
+    //     _acl.createPermission(_controller, _tap, _tap.UPDATE_MAXIMUM_TAP_INCREASE_PCT_ROLE(), _shareVoting);
+    //     _acl.createPermission(_controller, _tap, _tap.ADD_TAPPED_TOKEN_ROLE(), _shareVoting);
+    //     _acl.createPermission(_controller, _tap, _tap.UPDATE_TAPPED_TOKEN_ROLE(), _shareVoting);
+    //     _acl.createPermission(_controller, _tap, _tap.WITHDRAW_ROLE(), _boardVoting);
+    // }
 
-        // Finance finance = _setupVaultAndFinanceApps(dao, _financePeriod, _useAgentAsVault, shareVoting, boardVoting);
-        // _setupPayrollApp(dao, finance, _payrollSettings, boardVoting);
-        // _finalizeApps(dao, _shareHolders, _shareStakes, _boardMembers, shareVoting, boardVoting);
+    // function _createControllerPermissions(ACL _acl, Controller _controller, Voting _board, Voting _share) internal {
+    //     _acl.createPermission(_board, _controller, _controller.UPDATE_BENEFICIARY_ROLE(), _board);
+    //     _acl.createPermission(_board, _controller, _controller.WITHDRAW_ROLE(), _board);
+    //     _acl.createPermission(_share, _controller, _controller.UPDATE_FEES_ROLE(), _share);
+    //     _acl.createPermission(_share, _controller, _controller.UPDATE_MAXIMUM_TAP_INCREASE_PCT_ROLE(), _share);
+    //     _acl.createPermission(_share, _controller, _controller.ADD_COLLATERAL_TOKEN_ROLE(), _share);
+    //     _acl.createPermission(_share, _controller, _controller.REMOVE_COLLATERAL_TOKEN_ROLE(), _share);
+    //     _acl.createPermission(_share, _controller, _controller.UPDATE_COLLATERAL_TOKEN_ROLE(), _share);
+    //     _acl.createPermission(_share, _controller, _controller.UPDATE_TOKEN_TAP_ROLE(), _share);
+    //     _acl.createPermission(address(-1), _controller, _controller.OPEN_BUY_ORDER_ROLE(), _share);
+    //     _acl.createPermission(address(-1), _controller, _controller.OPEN_SELL_ORDER_ROLE(), _share);
+    // }
 
-        // _transferRootPermissionsFromTemplate(dao, boardVoting, shareVoting);
-        _registerID(_id, address(dao));
-    }
 
-    function _finalizeApps(
-        Kernel _dao,
-        address[] memory _shareHolders,
-        uint256[] memory _shareStakes,
-        address[] memory _boardMembers,
-        Voting _shareVoting,
-        Voting _boardVoting
-    )
-        internal
-    {
-        // (MiniMeToken shareToken, MiniMeToken boardToken) = _popTokenCaches();
+    // function _cachePreparedDao(
+    //     Kernel _dao,
+    //     TokenManager _boardTokenManager,
+    //     Voting _boardVoting,
+    //     Vault _vault
+    // )
+    //     internal
+    // {
+        // Cache storage c = cache[msg.sender];
+        // c.dao = address(_dao);
+        // c.boardTokenManager = address(_boardTokenManager);
+        // c.boardVoting = address(_boardVoting);
+        // c.vault = address(_vault);
 
-        // // Install
-        // TokenManager shareTokenManager = _installTokenManagerApp(_dao, shareToken, SHARE_TRANSFERABLE, SHARE_MAX_PER_ACCOUNT);
-        // TokenManager boardTokenManager = _installTokenManagerApp(_dao, boardToken, BOARD_TRANSFERABLE, BOARD_MAX_PER_ACCOUNT);
+    // }
 
-        // // Mint tokens
-        // ACL acl = ACL(_dao.acl());
-        // _mintTokens(acl, shareTokenManager, _shareHolders, _shareStakes);
-        // _mintTokens(acl, boardTokenManager, _boardMembers, 1);
 
-        // // Assign permissions for token managers
-        // _createTokenManagerPermissions(acl, shareTokenManager, _shareVoting, _shareVoting);
-        // _createTokenManagerPermissions(acl, boardTokenManager, _shareVoting, _shareVoting);
+    // function _popDaoCache() internal returns (Kernel dao) {
+    //     Cache storage c = cache[msg.sender];
+    //     require(c.dao != address(0), ERROR_MISSING_CACHE);
 
-        // // Assign permissions for votings
-        // _createVotingPermissions(acl, _shareVoting, _shareVoting, boardTokenManager, _shareVoting);
-        // _createVotingPermissions(acl, _boardVoting, _shareVoting, boardTokenManager, _shareVoting);
-    }
+    //     dao = Kernel(c.dao);
+    // }
 
-    function _setupVaultAndFinanceApps(
-        Kernel _dao,
-        uint64 _financePeriod,
-        bool _useAgentAsVault,
-        Voting _shareVoting,
-        Voting _boardVoting
-    )
-        internal
-        returns (Finance)
-    {
-        // Install
-        Vault agentOrVault = _useAgentAsVault ? _installDefaultAgentApp(_dao) : _installVaultApp(_dao);
-        Finance finance = _installFinanceApp(_dao, agentOrVault, _financePeriod == 0 ? DEFAULT_FINANCE_PERIOD : _financePeriod);
+    // function _popCompleteCache() internal returns (
+    //     Kernel dao,
+    //     TokenManager boardTokenManager,
+    //     Voting boardVoting,
+    //     Vault vault,
+    //     Finance finance,
+    //     TokenManager shareTokenManager,
+    //     Voting shareVoting,
+    //     Pool reserve,
+    //     MarketMaker marketMaker,
+    //     Tap tap,
+    //     Controller controller
+    // ) {
+    //     Cache storage c = cache[msg.sender];
+    //     require(c.dao != address(0), ERROR_MISSING_CACHE);
 
-        // Assign permissions
-        ACL acl = ACL(_dao.acl());
-        if (_useAgentAsVault) {
-            _createCustomAgentPermissions(acl, Agent(agentOrVault), _shareVoting, _boardVoting);
-        }
-        _createVaultPermissions(acl, agentOrVault, finance, _shareVoting);
-        _createCustomFinancePermissions(acl, finance, _shareVoting, _boardVoting);
+    //     dao = Kernel(c.dao);
+    //     boardTokenManager = TokenManager(c.boardTokenManager);
+    //     boardVoting = Voting(c.boardVoting);
+    //     vault = Vault(c.vault);
+    //     finance = Finance(c.finance);
+    //     shareTokenManager = TokenManager(c.shareTokenManager);
+    //     shareVoting = Voting(c.shareVoting);
+    //     reserve = Pool(c.reserve);
+    //     marketMaker = MarketMaker(c.marketMaker);
+    //     tap = Tap(c.tap);
+    //     controller = Controller(c.controller);
 
-        return finance;
-    }
 
-    function _setupPayrollApp(Kernel _dao, Finance _finance, uint256[4] memory _payrollSettings, Voting _boardVoting) internal {
-        (address denominationToken, IFeed priceFeed, uint64 rateExpiryTime, address employeeManager) = _unwrapPayrollSettings(_payrollSettings);
-        address manager = employeeManager == address(0) ? _boardVoting : employeeManager;
+    //     // delete c.dao;
+    //     // delete c.boardTokenManager;
+    //     // delete c.boardVoting;
+    //     // delete c.vault;
+    // }
 
-        Payroll payroll = _installPayrollApp(_dao, _finance, denominationToken, priceFeed, rateExpiryTime);
-        ACL acl = ACL(_dao.acl());
-        _createPayrollPermissions(acl, payroll, manager, _boardVoting, _boardVoting);
-    }
+    // function _popBoardCache() internal returns (
+    //     TokenManager boardTokenManager,
+    //     Voting boardVoting,
+    //     Vault vault,
+    //     Finance finance
+    // ) {
+    //     Cache storage c = cache[msg.sender];
+    //     require(c.dao != address(0), ERROR_MISSING_CACHE);
 
-    function _createCustomAgentPermissions(ACL _acl, Agent _agent, Voting _shareVoting, Voting _boardVoting) internal {
-        address[] memory grantees = new address[](2);
-        grantees[0] = address(_shareVoting);
-        grantees[1] = address(_boardVoting);
+    //     boardTokenManager = TokenManager(c.boardTokenManager);
+    //     boardVoting = Voting(c.boardVoting);
+    //     vault = Vault(c.vault);
+    //     finance = Finance(c.finance);
+    // }
 
-        _createPermissions(_acl, grantees, _agent, _agent.EXECUTE_ROLE(), _shareVoting);
-        _createPermissions(_acl, grantees, _agent, _agent.RUN_SCRIPT_ROLE(), _shareVoting);
-    }
 
-    function _createCustomFinancePermissions(ACL _acl, Finance _finance, Voting _shareVoting, Voting _boardVoting) internal {
-        address[] memory grantees = new address[](2);
-        grantees[0] = address(_shareVoting);
-        grantees[1] = address(_boardVoting);
+    // function _popShareCache() internal returns (TokenManager shareTokenManager, Voting shareVoting) {
+    //     Cache storage c = cache[msg.sender];
+    //     require(c.dao != address(0), ERROR_MISSING_CACHE);
 
-        _createPermissions(_acl, grantees, _finance, _finance.CREATE_PAYMENTS_ROLE(), _shareVoting);
-        _acl.createPermission(_shareVoting, _finance, _finance.EXECUTE_PAYMENTS_ROLE(), _shareVoting);
-        _acl.createPermission(_shareVoting, _finance, _finance.MANAGE_PAYMENTS_ROLE(), _shareVoting);
-    }
+    //     shareTokenManager = TokenManager(c.shareTokenManager);
+    //     shareVoting = Voting(c.shareVoting);
+    // }
 
-    function _cachePreparedDao(
-        Kernel _dao,
-        TokenManager _boardTokenManager,
-        Voting _boardVoting,
-        Vault _vault
-    )
-        internal
-    {
-        Cache storage c = cache[msg.sender];
-        c.dao = address(_dao);
-        c.boardTokenManager = address(_boardTokenManager);
-        c.boardVoting = address(_boardVoting);
-        c.vault = address(_vault);
+    // function _popFundraisingCache() internal returns (Pool reserve, MarketMaker marketMaker, Tap tap, Controller controller) {
+    //     Cache storage c = cache[msg.sender];
+    //     require(c.dao != address(0), ERROR_MISSING_CACHE);
 
-    }
+    //     reserve = Pool(c.reserve);
+    //     marketMaker = MarketMaker(c.marketMaker);
+    //     tap = Tap(c.tap);
+    //     controller = Controller(c.controller);
 
-    function _popDaoCache() internal returns (Kernel dao, TokenManager boardTokenManager, Voting boardVoting, Vault vault) {
-        Cache storage c = cache[msg.sender];
-        require(c.dao != address(0) && c.boardTokenManager != address(0) && c.boardVoting != address(0)  && c.vault != address(0), ERROR_MISSING_CACHE);
 
-        dao = Kernel(c.dao);
-        boardTokenManager = TokenManager(c.boardTokenManager);
-        boardVoting = Voting(c.boardVoting);
-        vault = Vault(c.vault);
+    //     // delete c.dao;
+    //     // delete c.boardTokenManager;
+    //     // delete c.boardVoting;
+    //     // delete c.vault;
+    // }
 
-        delete c.dao;
-        delete c.boardTokenManager;
-        delete c.boardVoting;
-        delete c.vault;
-    }
+    // function _popAndClearDaoCache() internal returns (Kernel dao, TokenManager boardTokenManager, Voting boardVoting, Vault vault) {
+    //     Cache storage c = cache[msg.sender];
+    //     require(c.dao != address(0), ERROR_MISSING_CACHE);
+
+    //     dao = Kernel(c.dao);
+    //     boardTokenManager = TokenManager(c.boardTokenManager);
+    //     boardVoting = Voting(c.boardVoting);
+    //     vault = Vault(c.vault);
+    //     // finance = Finance(c.finance);
+    //     // shareTokenManager = TokenManager(c.shareTokenManager);
+    //     // shareVoting = Voting(c.shareVoting);
+    //     // reserve = Pool(c.reserve);
+    //     // marketMaker = MarketMaker(c.marketMaker);
+    //     // tap = Tap(c.tap);
+    //     // controller = Controller(c.controller);
+
+    //     delete c.dao;
+    //     delete c.boardTokenManager;
+    //     delete c.boardVoting;
+    //     delete c.vault;
+    // }
 
     // function _popTokenCaches() internal returns (MiniMeToken shareToken, MiniMeToken boardToken) {
     //     Cache storage c = cache[msg.sender];
@@ -376,16 +416,16 @@ contract FundraisingMultisigTemplate is BaseTemplate {
     //     delete c.boardToken;
     // }
 
-    function _ensureFinalizationSettings(
-        address[] memory _shareHolders,
-        uint256[] memory _shareStakes,
-        address[] memory _boardMembers
-    )
-        private
-        pure
-    {
-        require(_shareHolders.length > 0, ERROR_MISSING_SHARE_MEMBERS);
-        require(_shareHolders.length == _shareStakes.length, ERROR_BAD_HOLDERS_STAKES_LEN);
-        require(_boardMembers.length > 0, ERROR_MISSING_BOARD_MEMBERS);
-    }
+    // function _ensureFinalizationSettings(
+    //     address[] memory _shareHolders,
+    //     uint256[] memory _shareStakes,
+    //     address[] memory _boardMembers
+    // )
+    //     private
+    //     pure
+    // {
+    //     require(_shareHolders.length > 0, ERROR_MISSING_SHARE_MEMBERS);
+    //     require(_shareHolders.length == _shareStakes.length, ERROR_BAD_HOLDERS_STAKES_LEN);
+    //     require(_boardMembers.length > 0, ERROR_MISSING_BOARD_MEMBERS);
+    // }
 }

@@ -75,6 +75,7 @@ const getInstalledAppsById = receipt => {
   }, {})
 }
 
+const ANY_ADDRESS = '0xffffffffffffffffffffffffffffffffffffffff'
 const ONE_DAY = 60 * 60 * 24
 const ONE_WEEK = ONE_DAY * 7
 const THIRTY_DAYS = ONE_DAY * 30
@@ -225,142 +226,164 @@ contract('Fundraising with multisig', ([_, owner, boardMember1, boardMember2, sh
     }
 
     const itSetupsDAOCorrectly = financePeriod => {
-      it('registers a new DAO on ENS', async () => {
-        const ens = ENS.at((await deployedAddresses()).registry)
-        const aragonIdNameHash = namehash(`${daoID}.aragonid.eth`)
-        const resolvedAddress = await PublicResolver.at(await ens.resolver(aragonIdNameHash)).addr(aragonIdNameHash)
-        assert.equal(resolvedAddress, dao.address, 'aragonId ENS name does not match')
+      context('ENS', () => {
+        it('registers a new DAO on ENS', async () => {
+          const ens = ENS.at((await deployedAddresses()).registry)
+          const aragonIdNameHash = namehash(`${daoID}.aragonid.eth`)
+          const resolvedAddress = await PublicResolver.at(await ens.resolver(aragonIdNameHash)).addr(aragonIdNameHash)
+          assert.equal(resolvedAddress, dao.address, 'aragonId ENS name does not match')
+        })
       })
 
-      it('creates a new board token', async () => {
-        assert.equal(await boardToken.name(), BOARD_TOKEN_NAME)
-        assert.equal(await boardToken.symbol(), BOARD_TOKEN_SYMBOL)
-        assert.equal((await boardToken.decimals()).toString(), 0)
+      context('Board', () => {
+        it('should have created a new board token', async () => {
+          assert.equal(await boardToken.name(), BOARD_TOKEN_NAME)
+          assert.equal(await boardToken.symbol(), BOARD_TOKEN_SYMBOL)
+          assert.equal((await boardToken.decimals()).toString(), 0)
+        })
+
+        it('should have minted requested amounts for the board members', async () => {
+          assert.equal((await boardToken.totalSupply()).toString(), BOARD_MEMBERS.length)
+          for (const holder of BOARD_MEMBERS) assert.equal((await boardToken.balanceOf(holder)).toString(), 1)
+        })
+
+        it('should have board token manager app correctly setup', async () => {
+          assert.isTrue(await boardTokenManager.hasInitialized(), 'token manager not initialized')
+          assert.equal(await boardTokenManager.token(), boardToken.address)
+
+          await assertRole(acl, boardTokenManager, boardVoting, 'MINT_ROLE')
+          await assertRole(acl, boardTokenManager, boardVoting, 'BURN_ROLE')
+
+          await assertMissingRole(acl, boardTokenManager, 'ISSUE_ROLE')
+          await assertMissingRole(acl, boardTokenManager, 'ASSIGN_ROLE')
+          await assertMissingRole(acl, boardTokenManager, 'REVOKE_VESTINGS_ROLE')
+        })
+
+        it('should have board voting app correctly setup', async () => {
+          assert.isTrue(await boardVoting.hasInitialized(), 'voting not initialized')
+          assert.equal((await boardVoting.supportRequiredPct()).toString(), BOARD_SUPPORT_REQUIRED)
+          assert.equal((await boardVoting.minAcceptQuorumPct()).toString(), BOARD_MIN_ACCEPTANCE_QUORUM)
+          assert.equal((await boardVoting.voteTime()).toString(), BOARD_VOTE_DURATION)
+
+          await assertRole(acl, boardVoting, boardVoting, 'CREATE_VOTES_ROLE', boardTokenManager)
+          await assertRole(acl, boardVoting, boardVoting, 'MODIFY_QUORUM_ROLE')
+          await assertRole(acl, boardVoting, boardVoting, 'MODIFY_SUPPORT_ROLE')
+        })
+
+        it('should have vault app correctly setup', async () => {
+          assert.isTrue(await vault.hasInitialized(), 'vault not initialized')
+
+          assert.equal(await dao.recoveryVaultAppId(), APP_IDS.vault, 'vault app is not being used as the vault app of the DAO')
+          assert.equal(web3.toChecksumAddress(await finance.vault()), vault.address, 'finance vault is not the vault app')
+          assert.equal(web3.toChecksumAddress(await dao.getRecoveryVault()), vault.address, 'vault app is not being used as the vault app of the DAO')
+
+          await assertRole(acl, vault, boardVoting, 'TRANSFER_ROLE', finance)
+        })
+
+        it('should have finance app correctly setup', async () => {
+          assert.isTrue(await finance.hasInitialized(), 'finance not initialized')
+
+          const expectedPeriod = financePeriod === 0 ? THIRTY_DAYS : financePeriod
+          assert.equal((await finance.getPeriodDuration()).toString(), expectedPeriod, 'finance period should be 30 days')
+
+          await assertRole(acl, finance, boardVoting, 'CREATE_PAYMENTS_ROLE')
+          await assertRole(acl, finance, boardVoting, 'EXECUTE_PAYMENTS_ROLE')
+          await assertRole(acl, finance, boardVoting, 'MANAGE_PAYMENTS_ROLE')
+
+          await assertMissingRole(acl, finance, 'CHANGE_PERIOD_ROLE')
+          await assertMissingRole(acl, finance, 'CHANGE_BUDGETS_ROLE')
+        })
       })
 
-      it('mints requested amounts for the board members', async () => {
-        assert.equal((await boardToken.totalSupply()).toString(), BOARD_MEMBERS.length)
-        for (const holder of BOARD_MEMBERS) assert.equal((await boardToken.balanceOf(holder)).toString(), 1)
+      context('Share holders', () => {
+        it('should have created a new share token', async () => {
+          assert.equal(await shareToken.name(), SHARE_TOKEN_NAME)
+          assert.equal(await shareToken.symbol(), SHARE_TOKEN_SYMBOL)
+          assert.equal((await shareToken.decimals()).toString(), 18)
+        })
+
+        it('should have share token manager app correctly setup', async () => {
+          assert.isTrue(await shareTokenManager.hasInitialized(), 'token manager not initialized')
+          assert.equal(await shareTokenManager.token(), shareToken.address)
+
+          await assertRole(acl, shareTokenManager, shareVoting, 'MINT_ROLE', marketMaker)
+          await assertRole(acl, shareTokenManager, shareVoting, 'BURN_ROLE', marketMaker)
+
+          await assertMissingRole(acl, shareTokenManager, 'ISSUE_ROLE')
+          await assertMissingRole(acl, shareTokenManager, 'ASSIGN_ROLE')
+          await assertMissingRole(acl, shareTokenManager, 'REVOKE_VESTINGS_ROLE')
+        })
+
+        it('should have share voting app correctly setup', async () => {
+          assert.isTrue(await shareVoting.hasInitialized(), 'voting not initialized')
+          assert.equal((await shareVoting.supportRequiredPct()).toString(), SHARE_SUPPORT_REQUIRED)
+          assert.equal((await shareVoting.minAcceptQuorumPct()).toString(), SHARE_MIN_ACCEPTANCE_QUORUM)
+          assert.equal((await shareVoting.voteTime()).toString(), SHARE_VOTE_DURATION)
+
+          await assertRole(acl, shareVoting, shareVoting, 'CREATE_VOTES_ROLE', boardTokenManager)
+          await assertRole(acl, shareVoting, shareVoting, 'MODIFY_QUORUM_ROLE')
+          await assertRole(acl, shareVoting, shareVoting, 'MODIFY_SUPPORT_ROLE')
+        })
       })
 
-      it('creates a new share token', async () => {
-        assert.equal(await shareToken.name(), SHARE_TOKEN_NAME)
-        assert.equal(await shareToken.symbol(), SHARE_TOKEN_SYMBOL)
-        assert.equal((await shareToken.decimals()).toString(), 18)
-      })
+      context('Fundraising apps', () => {
+        it('should have agent / reserve app correctly setup', async () => {
+          assert.isTrue(await reserve.hasInitialized(), 'agent / reserve not initialized')
 
-      // it('mints requested amounts for the share holders', async () => {
-      //   assert.equal((await shareToken.totalSupply()).toString(), SHARE_STAKES.reduce((a, b) => a + b))
-      //   for (const holder of SHARE_HOLDERS) assert.equal((await shareToken.balanceOf(holder)).toString(), SHARE_STAKES[SHARE_HOLDERS.indexOf(holder)])
-      // })
+          await assertRole(acl, reserve, shareVoting, 'SAFE_EXECUTE_ROLE', shareVoting)
+          await assertRole(acl, reserve, shareVoting, 'ADD_PROTECTED_TOKEN_ROLE', controller)
+          await assertRole(acl, reserve, shareVoting, 'TRANSFER_ROLE', marketMaker)
+          await assertRole(acl, reserve, shareVoting, 'TRANSFER_ROLE', tap)
 
-      it('should have board token manager app correctly setup', async () => {
-        assert.isTrue(await boardTokenManager.hasInitialized(), 'token manager not initialized')
-        assert.equal(await boardTokenManager.token(), boardToken.address)
+          await assertMissingRole(acl, reserve, 'REMOVE_PROTECTED_TOKEN_ROLE')
+          await assertMissingRole(acl, reserve, 'EXECUTE_ROLE')
+          await assertMissingRole(acl, reserve, 'DESIGNATE_SIGNER_ROLE')
+          await assertMissingRole(acl, reserve, 'ADD_PRESIGNED_HASH_ROLE')
+          await assertMissingRole(acl, reserve, 'RUN_SCRIPT_ROLE')
+        })
 
-        // await assertRole(acl, boardTokenManager, shareVoting, 'MINT_ROLE')
-        // await assertRole(acl, boardTokenManager, shareVoting, 'BURN_ROLE')
+        it('should have market-maker app correctly setup', async () => {
+          assert.isTrue(await marketMaker.hasInitialized(), 'market-maker not initialized')
 
-        // await assertMissingRole(acl, boardTokenManager, 'ISSUE_ROLE')
-        // await assertMissingRole(acl, boardTokenManager, 'ASSIGN_ROLE')
-        // await assertMissingRole(acl, boardTokenManager, 'REVOKE_VESTINGS_ROLE')
-      })
+          await assertRole(acl, marketMaker, shareVoting, 'ADD_COLLATERAL_TOKEN_ROLE', controller)
+          await assertRole(acl, marketMaker, shareVoting, 'REMOVE_COLLATERAL_TOKEN_ROLE', controller)
+          await assertRole(acl, marketMaker, shareVoting, 'UPDATE_COLLATERAL_TOKEN_ROLE', controller)
+          await assertRole(acl, marketMaker, shareVoting, 'UPDATE_BENEFICIARY_ROLE', controller)
+          await assertRole(acl, marketMaker, shareVoting, 'UPDATE_FEES_ROLE', controller)
+          await assertRole(acl, marketMaker, shareVoting, 'OPEN_BUY_ORDER_ROLE', controller)
+          await assertRole(acl, marketMaker, shareVoting, 'OPEN_SELL_ORDER_ROLE', controller)
 
-      it('should have board voting app correctly setup', async () => {
-        assert.isTrue(await boardVoting.hasInitialized(), 'voting not initialized')
-        assert.equal((await boardVoting.supportRequiredPct()).toString(), BOARD_SUPPORT_REQUIRED)
-        assert.equal((await boardVoting.minAcceptQuorumPct()).toString(), BOARD_MIN_ACCEPTANCE_QUORUM)
-        assert.equal((await boardVoting.voteTime()).toString(), BOARD_VOTE_DURATION)
+          await assertMissingRole(acl, marketMaker, 'UPDATE_FORMULA_ROLE')
+        })
 
-        // await assertRole(acl, boardVoting, shareVoting, 'CREATE_VOTES_ROLE', boardTokenManager)
-        // await assertRole(acl, boardVoting, shareVoting, 'MODIFY_QUORUM_ROLE')
-        // await assertRole(acl, boardVoting, shareVoting, 'MODIFY_SUPPORT_ROLE')
-      })
+        it('should have tap app correctly setup', async () => {
+          assert.isTrue(await tap.hasInitialized(), 'tap not initialized')
 
-      it('should have share token manager app correctly setup', async () => {
-        assert.isTrue(await shareTokenManager.hasInitialized(), 'token manager not initialized')
-        assert.equal(await shareTokenManager.token(), shareToken.address)
+          await assertRole(acl, tap, shareVoting, 'UPDATE_BENEFICIARY_ROLE', controller)
+          await assertRole(acl, tap, shareVoting, 'UPDATE_MAXIMUM_TAP_INCREASE_PCT_ROLE', controller)
+          await assertRole(acl, tap, shareVoting, 'ADD_TAPPED_TOKEN_ROLE', controller)
+          await assertRole(acl, tap, shareVoting, 'UPDATE_TAPPED_TOKEN_ROLE', controller)
+          await assertRole(acl, tap, boardVoting, 'WITHDRAW_ROLE', controller)
 
-        // await assertRole(acl, shareTokenManager, shareVoting, 'MINT_ROLE')
-        // await assertRole(acl, shareTokenManager, shareVoting, 'BURN_ROLE')
+          await assertMissingRole(acl, tap, 'UPDATE_CONTROLLER_ROLE')
+          await assertMissingRole(acl, tap, 'UPDATE_RESERVE_ROLE')
+          await assertMissingRole(acl, tap, 'REMOVE_TAPPED_TOKEN_ROLE')
+        })
 
-        // await assertMissingRole(acl, shareTokenManager, 'ISSUE_ROLE')
-        // await assertMissingRole(acl, shareTokenManager, 'ASSIGN_ROLE')
-        // await assertMissingRole(acl, shareTokenManager, 'REVOKE_VESTINGS_ROLE')
-      })
+        it('should have aragon-fundraising app correctly setup', async () => {
+          assert.isTrue(await controller.hasInitialized(), 'aragon-fundraising not initialized')
 
-      it('should have share voting app correctly setup', async () => {
-        assert.isTrue(await shareVoting.hasInitialized(), 'voting not initialized')
-        assert.equal((await shareVoting.supportRequiredPct()).toString(), SHARE_SUPPORT_REQUIRED)
-        assert.equal((await shareVoting.minAcceptQuorumPct()).toString(), SHARE_MIN_ACCEPTANCE_QUORUM)
-        assert.equal((await shareVoting.voteTime()).toString(), SHARE_VOTE_DURATION)
-
-        // await assertRole(acl, shareVoting, shareVoting, 'CREATE_VOTES_ROLE', boardTokenManager)
-        // await assertRole(acl, shareVoting, shareVoting, 'MODIFY_QUORUM_ROLE')
-        // await assertRole(acl, shareVoting, shareVoting, 'MODIFY_SUPPORT_ROLE')
-      })
-
-      it('should have finance app correctly setup', async () => {
-        assert.isTrue(await finance.hasInitialized(), 'finance not initialized')
-
-        const expectedPeriod = financePeriod === 0 ? THIRTY_DAYS : financePeriod
-        assert.equal((await finance.getPeriodDuration()).toString(), expectedPeriod, 'finance period should be 30 days')
-
-        // await assertRole(acl, finance, shareVoting, 'CREATE_PAYMENTS_ROLE', boardVoting)
-        // await assertRole(acl, finance, shareVoting, 'CREATE_PAYMENTS_ROLE')
-        // await assertRole(acl, finance, shareVoting, 'EXECUTE_PAYMENTS_ROLE')
-        // await assertRole(acl, finance, shareVoting, 'MANAGE_PAYMENTS_ROLE')
-
-        // await assertMissingRole(acl, finance, 'CHANGE_PERIOD_ROLE')
-        // await assertMissingRole(acl, finance, 'CHANGE_BUDGETS_ROLE')
-      })
-
-      it('should have agent / reserve  app correctly setup', async () => {
-        assert.isTrue(await reserve.hasInitialized(), 'agent / reserve not initialized')
-
-        // await assertRole(acl, finance, shareVoting, 'CREATE_PAYMENTS_ROLE', boardVoting)
-        // await assertRole(acl, finance, shareVoting, 'CREATE_PAYMENTS_ROLE')
-        // await assertRole(acl, finance, shareVoting, 'EXECUTE_PAYMENTS_ROLE')
-        // await assertRole(acl, finance, shareVoting, 'MANAGE_PAYMENTS_ROLE')
-
-        // await assertMissingRole(acl, finance, 'CHANGE_PERIOD_ROLE')
-        // await assertMissingRole(acl, finance, 'CHANGE_BUDGETS_ROLE')
-      })
-
-      it('should have market-maker app correctly setup', async () => {
-        assert.isTrue(await marketMaker.hasInitialized(), 'market-maker not initialized')
-
-        // await assertRole(acl, finance, shareVoting, 'CREATE_PAYMENTS_ROLE', boardVoting)
-        // await assertRole(acl, finance, shareVoting, 'CREATE_PAYMENTS_ROLE')
-        // await assertRole(acl, finance, shareVoting, 'EXECUTE_PAYMENTS_ROLE')
-        // await assertRole(acl, finance, shareVoting, 'MANAGE_PAYMENTS_ROLE')
-
-        // await assertMissingRole(acl, finance, 'CHANGE_PERIOD_ROLE')
-        // await assertMissingRole(acl, finance, 'CHANGE_BUDGETS_ROLE')
-      })
-
-      it('should have tap app correctly setup', async () => {
-        assert.isTrue(await tap.hasInitialized(), 'tap not initialized')
-
-        // await assertRole(acl, finance, shareVoting, 'CREATE_PAYMENTS_ROLE', boardVoting)
-        // await assertRole(acl, finance, shareVoting, 'CREATE_PAYMENTS_ROLE')
-        // await assertRole(acl, finance, shareVoting, 'EXECUTE_PAYMENTS_ROLE')
-        // await assertRole(acl, finance, shareVoting, 'MANAGE_PAYMENTS_ROLE')
-
-        // await assertMissingRole(acl, finance, 'CHANGE_PERIOD_ROLE')
-        // await assertMissingRole(acl, finance, 'CHANGE_BUDGETS_ROLE')
-      })
-
-      it('should have aragon-fundraising app correctly setup', async () => {
-        assert.isTrue(await controller.hasInitialized(), 'aragon-fundraising not initialized')
-
-        // await assertRole(acl, finance, shareVoting, 'CREATE_PAYMENTS_ROLE', boardVoting)
-        // await assertRole(acl, finance, shareVoting, 'CREATE_PAYMENTS_ROLE')
-        // await assertRole(acl, finance, shareVoting, 'EXECUTE_PAYMENTS_ROLE')
-        // await assertRole(acl, finance, shareVoting, 'MANAGE_PAYMENTS_ROLE')
-
-        // await assertMissingRole(acl, finance, 'CHANGE_PERIOD_ROLE')
-        // await assertMissingRole(acl, finance, 'CHANGE_BUDGETS_ROLE')
+          await assertRole(acl, controller, boardVoting, 'UPDATE_BENEFICIARY_ROLE', boardVoting)
+          await assertRole(acl, controller, boardVoting, 'WITHDRAW_ROLE', boardVoting)
+          await assertRole(acl, controller, shareVoting, 'UPDATE_FEES_ROLE', shareVoting)
+          await assertRole(acl, controller, shareVoting, 'UPDATE_MAXIMUM_TAP_INCREASE_PCT_ROLE', shareVoting)
+          await assertRole(acl, controller, shareVoting, 'ADD_COLLATERAL_TOKEN_ROLE', shareVoting)
+          await assertRole(acl, controller, shareVoting, 'REMOVE_COLLATERAL_TOKEN_ROLE', shareVoting)
+          await assertRole(acl, controller, shareVoting, 'UPDATE_COLLATERAL_TOKEN_ROLE', shareVoting)
+          await assertRole(acl, controller, shareVoting, 'UPDATE_TOKEN_TAP_ROLE', shareVoting)
+          await assertRole(acl, controller, shareVoting, 'OPEN_BUY_ORDER_ROLE', ANY_ADDRESS)
+          await assertRole(acl, controller, shareVoting, 'OPEN_SELL_ORDER_ROLE', ANY_ADDRESS)
+        })
       })
 
       // it('sets up DAO and ACL permissions correctly', async () => {
@@ -438,7 +461,7 @@ contract('Fundraising with multisig', ([_, owner, boardMember1, boardMember2, sh
         const USE_AGENT_AS_VAULT = false
 
         createDAO(USE_AGENT_AS_VAULT, FINANCE_PERIOD)
-        itCostsUpTo(4e6)
+        itCostsUpTo(6e6)
         itSetupsDAOCorrectly(FINANCE_PERIOD)
         itSetupsVaultAppCorrectly()
       })
@@ -460,7 +483,7 @@ contract('Fundraising with multisig', ([_, owner, boardMember1, boardMember2, sh
         const USE_AGENT_AS_VAULT = false
 
         createDAO(USE_AGENT_AS_VAULT, FINANCE_PERIOD)
-        itCostsUpTo(4e6)
+        itCostsUpTo(6e6)
         itSetupsDAOCorrectly(FINANCE_PERIOD)
         itSetupsVaultAppCorrectly()
       })
