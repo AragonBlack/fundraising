@@ -77,7 +77,7 @@
     "@aragon/apps-payroll": "^1.0.0-rc.1",
     "@aragon/apps-token-manager": "^2.1.0",
     "@aragon/apps-shared-minime": "^1.0.0",
-    "@aragon/templates-shared": "^1.0.0",
+    "@aragon/templates-shared": "^1.0.0-rc.1",
     "@aragon/apps-shared-migrations": "^1.0.0",
     "@aragon/kits-base": "^1.0.0"
   }
