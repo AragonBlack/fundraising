@@ -93,17 +93,15 @@ contract FundraisingMultisigTemplate is BaseTemplate {
         (Kernel dao, ACL acl) = _createDAO();
 
         MiniMeToken boardToken = _createToken(_boardTokenName, _boardTokenSymbol, BOARD_TOKEN_DECIMALS);
-        (TokenManager tm, Voting voting, Vault vault, Finance finance) = _installBoardApps(dao, boardToken, _boardVotingSettings, _financePeriod);
+        (TokenManager tm,,,) = _installBoardApps(dao, boardToken, _boardVotingSettings, _financePeriod);
 
         // TokenManager boardTokenManager = _installTokenManagerApp(dao, boardToken, BOARD_TRANSFERABLE, BOARD_MAX_PER_ACCOUNT);
         // Voting boardVoting = _installVotingApp(dao, boardToken, _boardVotingSettings);
         // Vault vault = _installVaultApp(dao);
         // Finance finance = _installFinanceApp(dao, vault, _financePeriod == 0 ? DEFAULT_FINANCE_PERIOD : _financePeriod);
 
-        _mintTokens(acl, boardTokenManager, _boardMembers, 1);
-
-
-        // _setupBoardPermissions(dao, boardTokenManager, boardVoting, vault, finance);
+        _mintTokens(acl, tm, _boardMembers, 1);
+        _setupBoardPermissions();
 
         // // _createEvmScriptsRegistryPermissions(_acl, _voting, _voting);
 
@@ -112,16 +110,18 @@ contract FundraisingMultisigTemplate is BaseTemplate {
     }
 
 
-    // function finalizeInstance(string _shareTokenName, string _shareTokenSymbol, uint64[3] _shareVotingSettings) external {
+    function finalizeInstance(string _shareTokenName, string _shareTokenSymbol, uint64[3] _shareVotingSettings) external {
     //     // _ensureFinalizationSettings(_shareHolders, _shareStakes, _boardMembers);
 
-    //     Kernel dao = _popDaoCache();
-    //     MiniMeToken shareToken = _createToken(_shareTokenName, _shareTokenSymbol, SHARE_TOKEN_DECIMALS);
-    //     (TokenManager shareTokenManager, Voting shareVoting) = _installShareApps(dao, shareToken, _shareVotingSettings);
-    //     // (Pool reserve, MarketMaker marketMaker, Tap tap, Controller controller) = _installFundraisingApps(dao, shareTokenManager, boardVoting, shareVoting, vault);
+        Kernel dao = _popDaoCache();
+        
+        MiniMeToken shareToken = _createToken(_shareTokenName, _shareTokenSymbol, SHARE_TOKEN_DECIMALS);
+        
+        _installShareApps(dao, shareToken, _shareVotingSettings);
+        _installFundraisingApps(dao);
 
-    //     // _setupSharePermissions(dao, shareTokenManager, shareVoting, boardTokenManager, marketMaker);
-    //     // _setupFundraisingPermissions(dao, reserve, marketMaker, tap, controller, boardVoting, shareVoting);
+        _setupSharePermissions(dao);
+        _setupFundraisingPermissions(dao);
 
 
     //     // // _initializeReserve(reserve);
@@ -141,7 +141,7 @@ contract FundraisingMultisigTemplate is BaseTemplate {
 
     //     // _transferRootPermissionsFromTemplate(dao, boardVoting, shareVoting);
     //     // _registerID(_id, address(dao));
-    // }
+    }
 
     function _installBoardApps(Kernel _dao, MiniMeToken _token, uint64[3] _votingSettings, uint64 _financePeriod)
         internal
@@ -151,165 +151,219 @@ contract FundraisingMultisigTemplate is BaseTemplate {
         voting = _installVotingApp(_dao, _token, _votingSettings);
         vault = _installVaultApp(_dao);
         finance = _installFinanceApp(_dao, vault, _financePeriod == 0 ? DEFAULT_FINANCE_PERIOD : _financePeriod);
+
+        _cacheBoardDao(_dao, tm, voting, vault, finance);
     }
 
-    // function _installShareApps(Kernel _dao, MiniMeToken _shareToken, uint64[3] _shareVotingSettings) internal returns (TokenManager tm, Voting voting) {
-    //     tm = _installTokenManagerApp(_dao, _shareToken, SHARE_TRANSFERABLE, SHARE_MAX_PER_ACCOUNT);
-    //     voting = _installVotingApp(_dao, _shareToken, _shareVotingSettings);
-    // }
+    function _installShareApps(Kernel _dao, MiniMeToken _shareToken, uint64[3] _shareVotingSettings) internal returns (TokenManager tm, Voting voting) {
+        tm = _installTokenManagerApp(_dao, _shareToken, SHARE_TRANSFERABLE, SHARE_MAX_PER_ACCOUNT);
+        voting = _installVotingApp(_dao, _shareToken, _shareVotingSettings);
 
-    // function _installFundraisingApps(Kernel _dao, TokenManager _shareTokenManager, Voting _boardVoting, Voting _shareVoting, Vault _beneficiary) internal returns (Pool reserve, MarketMaker marketMaker, Tap tap, Controller controller) {
-    //     bytes32[4] memory apps = [
-    //         apmNamehash("pool"),   // 0
-    //         // apmNamehash("bancor-formula"), //4
-    //         apmNamehash("batched-bancor-market-maker"), // 3
-    //         apmNamehash("tap"),    // 1
-    //         apmNamehash("aragon-fundraising")        // 2
-    //     ];
+        _cacheShareApps(tm, voting);
+    }
 
-    //     reserve = Pool(_registerApp(_dao, apps[0]));
-    //     marketMaker = MarketMaker(_registerApp(_dao, apps[1]));
-    //     tap = Tap(_registerApp(_dao, apps[2]));
-    //     controller = Controller(_registerApp(_dao, apps[3]));
+    function _installFundraisingApps(Kernel _dao) internal returns (Pool reserve, MarketMaker marketMaker, Tap tap, Controller controller) {
+        bytes32[4] memory apps = [
+            apmNamehash("pool"),   // 0
+            // apmNamehash("bancor-formula"), //4
+            apmNamehash("batched-bancor-market-maker"), // 3
+            apmNamehash("tap"),    // 1
+            apmNamehash("aragon-fundraising")        // 2
+        ];
 
+        (, TokenManager boardTM, Voting boardVoting, Vault beneficiary,) = _popBoardDaoCache();
+        (TokenManager shareTM, Voting shareVoting) = _popShareAppsCache();
 
-    //     reserve.initialize();
-    //     marketMaker.initialize(controller, _shareTokenManager, reserve, _beneficiary, IBancorFormula(_latestVersionAppBase(apmNamehash("bancor-formula"))), BATCH_BLOCKS, BUY_FEE, SELL_FEE);
-    //     tap.initialize(controller, reserve, _beneficiary, BATCH_BLOCKS, uint256(50 * 10 ** 16));
-    //     controller.initialize(marketMaker, reserve, tap);
-    // }
-
-    // function _registerApp(Kernel _dao, bytes32 _appId) internal returns (address) {
-    //     address proxy = _dao.newAppInstance(_appId, _latestVersionAppBase(_appId));
-    //     emit InstalledApp(proxy, _appId);
-
-    //     return proxy;
-    // }
-
-    // function _setupBoardPermissions(Kernel _dao, TokenManager _tm, Voting _voting, Vault _vault, Finance _finance) internal {
-    //     ACL acl = ACL(_dao.acl());
-
-    //     _createTokenManagerPermissions(acl, _tm, _voting, _voting);
-    //     _createVotingPermissions(acl, _voting, _voting, _tm, _voting);
-    //     _createVaultPermissions(acl, _vault, _finance, _voting);
-    //     _createFinancePermissions(acl, _finance, _voting, _voting);
-    // }
-
-    // function _setupSharePermissions(Kernel _dao, TokenManager _shareTM, Voting _voting, TokenManager _boardTM, MarketMaker _mm) internal {
-    //     ACL acl = ACL(_dao.acl());
-
-    //     _createTokenManagerPermissions(acl, _shareTM, _mm, _voting);
-    //     _createVotingPermissions(acl, _voting, _voting, _boardTM, _voting);
-    // }
-
-    // function _setupFundraisingPermissions(Kernel _dao) internal {
-
-    //     // (
-    //     //     Kernel _dao,
-    //     //     Pool _reserve,
-    //     //     MarketMaker _marketMaker,
-    //     //     Tap _tap,
-    //     //     Controller
-    //     //     _controller,
-    //     //     Voting _boardVoting,
-    //     //     Voting _shareVoting
-    //     // ) = _popDaoCache();
-
-    //     ACL acl = ACL(_dao.acl());
-    //     (, Voting _boardVoting,,) = _popBoardCache();
-    //     (, Voting _shareVoting) = _popShareCache();
-    //     // (Pool _reserve, MarketMaker _marketMaker, Tap _tap, Controller _controller) = _popFundraisingCache();
+        reserve = Pool(_registerApp(_dao, apps[0]));
+        marketMaker = MarketMaker(_registerApp(_dao, apps[1]));
+        tap = Tap(_registerApp(_dao, apps[2]));
+        controller = Controller(_registerApp(_dao, apps[3]));
 
 
+        reserve.initialize();
+        marketMaker.initialize(controller, shareTM, reserve, beneficiary, IBancorFormula(_latestVersionAppBase(apmNamehash("bancor-formula"))), BATCH_BLOCKS, BUY_FEE, SELL_FEE);
+        tap.initialize(controller, reserve, beneficiary, BATCH_BLOCKS, uint256(50 * 10 ** 16));
+        controller.initialize(marketMaker, reserve, tap);
 
-    //     // TokenManager boardTokenManager
-    //     // Voting boardVoting,
-    //     // Vault vault,
-    //     // Finance finance
+        _cacheFundraisingApps(reserve, marketMaker, tap, controller);
+    }
 
-    //     // _createReservePermissions(acl, _reserve, _marketMaker, _tap, _controller, _shareVoting);
-    //     // _createMarketMakerPermissions (acl, _marketMaker, _controller, _shareVoting);
-    //     // _createTapPermissions(acl, _tap, _controller, _boardVoting, _shareVoting);
-    //     // _createControllerPermissions(acl, _controller, _boardVoting, _shareVoting);
+    function _registerApp(Kernel _dao, bytes32 _appId) internal returns (address) {
+        address proxy = _dao.newAppInstance(_appId, _latestVersionAppBase(_appId));
+        emit InstalledApp(proxy, _appId);
+
+        return proxy;
+    }
+
+    function _setupBoardPermissions() internal {
+        (Kernel dao, TokenManager tm, Voting voting, Vault vault, Finance finance) = _popBoardDaoCache();
+
+        ACL acl = ACL(dao.acl());
+
+        _createTokenManagerPermissions(acl, tm, voting, voting);
+        _createVotingPermissions(acl, voting, voting, tm, voting);
+        _createVaultPermissions(acl, vault, finance, voting);
+        _createFinancePermissions(acl, finance, voting, voting);
+    }
+
+    function _setupSharePermissions(Kernel _dao) internal {
+        ACL acl = ACL(_dao.acl());
+
+        (,TokenManager boardTM,,,) = _popBoardDaoCache();
+        (TokenManager shareTM, Voting shareVoting) = _popShareAppsCache();
+        (, MarketMaker marketMaker,,) = _popFundraisingAppsCache();
+
+        _createTokenManagerPermissions(acl, shareTM, marketMaker, shareVoting);
+        _createVotingPermissions(acl, shareVoting, shareVoting, boardTM, shareVoting);
+    }
+
+    function _setupFundraisingPermissions(Kernel _dao) internal {
+        ACL acl = ACL(_dao.acl());
+
+        (,, Voting _boardVoting,,) = _popBoardDaoCache();
+        (, Voting _shareVoting) = _popShareAppsCache();
+        (Pool _reserve, MarketMaker _marketMaker, Tap _tap, Controller _controller) = _popFundraisingAppsCache();
+
+        _createReservePermissions(acl, _reserve, _marketMaker, _tap, _controller, _shareVoting);
+        _createMarketMakerPermissions (acl, _marketMaker, _controller, _shareVoting);
+        _createTapPermissions(acl, _tap, _controller, _boardVoting, _shareVoting);
+        _createControllerPermissions(acl, _controller, _boardVoting, _shareVoting);
     
-    // }
+    }
 
-    // function _createReservePermissions(
-    //     ACL _acl,
-    //     Pool _reserve,
-    //     MarketMaker _marketMaker,
-    //     Tap _tap,
-    //     Controller _controller,
-    //     Voting _shareVoting
-    // )
-    //     internal
-    // {
-    //     address[] memory grantees = new address[](2);
-    //     grantees[0] = address(_tap);
-    //     grantees[1] = address(_marketMaker);
+    function _createReservePermissions(
+        ACL _acl,
+        Pool _reserve,
+        MarketMaker _marketMaker,
+        Tap _tap,
+        Controller _controller,
+        Voting _shareVoting
+    )
+        internal
+    {
+        address[] memory grantees = new address[](2);
+        grantees[0] = address(_tap);
+        grantees[1] = address(_marketMaker);
 
-    //     _acl.createPermission(_shareVoting, _reserve, _reserve.SAFE_EXECUTE_ROLE(), _shareVoting);
-    //     _acl.createPermission(_controller, _reserve, _reserve.ADD_PROTECTED_TOKEN_ROLE(), _shareVoting);
-    //     _createPermissions(_acl, grantees, _reserve, _reserve.TRANSFER_ROLE(), _shareVoting);
-    // }
+        _acl.createPermission(_shareVoting, _reserve, _reserve.SAFE_EXECUTE_ROLE(), _shareVoting);
+        _acl.createPermission(_controller, _reserve, _reserve.ADD_PROTECTED_TOKEN_ROLE(), _shareVoting);
+        _createPermissions(_acl, grantees, _reserve, _reserve.TRANSFER_ROLE(), _shareVoting);
+    }
 
-    // function _createMarketMakerPermissions(ACL _acl, MarketMaker _marketMaker, Controller _controller, Voting _shareVoting) internal {
-    //     _acl.createPermission(_controller, _marketMaker, _marketMaker.ADD_COLLATERAL_TOKEN_ROLE(), _shareVoting);
-    //     _acl.createPermission(_controller, _marketMaker, _marketMaker.REMOVE_COLLATERAL_TOKEN_ROLE(), _shareVoting);
-    //     _acl.createPermission(_controller, _marketMaker, _marketMaker.UPDATE_COLLATERAL_TOKEN_ROLE(), _shareVoting);
-    //     _acl.createPermission(_controller, _marketMaker, _marketMaker.UPDATE_BENEFICIARY_ROLE(), _shareVoting);
-    //     _acl.createPermission(_controller, _marketMaker, _marketMaker.UPDATE_FEES_ROLE(), _shareVoting);
-    //     _acl.createPermission(_controller, _marketMaker, _marketMaker.OPEN_BUY_ORDER_ROLE(), _shareVoting);
-    //     _acl.createPermission(_controller, _marketMaker, _marketMaker.OPEN_SELL_ORDER_ROLE(), _shareVoting);
-    // }
+    function _createMarketMakerPermissions(ACL _acl, MarketMaker _marketMaker, Controller _controller, Voting _shareVoting) internal {
+        _acl.createPermission(_controller, _marketMaker, _marketMaker.ADD_COLLATERAL_TOKEN_ROLE(), _shareVoting);
+        _acl.createPermission(_controller, _marketMaker, _marketMaker.REMOVE_COLLATERAL_TOKEN_ROLE(), _shareVoting);
+        _acl.createPermission(_controller, _marketMaker, _marketMaker.UPDATE_COLLATERAL_TOKEN_ROLE(), _shareVoting);
+        _acl.createPermission(_controller, _marketMaker, _marketMaker.UPDATE_BENEFICIARY_ROLE(), _shareVoting);
+        _acl.createPermission(_controller, _marketMaker, _marketMaker.UPDATE_FEES_ROLE(), _shareVoting);
+        _acl.createPermission(_controller, _marketMaker, _marketMaker.OPEN_BUY_ORDER_ROLE(), _shareVoting);
+        _acl.createPermission(_controller, _marketMaker, _marketMaker.OPEN_SELL_ORDER_ROLE(), _shareVoting);
+    }
 
-    // function _createTapPermissions(ACL _acl, Tap _tap, Controller _controller, Voting _boardVoting, Voting _shareVoting) internal {
-    //     _acl.createPermission(_controller, _tap, _tap.UPDATE_BENEFICIARY_ROLE(), _shareVoting);
-    //     _acl.createPermission(_controller, _tap, _tap.UPDATE_MAXIMUM_TAP_INCREASE_PCT_ROLE(), _shareVoting);
-    //     _acl.createPermission(_controller, _tap, _tap.ADD_TAPPED_TOKEN_ROLE(), _shareVoting);
-    //     _acl.createPermission(_controller, _tap, _tap.UPDATE_TAPPED_TOKEN_ROLE(), _shareVoting);
-    //     _acl.createPermission(_controller, _tap, _tap.WITHDRAW_ROLE(), _boardVoting);
-    // }
+    function _createTapPermissions(ACL _acl, Tap _tap, Controller _controller, Voting _boardVoting, Voting _shareVoting) internal {
+        _acl.createPermission(_controller, _tap, _tap.UPDATE_BENEFICIARY_ROLE(), _shareVoting);
+        _acl.createPermission(_controller, _tap, _tap.UPDATE_MAXIMUM_TAP_INCREASE_PCT_ROLE(), _shareVoting);
+        _acl.createPermission(_controller, _tap, _tap.ADD_TAPPED_TOKEN_ROLE(), _shareVoting);
+        _acl.createPermission(_controller, _tap, _tap.UPDATE_TAPPED_TOKEN_ROLE(), _shareVoting);
+        _acl.createPermission(_controller, _tap, _tap.WITHDRAW_ROLE(), _boardVoting);
+    }
 
-    // function _createControllerPermissions(ACL _acl, Controller _controller, Voting _board, Voting _share) internal {
-    //     _acl.createPermission(_board, _controller, _controller.UPDATE_BENEFICIARY_ROLE(), _board);
-    //     _acl.createPermission(_board, _controller, _controller.WITHDRAW_ROLE(), _board);
-    //     _acl.createPermission(_share, _controller, _controller.UPDATE_FEES_ROLE(), _share);
-    //     _acl.createPermission(_share, _controller, _controller.UPDATE_MAXIMUM_TAP_INCREASE_PCT_ROLE(), _share);
-    //     _acl.createPermission(_share, _controller, _controller.ADD_COLLATERAL_TOKEN_ROLE(), _share);
-    //     _acl.createPermission(_share, _controller, _controller.REMOVE_COLLATERAL_TOKEN_ROLE(), _share);
-    //     _acl.createPermission(_share, _controller, _controller.UPDATE_COLLATERAL_TOKEN_ROLE(), _share);
-    //     _acl.createPermission(_share, _controller, _controller.UPDATE_TOKEN_TAP_ROLE(), _share);
-    //     _acl.createPermission(address(-1), _controller, _controller.OPEN_BUY_ORDER_ROLE(), _share);
-    //     _acl.createPermission(address(-1), _controller, _controller.OPEN_SELL_ORDER_ROLE(), _share);
-    // }
-
-
-    // function _cachePreparedDao(
-    //     Kernel _dao,
-    //     TokenManager _boardTokenManager,
-    //     Voting _boardVoting,
-    //     Vault _vault
-    // )
-    //     internal
-    // {
-        // Cache storage c = cache[msg.sender];
-        // c.dao = address(_dao);
-        // c.boardTokenManager = address(_boardTokenManager);
-        // c.boardVoting = address(_boardVoting);
-        // c.vault = address(_vault);
-
-    // }
+    function _createControllerPermissions(ACL _acl, Controller _controller, Voting _board, Voting _share) internal {
+        _acl.createPermission(_board, _controller, _controller.UPDATE_BENEFICIARY_ROLE(), _board);
+        _acl.createPermission(_board, _controller, _controller.WITHDRAW_ROLE(), _board);
+        _acl.createPermission(_share, _controller, _controller.UPDATE_FEES_ROLE(), _share);
+        _acl.createPermission(_share, _controller, _controller.UPDATE_MAXIMUM_TAP_INCREASE_PCT_ROLE(), _share);
+        _acl.createPermission(_share, _controller, _controller.ADD_COLLATERAL_TOKEN_ROLE(), _share);
+        _acl.createPermission(_share, _controller, _controller.REMOVE_COLLATERAL_TOKEN_ROLE(), _share);
+        _acl.createPermission(_share, _controller, _controller.UPDATE_COLLATERAL_TOKEN_ROLE(), _share);
+        _acl.createPermission(_share, _controller, _controller.UPDATE_TOKEN_TAP_ROLE(), _share);
+        _acl.createPermission(address(-1), _controller, _controller.OPEN_BUY_ORDER_ROLE(), _share);
+        _acl.createPermission(address(-1), _controller, _controller.OPEN_SELL_ORDER_ROLE(), _share);
+    }
 
 
-    // function _popDaoCache() internal returns (Kernel dao) {
-    //     Cache storage c = cache[msg.sender];
-    //     require(c.dao != address(0), ERROR_MISSING_CACHE);
 
-    //     dao = Kernel(c.dao);
-    // }
+    function _cacheBoardDao(Kernel _dao, TokenManager _tm, Voting _voting, Vault _vault, Finance _finance) internal {
+        Cache storage c = cache[msg.sender];
 
-    // function _popCompleteCache() internal returns (
+        c.dao = address(_dao);
+        c.boardTokenManager = address(_tm);
+        c.boardVoting = address(_voting);
+        c.vault = address(_vault);
+        c.finance = address(_finance);
+    }
+
+    function _cacheShareApps(TokenManager _tm, Voting _voting) internal {
+        Cache storage c = cache[msg.sender];
+        require(c.dao != address(0), ERROR_MISSING_CACHE);
+
+        c.shareTokenManager = address(_tm);
+        c.shareVoting = address(_voting);
+    }
+
+    function _cacheFundraisingApps(Pool _reserve, MarketMaker _marketMaker, Tap _tap, Controller _controller) internal {
+        Cache storage c = cache[msg.sender];
+        require(c.dao != address(0), ERROR_MISSING_CACHE);
+
+        c.reserve = address(_reserve);
+        c.marketMaker = address(_marketMaker);
+        c.tap = address(_tap);
+        c.controller = address(_controller);
+    }
+
+    function _popDaoCache() internal returns (Kernel dao) {
+        Cache storage c = cache[msg.sender];
+        require(c.dao != address(0), ERROR_MISSING_CACHE);
+
+        dao = Kernel(c.dao);
+    }
+
+   
+
+    function _popBoardDaoCache() internal returns (
+        Kernel dao,
+        TokenManager boardTokenManager,
+        Voting boardVoting,
+        Vault vault,
+        Finance finance
+    ) {
+        Cache storage c = cache[msg.sender];
+        require(c.dao != address(0), ERROR_MISSING_CACHE);
+
+        dao = Kernel(c.dao);
+        boardTokenManager = TokenManager(c.boardTokenManager);
+        boardVoting = Voting(c.boardVoting);
+        vault = Vault(c.vault);
+        finance = Finance(c.finance);
+    }
+
+
+    function _popShareAppsCache() internal returns (TokenManager shareTokenManager, Voting shareVoting) {
+        Cache storage c = cache[msg.sender];
+        require(c.dao != address(0), ERROR_MISSING_CACHE);
+
+        shareTokenManager = TokenManager(c.shareTokenManager);
+        shareVoting = Voting(c.shareVoting);
+    }
+
+    function _popFundraisingAppsCache() internal returns (Pool reserve, MarketMaker marketMaker, Tap tap, Controller controller) {
+        Cache storage c = cache[msg.sender];
+        require(c.dao != address(0), ERROR_MISSING_CACHE);
+
+        reserve = Pool(c.reserve);
+        marketMaker = MarketMaker(c.marketMaker);
+        tap = Tap(c.tap);
+        controller = Controller(c.controller);
+
+
+        // delete c.dao;
+        // delete c.boardTokenManager;
+        // delete c.boardVoting;
+        // delete c.vault;
+    }
+
+
+     // function _popCompleteCache() internal returns (
     //     Kernel dao,
     //     TokenManager boardTokenManager,
     //     Voting boardVoting,
@@ -332,46 +386,6 @@ contract FundraisingMultisigTemplate is BaseTemplate {
     //     finance = Finance(c.finance);
     //     shareTokenManager = TokenManager(c.shareTokenManager);
     //     shareVoting = Voting(c.shareVoting);
-    //     reserve = Pool(c.reserve);
-    //     marketMaker = MarketMaker(c.marketMaker);
-    //     tap = Tap(c.tap);
-    //     controller = Controller(c.controller);
-
-
-    //     // delete c.dao;
-    //     // delete c.boardTokenManager;
-    //     // delete c.boardVoting;
-    //     // delete c.vault;
-    // }
-
-    // function _popBoardCache() internal returns (
-    //     TokenManager boardTokenManager,
-    //     Voting boardVoting,
-    //     Vault vault,
-    //     Finance finance
-    // ) {
-    //     Cache storage c = cache[msg.sender];
-    //     require(c.dao != address(0), ERROR_MISSING_CACHE);
-
-    //     boardTokenManager = TokenManager(c.boardTokenManager);
-    //     boardVoting = Voting(c.boardVoting);
-    //     vault = Vault(c.vault);
-    //     finance = Finance(c.finance);
-    // }
-
-
-    // function _popShareCache() internal returns (TokenManager shareTokenManager, Voting shareVoting) {
-    //     Cache storage c = cache[msg.sender];
-    //     require(c.dao != address(0), ERROR_MISSING_CACHE);
-
-    //     shareTokenManager = TokenManager(c.shareTokenManager);
-    //     shareVoting = Voting(c.shareVoting);
-    // }
-
-    // function _popFundraisingCache() internal returns (Pool reserve, MarketMaker marketMaker, Tap tap, Controller controller) {
-    //     Cache storage c = cache[msg.sender];
-    //     require(c.dao != address(0), ERROR_MISSING_CACHE);
-
     //     reserve = Pool(c.reserve);
     //     marketMaker = MarketMaker(c.marketMaker);
     //     tap = Tap(c.tap);
