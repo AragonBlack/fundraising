@@ -156,17 +156,17 @@ contract('Fundraising with multisig', ([_, owner, boardMember1, boardMember2, sh
   })
 
   context('when the creation succeeds', () => {
-    let prepareReceipt, finalizeInstanceReceipt
+    let baseReceipt, fundraisingReceipt, finalizationReceipt
 
     const loadDAO = async (apps = { vault: false, agent: false, payroll: false }) => {
-      dao = Kernel.at(getEventArgument(prepareReceipt, 'DeployDao', 'dao'))
+      dao = Kernel.at(getEventArgument(baseReceipt, 'DeployDao', 'dao'))
       acl = ACL.at(await dao.acl())
 
-      boardToken = MiniMeToken.at(getEventArgument(prepareReceipt, 'DeployToken', 'token', 0))
-      shareToken = MiniMeToken.at(getEventArgument(finalizeInstanceReceipt, 'DeployToken', 'token', 0))
+      boardToken = MiniMeToken.at(getEventArgument(baseReceipt, 'DeployToken', 'token', 0))
+      shareToken = MiniMeToken.at(getEventArgument(fundraisingReceipt, 'DeployToken', 'token', 0))
 
-      const installedAppsDuringPrepare = getInstalledAppsById(prepareReceipt)
-      const installedAppsDuringFinalize = getInstalledAppsById(finalizeInstanceReceipt)
+      const installedAppsDuringPrepare = getInstalledAppsById(baseReceipt)
+      const installedAppsDuringFinalize = getInstalledAppsById(fundraisingReceipt)
 
       assert.equal(installedAppsDuringPrepare['token-manager'].length, 1, 'should have installed 1 token-manager apps during prepare')
       assert.equal(installedAppsDuringFinalize['token-manager'].length, 1, 'should have installed 1 token-manager apps during finalize')
@@ -197,26 +197,17 @@ contract('Fundraising with multisig', ([_, owner, boardMember1, boardMember2, sh
 
       assert.equal(installedAppsDuringFinalize['aragon-fundraising'].length, 1, 'should have installed 1 aragon-fundraising app')
       controller = Controller.at(installedAppsDuringFinalize['aragon-fundraising'][0])
-
-      // apmNamehash('batched-bancor-market-maker'), // 3
-      //   apmNamehash('tap'), // 1
-      //   apmNamehash('aragon-fundraising')
-
-      // if (apps.agent) {
-      //   assert.equal(installedAppsDuringFinalize.agent.length, 1, 'should have installed 1 agent app')
-      //   agent = Agent.at(installedAppsDuringFinalize.agent[0])
-      // }
     }
 
     const itCostsUpTo = expectedFinalizationCost => {
-      const expectedPrepareCost = 6.1e6
+      const expectedPrepareCost = 6.5e6
       const expectedTotalCost = expectedPrepareCost + expectedFinalizationCost
 
       it(`gas costs must be up to ~${expectedTotalCost} gas`, async () => {
-        const prepareCost = prepareReceipt.receipt.gasUsed
+        const prepareCost = baseReceipt.receipt.gasUsed
         assert.isAtMost(prepareCost, expectedPrepareCost, `prepare call should cost up to ${expectedPrepareCost} gas`)
 
-        const finalizeCost = finalizeInstanceReceipt.receipt.gasUsed
+        const finalizeCost = fundraisingReceipt.receipt.gasUsed
         assert.isAtMost(finalizeCost, expectedFinalizationCost, `share setup call should cost up to ${expectedFinalizationCost} gas`)
 
         const totalCost = prepareCost + finalizeCost
@@ -399,15 +390,16 @@ contract('Fundraising with multisig', ([_, owner, boardMember1, boardMember2, sh
 
     const createDAO = (useAgentAsVault, financePeriod) => {
       before('create fundraising entity with multisig', async () => {
-        // daoID = randomId()
-        prepareReceipt = await template.prepareInstance(BOARD_TOKEN_NAME, BOARD_TOKEN_SYMBOL, BOARD_MEMBERS, BOARD_VOTING_SETTINGS, financePeriod, {
+        daoID = randomId()
+        baseReceipt = await template.deployBaseInstance(BOARD_TOKEN_NAME, BOARD_TOKEN_SYMBOL, BOARD_MEMBERS, BOARD_VOTING_SETTINGS, financePeriod, {
           from: owner,
         })
-        finalizeInstanceReceipt = await finalizeInstance(SHARE_TOKEN_NAME, SHARE_TOKEN_SYMBOL, SHARE_VOTING_SETTINGS, { from: owner })
+        fundraisingReceipt = await template.installFundraisingApps(SHARE_TOKEN_NAME, SHARE_TOKEN_SYMBOL, SHARE_VOTING_SETTINGS, { from: owner })
+        finalizationReceipt = await template.finalizeInstance(daoID, { from: owner })
 
-        dao = Kernel.at(getEventArgument(prepareReceipt, 'DeployDao', 'dao'))
-        boardToken = MiniMeToken.at(getEventArgument(prepareReceipt, 'DeployToken', 'token', 0))
-        shareToken = MiniMeToken.at(getEventArgument(finalizeInstanceReceipt, 'DeployToken', 'token', 0))
+        dao = Kernel.at(getEventArgument(baseReceipt, 'DeployDao', 'dao'))
+        boardToken = MiniMeToken.at(getEventArgument(baseReceipt, 'DeployToken', 'token', 0))
+        shareToken = MiniMeToken.at(getEventArgument(fundraisingReceipt, 'DeployToken', 'token', 0))
         await loadDAO({ vault: !useAgentAsVault, agent: useAgentAsVault })
       })
     }
@@ -428,7 +420,7 @@ contract('Fundraising with multisig', ([_, owner, boardMember1, boardMember2, sh
         const USE_AGENT_AS_VAULT = false
 
         createDAO(USE_AGENT_AS_VAULT, FINANCE_PERIOD)
-        itCostsUpTo(7e6)
+        itCostsUpTo(6.5e6)
         itSetupsDAOCorrectly(FINANCE_PERIOD)
         // itSetupsVaultAppCorrectly()
       })
@@ -450,7 +442,7 @@ contract('Fundraising with multisig', ([_, owner, boardMember1, boardMember2, sh
         const USE_AGENT_AS_VAULT = false
 
         createDAO(USE_AGENT_AS_VAULT, FINANCE_PERIOD)
-        itCostsUpTo(7e6)
+        itCostsUpTo(6.6e6)
         itSetupsDAOCorrectly(FINANCE_PERIOD)
         // itSetupsVaultAppCorrectly()
       })

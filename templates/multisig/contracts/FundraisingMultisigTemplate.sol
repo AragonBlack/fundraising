@@ -78,7 +78,7 @@ contract FundraisingMultisigTemplate is BaseTemplate {
     }
 
 
-    function prepareInstance(
+    function deployBaseInstance(
         string _boardTokenName,
         string _boardTokenSymbol,
         address[] _boardMembers,
@@ -90,18 +90,12 @@ contract FundraisingMultisigTemplate is BaseTemplate {
         require(_boardVotingSettings.length == 3, ERROR_BAD_VOTE_SETTINGS);
 
 
-        (Kernel dao, ACL acl) = _createDAO();
-
+        (Kernel dao, ACL acl)  = _createDAO();
         MiniMeToken boardToken = _createToken(_boardTokenName, _boardTokenSymbol, BOARD_TOKEN_DECIMALS);
-        (TokenManager tm,,,) = _installBoardApps(dao, boardToken, _boardVotingSettings, _financePeriod);
-
-        // TokenManager boardTokenManager = _installTokenManagerApp(dao, boardToken, BOARD_TRANSFERABLE, BOARD_MAX_PER_ACCOUNT);
-        // Voting boardVoting = _installVotingApp(dao, boardToken, _boardVotingSettings);
-        // Vault vault = _installVaultApp(dao);
-        // Finance finance = _installFinanceApp(dao, vault, _financePeriod == 0 ? DEFAULT_FINANCE_PERIOD : _financePeriod);
+        (TokenManager tm,,,)   = _installBoardApps(dao, boardToken, _boardVotingSettings, _financePeriod);
 
         _mintTokens(acl, tm, _boardMembers, 1);
-        _setupBoardPermissions();
+        _setupBoardPermissions(dao);
 
         // // _createEvmScriptsRegistryPermissions(_acl, _voting, _voting);
 
@@ -110,7 +104,7 @@ contract FundraisingMultisigTemplate is BaseTemplate {
     }
 
 
-    function finalizeInstance(string _shareTokenName, string _shareTokenSymbol, uint64[3] _shareVotingSettings) external {
+    function installFundraisingApps(string _shareTokenName, string _shareTokenSymbol, uint64[3] _shareVotingSettings) external {
     //     // _ensureFinalizationSettings(_shareHolders, _shareStakes, _boardMembers);
 
         Kernel dao = _popDaoCache();
@@ -143,6 +137,18 @@ contract FundraisingMultisigTemplate is BaseTemplate {
     //     // _registerID(_id, address(dao));
     }
 
+    function finalizeInstance(string _id) external {
+        Kernel dao = _popDaoCache();
+
+        _registerID(_id, address(dao));
+    }
+
+    function _createDAO() internal returns (Kernel dao, ACL acl) {
+        (dao, acl) = super._createDAO();
+
+        _cacheDao(dao);
+    }
+
     function _installBoardApps(Kernel _dao, MiniMeToken _token, uint64[3] _votingSettings, uint64 _financePeriod)
         internal
         returns (TokenManager tm, Voting voting, Vault vault, Finance finance)
@@ -152,7 +158,7 @@ contract FundraisingMultisigTemplate is BaseTemplate {
         vault = _installVaultApp(_dao);
         finance = _installFinanceApp(_dao, vault, _financePeriod == 0 ? DEFAULT_FINANCE_PERIOD : _financePeriod);
 
-        _cacheBoardDao(_dao, tm, voting, vault, finance);
+        _cacheBoardApps(tm, voting, vault, finance);
     }
 
     function _installShareApps(Kernel _dao, MiniMeToken _shareToken, uint64[3] _shareVotingSettings) internal returns (TokenManager tm, Voting voting) {
@@ -171,7 +177,7 @@ contract FundraisingMultisigTemplate is BaseTemplate {
             apmNamehash("aragon-fundraising")        // 2
         ];
 
-        (, TokenManager boardTM, Voting boardVoting, Vault beneficiary,) = _popBoardDaoCache();
+        (TokenManager boardTM, Voting boardVoting, Vault beneficiary,) = _popBoardAppsCache();
         (TokenManager shareTM, Voting shareVoting) = _popShareAppsCache();
 
         reserve = Pool(_registerApp(_dao, apps[0]));
@@ -195,10 +201,10 @@ contract FundraisingMultisigTemplate is BaseTemplate {
         return proxy;
     }
 
-    function _setupBoardPermissions() internal {
-        (Kernel dao, TokenManager tm, Voting voting, Vault vault, Finance finance) = _popBoardDaoCache();
+    function _setupBoardPermissions(Kernel _dao) internal {
+        (TokenManager tm, Voting voting, Vault vault, Finance finance) = _popBoardAppsCache();
 
-        ACL acl = ACL(dao.acl());
+        ACL acl = ACL(_dao.acl());
 
         _createTokenManagerPermissions(acl, tm, voting, voting);
         _createVotingPermissions(acl, voting, voting, tm, voting);
@@ -209,7 +215,7 @@ contract FundraisingMultisigTemplate is BaseTemplate {
     function _setupSharePermissions(Kernel _dao) internal {
         ACL acl = ACL(_dao.acl());
 
-        (,TokenManager boardTM,,,) = _popBoardDaoCache();
+        (TokenManager boardTM,,,) = _popBoardAppsCache();
         (TokenManager shareTM, Voting shareVoting) = _popShareAppsCache();
         (, MarketMaker marketMaker,,) = _popFundraisingAppsCache();
 
@@ -220,14 +226,14 @@ contract FundraisingMultisigTemplate is BaseTemplate {
     function _setupFundraisingPermissions(Kernel _dao) internal {
         ACL acl = ACL(_dao.acl());
 
-        (,, Voting _boardVoting,,) = _popBoardDaoCache();
+        (, Voting _boardVoting,,) = _popBoardAppsCache();
         (, Voting _shareVoting) = _popShareAppsCache();
         (Pool _reserve, MarketMaker _marketMaker, Tap _tap, Controller _controller) = _popFundraisingAppsCache();
 
         _createReservePermissions(acl, _reserve, _marketMaker, _tap, _controller, _shareVoting);
         _createMarketMakerPermissions (acl, _marketMaker, _controller, _shareVoting);
         _createTapPermissions(acl, _tap, _controller, _boardVoting, _shareVoting);
-        _createControllerPermissions(acl, _controller, _boardVoting, _shareVoting);
+        // _createControllerPermissions(acl, _controller, _boardVoting, _shareVoting);
     
     }
 
@@ -283,10 +289,15 @@ contract FundraisingMultisigTemplate is BaseTemplate {
 
 
 
-    function _cacheBoardDao(Kernel _dao, TokenManager _tm, Voting _voting, Vault _vault, Finance _finance) internal {
+    function _cacheDao(Kernel _dao) internal {
         Cache storage c = cache[msg.sender];
 
         c.dao = address(_dao);
+    }
+
+    function _cacheBoardApps(TokenManager _tm, Voting _voting, Vault _vault, Finance _finance) internal {
+        Cache storage c = cache[msg.sender];
+
         c.boardTokenManager = address(_tm);
         c.boardVoting = address(_voting);
         c.vault = address(_vault);
@@ -320,8 +331,7 @@ contract FundraisingMultisigTemplate is BaseTemplate {
 
    
 
-    function _popBoardDaoCache() internal returns (
-        Kernel dao,
+    function _popBoardAppsCache() internal returns (
         TokenManager boardTokenManager,
         Voting boardVoting,
         Vault vault,
@@ -330,7 +340,6 @@ contract FundraisingMultisigTemplate is BaseTemplate {
         Cache storage c = cache[msg.sender];
         require(c.dao != address(0), ERROR_MISSING_CACHE);
 
-        dao = Kernel(c.dao);
         boardTokenManager = TokenManager(c.boardTokenManager);
         boardVoting = Voting(c.boardVoting);
         vault = Vault(c.vault);
