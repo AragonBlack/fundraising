@@ -17,6 +17,7 @@
     "ganache-cli:test": "./node_modules/@aragon/test-helpers/ganache-cli.sh",
     "abi:extract": "truffle-extract --output abi/ --keys abi",
     "prepublishOnly": "truffle compile --all && npm run abi:extract -- --no-compile",
+    "apm:prepublish": "npm run compile",
     "apm:publish:rpc:minor": "aragon apm publish major --environment default",
     "apm:publish:rpc:patch": "aragon apm publish patch --environment default",
     "apm:publish:rpc:major": "aragon apm publish major --environment default",
@@ -31,7 +32,7 @@
   ],
   "dependencies": {
     "@aragon/apps-vault": "^4.1.0",
-    "@aragon/os": "4.2.0",
+    "@aragon/os": "4.2.1",
     "@ablack/fundraising-shared-interfaces": "^0.1.0"
   },
   "devDependencies": {
@@ -42,7 +43,6 @@
     "eth-gas-reporter": "^0.2.0",
     "ethereumjs-testrpc-sc": "^6.5.1-sc.0",
     "ganache-cli": "^6.4.3",
-    "prettier": "^1.16.4",
     "solidity-coverage": "^0.6.2",
     "solium": "^1.2.3",
     "truffle": "4.1.14",

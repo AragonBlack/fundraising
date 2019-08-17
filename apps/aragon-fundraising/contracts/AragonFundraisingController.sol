@@ -10,10 +10,10 @@ import "@aragon/os/contracts/common/IsContract.sol";
 import "@aragon/os/contracts/common/SafeERC20.sol";
 import "@aragon/os/contracts/lib/token/ERC20.sol";
 import "@aragon/os/contracts/lib/math/SafeMath.sol";
-import "@ablack/fundraising-interface-core/contracts/IMarketMakerController.sol";
-import "@ablack/fundraising-market-maker-bancor/contracts/BatchedBancorMarketMaker.sol";
+import "@ablack/fundraising-shared-interfaces/contracts/IMarketMakerController.sol";
+import "@ablack/fundraising-batched-bancor-market-maker/contracts/BatchedBancorMarketMaker.sol";
 import "@ablack/fundraising-module-pool/contracts/Pool.sol";
-import "@ablack/fundraising-module-tap/contracts/Tap.sol";
+import "@ablack/fundraising-tap/contracts/Tap.sol";
 
 
 contract AragonFundraisingController is EtherTokenConstant, IsContract, IMarketMakerController, AragonApp {

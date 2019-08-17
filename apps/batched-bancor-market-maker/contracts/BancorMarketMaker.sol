@@ -14,8 +14,8 @@ import "@aragon/os/contracts/lib/token/ERC20.sol";
 import "@aragon/apps-token-manager/contracts/TokenManager.sol";
 import "@aragon/apps-vault/contracts/Vault.sol";
 
-import "@ablack/fundraising-interface-core/contracts/IMarketMakerController.sol";
-import "@ablack/fundraising-formula-bancor/contracts/BancorFormula.sol";
+import "@ablack/fundraising-shared-interfaces/contracts/IMarketMakerController.sol";
+import "@ablack/fundraising-bancor-formula/contracts/BancorFormula.sol";
 
 
 contract BancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
