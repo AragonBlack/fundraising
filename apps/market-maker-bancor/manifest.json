@@ -1,4 +1,4 @@
 {
-  "name": "BancorMarketMaker",
-  "description": "Automated market maker batching orders through the bancor formula"
+  "name": "MarketMaker [BatchedBancor]",
+  "description": "Automated market-maker batching orders filled through the BancorFormula"
 }

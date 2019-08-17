@@ -24,28 +24,38 @@
       "params": []
     },
     {
+      "name": "Remove tokens as whitelisted collaterals",
+      "id": "REMOVE_COLLATERAL_TOKEN_ROLE",
+      "params": []
+    },
+    {
       "name": "Update collateral tokens settings",
       "id": "UPDATE_COLLATERAL_TOKEN_ROLE",
       "params": []
     },
     {
-      "name": "Update buy and sell orders fees",
+      "name": "Update beneficiary address",
+      "id": "UPDATE_BENEFICIARY_ROLE",
+      "params": []
+    },
+    {
+      "name": "Update BancorFormula address",
+      "id": "UPDATE_FORMULA_ROLE",
+      "params": []
+    },
+    {
+      "name": "Update fees",
       "id": "UPDATE_FEES_ROLE",
       "params": []
     },
     {
-      "name": "Update buy and sell orders gas costs",
-      "id": "UPDATE_GAS_COSTS_ROLE",
+      "name": "Open buy orders",
+      "id": "OPEN_BUY_ORDER_ROLE",
       "params": []
     },
     {
-      "name": "Create buy orders",
-      "id": "CREATE_BUY_ORDER_ROLE",
-      "params": []
-    },
-    {
-      "name": "Create sell orders",
-      "id": "CREATE_SELL_ORDER_ROLE",
+      "name": "Open sell orders",
+      "id": "OPEN_SELL_ORDER_ROLE",
       "params": []
     }
   ],

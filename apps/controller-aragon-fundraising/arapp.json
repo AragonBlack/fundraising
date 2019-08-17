@@ -19,13 +19,18 @@
   },
   "roles": [
     {
-      "name": "Update buy and sell orders fees",
+      "name": "Update beneficiary address",
+      "id": "UPDATE_BENEFICIARY_ROLE",
+      "params": []
+    },
+    {
+      "name": "Update fees",
       "id": "UPDATE_FEES_ROLE",
       "params": []
     },
     {
-      "name": "Update beneficiary address",
-      "id": "UPDATE_BENEFICIARY_ROLE",
+      "name": "Update maximum tap increase percentage",
+      "id": "UPDATE_MAXIMUM_TAP_INCREASE_PCT_ROLE",
       "params": []
     },
     {
@@ -34,27 +39,33 @@
       "params": []
     },
     {
-      "name": "Update token taps",
+      "name": "Remove tokens as whitelisted collaterals",
+      "id": "REMOVE_COLLATERAL_TOKEN_ROLE",
+      "params": []
+    },
+    {
+      "name": "Update collateral tokens collateralization settings",
+      "id": "UPDATE_COLLATERAL_TOKEN_ROLE",
+      "params": []
+    },
+    {
+      "name": "Update collateral tokens tap",
       "id": "UPDATE_TOKEN_TAP_ROLE",
       "params": []
     },
+
     {
-      "name": "Update tap maximum monthly increase",
-      "id": "UPDATE_MONTHLY_TAP_INCREASE_ROLE",
+      "name": "Open buy orders",
+      "id": "OPEN_BUY_ORDER_ROLE",
       "params": []
     },
     {
-      "name": "Create buy orders",
-      "id": "CREATE_BUY_ORDER_ROLE",
+      "name": "Open sell orders",
+      "id": "OPEN_SELL_ORDER_ROLE",
       "params": []
     },
     {
-      "name": "Create sell orders",
-      "id": "CREATE_SELL_ORDER_ROLE",
-      "params": []
-    },
-    {
-      "name": "Withdraw funds from the pool to the vault",
+      "name": "Transfer funds from the reserve to the beneficiary",
       "id": "WITHDRAW_ROLE",
       "params": []
     }

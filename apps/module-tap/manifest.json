@@ -1,4 +1,4 @@
 {
   "name": "Tap",
-  "description": "Enforce batched tap based control of funds over a reserve pool"
+  "description": "Control the flow of funds from a reserve to a beneficiary"
 }
