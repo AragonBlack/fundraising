@@ -64,12 +64,12 @@
     "yargs": "^13.2.4"
   },
   "dependencies": {
-    "@ablack/fundraising-controller-aragon-fundraising": "^0.1.0",
-    "@ablack/fundraising-formula-bancor": "^0.1.0",
+    "@ablack/fundraising-aragon-fundraising": "^0.1.0",
+    "@ablack/fundraising-bancor-formula": "^0.1.0",
     "@ablack/fundraising-interface-core": "^0.1.0",
-    "@ablack/fundraising-market-maker-bancor": "^0.1.0",
+    "@ablack/fundraising-batched-bancor-market-maker": "^0.1.0",
     "@ablack/fundraising-module-pool": "^0.1.0",
-    "@ablack/fundraising-module-tap": "^0.1.0",
+    "@ablack/fundraising-tap": "^0.1.0",
     "@aragon/os": "4.2.0",
     "@aragon/id": "2.0.3",
     "@aragon/apps-agent": "^1.0.0",

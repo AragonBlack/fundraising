@@ -1,5 +1,5 @@
 {
-  "name": "@ablack/fundraising-market-maker-bancor",
+  "name": "@ablack/fundraising-batched-bancor-market-maker",
   "version": "0.1.0",
   "author": "Aragon Black <contact@aragon.black>",
   "contributors": [
@@ -29,7 +29,7 @@
     "/test"
   ],
   "dependencies": {
-    "@ablack/fundraising-formula-bancor": "^0.1.0",
+    "@ablack/fundraising-bancor-formula": "^0.1.0",
     "@ablack/fundraising-interface-core": "^0.1.0",
     "@aragon/apps-token-manager": "^2.0.0",
     "@aragon/os": "4.2.0"
