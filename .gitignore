@@ -28,7 +28,3 @@ package-lock.json
 
 # macOS shit
 */**/.DS_Store
-
-# truffle build artifacts
-*/**/abi
-*/**/build
