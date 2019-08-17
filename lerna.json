@@ -1,4 +1,4 @@
 {
-  "packages": ["apps/*", "templates/*"],
-  "version": "0.1.0"
+  "packages": ["apps/*", "shared/*", "templates/*"],
+  "version": "independent"
 }

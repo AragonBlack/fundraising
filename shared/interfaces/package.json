@@ -1,0 +1,23 @@
+{
+  "name": "@ablack/fundraising-shared-interfaces",
+  "version": "0.1.0",
+  "author": "Aragon Assocation <legal@aragon.org>",
+  "contributors": [
+    "Olivier Sarrouy <olivier@aragon.black>"
+  ],
+  "license": "(GPL-3.0-or-later OR AGPL-3.0-or-later)",
+  "homepage": "https://github.com/AragonBlack/fundraising",
+  "scripts": {
+    "lint": "solium --dir ./contracts",
+    "compile": "truffle compile"
+  },
+  "files": [
+    "/build",
+    "/contracts"
+  ],
+  "dependencies": {},
+  "devDependencies": {
+    "solium": "^1.2.3",
+    "truffle": "4.1.14"
+  }
+}

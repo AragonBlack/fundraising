@@ -1,0 +1,51 @@
+{
+  "name": "@ablack/fundraising-tap",
+  "version": "0.1.0",
+  "author": "Aragon Assocation <legal@aragon.org>",
+  "contributors": [
+    "Olivier Sarrouy <olivier@aragon.black>",
+    "Cory Dickson <cory@aragon.black>"
+  ],
+  "license": "(GPL-3.0-or-later OR AGPL-3.0-or-later)",
+  "homepage": "https://github.com/AragonBlack/fundraising",
+  "scripts": {
+    "lint": "solium --dir ./contracts",
+    "compile": "truffle compile",
+    "test": "TRUFFLE_TEST=true npm run ganache-cli:test",
+    "test:gas": "GAS_REPORTER=true npm test",
+    "test:coverage": "SOLIDITY_COVERAGE=true npm run ganache-cli:test",
+    "ganache-cli:test": "./node_modules/@aragon/test-helpers/ganache-cli.sh",
+    "abi:extract": "truffle-extract --output abi/ --keys abi",
+    "prepublishOnly": "truffle compile --all && npm run abi:extract -- --no-compile",
+    "apm:publish:rpc:minor": "aragon apm publish major --environment default",
+    "apm:publish:rpc:patch": "aragon apm publish patch --environment default",
+    "apm:publish:rpc:major": "aragon apm publish major --environment default",
+    "publish": "npm run publish:rpc:major"
+  },
+  "files": [
+    "/abi",
+    "/arapp.json",
+    "/build",
+    "/contracts",
+    "/test"
+  ],
+  "dependencies": {
+    "@aragon/apps-vault": "^4.1.0",
+    "@aragon/os": "4.2.0",
+    "@ablack/fundraising-shared-interfaces": "^0.1.0"
+  },
+  "devDependencies": {
+    "@aragon/apps-shared-migrations": "1.0.0",
+    "@aragon/cli": "^6.0.0",
+    "@aragon/test-helpers": "^2.0.0",
+    "eth-ens-namehash": "^2.0.8",
+    "eth-gas-reporter": "^0.2.0",
+    "ethereumjs-testrpc-sc": "^6.5.1-sc.0",
+    "ganache-cli": "^6.4.3",
+    "prettier": "^1.16.4",
+    "solidity-coverage": "^0.6.2",
+    "solium": "^1.2.3",
+    "truffle": "4.1.14",
+    "truffle-extract": "^1.2.1"
+  }
+}
