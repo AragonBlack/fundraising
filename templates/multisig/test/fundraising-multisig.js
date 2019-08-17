@@ -29,6 +29,7 @@ const Controller = artifacts.require('AragonFundraisingController')
 const MiniMeToken = artifacts.require('MiniMeToken')
 const PublicResolver = artifacts.require('PublicResolver')
 const EVMScriptRegistry = artifacts.require('EVMScriptRegistry')
+const TokenMock = artifacts.require('TokenMock')
 
 const APPS = [
   { name: 'agent', contractName: 'Agent' },
@@ -83,6 +84,7 @@ const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
 contract('Fundraising with multisig', ([_, owner, boardMember1, boardMember2, shareHolder1, shareHolder2, shareHolder3, someone]) => {
   let daoID, template, dao, acl, ens, feed
   let shareVoting, boardVoting, boardTokenManager, shareTokenManager, boardToken, shareToken, finance, agent, vault, reserve, marketMaker, tap, controller
+  let COLLATERAL_1, COLLATERAL_2, COLLATERALS
 
   const BOARD_MEMBERS = [boardMember1, boardMember2]
   const SHARE_HOLDERS = [shareHolder1, shareHolder2, shareHolder3]
@@ -90,7 +92,7 @@ contract('Fundraising with multisig', ([_, owner, boardMember1, boardMember2, sh
   const BOARD_TOKEN_NAME = 'Board Token'
   const BOARD_TOKEN_SYMBOL = 'BOARD'
 
-  const SHARE_STAKES = SHARE_HOLDERS.map(() => 1e18)
+  // const SHARE_STAKES = SHARE_HOLDERS.map(() => 1e18)
   const SHARE_TOKEN_NAME = 'Share Token'
   const SHARE_TOKEN_SYMBOL = 'SHARE'
 
@@ -104,8 +106,12 @@ contract('Fundraising with multisig', ([_, owner, boardMember1, boardMember2, sh
   const SHARE_MIN_ACCEPTANCE_QUORUM = 5e16
   const SHARE_VOTING_SETTINGS = [SHARE_SUPPORT_REQUIRED, SHARE_MIN_ACCEPTANCE_QUORUM, SHARE_VOTE_DURATION]
 
-  const PAYROLL_DENOMINATION_TOKEN = '0x0000000000000000000000000000000000000abc'
-  const PAYROLL_RATE_EXPIRY_TIME = THIRTY_DAYS
+  const VIRTUAL_SUPPLIES = [Math.pow(10, 19), Math.pow(10, 18)]
+  const VIRTUAL_BALANCES = [2 * Math.pow(10, 19), 2 * Math.pow(10, 18)]
+  const RESERVE_RATIOS = [100000, 10000]
+  const TAPS = [20000, 5000]
+  const FLOORS = [150, 750]
+  const SLIPPAGES = [3 * Math.pow(10, 19), Math.pow(10, 18)]
 
   before('fetch company board template and ENS', async () => {
     const { registry, address } = await deployedAddresses()
@@ -113,12 +119,11 @@ contract('Fundraising with multisig', ([_, owner, boardMember1, boardMember2, sh
     template = CompanyTemplate.at(address)
   })
 
-  const finalizeInstance = (...params) => {
-    const lastParam = params[params.length - 1]
-    const txParams = !Array.isArray(lastParam) && typeof lastParam === 'object' ? params.pop() : {}
-    const finalizeInstanceFn = CompanyTemplate.abi.find(({ name, inputs }) => name === 'finalizeInstance' && inputs.length === params.length)
-    return template.sendTransaction(encodeCall(finalizeInstanceFn, params, txParams))
-  }
+  before('deploy collateral tokens', async () => {
+    COLLATERAL_1 = await TokenMock.new('0xb4124cEB3451635DAcedd11767f004d8a28c6eE7', 1000000000000000000)
+    COLLATERAL_2 = await TokenMock.new('0xb4124cEB3451635DAcedd11767f004d8a28c6eE7', 1000000000000000000)
+    COLLATERALS = [COLLATERAL_1.address, COLLATERAL_2.address]
+  })
 
   context('when the creation fails', () => {
     const FINANCE_PERIOD = 0
@@ -225,6 +230,13 @@ contract('Fundraising with multisig', ([_, owner, boardMember1, boardMember2, sh
         })
       })
 
+      context('DAO', () => {
+        it('should have DAO and ACL permissions correctly setup ', async () => {
+          await assertRole(acl, dao, shareVoting, 'APP_MANAGER_ROLE', shareVoting)
+          await assertRole(acl, acl, shareVoting, 'CREATE_PERMISSIONS_ROLE', shareVoting)
+        })
+      })
+
       context('Board', () => {
         it('should have created a new board token', async () => {
           assert.equal(await boardToken.name(), BOARD_TOKEN_NAME)
@@ -316,9 +328,14 @@ contract('Fundraising with multisig', ([_, owner, boardMember1, boardMember2, sh
         })
       })
 
+      // CHECK LINKED CONTRACTS ?
+
       context('Fundraising apps', () => {
         it('should have agent / reserve app correctly setup', async () => {
           assert.isTrue(await reserve.hasInitialized(), 'agent / reserve not initialized')
+
+          assert.equal(await reserve.protectedTokens(0), COLLATERAL_1.address, 'DAI not protected')
+          assert.equal(await reserve.protectedTokens(1), COLLATERAL_2.address, 'ANT not protected')
 
           await assertRole(acl, reserve, shareVoting, 'SAFE_EXECUTE_ROLE', shareVoting)
           await assertRole(acl, reserve, shareVoting, 'ADD_PROTECTED_TOKEN_ROLE', controller)
@@ -335,6 +352,21 @@ contract('Fundraising with multisig', ([_, owner, boardMember1, boardMember2, sh
         it('should have market-maker app correctly setup', async () => {
           assert.isTrue(await marketMaker.hasInitialized(), 'market-maker not initialized')
 
+          const dai = await marketMaker.getCollateralToken(COLLATERAL_1.address)
+          const ant = await marketMaker.getCollateralToken(COLLATERAL_1.address)
+
+          assert.isTrue(dai[0], 'DAI not whitelisted')
+          assert.equal(dai[1].toNumber(), VIRTUAL_SUPPLIES[0], 'DAI virtual supply should be ' + VIRTUAL_SUPPLIES[0])
+          assert.equal(dai[2].toNumber(), VIRTUAL_BALANCES[0], 'DAI virtual balance should be ' + VIRTUAL_BALANCES[0])
+          assert.equal(dai[3].toNumber(), RESERVE_RATIOS[0], 'DAI reserve ratio should be ' + RESERVE_RATIOS[0])
+          assert.equal(dai[4].toNumber(), SLIPPAGES[0], 'DAI maximum slippage should be ' + SLIPPAGES[0])
+
+          assert.isTrue(ant[0], 'ANT not whitelisted')
+          assert.equal(ant[1].toNumber(), VIRTUAL_SUPPLIES[1], 'ANT virtual supply should be ' + VIRTUAL_SUPPLIES[1])
+          assert.equal(ant[2].toNumber(), VIRTUAL_BALANCES[1], 'ANT virtual balance should be ' + VIRTUAL_BALANCES[1])
+          assert.equal(ant[3].toNumber(), RESERVE_RATIOS[1], 'ANT reserve ratio should be ' + RESERVE_RATIOS[1])
+          assert.equal(ant[4].toNumber(), SLIPPAGES[1], 'ANT maximum slippage should be ' + SLIPPAGES[1])
+
           await assertRole(acl, marketMaker, shareVoting, 'ADD_COLLATERAL_TOKEN_ROLE', controller)
           await assertRole(acl, marketMaker, shareVoting, 'REMOVE_COLLATERAL_TOKEN_ROLE', controller)
           await assertRole(acl, marketMaker, shareVoting, 'UPDATE_COLLATERAL_TOKEN_ROLE', controller)
@@ -348,6 +380,11 @@ contract('Fundraising with multisig', ([_, owner, boardMember1, boardMember2, sh
 
         it('should have tap app correctly setup', async () => {
           assert.isTrue(await tap.hasInitialized(), 'tap not initialized')
+
+          assert.equal((await tap.taps(COLLATERAL_1.address)).toNumber(), TAPS[0], 'DAI tap should be ' + TAPS[0])
+          assert.equal((await tap.taps(COLLATERAL_2.address)).toNumber(), TAPS[1], 'ANT tap should be ' + TAPS[1])
+          assert.equal((await tap.floors(COLLATERAL_1.address)).toNumber(), FLOORS[0], 'DAI floor should be ' + FLOORS[0])
+          assert.equal((await tap.floors(COLLATERAL_1.address)).toNumber(), FLOORS[0], 'ANT floor should be ' + FLOORS[1])
 
           await assertRole(acl, tap, shareVoting, 'UPDATE_BENEFICIARY_ROLE', controller)
           await assertRole(acl, tap, shareVoting, 'UPDATE_MAXIMUM_TAP_INCREASE_PCT_ROLE', controller)
@@ -376,11 +413,6 @@ contract('Fundraising with multisig', ([_, owner, boardMember1, boardMember2, sh
         })
       })
 
-      // it('sets up DAO and ACL permissions correctly', async () => {
-      //   await assertRole(acl, dao, shareVoting, 'APP_MANAGER_ROLE', boardVoting)
-      //   await assertRole(acl, acl, shareVoting, 'CREATE_PERMISSIONS_ROLE', boardVoting)
-      // })
-
       // it('sets up EVM scripts registry permissions correctly', async () => {
       //   const reg = await EVMScriptRegistry.at(await acl.getEVMScriptRegistry())
       //   await assertRole(acl, reg, shareVoting, 'REGISTRY_ADD_EXECUTOR_ROLE')
@@ -394,8 +426,10 @@ contract('Fundraising with multisig', ([_, owner, boardMember1, boardMember2, sh
         baseReceipt = await template.deployBaseInstance(BOARD_TOKEN_NAME, BOARD_TOKEN_SYMBOL, BOARD_MEMBERS, BOARD_VOTING_SETTINGS, financePeriod, {
           from: owner,
         })
-        fundraisingReceipt = await template.installFundraisingApps(SHARE_TOKEN_NAME, SHARE_TOKEN_SYMBOL, SHARE_VOTING_SETTINGS, { from: owner })
-        finalizationReceipt = await template.finalizeInstance(daoID, { from: owner })
+        fundraisingReceipt = await template.installFundraisingApps(daoID, SHARE_TOKEN_NAME, SHARE_TOKEN_SYMBOL, SHARE_VOTING_SETTINGS, { from: owner })
+        finalizationReceipt = await template.finalizeInstance(COLLATERALS, VIRTUAL_BALANCES, SLIPPAGES, TAPS, FLOORS, {
+          from: owner,
+        })
 
         dao = Kernel.at(getEventArgument(baseReceipt, 'DeployDao', 'dao'))
         boardToken = MiniMeToken.at(getEventArgument(baseReceipt, 'DeployToken', 'token', 0))

@@ -46,12 +46,19 @@ contract FundraisingMultisigTemplate is BaseTemplate {
     uint64 constant private SHARE_MIN_ACCEPTANCE_QUORUM = uint64(0);
     uint64[3]       private SHARE_VOTING_SETTINGS = [SHARE_SUPPORT_REQUIRED, SHARE_MIN_ACCEPTANCE_QUORUM, SHARE_VOTE_DURATION];
 
-
     uint64 constant private DEFAULT_FINANCE_PERIOD = uint64(30 days);
 
     uint256 constant BATCH_BLOCKS = uint256(1);
     uint256 constant BUY_FEE = uint256(0);
     uint256 constant SELL_FEE = uint256(0);
+
+    uint32 constant private DAI_RESERVE_RATIO = 100000; // 10%
+    uint32 constant private ANT_RESERVE_RATIO = 10000;  // 1%
+
+    uint256 constant private DAI_VIRTUAL_SUPPLY = 10**18; // 1 DAI
+    uint256 constant private ANT_VIRTUAL_SUPPLY = 10**18; // 1 ANT
+
+
 
     struct Cache {
         address dao;
@@ -104,7 +111,7 @@ contract FundraisingMultisigTemplate is BaseTemplate {
     }
 
 
-    function installFundraisingApps(string _shareTokenName, string _shareTokenSymbol, uint64[3] _shareVotingSettings) external {
+    function installFundraisingApps(string _id, string _shareTokenName, string _shareTokenSymbol, uint64[3] _shareVotingSettings) external {
     //     // _ensureFinalizationSettings(_shareHolders, _shareStakes, _boardMembers);
 
         Kernel dao = _popDaoCache();
@@ -124,7 +131,7 @@ contract FundraisingMultisigTemplate is BaseTemplate {
     //     // marketMaker.initialize(controller, shareTokenManager, reserve, vault, IBancorFormula(_latestVersionAppBase("bancor-formula")), BATCH_BLOCKS, BUY_FEE, SELL_FEE);
 
 
-    //     // _registerID(_id, address(dao));
+        _registerID(_id, address(dao));
 
 
     
@@ -137,10 +144,22 @@ contract FundraisingMultisigTemplate is BaseTemplate {
     //     // _registerID(_id, address(dao));
     }
 
-    function finalizeInstance(string _id) external {
+    function finalizeInstance(address[] _collaterals, uint256[] _virtualBalances, uint256[] _slippages, uint256[] _taps, uint256[] _floors) external {
         Kernel dao = _popDaoCache();
 
-        _registerID(_id, address(dao));
+        // (, Voting boardVoting,,) = _popBoardAppsCache();
+        (, Voting shareVoting) = _popShareAppsCache();
+     
+        // add collateral tokens
+        // _createControllerPermissions(acl, controller, boardVoting, shareVoting);
+
+        _setupCollateralTokens(dao, _collaterals, _virtualBalances, _slippages, _taps, _floors);
+        _setupControllerPermissions(dao);
+
+        _transferRootPermissionsFromTemplateAndFinalizeDAO(dao, shareVoting, shareVoting);
+
+
+        // CLEAN CACHE;
     }
 
     function _createDAO() internal returns (Kernel dao, ACL acl) {
@@ -237,6 +256,16 @@ contract FundraisingMultisigTemplate is BaseTemplate {
     
     }
 
+    function _setupControllerPermissions(Kernel _dao) internal {
+        ACL acl = ACL(_dao.acl());
+
+        (, Voting boardVoting,,) = _popBoardAppsCache();
+        (, Voting shareVoting) = _popShareAppsCache();
+        (,,, Controller controller) = _popFundraisingAppsCache();
+
+        _createControllerPermissions(acl, controller, boardVoting, shareVoting);
+    }
+
     function _createReservePermissions(
         ACL _acl,
         Pool _reserve,
@@ -275,11 +304,13 @@ contract FundraisingMultisigTemplate is BaseTemplate {
     }
 
     function _createControllerPermissions(ACL _acl, Controller _controller, Voting _board, Voting _share) internal {
+        _transferPermissionFromTemplate(_acl, _controller, _share, _controller.ADD_COLLATERAL_TOKEN_ROLE(), _share);
+
         _acl.createPermission(_board, _controller, _controller.UPDATE_BENEFICIARY_ROLE(), _board);
         _acl.createPermission(_board, _controller, _controller.WITHDRAW_ROLE(), _board);
         _acl.createPermission(_share, _controller, _controller.UPDATE_FEES_ROLE(), _share);
         _acl.createPermission(_share, _controller, _controller.UPDATE_MAXIMUM_TAP_INCREASE_PCT_ROLE(), _share);
-        _acl.createPermission(_share, _controller, _controller.ADD_COLLATERAL_TOKEN_ROLE(), _share);
+        // _acl.createPermission(_share, _controller, _controller.ADD_COLLATERAL_TOKEN_ROLE(), _share);
         _acl.createPermission(_share, _controller, _controller.REMOVE_COLLATERAL_TOKEN_ROLE(), _share);
         _acl.createPermission(_share, _controller, _controller.UPDATE_COLLATERAL_TOKEN_ROLE(), _share);
         _acl.createPermission(_share, _controller, _controller.UPDATE_TOKEN_TAP_ROLE(), _share);
@@ -287,7 +318,17 @@ contract FundraisingMultisigTemplate is BaseTemplate {
         _acl.createPermission(address(-1), _controller, _controller.OPEN_SELL_ORDER_ROLE(), _share);
     }
 
+    function _setupCollateralTokens(Kernel _dao, address[] _collaterals, uint256[] _virtualBalances, uint256[] _slippages, uint256[] _taps, uint256[] _floors) internal {
+        ACL acl = ACL(_dao.acl());
+        (,,, Controller controller) = _popFundraisingAppsCache();
 
+        acl.createPermission(this, controller, controller.ADD_COLLATERAL_TOKEN_ROLE(), this);
+
+        controller.addCollateralToken(_collaterals[0], DAI_VIRTUAL_SUPPLY, _virtualBalances[0], DAI_RESERVE_RATIO, _slippages[0], _taps[0], _floors[0]);
+        controller.addCollateralToken(_collaterals[1], ANT_VIRTUAL_SUPPLY, _virtualBalances[1], ANT_RESERVE_RATIO, _slippages[1], _taps[1], _floors[1]) ;
+
+        
+    }
 
     function _cacheDao(Kernel _dao) internal {
         Cache storage c = cache[msg.sender];
