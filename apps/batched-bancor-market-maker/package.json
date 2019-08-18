@@ -31,12 +31,12 @@
   "dependencies": {
     "@ablack/fundraising-bancor-formula": "^0.1.0",
     "@ablack/fundraising-shared-interfaces": "^0.1.0",
-    "@aragon/apps-token-manager": "^2.0.0",
+    "@aragon/apps-token-manager": "^2.1.0",
     "@aragon/apps-vault": "^4.1.0",
     "@aragon/os": "4.2.1"
   },
   "devDependencies": {
-    "@aragon/apps-agent": "^2.0.0-rc.1 ",
+    "@aragon/apps-agent": "^2.0.0-rc.1",
     "@aragon/apps-shared-migrations": "^1.0.0",
     "@aragon/apps-shared-minime": "^1.0.0",
     "@aragon/cli": "^6.2.5",
