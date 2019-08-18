@@ -98,7 +98,13 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
 
     event AddCollateralToken(address indexed collateral, uint256 virtualSupply, uint256 virtualBalance, uint32 reserveRatio, uint256 slippage);
     event RemoveCollateralToken(address indexed collateral);
-    event UpdateCollateralToken(address indexed collateral, uint256 virtualSupply, uint256 virtualBalance, uint32 reserveRatio, uint256 slippage);
+    event UpdateCollateralToken(
+        address indexed collateral,
+        uint256 virtualSupply,
+        uint256 virtualBalance,
+        uint32 reserveRatio,
+        uint256 slippage
+    );
     event UpdateBeneficiary(address indexed beneficiary);
     event UpdateFormula(address indexed formula);
     event UpdateFees(uint256 buyFee, uint256 sellFee);
@@ -111,7 +117,15 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
     event ReturnSellOrder(address indexed seller, uint256 indexed batchId, address indexed collateral, uint256 fee, uint256 value);
     event ReturnCancelledBuyOrder(address indexed buyer, uint256 indexed batchId, address indexed collateral, uint256 value);
     event ReturnCancelledSellOrder(address indexed seller, uint256 indexed batchId, address indexed collateral, uint256 amount);
-    event UpdatePricing(uint256 indexed batchId, address indexed collateral, uint256 totalBuySpend, uint256 totalBuyReturn, uint256 totalSellSpend, uint256 totalSellReturn);
+    event UpdatePricing(
+        uint256 indexed batchId,
+        address indexed collateral,
+        uint256 totalBuySpend,
+        uint256 totalBuyReturn,
+        uint256 totalSellSpend,
+        uint256 totalSellReturn
+    );
+
 
     function initialize(
         IMarketMakerController _controller,
@@ -553,7 +567,13 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
         emit RemoveCollateralToken(_collateral);
     }
 
-    function _updateCollateralToken(address _collateral, uint256 _virtualSupply, uint256 _virtualBalance, uint32 _reserveRatio, uint256 _slippage)
+    function _updateCollateralToken(
+        address _collateral,
+        uint256 _virtualSupply,
+        uint256 _virtualBalance,
+        uint32 _reserveRatio,
+        uint256 _slippage
+    )
         internal
     {
         collaterals[_collateral].virtualSupply = _virtualSupply;
