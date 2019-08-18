@@ -21,7 +21,6 @@ const Vault = artifacts.require('Vault')
 const Voting = artifacts.require('Voting')
 const Finance = artifacts.require('Finance')
 const TokenManager = artifacts.require('TokenManager')
-const Pool = artifacts.require('Pool')
 const MarketMaker = artifacts.require('BatchedBancorMarketMaker')
 const Tap = artifacts.require('Tap')
 const Controller = artifacts.require('AragonFundraisingController')
@@ -37,7 +36,6 @@ const APPS = [
   { name: 'voting', contractName: 'Voting' },
   { name: 'finance', contractName: 'Finance' },
   { name: 'token-manager', contractName: 'TokenManager' },
-  { name: 'pool', contractName: 'Pool' },
   { name: 'bancor-formula', contractName: 'BancorFormula' },
   { name: 'batched-bancor-market-maker', contractName: 'BatchedBancorMarketMaker' },
   { name: 'tap', contractName: 'Tap' },
@@ -192,7 +190,7 @@ contract('Fundraising with multisig', ([_, owner, boardMember1, boardMember2, sh
       finance = Finance.at(installedAppsDuringPrepare.finance[0])
 
       assert.equal(installedAppsDuringFinalize.pool.length, 1, 'should have installed 1 pool app')
-      reserve = Pool.at(installedAppsDuringFinalize.pool[0])
+      reserve = Agent.at(installedAppsDuringFinalize.pool[0])
 
       assert.equal(installedAppsDuringFinalize['batched-bancor-market-maker'].length, 1, 'should have installed 1 market-maker app')
       marketMaker = MarketMaker.at(installedAppsDuringFinalize['batched-bancor-market-maker'][0])

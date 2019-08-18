@@ -1,9 +1,9 @@
 pragma solidity 0.4.24;
 
+import "@aragon/apps-agent/contracts/Agent.sol";
 import {AragonFundraisingController as Controller} from "@ablack/fundraising-aragon-fundraising/contracts/AragonFundraisingController.sol";
 import {BatchedBancorMarketMaker as MarketMaker} from "@ablack/fundraising-batched-bancor-market-maker/contracts/BatchedBancorMarketMaker.sol";
 import "@ablack/fundraising-bancor-formula/contracts/BancorFormula.sol";
-import "@ablack/fundraising-module-pool/contracts/Pool.sol";
 import "@ablack/fundraising-tap/contracts/Tap.sol";
 import "@aragon/templates-shared/contracts/BaseTemplate.sol";
 
@@ -139,7 +139,7 @@ contract FundraisingMultisigTemplate is BaseTemplate {
         _cacheShareApps(tm, voting);
     }
 
-    function _installFundraisingApps(Kernel _dao) internal returns (Pool reserve, MarketMaker marketMaker, Tap tap, Controller controller) {
+    function _installFundraisingApps(Kernel _dao) internal returns (Agent reserve, MarketMaker marketMaker, Tap tap, Controller controller) {
         bytes32[4] memory apps = [
             apmNamehash("pool"),   // 0
             // apmNamehash("bancor-formula"), //4
@@ -151,7 +151,7 @@ contract FundraisingMultisigTemplate is BaseTemplate {
         (TokenManager boardTM, Voting boardVoting, Vault beneficiary,) = _popBoardAppsCache();
         (TokenManager shareTM, Voting shareVoting) = _popShareAppsCache();
 
-        reserve = Pool(_registerApp(_dao, apps[0]));
+        reserve = Agent(_registerApp(_dao, apps[0]));
         marketMaker = MarketMaker(_registerApp(_dao, apps[1]));
         tap = Tap(_registerApp(_dao, apps[2]));
         controller = Controller(_registerApp(_dao, apps[3]));
@@ -199,7 +199,7 @@ contract FundraisingMultisigTemplate is BaseTemplate {
 
         (, Voting _boardVoting,,) = _popBoardAppsCache();
         (, Voting _shareVoting) = _popShareAppsCache();
-        (Pool _reserve, MarketMaker _marketMaker, Tap _tap, Controller _controller) = _popFundraisingAppsCache();
+        (Agent _reserve, MarketMaker _marketMaker, Tap _tap, Controller _controller) = _popFundraisingAppsCache();
 
         _createReservePermissions(acl, _reserve, _marketMaker, _tap, _controller, _shareVoting);
         _createMarketMakerPermissions (acl, _marketMaker, _controller, _shareVoting);
@@ -220,7 +220,7 @@ contract FundraisingMultisigTemplate is BaseTemplate {
 
     function _createReservePermissions(
         ACL _acl,
-        Pool _reserve,
+        Agent _reserve,
         MarketMaker _marketMaker,
         Tap _tap,
         Controller _controller,
@@ -306,7 +306,7 @@ contract FundraisingMultisigTemplate is BaseTemplate {
         c.shareVoting = address(_voting);
     }
 
-    function _cacheFundraisingApps(Pool _reserve, MarketMaker _marketMaker, Tap _tap, Controller _controller) internal {
+    function _cacheFundraisingApps(Agent _reserve, MarketMaker _marketMaker, Tap _tap, Controller _controller) internal {
         Cache storage c = cache[msg.sender];
         require(c.dao != address(0), ERROR_MISSING_CACHE);
 
@@ -346,11 +346,11 @@ contract FundraisingMultisigTemplate is BaseTemplate {
         shareVoting = Voting(c.shareVoting);
     }
 
-    function _popFundraisingAppsCache() internal returns (Pool reserve, MarketMaker marketMaker, Tap tap, Controller controller) {
+    function _popFundraisingAppsCache() internal returns (Agent reserve, MarketMaker marketMaker, Tap tap, Controller controller) {
         Cache storage c = cache[msg.sender];
         require(c.dao != address(0), ERROR_MISSING_CACHE);
 
-        reserve = Pool(c.reserve);
+        reserve = Agent(c.reserve);
         marketMaker = MarketMaker(c.marketMaker);
         tap = Tap(c.tap);
         controller = Controller(c.controller);

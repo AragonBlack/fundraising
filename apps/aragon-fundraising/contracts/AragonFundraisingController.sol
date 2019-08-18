@@ -12,7 +12,7 @@ import "@aragon/os/contracts/lib/token/ERC20.sol";
 import "@aragon/os/contracts/lib/math/SafeMath.sol";
 import "@ablack/fundraising-shared-interfaces/contracts/IMarketMakerController.sol";
 import "@ablack/fundraising-batched-bancor-market-maker/contracts/BatchedBancorMarketMaker.sol";
-import "@ablack/fundraising-module-pool/contracts/Pool.sol";
+import "@aragon/apps-agent/contracts/Agent.sol";
 import "@ablack/fundraising-tap/contracts/Tap.sol";
 
 
@@ -34,12 +34,12 @@ contract AragonFundraisingController is EtherTokenConstant, IsContract, IMarketM
     string private constant ERROR_CONTRACT_IS_EOA = "FUNDRAISING_CONTRACT_IS_EOA";
 
     BatchedBancorMarketMaker public marketMaker;
-    Pool                     public reserve;
+    Agent                    public reserve;
     Tap                      public tap;
 
     /***** external functions *****/
 
-    function initialize(BatchedBancorMarketMaker _marketMaker, Pool _reserve, Tap _tap) external onlyInit {
+    function initialize(BatchedBancorMarketMaker _marketMaker, Agent _reserve, Tap _tap) external onlyInit {
         initialized();
 
         require(isContract(_marketMaker), ERROR_CONTRACT_IS_EOA);

@@ -13,7 +13,7 @@ const DAOFactory = artifacts.require('DAOFactory')
 const MiniMeToken = artifacts.require('MiniMeToken')
 const TokenManager = artifacts.require('TokenManager')
 const Vault = artifacts.require('Vault')
-const Pool = artifacts.require('Pool')
+const Agent = artifacts.require('Agent')
 const Tap = artifacts.require('Tap')
 const Formula = artifacts.require('BancorFormula')
 const MarketMaker = artifacts.require('BatchedBancorMarketMaker')
@@ -137,7 +137,7 @@ contract('AragonFundraisingController app', accounts => {
     vault = await Vault.at(getEvent(vReceipt, 'NewAppProxy', 'proxy'))
     // pool
     const pReceipt = await dao.newAppInstance(POOL_ID, pBase.address, '0x', false)
-    pool = await Pool.at(getEvent(pReceipt, 'NewAppProxy', 'proxy'))
+    pool = await Agent.at(getEvent(pReceipt, 'NewAppProxy', 'proxy'))
     // tap
     const tReceipt = await dao.newAppInstance(TAP_ID, tBase.address, '0x', false)
     tap = await Tap.at(getEvent(tReceipt, 'NewAppProxy', 'proxy'))
@@ -300,7 +300,7 @@ contract('AragonFundraisingController app', accounts => {
     // base contracts
     tmBase = await TokenManager.new()
     vBase = await Vault.new()
-    pBase = await Pool.new()
+    pBase = await Agent.new()
     tBase = await Tap.new()
     formula = await Formula.new()
     mmBase = await MarketMaker.new()

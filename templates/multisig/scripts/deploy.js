@@ -4,10 +4,10 @@ const TEMPLATE_NAME = 'fundraising-multisig-template'
 const CONTRACT_NAME = 'FundraisingMultisigTemplate'
 
 const APPS = [
+  { name: 'agent', contractName: 'Agent' },
   { name: 'token-manager', contractName: 'TokenManager' },
   { name: 'voting', contractName: 'Voting' },
   { name: 'vault', contractName: 'Vault' },
-  { name: 'pool', contractName: 'Pool' },
   { name: 'finance', contractName: 'Finance' },
   { name: 'bancor-formula', contractName: 'BancorFormula' },
   { name: 'batched-bancor-market-maker', contractName: 'BatchedBancorMarketMaker' },

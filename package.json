@@ -15,6 +15,7 @@
   "scripts": {
     "install": "npm run bootstrap",
     "bootstrap": "lerna bootstrap --hoist --nohoist=@aragon/os --nohoist=@aragon/apps-* --nohoist=@aragon/ppf-contracts --nohoist=@aragon/test-helpers --nohoist=@aragon/templates-shared --nohoist=@ablack/fundraising-*",
+    "fix": "rm -rfv **/websocket/.git",
     "update": "lernaupdate",
     "clean": "lerna clean",
     "lint": "lerna run --scope=@ablack/fundraising-* lint",

@@ -15,7 +15,7 @@ const DAOFactory = artifacts.require('DAOFactory')
 const MiniMeToken = artifacts.require('MiniMeToken')
 const Controller = artifacts.require('SimpleMarketMakerController')
 const TokenManager = artifacts.require('TokenManager')
-const Pool = artifacts.require('Pool')
+const Agent = artifacts.require('Agent')
 const Formula = artifacts.require('BancorFormula.sol')
 const BancorMarketMaker = artifacts.require('BatchedBancorMarketMaker')
 const EtherTokenConstantMock = artifacts.require('EtherTokenConstantMock')
@@ -134,7 +134,7 @@ contract('BatchedBancorMarketMaker app', accounts => {
     tokenManager = await TokenManager.at(getEvent(tReceipt, 'NewAppProxy', 'proxy'))
     // pool
     const pReceipt = await dao.newAppInstance(POOL_ID, pBase.address, '0x', false)
-    pool = await Pool.at(getEvent(pReceipt, 'NewAppProxy', 'proxy'))
+    pool = await Agent.at(getEvent(pReceipt, 'NewAppProxy', 'proxy'))
     // bancor-curve
     const bReceipt = await dao.newAppInstance(BANCOR_CURVE_ID, bBase.address, '0x', false)
     curve = await BancorMarketMaker.at(getEvent(bReceipt, 'NewAppProxy', 'proxy'))
@@ -384,7 +384,7 @@ contract('BatchedBancorMarketMaker app', accounts => {
     // base contracts
     cBase = await Controller.new()
     tBase = await TokenManager.new()
-    pBase = await Pool.new()
+    pBase = await Agent.new()
     bBase = await BancorMarketMaker.new()
     // constants
     ETH = await (await EtherTokenConstantMock.new()).getETHConstant()
