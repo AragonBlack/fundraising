@@ -347,6 +347,10 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
         );
     }
 
+    function getStaticPrice(uint256 _supply, uint256 _balance, uint32 _reserveRatio) public view returns (uint256) {
+        return _staticPrice(_supply, _balance, _reserveRatio);
+    }
+
     function getCollateralToken(address _collateral) public view isInitialized returns (bool, uint256, uint256, uint32, uint256) {
         Collateral storage collateral = collaterals[_collateral];
 
