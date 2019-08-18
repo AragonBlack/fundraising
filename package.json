@@ -25,6 +25,7 @@
     "test:aragon-fundraising": "lerna run --scope=@ablack/fundraising-aragon-fundraising --stream test",
     "test:batched-bancor-market-maker": "lerna run --scope=@ablack/fundraising-batched-bancor-market-maker --stream test",
     "test:tap": "lerna run --scope=@ablack/fundraising-tap --stream test",
+    "test:multisig-template": "lerna run --scope=@ablack/fundraising-multisig-template --stream test",
     "publish": "lerna run --scope=@ablack/fundraising-* --concurrency=1 --stream publish"
   },
   "devDependencies": {
