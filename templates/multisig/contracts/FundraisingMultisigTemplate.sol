@@ -141,7 +141,7 @@ contract FundraisingMultisigTemplate is BaseTemplate {
 
     function _installFundraisingApps(Kernel _dao) internal returns (Agent reserve, MarketMaker marketMaker, Tap tap, Controller controller) {
         bytes32[4] memory apps = [
-            apmNamehash("pool"),   // 0
+            apmNamehash("agent"),   // 0
             // apmNamehash("bancor-formula"), //4
             apmNamehash("batched-bancor-market-maker"), // 3
             apmNamehash("tap"),    // 1
