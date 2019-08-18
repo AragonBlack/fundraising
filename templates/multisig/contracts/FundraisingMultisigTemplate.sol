@@ -1,32 +1,15 @@
 pragma solidity 0.4.24;
 
-// import "@aragon/os/contracts/common/Uint256Helpers.sol";
-// import "@aragon/os/contracts/factory/DAOFactory.sol";
-// import "@aragon/os/contracts/kernel/Kernel.sol";
-// import "@aragon/os/contracts/acl/ACL.sol";
-// import "@aragon/os/contracts/apm/APMNamehash.sol";
-// import "@aragon/os/contracts/common/IsContract.sol";
-// import "@aragon/id/contracts/IFIFSResolvingRegistrar.sol";
-// import "@aragon/kits-base/contracts/KitBase.sol";
-// import "@aragon/apps-shared-minime/contracts/MiniMeToken.sol";
-// import "@aragon/apps-voting/contracts/Voting.sol";
-// import "@aragon/apps-vault/contracts/Vault.sol";
-// import "@aragon/apps-token-manager/contracts/TokenManager.sol";
-// import "@aragon/apps-finance/contracts/Finance.sol";
+import {AragonFundraisingController as Controller} from "@ablack/fundraising-aragon-fundraising/contracts/AragonFundraisingController.sol";
+import {BatchedBancorMarketMaker as MarketMaker} from "@ablack/fundraising-batched-bancor-market-maker/contracts/BatchedBancorMarketMaker.sol";
+import "@ablack/fundraising-bancor-formula/contracts/BancorFormula.sol";
 import "@ablack/fundraising-module-pool/contracts/Pool.sol";
-import "@ablack/fundraising-module-tap/contracts/Tap.sol";
-import {AragonFundraisingController as Controller} from "@ablack/fundraising-controller-aragon-fundraising/contracts/AragonFundraisingController.sol";
-import {BatchedBancorMarketMaker as MarketMaker} from "@ablack/fundraising-market-maker-bancor/contracts/BatchedBancorMarketMaker.sol";
-// import "@ablack/fundraising-controller-aragon-fundraising/contracts/Controller.sol";
-// import "@ablack/fundraising-market-maker-bancor/contracts/BatMarketMaker.sol";
-
-import "@ablack/fundraising-formula-bancor/contracts/BancorFormula.sol";
-
+import "@ablack/fundraising-tap/contracts/Tap.sol";
 import "@aragon/templates-shared/contracts/BaseTemplate.sol";
 
 
 contract FundraisingMultisigTemplate is BaseTemplate {
-   string constant private ERROR_MISSING_CACHE = "COMPANYBD_MISSING_CACHE";
+    string constant private ERROR_MISSING_CACHE = "COMPANYBD_MISSING_CACHE";
     string constant private ERROR_MISSING_BOARD_MEMBERS = "COMPANYBD_MISSING_BOARD_MEMBERS";
     string constant private ERROR_MISSING_SHARE_MEMBERS = "COMPANYBD_MISSING_SHARE_MEMBERS";
     string constant private ERROR_BAD_HOLDERS_STAKES_LEN = "COMPANYBD_BAD_HOLDERS_STAKES_LEN";
@@ -57,8 +40,6 @@ contract FundraisingMultisigTemplate is BaseTemplate {
 
     uint256 constant private DAI_VIRTUAL_SUPPLY = 10**18; // 1 DAI
     uint256 constant private ANT_VIRTUAL_SUPPLY = 10**18; // 1 ANT
-
-
 
     struct Cache {
         address dao;
@@ -103,11 +84,6 @@ contract FundraisingMultisigTemplate is BaseTemplate {
 
         _mintTokens(acl, tm, _boardMembers, 1);
         _setupBoardPermissions(dao);
-
-        // // _createEvmScriptsRegistryPermissions(_acl, _voting, _voting);
-
-
-        // _cachePreparedDao(dao, boardTokenManager, boardVoting, vault);
     }
 
 
@@ -115,51 +91,27 @@ contract FundraisingMultisigTemplate is BaseTemplate {
     //     // _ensureFinalizationSettings(_shareHolders, _shareStakes, _boardMembers);
 
         Kernel dao = _popDaoCache();
-        
         MiniMeToken shareToken = _createToken(_shareTokenName, _shareTokenSymbol, SHARE_TOKEN_DECIMALS);
-        
+
         _installShareApps(dao, shareToken, _shareVotingSettings);
         _installFundraisingApps(dao);
 
         _setupSharePermissions(dao);
         _setupFundraisingPermissions(dao);
 
-
-    //     // // _initializeReserve(reserve);
-
-    //     // reserve.initialize();
-    //     // marketMaker.initialize(controller, shareTokenManager, reserve, vault, IBancorFormula(_latestVersionAppBase("bancor-formula")), BATCH_BLOCKS, BUY_FEE, SELL_FEE);
-
-
         _registerID(_id, address(dao));
-
-
-    
-    //     // (Kernel dao, Voting shareVoting, Voting boardVoting) = _popDaoCache();
-
-    //     // _setupVaultAndFinanceApps(dao, _financePeriod, _useAgentAsVault, shareVoting, boardVoting);
-    //     // _finalizeApps(dao, _shareHolders, _shareStakes, _boardMembers, shareVoting, boardVoting);
-
-    //     // _transferRootPermissionsFromTemplate(dao, boardVoting, shareVoting);
-    //     // _registerID(_id, address(dao));
     }
 
     function finalizeInstance(address[] _collaterals, uint256[] _virtualBalances, uint256[] _slippages, uint256[] _taps, uint256[] _floors) external {
         Kernel dao = _popDaoCache();
-
-        // (, Voting boardVoting,,) = _popBoardAppsCache();
         (, Voting shareVoting) = _popShareAppsCache();
-     
-        // add collateral tokens
-        // _createControllerPermissions(acl, controller, boardVoting, shareVoting);
 
         _setupCollateralTokens(dao, _collaterals, _virtualBalances, _slippages, _taps, _floors);
         _setupControllerPermissions(dao);
 
         _transferRootPermissionsFromTemplateAndFinalizeDAO(dao, shareVoting, shareVoting);
 
-
-        // CLEAN CACHE;
+        _clearCache();
     }
 
     function _createDAO() internal returns (Kernel dao, ACL acl) {
@@ -338,6 +290,7 @@ contract FundraisingMultisigTemplate is BaseTemplate {
 
     function _cacheBoardApps(TokenManager _tm, Voting _voting, Vault _vault, Finance _finance) internal {
         Cache storage c = cache[msg.sender];
+        require(c.dao != address(0), ERROR_MISSING_CACHE);
 
         c.boardTokenManager = address(_tm);
         c.boardVoting = address(_voting);
@@ -370,8 +323,6 @@ contract FundraisingMultisigTemplate is BaseTemplate {
         dao = Kernel(c.dao);
     }
 
-   
-
     function _popBoardAppsCache() internal returns (
         TokenManager boardTokenManager,
         Voting boardVoting,
@@ -386,7 +337,6 @@ contract FundraisingMultisigTemplate is BaseTemplate {
         vault = Vault(c.vault);
         finance = Finance(c.finance);
     }
-
 
     function _popShareAppsCache() internal returns (TokenManager shareTokenManager, Voting shareVoting) {
         Cache storage c = cache[msg.sender];
@@ -404,81 +354,25 @@ contract FundraisingMultisigTemplate is BaseTemplate {
         marketMaker = MarketMaker(c.marketMaker);
         tap = Tap(c.tap);
         controller = Controller(c.controller);
-
-
-        // delete c.dao;
-        // delete c.boardTokenManager;
-        // delete c.boardVoting;
-        // delete c.vault;
     }
 
 
-     // function _popCompleteCache() internal returns (
-    //     Kernel dao,
-    //     TokenManager boardTokenManager,
-    //     Voting boardVoting,
-    //     Vault vault,
-    //     Finance finance,
-    //     TokenManager shareTokenManager,
-    //     Voting shareVoting,
-    //     Pool reserve,
-    //     MarketMaker marketMaker,
-    //     Tap tap,
-    //     Controller controller
-    // ) {
-    //     Cache storage c = cache[msg.sender];
-    //     require(c.dao != address(0), ERROR_MISSING_CACHE);
+    function _clearCache() internal {
+        Cache storage c = cache[msg.sender];
+        require(c.dao != address(0), ERROR_MISSING_CACHE);
 
-    //     dao = Kernel(c.dao);
-    //     boardTokenManager = TokenManager(c.boardTokenManager);
-    //     boardVoting = Voting(c.boardVoting);
-    //     vault = Vault(c.vault);
-    //     finance = Finance(c.finance);
-    //     shareTokenManager = TokenManager(c.shareTokenManager);
-    //     shareVoting = Voting(c.shareVoting);
-    //     reserve = Pool(c.reserve);
-    //     marketMaker = MarketMaker(c.marketMaker);
-    //     tap = Tap(c.tap);
-    //     controller = Controller(c.controller);
-
-
-    //     // delete c.dao;
-    //     // delete c.boardTokenManager;
-    //     // delete c.boardVoting;
-    //     // delete c.vault;
-    // }
-
-    // function _popAndClearDaoCache() internal returns (Kernel dao, TokenManager boardTokenManager, Voting boardVoting, Vault vault) {
-    //     Cache storage c = cache[msg.sender];
-    //     require(c.dao != address(0), ERROR_MISSING_CACHE);
-
-    //     dao = Kernel(c.dao);
-    //     boardTokenManager = TokenManager(c.boardTokenManager);
-    //     boardVoting = Voting(c.boardVoting);
-    //     vault = Vault(c.vault);
-    //     // finance = Finance(c.finance);
-    //     // shareTokenManager = TokenManager(c.shareTokenManager);
-    //     // shareVoting = Voting(c.shareVoting);
-    //     // reserve = Pool(c.reserve);
-    //     // marketMaker = MarketMaker(c.marketMaker);
-    //     // tap = Tap(c.tap);
-    //     // controller = Controller(c.controller);
-
-    //     delete c.dao;
-    //     delete c.boardTokenManager;
-    //     delete c.boardVoting;
-    //     delete c.vault;
-    // }
-
-    // function _popTokenCaches() internal returns (MiniMeToken shareToken, MiniMeToken boardToken) {
-    //     Cache storage c = cache[msg.sender];
-    //     require(c.shareToken != address(0) && c.boardToken != address(0), ERROR_MISSING_CACHE);
-
-    //     shareToken = MiniMeToken(c.shareToken);
-    //     boardToken = MiniMeToken(c.boardToken);
-    //     delete c.shareToken;
-    //     delete c.boardToken;
-    // }
+        delete c.dao;
+        delete c.boardTokenManager;
+        delete c.boardVoting;
+        delete c.vault;
+        delete c.finance;
+        delete c.shareVoting;
+        delete c.shareTokenManager;
+        delete c.reserve;
+        delete c.marketMaker;
+        delete c.tap;
+        delete c.controller;
+    }
 
     // function _ensureFinalizationSettings(
     //     address[] memory _shareHolders,
