@@ -34,7 +34,7 @@
     "@ablack/fundraising-shared-interfaces": "^0.1.0"
   },
   "devDependencies": {
-    "@aragon/apps-shared-migrations": "1.0.0",
+    "@aragon/apps-shared-migrations": "^1.0.0",
     "@aragon/cli": "^6.0.0",
     "@aragon/test-helpers": "^2.0.0",
     "eth-ens-namehash": "^2.0.8",
