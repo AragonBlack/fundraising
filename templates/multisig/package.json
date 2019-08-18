@@ -18,7 +18,7 @@
     "docker:wait-gas": "truffle exec ./node_modules/@aragon/templates-shared/scripts/sleep-until-gaslimit.js --network devnet 6900000",
     "abi:extract": "truffle-extract --output abi/ --keys abi",
     "prepublishOnly": "npm run compile && npm run abi:extract -- --no-compile",
-    "deploy:rpc": "npm run compile && truffle exec ./scripts/deploy.js --network rpc --ens 0x5f6f7e8cc7346a11ca2def8f827b7a0b612c56a1",
+    "deploy:rpc": "npm run compile && truffle exec ./scripts/deploy.js --network rpc",
     "deploy:devnet": "npm run compile && truffle exec ./scripts/deploy.js --network devnet",
     "deploy:staging": "npm run compile && truffle exec ./scripts/deploy.js --network rinkeby --ens 0xfe03625ea880a8cba336f9b5ad6e15b0a3b5a939",
     "deploy:rinkeby": "npm run compile && truffle exec ./scripts/deploy.js --network rinkeby --ens 0x98Df287B6C145399Aaa709692c8D308357bC085D",
