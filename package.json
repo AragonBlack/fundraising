@@ -24,10 +24,7 @@
     "test:aragon-fundraising": "lerna run --scope=@ablack/fundraising-aragon-fundraising --stream test",
     "test:batched-bancor-market-maker": "lerna run --scope=@ablack/fundraising-batched-bancor-market-maker --stream test",
     "test:tap": "lerna run --scope=@ablack/fundraising-tap --stream test",
-    "publish:rpc": "lerna run --scope=@ablack/fundraising-* --concurrency=1 --stream publish:rpc",
-    "publish:devnet": "lerna run --scope=@ablack/fundraising-* --concurrency=1 --stream publish:devnet",
-    "publish:rinkeby": "lerna run --scope=@ablack/fundraising-* --concurrency=1 --stream publish:rinkeby",
-    "publish": "npm run publish:rpc"
+    "publish": "lerna run --scope=@ablack/fundraising-* --concurrency=1 --stream publish"
   },
   "devDependencies": {
     "lerna": "^3.4.3",

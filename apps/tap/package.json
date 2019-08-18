@@ -18,10 +18,8 @@
     "abi:extract": "truffle-extract --output abi/ --keys abi",
     "prepublishOnly": "truffle compile --all && npm run abi:extract -- --no-compile",
     "apm:prepublish": "npm run compile",
-    "apm:publish:rpc:minor": "aragon apm publish major --environment default",
-    "apm:publish:rpc:patch": "aragon apm publish patch --environment default",
-    "apm:publish:rpc:major": "aragon apm publish major --environment default",
-    "publish": "npm run publish:rpc:major"
+    "apm:publish:rpc": "aragon apm publish major --environment default",
+    "publish": "npm run publish:rpc"
   },
   "files": [
     "/abi",

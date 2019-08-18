@@ -1,6 +1,4 @@
-const tconfig = require('@aragon/os/truffle-config')
-
-tconfig.solc.optimizer.runs = 3000
-tconfig.networks.rpc.gas = 7.9e6
-
-module.exports = tconfig
+const truffle = require('@aragon/os/truffle-config')
+truffle.solc.optimizer.runs = 3000
+truffle.networks.rpc.gas = 7.9e6
+module.exports = truffle
