@@ -2,10 +2,11 @@
 
 ## Description
 
-The `fundraising-multisig` template relies on two category of actors: the board and the share holders:
+The `fundraising-multisig` template relies on two category of actors: the board and the share holders.
 
-- The board are the ones being funded by the fundraising. They are represented through a custom `BOARD` token and a dedicated voting app set to be used as a multisig.
-- The share holders are the one contributing to the fundraising. They are represented through a `SHARE` bonded-token they can buy through the `MarketMaker` and a voting app.
+The board are the ones being funded by the fundraising. They are represented through a custom `BOARD` token and a dedicated voting app set to be used as a multisig.
+
+The share holders are the one contributing to the fundraising. They are represented through a `SHARE` bonded-token they can buy through the `MarketMaker` and a voting app.
 
 ## Permissions
 
