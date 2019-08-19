@@ -1,20 +1,18 @@
 pragma solidity 0.4.24;
 
 import "@aragon/apps-agent/contracts/Agent.sol";
-import {AragonFundraisingController as Controller} from "@ablack/fundraising-aragon-fundraising/contracts/AragonFundraisingController.sol";
-import {BatchedBancorMarketMaker as MarketMaker} from "@ablack/fundraising-batched-bancor-market-maker/contracts/BatchedBancorMarketMaker.sol";
+import "@aragon/templates-shared/contracts/BaseTemplate.sol";
 import "@ablack/fundraising-bancor-formula/contracts/BancorFormula.sol";
 import "@ablack/fundraising-tap/contracts/Tap.sol";
-import "@aragon/templates-shared/contracts/BaseTemplate.sol";
+import {AragonFundraisingController as Controller} from "@ablack/fundraising-aragon-fundraising/contracts/AragonFundraisingController.sol";
+import {BatchedBancorMarketMaker as MarketMaker} from "@ablack/fundraising-batched-bancor-market-maker/contracts/BatchedBancorMarketMaker.sol";
 
 
 contract FundraisingMultisigTemplate is BaseTemplate {
-    string constant private ERROR_MISSING_CACHE = "COMPANYBD_MISSING_CACHE";
-    string constant private ERROR_MISSING_BOARD_MEMBERS = "COMPANYBD_MISSING_BOARD_MEMBERS";
-    string constant private ERROR_MISSING_SHARE_MEMBERS = "COMPANYBD_MISSING_SHARE_MEMBERS";
-    string constant private ERROR_BAD_HOLDERS_STAKES_LEN = "COMPANYBD_BAD_HOLDERS_STAKES_LEN";
-    string constant private ERROR_BAD_VOTE_SETTINGS = "COMPANYBD_BAD_VOTE_SETTINGS";
-    string constant private ERROR_BAD_PAYROLL_SETTINGS = "COMPANYBD_BAD_PAYROLL_SETTINGS";
+    string constant private ERROR_EMPTY_BOARD = "FM_EMPTY_BOARD";
+    string constant private ERROR_BAD_VOTE_SETTINGS = "FM_BAD_VOTE_SETTINGS";
+    string constant private ERROR_BAD_FUNDRAISING_SETTINGS = "FM_BAD_FUNDRAISING_SETTINGS";
+    string constant private ERROR_MISSING_CACHE = "FM_MISSING_CACHE";
 
     bool    constant private BOARD_TRANSFERABLE = false;
     uint8   constant private BOARD_TOKEN_DECIMALS = uint8(0);
@@ -38,8 +36,10 @@ contract FundraisingMultisigTemplate is BaseTemplate {
     uint32 constant private DAI_RESERVE_RATIO = 100000; // 10%
     uint32 constant private ANT_RESERVE_RATIO = 10000;  // 1%
 
-    uint256 constant private DAI_VIRTUAL_SUPPLY = 10**18; // 1 DAI
-    uint256 constant private ANT_VIRTUAL_SUPPLY = 10**18; // 1 ANT
+    bytes32 constant private BANCOR_FORMULA_ID = apmNamehash("bancor-formula");
+    bytes32 constant private MARKET_MAKER_ID = apmNamehash("batched-bancor-market-maker");
+    bytes32 constant private TAP_ID = apmNamehash("tap");
+    bytes32 constant private ARAGON_FUNDRAISING_ID = apmNamehash("aragon-fundraising");
 
     struct Cache {
         address dao;
@@ -65,36 +65,43 @@ contract FundraisingMultisigTemplate is BaseTemplate {
         _ensureMiniMeFactoryIsValid(_miniMeFactory);
     }
 
-
     function deployBaseInstance(
-        string _boardTokenName,
-        string _boardTokenSymbol,
+        string    _boardTokenName,
+        string    _boardTokenSymbol,
         address[] _boardMembers,
         uint64[3] _boardVotingSettings,
-        uint64 _financePeriod
+        uint64    _financePeriod
     )
         external
     {
-        require(_boardVotingSettings.length == 3, ERROR_BAD_VOTE_SETTINGS);
+        _ensureBoardSetting(_boardMembers, _boardVotingSettings);
 
 
-        (Kernel dao, ACL acl)  = _createDAO();
+        (Kernel dao, ACL acl) = _createDAO();
         MiniMeToken boardToken = _createToken(_boardTokenName, _boardTokenSymbol, BOARD_TOKEN_DECIMALS);
-        (TokenManager tm,,,)   = _installBoardApps(dao, boardToken, _boardVotingSettings, _financePeriod);
+        (TokenManager tm,,,) = _installBoardApps(dao, boardToken, _boardVotingSettings, _financePeriod);
 
         _mintTokens(acl, tm, _boardMembers, 1);
         _setupBoardPermissions(dao);
     }
 
-
-    function installFundraisingApps(string _id, string _shareTokenName, string _shareTokenSymbol, uint64[3] _shareVotingSettings) external {
-    //     // _ensureFinalizationSettings(_shareHolders, _shareStakes, _boardMembers);
+    function installFundraisingApps(
+        string _id,
+        string _shareTokenName,
+        string _shareTokenSymbol,
+        uint64[3] _shareVotingSettings,
+        uint256 _maxTapIncreasePct
+    )
+        external
+    {
+        _ensureShareSetting(_shareVotingSettings);
+        _ensureBoardAppsCache();
 
         Kernel dao = _popDaoCache();
         MiniMeToken shareToken = _createToken(_shareTokenName, _shareTokenSymbol, SHARE_TOKEN_DECIMALS);
 
         _installShareApps(dao, shareToken, _shareVotingSettings);
-        _installFundraisingApps(dao);
+        _installFundraisingApps(dao, _maxTapIncreasePct);
 
         _setupSharePermissions(dao);
         _setupFundraisingPermissions(dao);
@@ -102,22 +109,29 @@ contract FundraisingMultisigTemplate is BaseTemplate {
         _registerID(_id, address(dao));
     }
 
-    function finalizeInstance(address[] _collaterals, uint256[] _virtualBalances, uint256[] _slippages, uint256[] _taps, uint256[] _floors) external {
+    function finalizeInstance(
+        address[2] _collaterals,
+        uint256[2] _virtualSupplies,
+        uint256[2] _virtualBalances,
+        uint256[2] _slippages,
+        uint256[2] _taps,
+        uint256[2] _floors
+    )
+        external
+    {
+        _ensureFundraisingSettings(_collaterals, _virtualSupplies, _virtualBalances, _slippages, _taps, _floors);
+        _ensureShareAppsCache();
+        _ensureFundraisingAppsCache();
+
         Kernel dao = _popDaoCache();
         (, Voting shareVoting) = _popShareAppsCache();
 
-        _setupCollateralTokens(dao, _collaterals, _virtualBalances, _slippages, _taps, _floors);
+        _setupCollateralTokens(dao, _collaterals, _virtualSupplies, _virtualBalances, _slippages, _taps, _floors);
         _setupControllerPermissions(dao);
 
         _transferRootPermissionsFromTemplateAndFinalizeDAO(dao, shareVoting, shareVoting);
 
         _clearCache();
-    }
-
-    function _createDAO() internal returns (Kernel dao, ACL acl) {
-        (dao, acl) = super._createDAO();
-
-        _cacheDao(dao);
     }
 
     function _installBoardApps(Kernel _dao, MiniMeToken _token, uint64[3] _votingSettings, uint64 _financePeriod)
@@ -132,44 +146,76 @@ contract FundraisingMultisigTemplate is BaseTemplate {
         _cacheBoardApps(tm, voting, vault, finance);
     }
 
-    function _installShareApps(Kernel _dao, MiniMeToken _shareToken, uint64[3] _shareVotingSettings) internal returns (TokenManager tm, Voting voting) {
+    function _installShareApps(Kernel _dao, MiniMeToken _shareToken, uint64[3] _shareVotingSettings)
+        internal
+        returns (TokenManager tm, Voting voting)
+    {
         tm = _installTokenManagerApp(_dao, _shareToken, SHARE_TRANSFERABLE, SHARE_MAX_PER_ACCOUNT);
         voting = _installVotingApp(_dao, _shareToken, _shareVotingSettings);
 
         _cacheShareApps(tm, voting);
     }
 
-    function _installFundraisingApps(Kernel _dao) internal returns (Agent reserve, MarketMaker marketMaker, Tap tap, Controller controller) {
-        bytes32[4] memory apps = [
-            apmNamehash("agent"),   // 0
-            // apmNamehash("bancor-formula"), //4
-            apmNamehash("batched-bancor-market-maker"), // 3
-            apmNamehash("tap"),    // 1
-            apmNamehash("aragon-fundraising")        // 2
-        ];
-
-        (TokenManager boardTM, Voting boardVoting, Vault beneficiary,) = _popBoardAppsCache();
-        (TokenManager shareTM, Voting shareVoting) = _popShareAppsCache();
-
-        reserve = Agent(_registerApp(_dao, apps[0]));
-        marketMaker = MarketMaker(_registerApp(_dao, apps[1]));
-        tap = Tap(_registerApp(_dao, apps[2]));
-        controller = Controller(_registerApp(_dao, apps[3]));
-
-
-        reserve.initialize();
-        marketMaker.initialize(controller, shareTM, reserve, beneficiary, IBancorFormula(_latestVersionAppBase(apmNamehash("bancor-formula"))), BATCH_BLOCKS, BUY_FEE, SELL_FEE);
-        tap.initialize(controller, reserve, beneficiary, BATCH_BLOCKS, uint256(50 * 10 ** 16));
-        controller.initialize(marketMaker, reserve, tap);
+    function _installFundraisingApps(Kernel _dao, uint256 _maxTapIncreasePct)
+        internal
+        returns (Agent reserve, MarketMaker marketMaker, Tap tap, Controller controller)
+    {
+        reserve = _installNonDefaultAgentApp(_dao);
+        marketMaker = MarketMaker(_registerApp(_dao, MARKET_MAKER_ID));
+        tap = Tap(_registerApp(_dao, TAP_ID));
+        controller = Controller(_registerApp(_dao, ARAGON_FUNDRAISING_ID));
 
         _cacheFundraisingApps(reserve, marketMaker, tap, controller);
+        _initializeFundraisingApps(_maxTapIncreasePct);
     }
 
-    function _registerApp(Kernel _dao, bytes32 _appId) internal returns (address) {
-        address proxy = _dao.newAppInstance(_appId, _latestVersionAppBase(_appId));
-        emit InstalledApp(proxy, _appId);
+    function _initializeFundraisingApps(uint256 _maxTapIncreasePct) internal {
+        _initializeMarketMaker();
+        _initializeTap(_maxTapIncreasePct);
+        _initializeController();
+    }
 
-        return proxy;
+    function _initializeMarketMaker() internal {
+        IBancorFormula bancorFormula = IBancorFormula(_latestVersionAppBase(BANCOR_FORMULA_ID));
+
+        (,, Vault beneficiary,) = _popBoardAppsCache();
+        (TokenManager shareTM,) = _popShareAppsCache();
+        (Agent reserve, MarketMaker marketMaker,, Controller controller) = _popFundraisingAppsCache();
+
+        marketMaker.initialize(controller, shareTM, reserve, beneficiary, bancorFormula, BATCH_BLOCKS, BUY_FEE, SELL_FEE);
+    }
+
+    function _initializeTap(uint256 _maxTapIncreasePct) internal {
+        (,, Vault beneficiary,) = _popBoardAppsCache();
+        (Agent reserve,, Tap tap, Controller controller) = _popFundraisingAppsCache();
+
+        tap.initialize(controller, reserve, beneficiary, BATCH_BLOCKS, _maxTapIncreasePct);
+    }
+
+    function _initializeController() internal {
+        (Agent reserve, MarketMaker marketMaker, Tap tap, Controller controller) = _popFundraisingAppsCache();
+
+        controller.initialize(marketMaker, reserve, tap);
+    }
+
+    function _setupCollateralTokens(
+        Kernel _dao,
+        address[2] _collaterals,
+        uint256[2] _virtualSupplies,
+        uint256[2] _virtualBalances,
+        uint256[2] _slippages,
+        uint256[2] _taps,
+        uint256[2] _floors
+    )
+        internal
+    {
+        ACL acl = ACL(_dao.acl());
+        (,,, Controller c) = _popFundraisingAppsCache();
+
+        acl.createPermission(this, c, c.ADD_COLLATERAL_TOKEN_ROLE(), this);
+
+        c.addCollateralToken(_collaterals[0], _virtualSupplies[0], _virtualBalances[0], DAI_RESERVE_RATIO, _slippages[0], _taps[0], _floors[0]);
+        c.addCollateralToken(_collaterals[1], _virtualSupplies[1], _virtualBalances[1], ANT_RESERVE_RATIO, _slippages[1], _taps[1], _floors[1]);
     }
 
     function _setupBoardPermissions(Kernel _dao) internal {
@@ -204,8 +250,7 @@ contract FundraisingMultisigTemplate is BaseTemplate {
         _createReservePermissions(acl, _reserve, _marketMaker, _tap, _controller, _shareVoting);
         _createMarketMakerPermissions (acl, _marketMaker, _controller, _shareVoting);
         _createTapPermissions(acl, _tap, _controller, _boardVoting, _shareVoting);
-        // _createControllerPermissions(acl, _controller, _boardVoting, _shareVoting);
-    
+        // _createControllerPermissions(acl, _controller, _boardVoting, _shareVoting); // gonna do that after we add collaterals
     }
 
     function _setupControllerPermissions(Kernel _dao) internal {
@@ -255,31 +300,19 @@ contract FundraisingMultisigTemplate is BaseTemplate {
         _acl.createPermission(_controller, _tap, _tap.WITHDRAW_ROLE(), _boardVoting);
     }
 
-    function _createControllerPermissions(ACL _acl, Controller _controller, Voting _board, Voting _share) internal {
-        _transferPermissionFromTemplate(_acl, _controller, _share, _controller.ADD_COLLATERAL_TOKEN_ROLE(), _share);
+    function _createControllerPermissions(ACL _acl, Controller _controller, Voting _boardVoting, Voting _shareVoting) internal {
+        _transferPermissionFromTemplate(_acl, _controller, _shareVoting, _controller.ADD_COLLATERAL_TOKEN_ROLE(), _shareVoting);
 
-        _acl.createPermission(_board, _controller, _controller.UPDATE_BENEFICIARY_ROLE(), _board);
-        _acl.createPermission(_board, _controller, _controller.WITHDRAW_ROLE(), _board);
-        _acl.createPermission(_share, _controller, _controller.UPDATE_FEES_ROLE(), _share);
-        _acl.createPermission(_share, _controller, _controller.UPDATE_MAXIMUM_TAP_INCREASE_PCT_ROLE(), _share);
-        // _acl.createPermission(_share, _controller, _controller.ADD_COLLATERAL_TOKEN_ROLE(), _share);
-        _acl.createPermission(_share, _controller, _controller.REMOVE_COLLATERAL_TOKEN_ROLE(), _share);
-        _acl.createPermission(_share, _controller, _controller.UPDATE_COLLATERAL_TOKEN_ROLE(), _share);
-        _acl.createPermission(_share, _controller, _controller.UPDATE_TOKEN_TAP_ROLE(), _share);
-        _acl.createPermission(address(-1), _controller, _controller.OPEN_BUY_ORDER_ROLE(), _share);
-        _acl.createPermission(address(-1), _controller, _controller.OPEN_SELL_ORDER_ROLE(), _share);
-    }
-
-    function _setupCollateralTokens(Kernel _dao, address[] _collaterals, uint256[] _virtualBalances, uint256[] _slippages, uint256[] _taps, uint256[] _floors) internal {
-        ACL acl = ACL(_dao.acl());
-        (,,, Controller controller) = _popFundraisingAppsCache();
-
-        acl.createPermission(this, controller, controller.ADD_COLLATERAL_TOKEN_ROLE(), this);
-
-        controller.addCollateralToken(_collaterals[0], DAI_VIRTUAL_SUPPLY, _virtualBalances[0], DAI_RESERVE_RATIO, _slippages[0], _taps[0], _floors[0]);
-        controller.addCollateralToken(_collaterals[1], ANT_VIRTUAL_SUPPLY, _virtualBalances[1], ANT_RESERVE_RATIO, _slippages[1], _taps[1], _floors[1]) ;
-
-        
+        _acl.createPermission(_boardVoting, _controller, _controller.UPDATE_BENEFICIARY_ROLE(), _boardVoting);
+        _acl.createPermission(_boardVoting, _controller, _controller.WITHDRAW_ROLE(), _boardVoting);
+        _acl.createPermission(_shareVoting, _controller, _controller.UPDATE_FEES_ROLE(), _shareVoting);
+        _acl.createPermission(_shareVoting, _controller, _controller.UPDATE_MAXIMUM_TAP_INCREASE_PCT_ROLE(), _shareVoting);
+        // _acl.createPermission(_shareVoting, _controller, _controller.ADD_COLLATERAL_TOKEN_ROLE(), _shareVoting); // already transferred above
+        _acl.createPermission(_shareVoting, _controller, _controller.REMOVE_COLLATERAL_TOKEN_ROLE(), _shareVoting);
+        _acl.createPermission(_shareVoting, _controller, _controller.UPDATE_COLLATERAL_TOKEN_ROLE(), _shareVoting);
+        _acl.createPermission(_shareVoting, _controller, _controller.UPDATE_TOKEN_TAP_ROLE(), _shareVoting);
+        _acl.createPermission(address(-1), _controller, _controller.OPEN_BUY_ORDER_ROLE(), _shareVoting);
+        _acl.createPermission(address(-1), _controller, _controller.OPEN_SELL_ORDER_ROLE(), _shareVoting);
     }
 
     function _cacheDao(Kernel _dao) internal {
@@ -324,26 +357,27 @@ contract FundraisingMultisigTemplate is BaseTemplate {
     }
 
     function _popBoardAppsCache() internal returns (
-        TokenManager boardTokenManager,
-        Voting boardVoting,
+        TokenManager tm,
+        Voting voting,
         Vault vault,
         Finance finance
-    ) {
+    )
+    {
         Cache storage c = cache[msg.sender];
         require(c.dao != address(0), ERROR_MISSING_CACHE);
 
-        boardTokenManager = TokenManager(c.boardTokenManager);
-        boardVoting = Voting(c.boardVoting);
+        tm = TokenManager(c.boardTokenManager);
+        voting = Voting(c.boardVoting);
         vault = Vault(c.vault);
         finance = Finance(c.finance);
     }
 
-    function _popShareAppsCache() internal returns (TokenManager shareTokenManager, Voting shareVoting) {
+    function _popShareAppsCache() internal returns (TokenManager tm, Voting voting) {
         Cache storage c = cache[msg.sender];
         require(c.dao != address(0), ERROR_MISSING_CACHE);
 
-        shareTokenManager = TokenManager(c.shareTokenManager);
-        shareVoting = Voting(c.shareVoting);
+        tm = TokenManager(c.shareTokenManager);
+        voting = Voting(c.shareVoting);
     }
 
     function _popFundraisingAppsCache() internal returns (Agent reserve, MarketMaker marketMaker, Tap tap, Controller controller) {
@@ -355,7 +389,6 @@ contract FundraisingMultisigTemplate is BaseTemplate {
         tap = Tap(c.tap);
         controller = Controller(c.controller);
     }
-
 
     function _clearCache() internal {
         Cache storage c = cache[msg.sender];
@@ -374,16 +407,65 @@ contract FundraisingMultisigTemplate is BaseTemplate {
         delete c.controller;
     }
 
-    // function _ensureFinalizationSettings(
-    //     address[] memory _shareHolders,
-    //     uint256[] memory _shareStakes,
-    //     address[] memory _boardMembers
-    // )
-    //     private
-    //     pure
-    // {
-    //     require(_shareHolders.length > 0, ERROR_MISSING_SHARE_MEMBERS);
-    //     require(_shareHolders.length == _shareStakes.length, ERROR_BAD_HOLDERS_STAKES_LEN);
-    //     require(_boardMembers.length > 0, ERROR_MISSING_BOARD_MEMBERS);
-    // }
+    function _ensureBoardAppsCache() internal {
+        Cache storage c = cache[msg.sender];
+        require(c.boardTokenManager != address(0), ERROR_MISSING_CACHE);
+        require(c.boardVoting != address(0), ERROR_MISSING_CACHE);
+        require(c.vault != address(0), ERROR_MISSING_CACHE);
+        require(c.finance != address(0), ERROR_MISSING_CACHE);
+    }
+
+    function _ensureShareAppsCache() internal {
+        Cache storage c = cache[msg.sender];
+        require(c.shareTokenManager != address(0), ERROR_MISSING_CACHE);
+        require(c.shareVoting != address(0), ERROR_MISSING_CACHE);
+    }
+
+    function _ensureFundraisingAppsCache() internal {
+        Cache storage c = cache[msg.sender];
+        require(c.reserve != address(0), ERROR_MISSING_CACHE);
+        require(c.marketMaker != address(0), ERROR_MISSING_CACHE);
+        require(c.tap != address(0), ERROR_MISSING_CACHE);
+        require(c.controller != address(0), ERROR_MISSING_CACHE);
+    }
+
+    function _ensureBoardSetting(address[] _members, uint64[3] _votingSettings) internal {
+        require(_members.length > 0, ERROR_EMPTY_BOARD);
+        require(_votingSettings.length == 3, ERROR_BAD_VOTE_SETTINGS);
+    }
+
+    function _ensureShareSetting(uint64[3] _votingSettings) internal {
+        require(_votingSettings.length == 3, ERROR_BAD_VOTE_SETTINGS);
+    }
+
+    function _ensureFundraisingSettings(
+        address[2] _collaterals,
+        uint256[2] _virtualSupplies,
+        uint256[2] _virtualBalances,
+        uint256[2] _slippages,
+        uint256[2] _taps,
+        uint256[2] _floors
+    )
+        internal
+    {
+        require(_collaterals.length == 2, ERROR_BAD_FUNDRAISING_SETTINGS);
+        require(_virtualSupplies.length == 2, ERROR_BAD_FUNDRAISING_SETTINGS);
+        require(_virtualBalances.length == 2, ERROR_BAD_FUNDRAISING_SETTINGS);
+        require(_slippages.length == 2, ERROR_BAD_FUNDRAISING_SETTINGS);
+        require(_taps.length == 2, ERROR_BAD_FUNDRAISING_SETTINGS);
+        require(_floors.length == 2, ERROR_BAD_FUNDRAISING_SETTINGS);
+    }
+
+    function _registerApp(Kernel _dao, bytes32 _appId) internal returns (address) {
+        address proxy = _dao.newAppInstance(_appId, _latestVersionAppBase(_appId));
+        emit InstalledApp(proxy, _appId);
+
+        return proxy;
+    }
+
+    function _createDAO() internal returns (Kernel dao, ACL acl) {
+        (dao, acl) = super._createDAO();
+
+        _cacheDao(dao);
+    }
 }

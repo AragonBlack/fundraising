@@ -32,14 +32,14 @@ const TokenMock = artifacts.require('TokenMock')
 
 const APPS = [
   { name: 'agent', contractName: 'Agent' },
-  { name: 'vault', contractName: 'Vault' },
-  { name: 'voting', contractName: 'Voting' },
-  { name: 'finance', contractName: 'Finance' },
-  { name: 'token-manager', contractName: 'TokenManager' },
+  { name: 'aragon-fundraising', contractName: 'AragonFundraisingController' },
   { name: 'bancor-formula', contractName: 'BancorFormula' },
   { name: 'batched-bancor-market-maker', contractName: 'BatchedBancorMarketMaker' },
+  { name: 'finance', contractName: 'Finance' },
+  { name: 'vault', contractName: 'Vault' },
+  { name: 'voting', contractName: 'Voting' },
   { name: 'tap', contractName: 'Tap' },
-  { name: 'aragon-fundraising', contractName: 'AragonFundraisingController' },
+  { name: 'token-manager', contractName: 'TokenManager' },
 ]
 
 const APP_IDS = APPS.reduce((ids, { name }) => {
@@ -79,18 +79,16 @@ const ONE_WEEK = ONE_DAY * 7
 const THIRTY_DAYS = ONE_DAY * 30
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
 
-contract('Fundraising with multisig', ([_, owner, boardMember1, boardMember2, shareHolder1, shareHolder2, shareHolder3, someone]) => {
+contract('Fundraising with multisig', ([_, owner, boardMember1, boardMember2]) => {
   let daoID, template, dao, acl, ens, feed
-  let shareVoting, boardVoting, boardTokenManager, shareTokenManager, boardToken, shareToken, finance, agent, vault, reserve, marketMaker, tap, controller
+  let shareVoting, boardVoting, boardTokenManager, shareTokenManager, boardToken, shareToken, finance, vault, reserve, marketMaker, tap, controller
   let COLLATERAL_1, COLLATERAL_2, COLLATERALS
 
   const BOARD_MEMBERS = [boardMember1, boardMember2]
-  const SHARE_HOLDERS = [shareHolder1, shareHolder2, shareHolder3]
 
   const BOARD_TOKEN_NAME = 'Board Token'
   const BOARD_TOKEN_SYMBOL = 'BOARD'
 
-  // const SHARE_STAKES = SHARE_HOLDERS.map(() => 1e18)
   const SHARE_TOKEN_NAME = 'Share Token'
   const SHARE_TOKEN_SYMBOL = 'SHARE'
 
@@ -104,6 +102,8 @@ contract('Fundraising with multisig', ([_, owner, boardMember1, boardMember2, sh
   const SHARE_MIN_ACCEPTANCE_QUORUM = 5e16
   const SHARE_VOTING_SETTINGS = [SHARE_SUPPORT_REQUIRED, SHARE_MIN_ACCEPTANCE_QUORUM, SHARE_VOTE_DURATION]
 
+  const MAX_TAP_INCREASE_PCT = Math.pow(10, 17)
+
   const VIRTUAL_SUPPLIES = [Math.pow(10, 19), Math.pow(10, 18)]
   const VIRTUAL_BALANCES = [2 * Math.pow(10, 19), 2 * Math.pow(10, 18)]
   const RESERVE_RATIOS = [100000, 10000]
@@ -111,7 +111,7 @@ contract('Fundraising with multisig', ([_, owner, boardMember1, boardMember2, sh
   const FLOORS = [150, 750]
   const SLIPPAGES = [3 * Math.pow(10, 19), Math.pow(10, 18)]
 
-  before('fetch company board template and ENS', async () => {
+  before('fetch fundraising multisig template and ENS', async () => {
     const { registry, address } = await deployedAddresses()
     ens = ENS.at(registry)
     template = CompanyTemplate.at(address)
@@ -125,102 +125,119 @@ contract('Fundraising with multisig', ([_, owner, boardMember1, boardMember2, sh
 
   context('when the creation fails', () => {
     const FINANCE_PERIOD = 0
-    const USE_AGENT_AS_VAULT = true
 
-    // context('when there was no instance prepared before', () => {
-    //   it('reverts when there was no instance prepared before', async () => {
-    //     await assertRevert(
-    //       finalizeInstance(randomId(), SHARE_HOLDERS, SHARE_STAKES, BOARD_MEMBERS, FINANCE_PERIOD, USE_AGENT_AS_VAULT),
-    //       'COMPANYBD_MISSING_CACHE'
-    //     )
-    //   })
-    // })
+    context('Base transaction', () => {
+      it('should revert when no board members are given', async () => {
+        await assertRevert(() =>
+          template.deployBaseInstance(BOARD_TOKEN_NAME, BOARD_TOKEN_SYMBOL, [], BOARD_VOTING_SETTINGS, FINANCE_PERIOD, {
+            from: owner,
+          })
+        )
+      })
+    })
 
-    // context('when there was an instance already prepared', () => {
-    //   before('prepare instance', async () => {
-    //     await template.prepareInstance(SHARE_TOKEN_NAME, SHARE_TOKEN_SYMBOL, SHARE_VOTING_SETTINGS, BOARD_VOTING_SETTINGS)
-    //   })
+    context('Fundraising transaction', () => {
+      context('when there is no base instance deployed', () => {
+        it('should revert', async () => {
+          await assertRevert(() =>
+            template.installFundraisingApps(randomId(), SHARE_TOKEN_NAME, SHARE_TOKEN_SYMBOL, SHARE_VOTING_SETTINGS, MAX_TAP_INCREASE_PCT, {
+              from: owner,
+            })
+          )
+        })
+      })
+    })
 
-    //   it('reverts when no share members were given', async () => {
-    //     await assertRevert(finalizeInstance(randomId(), [], SHARE_STAKES, BOARD_MEMBERS, FINANCE_PERIOD, USE_AGENT_AS_VAULT), 'COMPANYBD_MISSING_SHARE_MEMBERS')
-    //   })
+    context('Finalize transaction', () => {
+      context('when there are no fundraising apps installed', () => {
+        it('should revert', async () => {
+          await assertRevert(() =>
+            template.finalizeInstance(COLLATERALS, VIRTUAL_SUPPLIES, VIRTUAL_BALANCES, SLIPPAGES, TAPS, FLOORS, {
+              from: owner,
+            })
+          )
+        })
+      })
 
-    //   it('reverts when number of shared members and stakes do not match', async () => {
-    //     await assertRevert(
-    //       finalizeInstance(randomId(), [shareHolder1], SHARE_STAKES, BOARD_MEMBERS, FINANCE_PERIOD, USE_AGENT_AS_VAULT),
-    //       'COMPANYBD_BAD_HOLDERS_STAKES_LEN'
-    //     )
-    //     await assertRevert(
-    //       finalizeInstance(randomId(), SHARE_HOLDERS, [1e18], BOARD_MEMBERS, FINANCE_PERIOD, USE_AGENT_AS_VAULT),
-    //       'COMPANYBD_BAD_HOLDERS_STAKES_LEN'
-    //     )
-    //   })
-    // })
+      context('when there are fundraising apps installed', () => {
+        before('install fundraising apps', async () => {
+          await template.deployBaseInstance(BOARD_TOKEN_NAME, BOARD_TOKEN_SYMBOL, BOARD_MEMBERS, BOARD_VOTING_SETTINGS, FINANCE_PERIOD, {
+            from: owner,
+          })
+          await template.installFundraisingApps(randomId(), SHARE_TOKEN_NAME, SHARE_TOKEN_SYMBOL, SHARE_VOTING_SETTINGS, MAX_TAP_INCREASE_PCT, {
+            from: owner,
+          })
+        })
+
+        it('should revert when there are no collaterals given', async () => {
+          await assertRevert(() =>
+            template.finalizeInstance([], VIRTUAL_SUPPLIES, VIRTUAL_BALANCES, SLIPPAGES, TAPS, FLOORS, {
+              from: owner,
+            })
+          )
+        })
+      })
+    })
   })
 
   context('when the creation succeeds', () => {
     let baseReceipt, fundraisingReceipt, finalizationReceipt
 
-    const loadDAO = async (apps = { vault: false, agent: false, payroll: false }) => {
+    const loadDAO = async () => {
       dao = Kernel.at(getEventArgument(baseReceipt, 'DeployDao', 'dao'))
       acl = ACL.at(await dao.acl())
 
       boardToken = MiniMeToken.at(getEventArgument(baseReceipt, 'DeployToken', 'token', 0))
       shareToken = MiniMeToken.at(getEventArgument(fundraisingReceipt, 'DeployToken', 'token', 0))
 
-      const installedAppsDuringPrepare = getInstalledAppsById(baseReceipt)
-      const installedAppsDuringFinalize = getInstalledAppsById(fundraisingReceipt)
+      const installedAppsDuringBase = getInstalledAppsById(baseReceipt)
+      const installedAppsDuringFundraising = getInstalledAppsById(fundraisingReceipt)
 
-      assert.equal(installedAppsDuringPrepare['token-manager'].length, 1, 'should have installed 1 token-manager apps during prepare')
-      assert.equal(installedAppsDuringFinalize['token-manager'].length, 1, 'should have installed 1 token-manager apps during finalize')
-      boardTokenManager = TokenManager.at(installedAppsDuringPrepare['token-manager'][0])
-      shareTokenManager = TokenManager.at(installedAppsDuringFinalize['token-manager'][0])
+      assert.equal(installedAppsDuringBase['token-manager'].length, 1, 'should have installed 1 token-manager apps during prepare')
+      assert.equal(installedAppsDuringFundraising['token-manager'].length, 1, 'should have installed 1 token-manager apps during fundraising')
+      boardTokenManager = TokenManager.at(installedAppsDuringBase['token-manager'][0])
+      shareTokenManager = TokenManager.at(installedAppsDuringFundraising['token-manager'][0])
 
-      assert.equal(installedAppsDuringPrepare.voting.length, 1, 'should have installed 1 voting apps during prepare')
-      assert.equal(installedAppsDuringFinalize.voting.length, 1, 'should have installed 1 voting apps during finalize')
-      boardVoting = Voting.at(installedAppsDuringPrepare.voting[0])
-      shareVoting = Voting.at(installedAppsDuringFinalize.voting[0])
+      assert.equal(installedAppsDuringBase.voting.length, 1, 'should have installed 1 voting apps during prepare')
+      assert.equal(installedAppsDuringFundraising.voting.length, 1, 'should have installed 1 voting apps during fundraising')
+      boardVoting = Voting.at(installedAppsDuringBase.voting[0])
+      shareVoting = Voting.at(installedAppsDuringFundraising.voting[0])
 
-      // if (apps.vault) {
-      assert.equal(installedAppsDuringPrepare.vault.length, 1, 'should have installed 1 vault app')
-      vault = Vault.at(installedAppsDuringPrepare.vault[0])
-      // }
+      assert.equal(installedAppsDuringBase.vault.length, 1, 'should have installed 1 vault app')
+      vault = Vault.at(installedAppsDuringBase.vault[0])
 
-      assert.equal(installedAppsDuringPrepare.finance.length, 1, 'should have installed 1 finance app')
-      finance = Finance.at(installedAppsDuringPrepare.finance[0])
+      assert.equal(installedAppsDuringBase.finance.length, 1, 'should have installed 1 finance app')
+      finance = Finance.at(installedAppsDuringBase.finance[0])
 
-      assert.equal(installedAppsDuringFinalize.pool.length, 1, 'should have installed 1 pool app')
-      reserve = Agent.at(installedAppsDuringFinalize.pool[0])
+      assert.equal(installedAppsDuringFundraising.agent.length, 1, 'should have installed 1 pool app')
+      reserve = Agent.at(installedAppsDuringFundraising.agent[0])
 
-      assert.equal(installedAppsDuringFinalize['batched-bancor-market-maker'].length, 1, 'should have installed 1 market-maker app')
-      marketMaker = MarketMaker.at(installedAppsDuringFinalize['batched-bancor-market-maker'][0])
+      assert.equal(installedAppsDuringFundraising['batched-bancor-market-maker'].length, 1, 'should have installed 1 market-maker app')
+      marketMaker = MarketMaker.at(installedAppsDuringFundraising['batched-bancor-market-maker'][0])
 
-      assert.equal(installedAppsDuringFinalize.tap.length, 1, 'should have installed 1 tap app')
-      tap = Tap.at(installedAppsDuringFinalize.tap[0])
+      assert.equal(installedAppsDuringFundraising.tap.length, 1, 'should have installed 1 tap app')
+      tap = Tap.at(installedAppsDuringFundraising.tap[0])
 
-      assert.equal(installedAppsDuringFinalize['aragon-fundraising'].length, 1, 'should have installed 1 aragon-fundraising app')
-      controller = Controller.at(installedAppsDuringFinalize['aragon-fundraising'][0])
+      assert.equal(installedAppsDuringFundraising['aragon-fundraising'].length, 1, 'should have installed 1 aragon-fundraising app')
+      controller = Controller.at(installedAppsDuringFundraising['aragon-fundraising'][0])
     }
 
-    const itCostsUpTo = expectedFinalizationCost => {
-      const expectedPrepareCost = 6.5e6
-      const expectedTotalCost = expectedPrepareCost + expectedFinalizationCost
-
-      it(`gas costs must be up to ~${expectedTotalCost} gas`, async () => {
+    const itCostsUpTo = expectedCost => {
+      it(`gas costs for each transaction must be up to ~${expectedCost} gas`, async () => {
         const prepareCost = baseReceipt.receipt.gasUsed
-        assert.isAtMost(prepareCost, expectedPrepareCost, `prepare call should cost up to ${expectedPrepareCost} gas`)
+        assert.isAtMost(prepareCost, expectedCost, `base transaction should cost up to ${expectedCost} gas`)
 
-        const finalizeCost = fundraisingReceipt.receipt.gasUsed
-        assert.isAtMost(finalizeCost, expectedFinalizationCost, `share setup call should cost up to ${expectedFinalizationCost} gas`)
+        const fundraisingCost = fundraisingReceipt.receipt.gasUsed
+        assert.isAtMost(fundraisingCost, expectedCost, `fundraising transaction should cost up to ${expectedCost} gas`)
 
-        const totalCost = prepareCost + finalizeCost
-        assert.isAtMost(totalCost, expectedTotalCost, `total costs should be up to ${expectedTotalCost} gas`)
+        const finalizationCost = finalizationReceipt.receipt.gasUsed
+        assert.isAtMost(finalizationCost, expectedCost, `finalization transaction should cost up to ${expectedCost} gas`)
       })
     }
 
     const itSetupsDAOCorrectly = financePeriod => {
       context('ENS', () => {
-        it('registers a new DAO on ENS', async () => {
+        it('should have registered a new DAO on ENS', async () => {
           const ens = ENS.at((await deployedAddresses()).registry)
           const aragonIdNameHash = namehash(`${daoID}.aragonid.eth`)
           const resolvedAddress = await PublicResolver.at(await ens.resolver(aragonIdNameHash)).addr(aragonIdNameHash)
@@ -230,15 +247,22 @@ contract('Fundraising with multisig', ([_, owner, boardMember1, boardMember2, sh
 
       context('DAO', () => {
         it('should have DAO and ACL permissions correctly setup ', async () => {
-          await assertRole(acl, dao, shareVoting, 'APP_MANAGER_ROLE', shareVoting)
-          await assertRole(acl, acl, shareVoting, 'CREATE_PERMISSIONS_ROLE', shareVoting)
+          await assertRole(acl, dao, shareVoting, 'APP_MANAGER_ROLE')
+          await assertRole(acl, acl, shareVoting, 'CREATE_PERMISSIONS_ROLE')
         })
+
+        // it('sets up EVM scripts registry permissions correctly', async () => {
+        //   const reg = await EVMScriptRegistry.at(await acl.getEVMScriptRegistry())
+        //   await assertRole(acl, reg, shareVoting, 'REGISTRY_ADD_EXECUTOR_ROLE')
+        //   await assertRole(acl, reg, shareVoting, 'REGISTRY_MANAGER_ROLE')
+        // })
       })
 
       context('Board', () => {
         it('should have created a new board token', async () => {
           assert.equal(await boardToken.name(), BOARD_TOKEN_NAME)
           assert.equal(await boardToken.symbol(), BOARD_TOKEN_SYMBOL)
+          assert.equal(await boardToken.transfersEnabled(), false)
           assert.equal((await boardToken.decimals()).toString(), 0)
         })
 
@@ -299,6 +323,7 @@ contract('Fundraising with multisig', ([_, owner, boardMember1, boardMember2, sh
         it('should have created a new share token', async () => {
           assert.equal(await shareToken.name(), SHARE_TOKEN_NAME)
           assert.equal(await shareToken.symbol(), SHARE_TOKEN_SYMBOL)
+          assert.equal(await shareToken.transfersEnabled(), true)
           assert.equal((await shareToken.decimals()).toString(), 18)
         })
 
@@ -326,16 +351,14 @@ contract('Fundraising with multisig', ([_, owner, boardMember1, boardMember2, sh
         })
       })
 
-      // CHECK LINKED CONTRACTS ?
-
       context('Fundraising apps', () => {
-        it('should have agent / reserve app correctly setup', async () => {
-          assert.isTrue(await reserve.hasInitialized(), 'agent / reserve not initialized')
+        it('should have reserve agent app correctly setup', async () => {
+          assert.isTrue(await reserve.hasInitialized(), 'reserve agent not initialized')
 
           assert.equal(await reserve.protectedTokens(0), COLLATERAL_1.address, 'DAI not protected')
           assert.equal(await reserve.protectedTokens(1), COLLATERAL_2.address, 'ANT not protected')
 
-          await assertRole(acl, reserve, shareVoting, 'SAFE_EXECUTE_ROLE', shareVoting)
+          await assertRole(acl, reserve, shareVoting, 'SAFE_EXECUTE_ROLE')
           await assertRole(acl, reserve, shareVoting, 'ADD_PROTECTED_TOKEN_ROLE', controller)
           await assertRole(acl, reserve, shareVoting, 'TRANSFER_ROLE', marketMaker)
           await assertRole(acl, reserve, shareVoting, 'TRANSFER_ROLE', tap)
@@ -350,8 +373,17 @@ contract('Fundraising with multisig', ([_, owner, boardMember1, boardMember2, sh
         it('should have market-maker app correctly setup', async () => {
           assert.isTrue(await marketMaker.hasInitialized(), 'market-maker not initialized')
 
+          assert.equal(web3.toChecksumAddress(await marketMaker.controller()), controller.address)
+          assert.equal(web3.toChecksumAddress(await marketMaker.tokenManager()), shareTokenManager.address)
+          assert.equal(await marketMaker.token(), shareToken.address)
+          assert.equal(web3.toChecksumAddress(await marketMaker.reserve()), reserve.address)
+          assert.equal(web3.toChecksumAddress(await marketMaker.beneficiary()), vault.address)
+          assert.equal((await marketMaker.batchBlocks()).toNumber(), 1)
+          assert.equal((await marketMaker.buyFeePct()).toNumber(), 0)
+          assert.equal((await marketMaker.sellFeePct()).toNumber(), 0)
+
           const dai = await marketMaker.getCollateralToken(COLLATERAL_1.address)
-          const ant = await marketMaker.getCollateralToken(COLLATERAL_1.address)
+          const ant = await marketMaker.getCollateralToken(COLLATERAL_2.address)
 
           assert.isTrue(dai[0], 'DAI not whitelisted')
           assert.equal(dai[1].toNumber(), VIRTUAL_SUPPLIES[0], 'DAI virtual supply should be ' + VIRTUAL_SUPPLIES[0])
@@ -379,6 +411,11 @@ contract('Fundraising with multisig', ([_, owner, boardMember1, boardMember2, sh
         it('should have tap app correctly setup', async () => {
           assert.isTrue(await tap.hasInitialized(), 'tap not initialized')
 
+          assert.equal(web3.toChecksumAddress(await tap.reserve()), reserve.address)
+          assert.equal(web3.toChecksumAddress(await tap.beneficiary()), vault.address)
+          assert.equal((await tap.batchBlocks()).toNumber(), 1)
+          assert.equal((await tap.maximumTapIncreasePct()).toNumber(), MAX_TAP_INCREASE_PCT)
+
           assert.equal((await tap.taps(COLLATERAL_1.address)).toNumber(), TAPS[0], 'DAI tap should be ' + TAPS[0])
           assert.equal((await tap.taps(COLLATERAL_2.address)).toNumber(), TAPS[1], 'ANT tap should be ' + TAPS[1])
           assert.equal((await tap.floors(COLLATERAL_1.address)).toNumber(), FLOORS[0], 'DAI floor should be ' + FLOORS[0])
@@ -398,86 +435,58 @@ contract('Fundraising with multisig', ([_, owner, boardMember1, boardMember2, sh
         it('should have aragon-fundraising app correctly setup', async () => {
           assert.isTrue(await controller.hasInitialized(), 'aragon-fundraising not initialized')
 
-          await assertRole(acl, controller, boardVoting, 'UPDATE_BENEFICIARY_ROLE', boardVoting)
-          await assertRole(acl, controller, boardVoting, 'WITHDRAW_ROLE', boardVoting)
-          await assertRole(acl, controller, shareVoting, 'UPDATE_FEES_ROLE', shareVoting)
-          await assertRole(acl, controller, shareVoting, 'UPDATE_MAXIMUM_TAP_INCREASE_PCT_ROLE', shareVoting)
-          await assertRole(acl, controller, shareVoting, 'ADD_COLLATERAL_TOKEN_ROLE', shareVoting)
-          await assertRole(acl, controller, shareVoting, 'REMOVE_COLLATERAL_TOKEN_ROLE', shareVoting)
-          await assertRole(acl, controller, shareVoting, 'UPDATE_COLLATERAL_TOKEN_ROLE', shareVoting)
-          await assertRole(acl, controller, shareVoting, 'UPDATE_TOKEN_TAP_ROLE', shareVoting)
+          assert.equal(web3.toChecksumAddress(await controller.marketMaker()), marketMaker.address)
+          assert.equal(web3.toChecksumAddress(await controller.reserve()), reserve.address)
+          assert.equal(web3.toChecksumAddress(await controller.tap()), tap.address)
+
+          await assertRole(acl, controller, boardVoting, 'UPDATE_BENEFICIARY_ROLE')
+          await assertRole(acl, controller, boardVoting, 'WITHDRAW_ROLE')
+          await assertRole(acl, controller, shareVoting, 'UPDATE_FEES_ROLE')
+          await assertRole(acl, controller, shareVoting, 'UPDATE_MAXIMUM_TAP_INCREASE_PCT_ROLE')
+          await assertRole(acl, controller, shareVoting, 'ADD_COLLATERAL_TOKEN_ROLE')
+          await assertRole(acl, controller, shareVoting, 'REMOVE_COLLATERAL_TOKEN_ROLE')
+          await assertRole(acl, controller, shareVoting, 'UPDATE_COLLATERAL_TOKEN_ROLE')
+          await assertRole(acl, controller, shareVoting, 'UPDATE_TOKEN_TAP_ROLE')
           await assertRole(acl, controller, shareVoting, 'OPEN_BUY_ORDER_ROLE', ANY_ADDRESS)
           await assertRole(acl, controller, shareVoting, 'OPEN_SELL_ORDER_ROLE', ANY_ADDRESS)
         })
       })
-
-      // it('sets up EVM scripts registry permissions correctly', async () => {
-      //   const reg = await EVMScriptRegistry.at(await acl.getEVMScriptRegistry())
-      //   await assertRole(acl, reg, shareVoting, 'REGISTRY_ADD_EXECUTOR_ROLE')
-      //   await assertRole(acl, reg, shareVoting, 'REGISTRY_MANAGER_ROLE')
-      // })
     }
 
-    const createDAO = (useAgentAsVault, financePeriod) => {
+    const createDAO = financePeriod => {
       before('create fundraising entity with multisig', async () => {
         daoID = randomId()
         baseReceipt = await template.deployBaseInstance(BOARD_TOKEN_NAME, BOARD_TOKEN_SYMBOL, BOARD_MEMBERS, BOARD_VOTING_SETTINGS, financePeriod, {
           from: owner,
         })
-        fundraisingReceipt = await template.installFundraisingApps(daoID, SHARE_TOKEN_NAME, SHARE_TOKEN_SYMBOL, SHARE_VOTING_SETTINGS, { from: owner })
-        finalizationReceipt = await template.finalizeInstance(COLLATERALS, VIRTUAL_BALANCES, SLIPPAGES, TAPS, FLOORS, {
+        fundraisingReceipt = await template.installFundraisingApps(daoID, SHARE_TOKEN_NAME, SHARE_TOKEN_SYMBOL, SHARE_VOTING_SETTINGS, MAX_TAP_INCREASE_PCT, {
+          from: owner,
+        })
+        finalizationReceipt = await template.finalizeInstance(COLLATERALS, VIRTUAL_SUPPLIES, VIRTUAL_BALANCES, SLIPPAGES, TAPS, FLOORS, {
           from: owner,
         })
 
         dao = Kernel.at(getEventArgument(baseReceipt, 'DeployDao', 'dao'))
         boardToken = MiniMeToken.at(getEventArgument(baseReceipt, 'DeployToken', 'token', 0))
         shareToken = MiniMeToken.at(getEventArgument(fundraisingReceipt, 'DeployToken', 'token', 0))
-        await loadDAO({ vault: !useAgentAsVault, agent: useAgentAsVault })
+        await loadDAO()
       })
     }
 
     context('when requesting a custom finance period', () => {
       const FINANCE_PERIOD = 60 * 60 * 24 * 15 // 15 days
 
-      // context('when requesting an agent app', () => {
-      //   const USE_AGENT_AS_VAULT = true
-
-      //   createDAO(USE_AGENT_AS_VAULT, FINANCE_PERIOD)
-      //   itCostsUpTo(4.4e6)
-      //   itSetupsDAOCorrectly(FINANCE_PERIOD)
-      //   itSetupsAgentAppCorrectly()
-      // })
-
-      context('when requesting a vault app', () => {
-        const USE_AGENT_AS_VAULT = false
-
-        createDAO(USE_AGENT_AS_VAULT, FINANCE_PERIOD)
-        itCostsUpTo(6.5e6)
-        itSetupsDAOCorrectly(FINANCE_PERIOD)
-        // itSetupsVaultAppCorrectly()
-      })
+      createDAO(FINANCE_PERIOD)
+      itCostsUpTo(6.5e6)
+      itSetupsDAOCorrectly(FINANCE_PERIOD)
     })
 
     context('when requesting a default finance period', () => {
       const FINANCE_PERIOD = 0 // use default
 
-      // context('when requesting an agent app', () => {
-      //   const USE_AGENT_AS_VAULT = true
-
-      //   createDAO(USE_AGENT_AS_VAULT, FINANCE_PERIOD)
-      //   itCostsUpTo(4.4e6)
-      //   itSetupsDAOCorrectly(FINANCE_PERIOD)
-      //   itSetupsAgentAppCorrectly()
-      // })
-
-      context('when requesting a vault app', () => {
-        const USE_AGENT_AS_VAULT = false
-
-        createDAO(USE_AGENT_AS_VAULT, FINANCE_PERIOD)
-        itCostsUpTo(6.6e6)
-        itSetupsDAOCorrectly(FINANCE_PERIOD)
-        // itSetupsVaultAppCorrectly()
-      })
+      createDAO(FINANCE_PERIOD)
+      itCostsUpTo(6.5e6)
+      itSetupsDAOCorrectly(FINANCE_PERIOD)
     })
   })
 })
