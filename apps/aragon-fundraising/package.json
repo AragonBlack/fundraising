@@ -25,8 +25,8 @@
     "apm:prepublish": "npm run compile",
     "apm:publish:rpc:minor": "aragon apm publish major --environment default",
     "apm:publish:rpc:patch": "aragon apm publish patch --environment default",
-    "apm:publish:rpc:major": "aragon apm publish major --environment default",
-    "publish": "npm run publish:rpc:major"
+    "apm:publish:rpc:major": "aragon apm publish major --environment default --skip-confirmation true --propagate-content false",
+    "publish": "npm run apm:publish:rpc:major"
   },
   "files": [
     "/abi",
