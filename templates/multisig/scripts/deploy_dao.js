@@ -24,6 +24,9 @@ const SHARE_SUPPORT_REQUIRED = 50e16
 const SHARE_MIN_ACCEPTANCE_QUORUM = 5e16
 const SHARE_VOTING_SETTINGS = [SHARE_SUPPORT_REQUIRED, SHARE_MIN_ACCEPTANCE_QUORUM, SHARE_VOTE_DURATION]
 
+const MAX_TAP_INCREASE_PCT = Math.pow(10, 17)
+
+const VIRTUAL_SUPPLIES = [Math.pow(10, 19), Math.pow(10, 18)]
 const VIRTUAL_BALANCES = [2 * Math.pow(10, 19), 2 * Math.pow(10, 18)]
 const TAPS = [20000, 5000]
 const FLOORS = [150, 750]
@@ -39,8 +42,8 @@ module.exports = async callback => {
 
     const template = await Template.at(process.argv[6])
     const receipt = await template.deployBaseInstance(BOARD_TOKEN_NAME, BOARD_TOKEN_SYMBOL, BOARD_MEMBERS, BOARD_VOTING_SETTINGS, 0)
-    await template.installFundraisingApps(ID, SHARE_TOKEN_NAME, SHARE_TOKEN_SYMBOL, SHARE_VOTING_SETTINGS)
-    await template.finalizeInstance(COLLATERALS, VIRTUAL_BALANCES, SLIPPAGES, TAPS, FLOORS)
+    await template.installFundraisingApps(ID, SHARE_TOKEN_NAME, SHARE_TOKEN_SYMBOL, SHARE_VOTING_SETTINGS, MAX_TAP_INCREASE_PCT)
+    await template.finalizeInstance(COLLATERALS, VIRTUAL_SUPPLIES, VIRTUAL_BALANCES, SLIPPAGES, TAPS, FLOORS)
     const dao = getEventArgument(receipt, 'DeployDao', 'dao')
 
     console.log('DAO deployed at ' + dao)
