@@ -59,10 +59,10 @@ export default ({ batches }) => {
         ) : (
           <div />
         )}
-        <div className="chart-view">
+        {/* <div className="chart-view">
           <p className="chart-view-text">Chart view</p>
           <DropDown items={items} selected={activeItem} onChange={index => setActiveItem(index)} />
-        </div>
+        </div> */}
       </div>
       {activeItem === 0 && (
         <ResponsiveContainer height={400}>

@@ -9,7 +9,7 @@ const Total = ({ isBuyOrder, collateral, token }) => {
       </div>
       <div css="width: 25%; display: flex; flex-direction: column; direction: rtl;">
         <Text weight="bold">{isBuyOrder ? collateral.value || 0 : token.value || 0}</Text>
-        <Text color="grey">{isBuyOrder ? token.value || 0 : collateral.value || 0}</Text>
+        <Text color="grey">{isBuyOrder ? token.value || 0 : collateral.value || 0}~</Text>
       </div>
       <div css="width: 25%; display: flex; flex-direction: column; margin-left: 1rem;">
         <Text weight="bold">{isBuyOrder ? collateral.symbol : token.symbol}</Text>

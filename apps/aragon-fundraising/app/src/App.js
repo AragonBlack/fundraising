@@ -26,7 +26,7 @@ const Presale = () => {
           <Layout>
             <AppHeader
               heading="Fundraising Presale"
-              action={
+              action1={
                 <Button mode="strong" label="Buy Presale Tokens" onClick={() => setOrderPanel(true)}>
                   Buy Presale Tokens
                 </Button>
@@ -132,7 +132,7 @@ const App = () => {
                   </Button>
                 }
                 action2={
-                  <Button mode="strong" label="New Order" onClick={() => setOrderPanel(true)}>
+                  <Button mode="strong" label="New Order" css="margin-left: 20px;" onClick={() => setOrderPanel(true)}>
                     New Order
                   </Button>
                 }

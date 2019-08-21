@@ -43,8 +43,10 @@ function AppHeader({ heading, action1, action2 }) {
             heading
           )}
         </div>
-        <div>{action1}</div>
-        <div>{action2}</div>
+        <div>
+          {action1}
+          {action2 && action2}
+        </div>
       </div>
     </div>
   )

@@ -5,8 +5,6 @@ import Total from './Total'
 import Info from './Info'
 import { round } from '../../lib/math-utils'
 
-import transferArrows from '../../assets/transferArrows.svg'
-
 const Order = ({ opened, isBuyOrder, collaterals, bondedToken, price, onOrder }) => {
   const [selectedCollateral, setSelectedCollateral] = useState(0)
   const [collateralAmount, setCollateralAmount] = useState(0)
@@ -63,51 +61,50 @@ const Order = ({ opened, isBuyOrder, collaterals, bondedToken, price, onOrder })
     if (valid) onOrder(collaterals[selectedCollateral].address, collateralAmount, isBuyOrder)
   }
 
-  const getInput = () => {
-    const inputs = [
-      <AmountField key="collateral">
-        <label>
-          <StyledTextBlock>COLLATERAL AMOUNT</StyledTextBlock>
-        </label>
-        <CombinedInput>
-          <TextInput
-            ref={collateralAmountInput}
-            type="number"
-            value={roundAmount(collateralAmount)}
-            onChange={handleCollateralAmountUpdate}
-            min={0}
-            step="any"
-            required
-            wide
-          />
-          <DropDown items={collateralSymbols} selected={selectedCollateral} onChange={setSelectedCollateral} />
-        </CombinedInput>
-      </AmountField>,
-      <AmountField key="token">
-        <label>
-          <StyledTextBlock>TOKEN AMOUNT</StyledTextBlock>
-        </label>
-        <CombinedInput>
-          <TextInput
-            ref={tokenAmountInput}
-            type="number"
-            value={roundAmount(tokenAmount)}
-            onChange={handleTokenAmountUpdate}
-            min={0}
-            step="any"
-            required
-            wide
-          />
-        </CombinedInput>
-      </AmountField>,
-    ]
-    return isBuyOrder ? inputs[0] : inputs[1]
-  }
-
   return (
     <form onSubmit={handleSubmit}>
       <Text as="p">Token price {roundAmount(price)} DAI</Text>
-      <InputsWrapper>{getInput()}</InputsWrapper>
+      <InputsWrapper>
+        {isBuyOrder && (
+          <AmountField key="collateral">
+            <label>
+              <StyledTextBlock>COLLATERAL AMOUNT</StyledTextBlock>
+            </label>
+            <CombinedInput>
+              <TextInput
+                ref={collateralAmountInput}
+                type="number"
+                value={roundAmount(collateralAmount)}
+                onChange={handleCollateralAmountUpdate}
+                min={0}
+                step="any"
+                required
+                wide
+              />
+              <DropDown items={collateralSymbols} selected={selectedCollateral} onChange={setSelectedCollateral} />
+            </CombinedInput>
+          </AmountField>
+        )}
+        {!isBuyOrder && (
+          <AmountField key="token">
+            <label>
+              <StyledTextBlock>TOKEN AMOUNT</StyledTextBlock>
+            </label>
+            <CombinedInput>
+              <TextInput
+                ref={tokenAmountInput}
+                type="number"
+                value={roundAmount(tokenAmount)}
+                onChange={handleTokenAmountUpdate}
+                min={0}
+                step="any"
+                required
+                wide
+              />
+            </CombinedInput>
+          </AmountField>
+        )}
+      </InputsWrapper>
       <Total
         isBuyOrder={isBuyOrder}
         collateral={{ value: roundAmount(collateralAmount), symbol: collateralSymbols[selectedCollateral] }}
