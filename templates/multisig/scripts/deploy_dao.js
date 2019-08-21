@@ -28,8 +28,8 @@ const MAX_TAP_INCREASE_PCT = Math.pow(10, 17)
 
 const VIRTUAL_SUPPLIES = [Math.pow(10, 19), Math.pow(10, 18)]
 const VIRTUAL_BALANCES = [2 * Math.pow(10, 19), 2 * Math.pow(10, 18)]
-const TAPS = [20000, 5000]
-const FLOORS = [150, 750]
+const TAPS = [5 * Math.pow(10, 15), 1]
+const FLOORS = [150, 0]
 const SLIPPAGES = [3 * Math.pow(10, 19), Math.pow(10, 18)]
 
 const ID = 'fundraising' + Math.random()

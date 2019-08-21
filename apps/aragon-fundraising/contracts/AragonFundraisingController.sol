@@ -125,39 +125,64 @@ contract AragonFundraisingController is EtherTokenConstant, IsContract, IMarketM
     }
 
     /**
-     * @notice Update tap for `_token.symbol(): string` to the pace of `@tokenAmount(_token, _tap)` per second
-     * @param _token Address of the token whose tap is to be updated
-     * @param _tap New tap to be applied to the token [in wei / second]
+     * @notice Update tap for `_token.symbol(): string` with a pace of about `@tokenAmount(_token, 4 * 60 * 24 * 30 * _tap)` per month and a floor of `@tokenAmount(_token, _floor)`
+     * @param _token The address of the token whose tap and floor are to be updated
+     * @param _tap The new tap to be applied to that token [in wei / block]
+     * @param _floor The new floor to be applied to that token
     */
     function updateTokenTap(address _token, uint256 _tap, uint256 _floor) external auth(UPDATE_TOKEN_TAP_ROLE) {
         tap.updateTappedToken(_token, _tap, _floor);
     }
 
     /**
-     * @notice Transfer about `@tokenAmount(_token, self.tap().getMaximalWithdrawal(_token))` from `self.tap().reserve()` to `self.tap().beneficiary()`
-     * @param _token The address of the token to be transfered from reserve to beneficiary
+     * @notice Transfer about `@tokenAmount(_token, self.getMaximumWithdrawal(_token): uint256)` from the reserve to the beneficiary
+     * @param _token The address of the token to be transfered from the reserve to the beneficiary
     */
     function withdraw(address _token) external auth(WITHDRAW_ROLE) {
         tap.withdraw(_token);
     }
 
+    /**
+     * @notice Open a buy order worth `@tokenAmount(_collateral, _value)`
+     * @param _collateral The address of the collateral token to be spent
+     * @param _value The amount of collateral token to be spent
+    */
     function openBuyOrder(address _collateral, uint256 _value) external payable auth(OPEN_BUY_ORDER_ROLE) {
         marketMaker.openBuyOrder.value(msg.value)(msg.sender, _collateral, _value);
     }
 
+    /**
+     * @notice Open a sell order worth `@tokenAmount(self.token(), _amount)`
+     * @param _collateral The address of the collateral token to be returned
+     * @param _amount The amount of bonded token to be spent
+    */
     function openSellOrder(address _collateral, uint256 _amount) external auth(OPEN_SELL_ORDER_ROLE) {
         marketMaker.openSellOrder(msg.sender, _collateral, _amount);
     }
 
+    /**
+     * @notice Return the results of `_collateral.symbol(): string` buy orders from batch #`_batchId`
+     * @param _batchId The id of the batch whose buy orders are to be claimed
+     * @param _collateral The address of the collateral token whose buy orders are to be claimed
+    */
     function claimBuyOrder(uint256 _batchId, address _collateral) external isInitialized {
         marketMaker.claimBuyOrder(msg.sender, _batchId, _collateral);
     }
 
+    /**
+     * @notice Return the results of `_collateral.symbol(): string` sell orders from batch #`_batchId`
+     * @param _batchId The id of the batch whose sell orders are to be claimed
+     * @param _collateral The address of the collateral token whose sell orders are to be claimed
+    */
     function claimSellOrder(uint256 _batchId, address _collateral) external isInitialized {
         marketMaker.claimSellOrder(msg.sender, _batchId, _collateral);
     }
 
     /***** public view functions *****/
+
+    function getMaximumWithdrawal(address _token) public view isInitialized returns (uint256) {
+        return tap.getMaximumWithdrawal(_token);
+    }
 
     function tokensToHold(address _token) public view isInitialized returns (uint256) {
         return marketMaker.collateralsToBeClaimed(_token);
