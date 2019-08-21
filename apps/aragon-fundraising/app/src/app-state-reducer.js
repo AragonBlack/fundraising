@@ -2,6 +2,7 @@ import { Order } from './constants'
 import mock from './bg_mock.json'
 import { ETHER_TOKEN_VERIFIED_BY_SYMBOL } from './lib/verified-tokens'
 import testTokens from '@aragon/templates-tokens'
+import BN from 'bn.js'
 
 /**
  * Checks whether we have enough data to start the fundraising app
@@ -105,7 +106,11 @@ const appStateReducer = state => {
       returns,
     } = state
     const daiAddress = Array.from(collateralTokens).find(t => t[1].symbol === 'DAI')[0]
+
     const tap = taps.get(daiAddress)
+    tap.allocation = new BN(tap.allocation)
+    tap.floor = new BN(tap.floor)
+
     const collateralsAreOk = checkCollaterals(collateralTokens, network)
     // common data
     const common = {

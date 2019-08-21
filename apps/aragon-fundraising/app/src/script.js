@@ -111,9 +111,8 @@ const initialize = async (poolAddress, tapAddress, marketMakerAddress) => {
         case 'RemoveCollateralToken':
           return removeCollateralToken(nextState, returnValues)
         case 'AddTappedToken':
-          return addTappedToken(nextState, returnValues)
         case 'UpdateTappedToken':
-          return updateTappedToken(nextState, returnValues, blockNumber)
+          return handleTappedToken(nextState, returnValues, blockNumber)
         case 'NewBuyOrder':
         case 'NewSellOrder':
           return newOrder(nextState, returnValues, blockNumber, transactionHash)
@@ -286,19 +285,10 @@ const removeCollateralToken = (state, { collateral }) => {
   return state
 }
 
-const addTappedToken = (state, { token, tap, floor }) => {
-  const taps = state.taps || new Map()
-  taps.set(token, { allocation: parseInt(tap, 10), floor })
-  return {
-    ...state,
-    taps,
-  }
-}
-
-const updateTappedToken = async (state, { token, tap, floor }, blockNumber) => {
+const handleTappedToken = async (state, { token, tap, floor }, blockNumber) => {
   const taps = state.taps || new Map()
   const timestamp = await loadTimestamp(blockNumber)
-  taps.set(token, { allocation: parseInt(tap, 10), floor, timestamp })
+  taps.set(token, { allocation: tap, floor, timestamp })
   return {
     ...state,
     taps,

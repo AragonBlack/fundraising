@@ -73,7 +73,7 @@ const augmentOrder = (order, returns, currentBatchId) => {
 }
 
 const App = () => {
-  const { isReady, common, overview, ordersView, reserve } = useAppState()
+  const { isReady, common, overview, ordersView, reserve, returns } = useAppState()
 
   const [orderPanel, setOrderPanel] = useState(false)
   const [tabIndex, setTabindex] = useState(0)
@@ -100,9 +100,9 @@ const App = () => {
 
   // update orders state when polledBatchId, ordersView or returns is changing
   useEffect(() => {
-    if (polledBatchId && ordersView) setAugmentedOrders(ordersView.map(o => augmentOrder(o, common.returns, polledBatchId)))
+    if (polledBatchId && ordersView) setAugmentedOrders(ordersView.map(o => augmentOrder(o, returns, polledBatchId)))
     else setAugmentedOrders(ordersView)
-  }, [polledBatchId, ordersView, common.returns])
+  }, [polledBatchId, ordersView, returns])
 
   const handlePlaceOrder = async (collateralTokenAddress, amount, isBuyOrder) => {
     const intent = { token: { address: collateralTokenAddress, value: amount, spender: common.addresses.marketMaker } }
