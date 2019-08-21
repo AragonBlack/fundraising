@@ -3,7 +3,8 @@ import styled from 'styled-components'
 import { Button, DropDown, Text, TextInput, theme, unselectable } from '@aragon/ui'
 import Total from './Total'
 import Info from './Info'
-import { round } from '../../lib/math-utils'
+import { round, toDecimals } from '../../lib/math-utils'
+import { formatDecimals } from '../../lib/utils'
 
 const Order = ({ opened, isBuyOrder, collaterals, bondedToken, price, onOrder }) => {
   const [selectedCollateral, setSelectedCollateral] = useState(0)
@@ -53,12 +54,23 @@ const Order = ({ opened, isBuyOrder, collaterals, bondedToken, price, onOrder })
   }
 
   const roundAmount = amount => {
-    return amount ? round(amount) : amount
+    return amount ? round(amount) : ''
   }
 
   const handleSubmit = event => {
     event.preventDefault()
-    if (valid) onOrder(collaterals[selectedCollateral].address, collateralAmount, isBuyOrder)
+
+    const collateral = collaterals[selectedCollateral]
+    const decimals = isBuyOrder ? collateral.decimals : bondedToken.decimals
+    const amount = isBuyOrder ? collateralAmount : tokenAmount
+    console.log(decimals)
+
+    console.log(collaterals[selectedCollateral])
+    console.log(bondedToken)
+    console.log('old amount: ' + amount)
+    console.log('new amount:' + toDecimals(amount, decimals))
+
+    if (valid) onOrder(collateral.address, toDecimals(amount, decimals), isBuyOrder)
   }
 
   return (
@@ -77,6 +89,7 @@ const Order = ({ opened, isBuyOrder, collaterals, bondedToken, price, onOrder })
                 value={roundAmount(collateralAmount)}
                 onChange={handleCollateralAmountUpdate}
                 min={0}
+                placeholder="0"
                 step="any"
                 required
                 wide
@@ -97,6 +110,7 @@ const Order = ({ opened, isBuyOrder, collaterals, bondedToken, price, onOrder })
                 value={roundAmount(tokenAmount)}
                 onChange={handleTokenAmountUpdate}
                 min={0}
+                placeholder="0"
                 step="any"
                 required
                 wide

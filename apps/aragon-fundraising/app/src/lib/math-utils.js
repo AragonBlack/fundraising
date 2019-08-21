@@ -87,3 +87,9 @@ export function toDecimals(num, decimals, { truncate = true } = {}) {
   }
   return wholeWithBase
 }
+
+export function toMonthlyAllocation(allocation, decimals, { truncate = true } = {}) {
+  allocation = Number(allocation) * 4 * 60 * 24 * 30
+
+  return fromDecimals(allocation.toString(), decimals, { truncate })
+}

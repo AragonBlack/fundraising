@@ -12,6 +12,7 @@ import Overview from './screens/Overview'
 import PresaleView from './screens/Presale'
 import { AppLogicProvider } from './app-logic'
 import { Order } from './constants'
+import CollateralError from './screens/CollateralError'
 import miniMeTokenAbi from './abi/MiniMeToken.json'
 import marketMaker from './abi/BatchedBancorMarketMaker.json'
 
@@ -203,7 +204,7 @@ const App = () => {
             </SidePanel>
           </Fragment>
         )}
-        {isReady && !common.collateralsAreOk && <h1>Something wrong with the collaterals</h1>}
+        {isReady && !common.collateralsAreOk && <CollateralError />}
       </Main>
     </div>
   )
