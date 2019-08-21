@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Badge, Box, Button, DiscButton, Text, TextInput, theme, SidePanel, unselectable } from '@aragon/ui'
+import { Badge, Box, Button, DiscButton, Text, TextInput, theme, SidePanel, unselectable, Info } from '@aragon/ui'
 import styled from 'styled-components'
 import { differenceInMonths } from 'date-fns'
 import EditIcon from '../assets/EditIcon.svg'
@@ -239,11 +239,6 @@ export default ({ bondedToken, reserve, polledData: { polledTotalSupply }, updat
         <div css="margin: 0 -30px 24px; border: 1px solid #DFE3E8;" />
         <form onSubmit={handleSubmit}>
           <Wrapper>
-            <Text as="p">You can increase the tap by {maximumTapIncreasePct * 100}%.</Text>
-            <Text as="p">Current monthly allocation: {allocation} DAI</Text>
-            <Text as="p">Current floor: {floor} DAI</Text>
-          </Wrapper>
-          <Wrapper>
             <label>
               <StyledTextBlock>Tap (DAI)</StyledTextBlock>
             </label>
@@ -261,6 +256,12 @@ export default ({ bondedToken, reserve, polledData: { polledTotalSupply }, updat
             </Button>
           </ButtonWrapper>
           {errorMessage && <ValidationError message={errorMessage} />}
+          <Info css="margin-top: 1rem;">
+            <p css="font-weight: 700;">Info</p>
+            <Text as="p">You can increase the tap by {maximumTapIncreasePct * 100}%.</Text>
+            <Text as="p">Current monthly allocation: {allocation} DAI</Text>
+            <Text as="p">Current floor: {floor} DAI</Text>
+          </Info>
         </form>
       </SidePanel>
     </ContentWrapper>
