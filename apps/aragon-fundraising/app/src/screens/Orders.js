@@ -15,16 +15,12 @@ import {
   IconEllipsis,
   shortenAddress,
 } from '@aragon/ui'
-import { format, subYears } from 'date-fns'
+import { format, subYears, endOfToday } from 'date-fns'
 import styled from 'styled-components'
 import DateRangeInput from '../components/DateRange/DateRangeInput'
 import ToggleFiltersButton from '../components/ToggleFiltersButton'
 import { Order } from '../constants'
 import { round } from '../lib/math-utils'
-
-const multiplyArray = (base, times) => {
-  return [...Array(times)].reduce(v => [...v, ...base], [])
-}
 
 const filter = (orders, state) => {
   const keys = Object.keys(state)
@@ -91,18 +87,19 @@ export default ({ orders }) => {
     price: { active: 0, payload: ['Default', 'Ascending', 'Descending'] },
     token: { active: 0, payload: getCollaterals(orders) },
     holder: { active: 0, payload: getHolders(orders) },
-    date: { payload: { start: subYears(new Date(), 1).getTime(), end: new Date().getTime() } },
+    date: { payload: { start: subYears(new Date(), 1).getTime(), end: endOfToday() } },
     showFilters: false,
   })
   const [page, setPage] = useState(0)
   const { name: layoutName } = useLayout()
+
   return (
     <ContentWrapper>
       <DataView
         page={page}
         onPageChange={setPage}
         fields={['Date', 'Address', 'Status', 'Order Amount', 'Token Price', 'Order Type', 'Tokens']}
-        entries={filter(multiplyArray(orders, 10), state)}
+        entries={filter(orders, state)}
         mode={layoutName !== 'large' ? 'list' : 'table'}
         heading={
           <div>

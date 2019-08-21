@@ -14,16 +14,12 @@ import {
   IconEllipsis,
   Button,
 } from '@aragon/ui'
-import { format, subYears } from 'date-fns'
+import { format, subYears, endOfToday } from 'date-fns'
 import styled from 'styled-components'
 import DateRangeInput from '../components/DateRange/DateRangeInput'
 import ToggleFiltersButton from '../components/ToggleFiltersButton'
 import { Order } from '../constants'
 import { round } from '../lib/math-utils'
-
-const multiplyArray = (base, times) => {
-  return [...Array(times)].reduce(v => [...v, ...base], [])
-}
 
 const filter = (orders, state) => {
   const keys = Object.keys(state)
@@ -78,12 +74,12 @@ const getIconState = state => {
 const getCollaterals = orders => ['All'].concat(Array.from(new Set(orders.map(o => o.symbol))))
 
 export default ({ orders, account, onClaim }) => {
-  const filteredOrders = orders.filter(({ address }) => address === account)
+  const filteredOrders = orders ? orders.filter(({ address }) => address === account) : []
   const [state, setState] = useState({
     order: { active: 0, payload: ['All', 'Buy', 'Sell'] },
     price: { active: 0, payload: ['Default', 'Ascending', 'Descending'] },
     token: { active: 0, payload: getCollaterals(filteredOrders) },
-    date: { payload: { start: subYears(new Date(), 1).getTime(), end: new Date().getTime() } },
+    date: { payload: { start: subYears(new Date(), 1).getTime(), end: endOfToday() } },
     showFilters: false,
   })
   const [page, setPage] = useState(0)
@@ -99,7 +95,7 @@ export default ({ orders, account, onClaim }) => {
         page={page}
         onPageChange={setPage}
         fields={['Date', 'Status', 'Order Amount', 'Token Price', 'Order Type', 'Tokens', 'Actions']}
-        entries={filter(multiplyArray(filteredOrders, 10), state)}
+        entries={filter(filteredOrders, state)}
         mode={layoutName !== 'large' ? 'list' : 'table'}
         heading={
           <div>
