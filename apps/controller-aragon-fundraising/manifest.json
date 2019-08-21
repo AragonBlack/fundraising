@@ -1,0 +1,12 @@
+{
+  "name": "Fundraising",
+  "description": "Raise funds through a DAICO scheme",
+  "icons": [
+    {
+      "src": "images/icon.svg",
+      "sizes": "192x192"
+    }
+  ],
+  "script": "/script.js",
+  "start_url": "/index.html"
+}

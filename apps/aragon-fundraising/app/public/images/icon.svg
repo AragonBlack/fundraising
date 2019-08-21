@@ -1,13 +1,17 @@
-<svg width="114" height="114" viewBox="0 0 114 114" fill="none" xmlns="http://www.w3.org/2000/svg">
-<rect width="114" height="114" rx="20" fill="url(#paint0_linear)"/>
-<path d="M78.0653 77.9636C66.5035 77.9636 57.1307 68.5916 57.1307 57.0305C57.1307 45.4695 66.5035 36.0974 78.0653 36.0974C89.6272 36.0974 99 45.4695 99 57.0305C99 68.5916 89.6272 77.9636 78.0653 77.9636Z" fill="white" fill-opacity="0.2" stroke="white" stroke-width="1.5"/>
-<path d="M35.9346 77.9636C24.3728 77.9636 15 68.5916 15 57.0305C15 45.4695 24.3728 36.0974 35.9346 36.0974C47.4965 36.0974 56.8693 45.4695 56.8693 57.0305C56.8693 68.5916 47.4965 77.9636 35.9346 77.9636Z" fill="white" fill-opacity="0.2" stroke="white" stroke-width="1.5"/>
-<path d="M56.966 56.8662C45.4041 56.8662 36.0314 47.4942 36.0314 35.9331C36.0314 24.3721 45.4041 15 56.966 15C68.5279 15 77.9006 24.3721 77.9006 35.9331C77.9006 47.4942 68.5279 56.8662 56.966 56.8662Z" fill="white" fill-opacity="0.2" stroke="white" stroke-width="1.5"/>
-<path d="M56.966 99.0008C45.4041 99.0008 36.0314 89.6287 36.0314 78.0677C36.0314 66.5066 45.4041 57.1345 56.966 57.1345C68.5279 57.1345 77.9006 66.5066 77.9006 78.0677C77.9006 89.6287 68.5279 99.0008 56.966 99.0008Z" fill="white" fill-opacity="0.2" stroke="white" stroke-width="1.5"/>
-<defs>
-<linearGradient id="paint0_linear" x1="-73.8073" y1="-59.5115" x2="107.304" y2="120.726" gradientUnits="userSpaceOnUse">
-<stop stop-color="#FF9372"/>
-<stop offset="1" stop-color="#FFD770"/>
-</linearGradient>
-</defs>
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="20px" height="20px" viewBox="0 0 20 20" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <!-- Generator: Sketch 52.4 (67378) - http://www.bohemiancoding.com/sketch -->
+    <title>icon</title>
+    <desc>Created with Sketch.</desc>
+    <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="icon" transform="translate(1.000000, 1.000000)" stroke="#8B9396">
+            <circle id="Oval" cx="9" cy="1.5" r="2"></circle>
+            <circle id="Oval" cx="1.5" cy="16.5" r="2"></circle>
+            <circle id="Oval" cx="16.5" cy="16.5" r="2"></circle>
+            <circle id="Oval" cx="9" cy="16.5" r="2"></circle>
+            <path d="M9,3.63601142 L9,14.2285379" id="Line" stroke-linecap="square"></path>
+            <polyline id="Line" stroke-linecap="square" points="9 8.25565865 1.5 10.1721134 1.5 14.1005302"></polyline>
+            <polyline id="Line" stroke-linecap="square" points="9 8.25565865 16.5 10.1781328 16.5 14.2285379"></polyline>
+        </g>
+    </g>
 </svg>

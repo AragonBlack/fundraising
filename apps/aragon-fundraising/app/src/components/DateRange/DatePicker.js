@@ -112,6 +112,16 @@ class DatePicker extends React.PureComponent {
             </DayView>
           ))}
         </MonthView>
+        {this.props.onApply && (
+          <div className="buttons">
+            <button className="clear-button" onClick={this.props.onClear}>
+              Clear
+            </button>
+            <button className="apply-button" onClick={this.props.onApply}>
+              Apply
+            </button>
+          </div>
+        )}
       </Container>
     )
   }
@@ -158,6 +168,32 @@ const Container = styled.div`
   border-radius: 3px;
   box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.06);
 
+  .buttons {
+    display: flex;
+    justify-content: space-between;
+    padding: 1rem 2rem;
+  }
+
+  .buttons button {
+    border-radius: 3px;
+    padding: 0.25rem 2rem;
+
+    &:hover {
+      cursor: pointer;
+    }
+  }
+
+  .clear-button {
+    border: 1px solid rgba(209, 209, 209, 0.75);
+    background: white;
+  }
+
+  .apply-button {
+    background: linear-gradient(166.65deg, #00c7e4 6.62%, #00efe2 122.8%, #00efe2 122.8%);
+    border: none;
+    color: white;
+  }
+
   ${props =>
     props.overlay &&
     css`
@@ -177,13 +213,14 @@ const Selector = styled.div`
 `
 
 const ArrowButton = styled(Button.Anchor)`
+  border: none;
+  box-shadow: none;
   font-size: 60%;
   color: ${theme.contentBorder};
 
   &:hover {
-    border: none;
-    box-shadow: none;
     color: inherit;
+    cursor: pointer;
   }
 `
 
@@ -211,7 +248,7 @@ const DayView = styled.li`
   ${props =>
     props.today &&
     css`
-      border: 1px solid ${mainColor};
+      border: 1px solid #01c8e4;
     `}
 
   ${props =>
@@ -225,8 +262,8 @@ const DayView = styled.li`
     props.selected &&
     css`
       &&& {
-        background: ${mainColor};
-        border-color: ${mainColor};
+        background: #01c8e4;
+        border-color: #01c8e4;
         color: ${theme.negativeText};
       }
     `}

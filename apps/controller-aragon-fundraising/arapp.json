@@ -1,0 +1,74 @@
+{
+  "status": "experimental",
+  "environments": {
+    "default": {
+      "registry": "0x5f6f7e8cc7346a11ca2def8f827b7a0b612c56a1",
+      "appName": "aragon-fundraising.aragonpm.eth",
+      "network": "rpc"
+    },
+    "rinkeby": {
+      "registry": "0x98Df287B6C145399Aaa709692c8D308357bC085D",
+      "appName": "aragon-fundraising.aragonpm.eth",
+      "network": "rinkeby"
+    },
+    "staging": {
+      "registry": "0xfe03625ea880a8cba336f9b5ad6e15b0a3b5a939",
+      "appName": "aragon-fundraising.aragonpm.eth",
+      "network": "rinkeby"
+    }
+  },
+  "roles": [
+    {
+      "name": "Update beneficiary address",
+      "id": "UPDATE_BENEFICIARY_ROLE",
+      "params": []
+    },
+    {
+      "name": "Update fees",
+      "id": "UPDATE_FEES_ROLE",
+      "params": []
+    },
+    {
+      "name": "Update maximum tap increase percentage",
+      "id": "UPDATE_MAXIMUM_TAP_INCREASE_PCT_ROLE",
+      "params": []
+    },
+    {
+      "name": "Add tokens as whitelisted collaterals",
+      "id": "ADD_COLLATERAL_TOKEN_ROLE",
+      "params": []
+    },
+    {
+      "name": "Remove tokens as whitelisted collaterals",
+      "id": "REMOVE_COLLATERAL_TOKEN_ROLE",
+      "params": []
+    },
+    {
+      "name": "Update collateral tokens collateralization settings",
+      "id": "UPDATE_COLLATERAL_TOKEN_ROLE",
+      "params": []
+    },
+    {
+      "name": "Update collateral tokens tap",
+      "id": "UPDATE_TOKEN_TAP_ROLE",
+      "params": []
+    },
+
+    {
+      "name": "Open buy orders",
+      "id": "OPEN_BUY_ORDER_ROLE",
+      "params": []
+    },
+    {
+      "name": "Open sell orders",
+      "id": "OPEN_SELL_ORDER_ROLE",
+      "params": []
+    },
+    {
+      "name": "Transfer funds from the reserve to the beneficiary",
+      "id": "WITHDRAW_ROLE",
+      "params": []
+    }
+  ],
+  "path": "contracts/AragonFundraisingController.sol"
+}

@@ -1,0 +1,173 @@
+{
+    "isReady": true,
+    "common": {
+        "connectedAccount": "0xb4124cEB3451635DAcedd11767f004d8a28c6eE7",
+        "beneficiary": "0x5196d818401D9676b63BC6e6b3AB22514f2B7f15",
+        "bondedToken": {
+            "address": "0xF4e416905b56164FBb033A604Fcd061ec683e13D",
+            "totalSupply": "1119",
+            "decimals": "18",
+            "name": "Bonds",
+            "symbol": "BONDS"
+        },
+        "addresses": {
+            "marketMaker": "0x57a1274d212061AA931556218b5163CCeA221d4A",
+            "tap": "0x1428A90BAedf3cF91Fa6111B8a10238CD846C7D7",
+            "pool": "0x66Ce0a3D69a17b08b08C76fFd311d61A1BB87A66"
+        },
+        "currentBatch": 92,
+        "daiAddress": "0x46d225Cc826CEFF508F6B463b1dA9aB91F8870Bc",
+        "collateralTokens": [
+            {
+                "address": "0x46d225Cc826CEFF508F6B463b1dA9aB91F8870Bc",
+                "symbol": "DAI",
+                "ratio": 0.1
+            },
+            {
+                "address": "0x46bC737df7f1B3a7436F942813498CBE041a6ea4",
+                "symbol": "ANT",
+                "ratio": 0.01
+            }
+        ],
+        "collateralsAreOk": true
+    },
+    "overview": {
+        "startPrice": 0.9999999999999996,
+        "batches": [
+            {
+                "id": 81,
+                "collateral": "0x46d225Cc826CEFF508F6B463b1dA9aB91F8870Bc",
+                "supply": "10000000000000000000",
+                "balance": "1000000000000000000",
+                "reserveRatio": "100000",
+                "timestamp": 1566224702000,
+                "startPrice": 1,
+                "buyPrice": 1.0008928571428573,
+                "sellPrice": null
+            },
+            {
+                "id": 84,
+                "collateral": "0x46d225Cc826CEFF508F6B463b1dA9aB91F8870Bc",
+                "supply": "10000000000000001120",
+                "balance": "1000000000000000000",
+                "reserveRatio": "100000",
+                "timestamp": 1566224703000,
+                "startPrice": 0.9999999999999998,
+                "buyPrice": 0,
+                "sellPrice": 0
+            },
+            {
+                "id": 87,
+                "collateral": "0x46bC737df7f1B3a7436F942813498CBE041a6ea4",
+                "supply": "100000000000000001120",
+                "balance": "1000000000000000000",
+                "reserveRatio": "10000",
+                "timestamp": 1566224703000,
+                "startPrice": 1,
+                "buyPrice": 1.001001001001001,
+                "sellPrice": null
+            },
+            {
+                "id": 90,
+                "collateral": "0x46d225Cc826CEFF508F6B463b1dA9aB91F8870Bc",
+                "supply": "10000000000000002119",
+                "balance": "1000000000000000000",
+                "reserveRatio": "100000",
+                "timestamp": 1566224704000,
+                "startPrice": 0.9999999999999998,
+                "buyPrice": 1.001001001001001,
+                "sellPrice": null
+            },
+            {
+                "id": 92,
+                "collateral": "0x46d225Cc826CEFF508F6B463b1dA9aB91F8870Bc",
+                "supply": "10000000000000003118",
+                "balance": "1000000000000000000",
+                "reserveRatio": "100000",
+                "timestamp": 1566224704000,
+                "startPrice": 0.9999999999999996,
+                "buyPrice": 1.001001001001001,
+                "sellPrice": null
+            }
+        ],
+        "reserve": "3121",
+        "tap": {
+            "allocation": 10000000000000000,
+            "floor": "0"
+        }
+    },
+    "ordersView": [
+        {
+            "transactionHash": "0x89b8cc1de0b4d3607cc1cde36da15696fd76712c55cf08e3da776ddcaeef3885",
+            "address": "0xb4124cEB3451635DAcedd11767f004d8a28c6eE7",
+            "amount": "1000",
+            "timestamp": 1566224704000,
+            "type": "BUY",
+            "symbol": "DAI",
+            "collateral": "0x46d225Cc826CEFF508F6B463b1dA9aB91F8870Bc",
+            "batchId": 92,
+            "price": 1.001001001001001,
+            "tokens": 998.9999999999999,
+            "state": "PENDING"
+        },
+        {
+            "transactionHash": "0x9497b4e685214067a678d7db2c3df0ad646ba069d2da943ad20c0793c4632602",
+            "address": "0xb4124cEB3451635DAcedd11767f004d8a28c6eE7",
+            "amount": "1000",
+            "timestamp": 1566224704000,
+            "type": "BUY",
+            "symbol": "DAI",
+            "collateral": "0x46d225Cc826CEFF508F6B463b1dA9aB91F8870Bc",
+            "batchId": 90,
+            "price": 1.001001001001001,
+            "tokens": 998.9999999999999,
+            "state": "RETURNED"
+        },
+        {
+            "transactionHash": "0x36bed8114bb799a451cabf7ce75ba0253c36982de8ded23ce7d7888f32fae035",
+            "address": "0xb4124cEB3451635DAcedd11767f004d8a28c6eE7",
+            "amount": "1000",
+            "timestamp": 1566224703000,
+            "type": "BUY",
+            "symbol": "ANT",
+            "collateral": "0x46bC737df7f1B3a7436F942813498CBE041a6ea4",
+            "batchId": 87,
+            "price": 1.001001001001001,
+            "tokens": 998.9999999999999,
+            "state": "RETURNED"
+        },
+        {
+            "transactionHash": "0x7e38b07c645a770eac919596f6d6c84e228fd49e171884eed260217ad812e845",
+            "address": "0xb4124cEB3451635DAcedd11767f004d8a28c6eE7",
+            "amount": "1000",
+            "timestamp": 1566224703000,
+            "type": "SELL",
+            "symbol": "DAI",
+            "collateral": "0x46d225Cc826CEFF508F6B463b1dA9aB91F8870Bc",
+            "batchId": 84,
+            "price": 0,
+            "tokens": 0,
+            "state": "RETURNED"
+        },
+        {
+            "transactionHash": "0x2d0066d456029fbe8efae4ade7d28d1f9b66e50d6b1fd486efd5eb7272be1485",
+            "address": "0xb4124cEB3451635DAcedd11767f004d8a28c6eE7",
+            "amount": "1121",
+            "timestamp": 1566224702000,
+            "type": "BUY",
+            "symbol": "DAI",
+            "collateral": "0x46d225Cc826CEFF508F6B463b1dA9aB91F8870Bc",
+            "batchId": 81,
+            "price": 1.0008928571428573,
+            "tokens": 1119.9999999999998,
+            "state": "RETURNED"
+        }
+    ],
+    "reserve": {
+        "tap": {
+            "allocation": 10000000000000000,
+            "floor": "0"
+        },
+        "maximumTapIncreasePct": 0.5
+    }
+}

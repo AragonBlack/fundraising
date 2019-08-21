@@ -54,16 +54,26 @@ class DateRangeInput extends React.PureComponent {
 
   handleClickOutside = event => {
     if (this.rootRef && !this.rootRef.contains(event.target)) {
-      this.setState({ showPicker: false }, () => {
-        const { startDate, endDate } = this.state
-        if (startDate && endDate) {
-          this.props.onChange({
-            start: startOfDay(startDate),
-            end: endOfDay(endDate),
-          })
-        }
+      this.setState({ showPicker: false })
+    }
+  }
+
+  handleApply = () => {
+    const { startDate, endDate } = this.state
+    if (startDate && endDate) {
+      this.props.onChange({
+        start: startOfDay(startDate),
+        end: endOfDay(endDate),
       })
     }
+  }
+
+  handleClear = () => {
+    this.setState({ startDate: new Date(), endDate: new Date() })
+    this.props.onChange({
+      start: startOfDay(new Date()),
+      end: endOfDay(new Date()),
+    })
   }
 
   handleSelectStartDate = date => {
@@ -88,15 +98,12 @@ class DateRangeInput extends React.PureComponent {
 
     const icon = showPicker || active ? <IconCalendarSelected /> : <IconCalendar />
     const value = this.formattedStartDate && this.formattedEndDate ? `${this.formattedStartDate} - ${this.formattedEndDate}` : ''
-    const placeholder = `${this.formattedStartDate ? this.formattedStartDate : DATE_PLACEHOLDER} - ${
-      this.formattedEndDate ? this.formattedEndDate : this.formattedStartDate ? DATE_PLACEHOLDER : formatDate(new Date(), this.props.format)
-    }`
-
+    const placeholder = `Start date - End date`
     return (
       <StyledContainer
         ref={el => (this.rootRef = el)}
         onClick={() => {
-          onClick()
+          onClick && onClick()
           this.setState({ showPicker: true })
         }}
       >
@@ -110,7 +117,15 @@ class DateRangeInput extends React.PureComponent {
               onSelect={this.handleSelectStartDate}
               overlay={false}
             />
-            <DatePicker key={`end-picker-${endDate}`} name="end-date-picker" currentDate={endDate} onSelect={this.handleSelectEndDate} overlay={false} />
+            <DatePicker
+              key={`end-picker-${endDate}`}
+              name="end-date-picker"
+              currentDate={endDate}
+              onSelect={this.handleSelectEndDate}
+              onApply={this.handleApply}
+              onClear={this.handleClear}
+              overlay={false}
+            />
           </StyledDatePickersContainer>
         )}
       </StyledContainer>
@@ -137,6 +152,9 @@ const StyledContainer = styled.div`
 const StyledTextInput = styled(TextInput)`
   width: 28ch;
   ${font({ monospace: true })};
+  &:hover {
+    cursor: pointer;
+  }
 `
 
 const StyledDatePickersContainer = styled.div`
@@ -145,6 +163,7 @@ const StyledDatePickersContainer = styled.div`
   border: 1px solid ${theme.contentBorder};
   border-radius: 3px;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+  background: white;
 
   > div {
     border: 0;
@@ -152,7 +171,7 @@ const StyledDatePickersContainer = styled.div`
   }
 
   ${breakpoint(
-    'medium',
+    'large',
     `
       display: flex;
       flex-direction: row;

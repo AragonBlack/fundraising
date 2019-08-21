@@ -1,4 +1,4 @@
-
+/**
  * Generic round function, see:
  *  - https://stackoverflow.com/a/18358056/1375656
  *  - https://stackoverflow.com/a/19722641/1375656

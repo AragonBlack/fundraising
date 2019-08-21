@@ -1,68 +1,37 @@
 import Aragon, { events } from '@aragon/api'
+import { zip } from 'rxjs'
 import { first } from 'rxjs/operators'
-import { of, zip } from 'rxjs'
-// import { getTestTokenAddresses } from './testnet'
-// import {
-//   ETHER_TOKEN_FAKE_ADDRESS,
-//   isTokenVerified,
-//   tokenDataFallback,
-//   getTokenSymbol,
-//   getTokenName,
-// } from './lib/token-utils'
-// import { addressesEqual } from './lib/web3-utils'
-// import tokenDecimalsAbi from './abi/token-decimals.json'
-// import tokenNameAbi from './abi/token-name.json'
-// import tokenSymbolAbi from './abi/token-symbol.json'
-// import vaultBalanceAbi from './abi/vault-balance.json'
-// import vaultGetInitializationBlockAbi from './abi/vault-getinitializationblock.json'
-// import vaultEventAbi from './abi/vault-events.json'
+// import { addressesEqual } from './utils/web3'
+import { tokenDataFallback, getTokenSymbol, getTokenName } from './lib/token-utils'
+import poolAbi from './abi/Pool.json'
+import tapAbi from './abi/Tap.json'
+import marketMakerAbi from './abi/BatchedBancorMarketMaker.json'
+import miniMeTokenAbi from './abi/MiniMeToken.json'
+import tokenDecimalsAbi from './abi/token-decimals.json'
+import tokenNameAbi from './abi/token-name.json'
+import tokenSymbolAbi from './abi/token-symbol.json'
+import { retryEvery } from './utils/bg-utils'
+import { Order } from './constants'
 
-// const tokenAbi = [].concat(tokenDecimalsAbi, tokenNameAbi, tokenSymbolAbi)
-// const vaultAbi = [].concat(vaultBalanceAbi, vaultGetInitializationBlockAbi, vaultEventAbi)
+// abis used to call decimals, name and symbol on a token
+const tokenAbi = [].concat(tokenDecimalsAbi, tokenNameAbi, tokenSymbolAbi)
 
-const TEST_TOKEN_ADDRESSES = []
+// Maps to maintain relationship between an address and a contract and its related data.
+// It avoids redundants calls to the blockchain
 const tokenContracts = new Map() // Addr -> External contract
 const tokenDecimals = new Map() // External contract -> decimals
 const tokenNames = new Map() // External contract -> name
 const tokenSymbols = new Map() // External contract -> symbol
 
-const ETH_CONTRACT = Symbol('ETH_CONTRACT')
-
+// bootstrap the Aragon API
 const app = new Aragon()
 
-/*
- * Calls `callback` exponentially, everytime `retry()` is called.
- *
- * Usage:
- *
- * retryEvery(retry => {
- *  // do something
- *
- *  if (condition) {
- *    // retry in 1, 2, 4, 8 seconds… as long as the condition passes.
- *    retry()
- *  }
- * }, 1000, 2)
- *
- */
-const retryEvery = (callback, initialRetryTimer = 1000, increaseFactor = 5) => {
-  const attempt = (retryTimer = initialRetryTimer) => {
-    // eslint-disable-next-line standard/no-callback-literal
-    callback(() => {
-      console.error(`Retrying in ${retryTimer / 1000}s...`)
-
-      // Exponentially backoff attempts
-      setTimeout(() => attempt(retryTimer * increaseFactor), retryTimer)
-    })
-  }
-  attempt()
-}
-
-const externals = zip(app.call('tap'), app.call('marketMaker'))
-// Get the token address to initialize ourselves
+// get the token address to initialize ourselves
+// TODO: add formula contract (abi and stuff)
+const externals = zip(app.call('reserve'), app.call('tap'), app.call('marketMaker'))
 retryEvery(retry => {
   externals.subscribe(
-    ([tapAddress, marketMakerAddress]) => initialize(tapAddress, marketMakerAddress),
+    ([poolAddress, tapAddress, marketMakerAddress]) => initialize(poolAddress, tapAddress, marketMakerAddress),
     err => {
       console.error('Could not start background script execution due to the contract not loading external contract addresses:', err)
       retry()
@@ -70,93 +39,179 @@ retryEvery(retry => {
   )
 })
 
-async function initialize(tapAddress, marketMakerAddress) {
-  // const vaultContract = app.external(vaultAddress, vaultAbi)
+const initialize = async (poolAddress, tapAddress, marketMakerAddress) => {
+  // get external smart contracts to listen to their events and interact with them
+  const marketMakerContract = app.external(marketMakerAddress, marketMakerAbi)
+  const tapContract = app.external(tapAddress, tapAbi)
+  const poolContract = app.external(poolAddress, poolAbi)
 
-  console.log('Initialize')
+  // preload bonded token contract
+  const bondedTokenAddress = await marketMakerContract.token().toPromise()
+  const bondedTokenContract = app.external(bondedTokenAddress, miniMeTokenAbi)
 
-  console.log(tapAddress)
-  console.log(marketMakerAddress)
-
+  // get network characteristics
   const network = await app
     .network()
     .pipe(first())
     .toPromise()
-  // TEST_TOKEN_ADDRESSES.push(...getTestTokenAddresses(network.type))
 
-  // Set up ETH placeholders
-  // tokenContracts.set(ethAddress, ETH_CONTRACT)
-  // tokenDecimals.set(ETH_CONTRACT, '18')
-  // tokenNames.set(ETH_CONTRACT, 'Ether')
-  // tokenSymbols.set(ETH_CONTRACT, 'ETH')
+  // some settings used by subsequent calls
+  const settings = {
+    network,
+    marketMaker: {
+      address: marketMakerAddress,
+      contract: marketMakerContract,
+    },
+    tap: {
+      address: tapAddress,
+      contract: tapContract,
+    },
+    pool: {
+      address: poolAddress,
+      contract: poolContract,
+    },
+    bondedToken: {
+      address: bondedTokenAddress,
+      contract: bondedTokenContract,
+    },
+  }
 
-  // const settings = {
-  //   network,
-  //   ethToken: {
-  //     address: ethAddress,
-  //   },
-  //   vault: {
-  //     address: vaultAddress,
-  //     contract: vaultContract,
-  //   },
-  // }
+  // init the aragon API store
+  // first param is a function handling blockchain events and updating the store'state accordingly
+  // second param is an object with a way to get the initial state (cached one, in the client's IndexedDB)
+  // and the external contracts on which we want to listen events
+  return app.store(
+    async (state, evt) => {
+      // prepare the next state from the current one
+      const nextState = {
+        ...state,
+      }
+      console.log('#########################')
+      console.log(evt.event)
+      console.log(evt)
+      console.log('#########################')
+      const { event, returnValues, blockNumber, transactionHash } = evt
+      switch (event) {
+        // handle account changes events
+        case events.ACCOUNTS_TRIGGER:
+          return updateConnectedAccount(nextState, returnValues)
+        // app is syncing
+        case events.SYNC_STATUS_SYNCING:
+          return { ...nextState, isSyncing: true }
+        // done syncing
+        case events.SYNC_STATUS_SYNCED:
+          return { ...nextState, isSyncing: false }
+        /***********************
+         * Fundraising events
+         ***********************/
+        case 'AddCollateralToken':
+          return addCollateralToken(nextState, returnValues, settings)
+        case 'UpdateCollateralToken':
+          return updateCollateralToken(nextState, returnValues, settings)
+        case 'RemoveCollateralToken':
+          return removeCollateralToken(nextState, returnValues)
+        case 'AddTappedToken':
+          return addTappedToken(nextState, returnValues)
+        case 'UpdateTappedToken':
+          return updateTappedToken(nextState, returnValues, blockNumber)
+        case 'NewBuyOrder':
+        case 'NewSellOrder':
+          return newOrder(nextState, returnValues, blockNumber, transactionHash)
+        case 'ReturnBuyOrder':
+        case 'ReturnSellOrder':
+          return newReturn(nextState, returnValues)
+        case 'NewBatch':
+          return newBatch(nextState, returnValues, blockNumber)
+        case 'UpdatePricing':
+          return updatePricing(nextState, returnValues)
+        default:
+          return nextState
+      }
+    },
+    {
+      init: initState(settings),
+      externals: [marketMakerContract, tapContract, poolContract].map(c => ({ contract: c })),
+    }
+  )
+}
 
-  // let vaultInitializationBlock
+/**
+ * Merges the initial state with the cached one (in the client's IndexedDB))
+ * @param {Object} settings - the settings needed to access external contracts data
+ * @returns {Object} a merged state between the cached one and data coming from external contracts
+ */
+const initState = settings => async cachedState => {
+  const newState = {
+    ...cachedState,
+    isSyncing: true,
+    connectedAccount: null,
+    addresses: {
+      marketMaker: settings.marketMaker.address,
+      tap: settings.tap.address,
+      pool: settings.pool.address,
+    },
+    network: settings.network,
+  }
+  const withTapData = await loadTapData(newState, settings)
+  const withPoolData = await loadPoolData(withTapData, settings)
+  const withMarketMakerData = await loadMarketMakerData(withPoolData, settings)
+  return withMarketMakerData
+}
 
-  // try {
-  //   vaultInitializationBlock = await settings.vault.contract.getInitializationBlock().toPromise()
-  // } catch (err) {
-  //   console.error("Could not get attached vault's initialization block:", err)
-  // }
+/**
+ * Loads relevant data related to the TAP smart contract
+ * @param {Object} state - the current store's state
+ * @param {Object} settings - the settings needed to access external contracts data
+ * @returns {Object} the current store's state augmented with the smart contract data
+ */
+const loadTapData = async (state, settings) => {
+  const maximumTapIncreasePct = await settings.tap.contract.maximumTapIncreasePct().toPromise()
+  const pctBase = await settings.tap.contract.PCT_BASE().toPromise()
+  return {
+    ...state,
+    beneficiary: await settings.tap.contract.beneficiary().toPromise(),
+    maximumTapIncreasePct: maximumTapIncreasePct / pctBase,
+  }
+}
 
-  // return app.store(
-  //   async (state, event) => {
-  //     const { vault } = settings
-  //     const { address: eventAddress, event: eventName } = event
-  //     const nextState = {
-  //       ...state,
-  //     }
+/**
+ * Loads relevant data related to the POOL smart contract
+ * @param {Object} state - the current store's state
+ * @param {Object} settings - the settings needed to access external contracts data
+ * @returns {Object} the current store's state augmented with the smart contract data
+ */
+const loadPoolData = async (state, settings) => {
+  return {
+    ...state,
+    // collateralTokensLength: await settings.pool.contract.collateralTokensLength().toPromise(),
+  }
+}
 
-  //     if (eventName === events.SYNC_STATUS_SYNCING) {
-  //       return { ...nextState, isSyncing: true }
-  //     } else if (eventName === events.SYNC_STATUS_SYNCED) {
-  //       return { ...nextState, isSyncing: false }
-  //     }
-
-  //     // Vault event
-  //     if (addressesEqual(eventAddress, vault.address)) {
-  //       return vaultLoadBalance(nextState, event, settings)
-  //     }
-
-  //     // Finance event
-  //     switch (eventName) {
-  //       case 'ChangePeriodDuration':
-  //         nextState.periodDuration = marshallDate(event.returnValues.newDuration)
-  //         return nextState
-  //       case 'NewPeriod':
-  //         return {
-  //           ...(await newPeriod(nextState, event, settings)),
-  //           // A new period is always started as part of the Finance app's initialization,
-  //           // so this is just a handy way to get information about the app we're running
-  //           // (e.g. its own address)
-  //           proxyAddress: eventAddress,
-  //         }
-  //       case 'NewTransaction':
-  //         return newTransaction(nextState, event, settings)
-  //       default:
-  //         return nextState
-  //     }
-  //   },
-  //   {
-  //     init: initializeState(settings),
-  //     externals: [
-  //       {
-  //         contract: settings.vault.contract,
-  //         initializationBlock: vaultInitializationBlock,
-  //       },
-  //     ],
-  //   }
-  // )
+/**
+ * Loads relevant data related to the MARKET MAKER smart contract
+ * @param {Object} state - the current store's state
+ * @param {Object} settings - the settings needed to access external contracts data
+ * @returns {Object} the current store's state augmented with the smart contract data
+ */
+const loadMarketMakerData = async (state, settings) => {
+  // loads data related to the bonded token
+  const [totalSupply, decimals, name, symbol] = await Promise.all([
+    settings.bondedToken.contract.totalSupply().toPromise(),
+    settings.bondedToken.contract.decimals().toPromise(),
+    settings.bondedToken.contract.name().toPromise(),
+    settings.bondedToken.contract.symbol().toPromise(),
+  ])
+  return {
+    ...state,
+    ppm: parseInt(await settings.marketMaker.contract.PPM().toPromise(), 10),
+    bondedToken: {
+      address: settings.bondedToken.address,
+      totalSupply,
+      decimals,
+      name,
+      symbol,
+    },
+  }
 }
 
 /***********************
@@ -165,71 +220,153 @@ async function initialize(tapAddress, marketMakerAddress) {
  *                     *
  ***********************/
 
-const initializeState = settings => async cachedState => {
-  const newState = {
-    ...cachedState,
-    isSyncing: true,
-    periodDuration: marshallDate(await app.call('getPeriodDuration').toPromise()),
-    vaultAddress: settings.vault.address,
-  }
-  const withTokenBalances = await loadTokenBalances(newState, settings)
-  const withTestnetState = await loadTestnetState(withTokenBalances, settings)
-  const withEthBalance = await loadEthBalance(withTestnetState, settings)
-
-  return withEthBalance
-}
-
-async function loadTokenBalances(state, settings) {
-  let newState = {
-    ...state,
-  }
-  if (!newState.balances) {
-    return newState
-  }
-
-  const addresses = newState.balances.map(({ address }) => address)
-  for (const address of addresses) {
-    newState = {
-      ...newState,
-      balances: await updateBalances(newState, address, settings),
-    }
-  }
-  return newState
-}
-
-async function vaultLoadBalance(state, { returnValues: { token } }, settings) {
+const updateConnectedAccount = (state, { account }) => {
+  // TODO: handle account change ?
   return {
     ...state,
-    balances: await updateBalances(state, token || settings.ethToken.address, settings),
+    connectedAccount: account,
   }
 }
 
-async function newPeriod(state, { returnValues: { periodId, periodStarts, periodEnds } }) {
+const addCollateralToken = async (state, { collateral, reserveRatio, slippage, virtualBalance, virtualSupply }, settings) => {
+  const collateralTokens = state.collateralTokens || new Map()
+
+  // find the corresponding contract in the in memory map or get the external
+  const tokenContract = tokenContracts.has(collateral) ? tokenContracts.get(collateral) : app.external(collateral, tokenAbi)
+  tokenContracts.set(collateral, tokenContract)
+
+  // loads data related to the collateral token
+  const [balance, decimals, name, symbol] = await Promise.all([
+    loadTokenBalance(collateral, settings),
+    loadTokenDecimals(tokenContract, collateral, settings),
+    loadTokenName(tokenContract, collateral, settings),
+    loadTokenSymbol(tokenContract, collateral, settings),
+  ])
+  collateralTokens.set(collateral, {
+    balance,
+    decimals,
+    name,
+    symbol,
+    virtualSupply,
+    virtualBalance,
+    reserveRatio,
+    slippage,
+  })
+
   return {
     ...state,
-    periods: await updatePeriods(state, {
-      id: periodId,
-      startTime: marshallDate(periodStarts),
-      endTime: marshallDate(periodEnds),
-    }),
+    collateralTokens,
   }
 }
 
-async function newTransaction(state, { transactionHash, returnValues: { reference, transactionId } }, settings) {
-  const transactionDetails = {
-    ...(await loadTransactionDetails(transactionId)),
-    reference,
+const updateCollateralToken = (state, { collateral, reserveRatio, slippage, virtualBalance, virtualSupply }, settings) => {
+  if (state.collateralTokens.has(collateral)) {
+    // TODO: update balance ? why not using addCollateralToken (same as AddTappedToken and UpdateTappedToken)
+    // update the collateral token
+    state.collateralTokens.set(collateral, {
+      ...state.collateralTokens.get(collateral),
+      virtualSupply,
+      virtualBalance,
+      reserveRatio,
+      slippage,
+    })
+  } else console.error('Collateral not found!')
+  return state
+}
+
+const removeCollateralToken = (state, { collateral }) => {
+  // find the corresponding contract in the in memory map or get the external
+  const tokenContract = tokenContracts.has(collateral) ? tokenContracts.get(collateral) : app.external(collateral, tokenAbi)
+  // remove all data related to this token
+  tokenContracts.delete(collateral)
+  tokenDecimals.delete(tokenContract)
+  tokenNames.delete(tokenContract)
+  tokenSymbols.delete(tokenContract)
+  state.collateralTokens.delete(collateral)
+  return state
+}
+
+const addTappedToken = (state, { token, tap, floor }) => {
+  const taps = state.taps || new Map()
+  taps.set(token, { allocation: parseInt(tap, 10), floor })
+  return {
+    ...state,
+    taps,
+  }
+}
+
+const updateTappedToken = async (state, { token, tap, floor }, blockNumber) => {
+  const taps = state.taps || new Map()
+  const timestamp = await loadTimestamp(blockNumber)
+  taps.set(token, { allocation: parseInt(tap, 10), floor, timestamp })
+  return {
+    ...state,
+    taps,
+  }
+}
+
+// TODO: amount or value? standardize it between buy and sell events?
+const newOrder = async (state, { buyer, seller, collateral, batchId, value, amount }, blockNumber, transactionHash) => {
+  const orders = state.orders || []
+  const timestamp = await loadTimestamp(blockNumber)
+  orders.push({
+    address: buyer || seller,
+    collateral,
+    amount: value || amount,
+    batchId: parseInt(batchId, 10),
+    timestamp,
+    type: buyer ? Order.Type.BUY : Order.Type.SELL,
     transactionHash,
-    id: transactionId,
-  }
-  const transactions = await updateTransactions(state, transactionDetails)
-  const balances = await updateBalances(state, transactionDetails.token, settings)
-
+  })
   return {
     ...state,
-    balances,
-    transactions,
+    orders,
   }
+}
+
+const newReturn = (state, { buyer, seller, collateral, batchId, value, amount }) => {
+  const returns = state.returns || []
+  returns.push({
+    address: buyer || seller,
+    collateral,
+    amount: value || amount,
+    batchId: parseInt(batchId, 10),
+    type: buyer ? Order.Type.BUY : Order.Type.SELL,
+  })
+  return {
+    ...state,
+    returns,
+  }
+}
+
+const newBatch = async (state, { id, collateral, supply, balance, reserveRatio }, blockNumber) => {
+  const batches = state.batches || []
+  const timestamp = await loadTimestamp(blockNumber)
+  const startPrice = (balance * state.ppm) / (supply * reserveRatio)
+  batches.push({
+    id: parseInt(id, 10),
+    collateral,
+    supply,
+    balance,
+    reserveRatio,
+    timestamp,
+    startPrice,
+  })
+  const currentBatch = parseInt(id, 10)
+  return {
+    ...state,
+    batches,
+    currentBatch,
+  }
+}
+
+const updatePricing = (state, { batchId, collateral, totalBuyReturn, totalBuySpend, totalSellReturn, totalSellSpend }) => {
+  const batch = state.batches.find(b => b.id === parseInt(batchId, 10) && b.collateral === collateral)
+  if (batch) {
+    batch.buyPrice = totalBuySpend / totalBuyReturn
+    batch.sellPrice = totalSellReturn / totalSellSpend
+  }
+  return state
 }
 
 /***********************
@@ -238,75 +375,24 @@ async function newTransaction(state, { transactionHash, returnValues: { referenc
  *                     *
  ***********************/
 
-async function updateBalances({ balances = [] }, tokenAddress, settings) {
-  const tokenContract = tokenContracts.has(tokenAddress) ? tokenContracts.get(tokenAddress) : app.external(tokenAddress, tokenAbi)
-  tokenContracts.set(tokenAddress, tokenContract)
-
-  const balancesIndex = balances.findIndex(({ address }) => addressesEqual(address, tokenAddress))
-  if (balancesIndex === -1) {
-    return balances.concat(await newBalanceEntry(tokenContract, tokenAddress, settings))
-  } else {
-    const newBalances = Array.from(balances)
-    newBalances[balancesIndex] = {
-      ...balances[balancesIndex],
-      amount: await loadTokenBalance(tokenAddress, settings),
-    }
-    return newBalances
-  }
+/**
+ * Get the current balance of a given token address
+ * @param {String} tokenAddress - the given token address
+ * @param {Object} settings - the settings where the pool contract is
+ * @returns {String} a promise that resolves the balance
+ */
+const loadTokenBalance = (tokenAddress, { pool }) => {
+  return pool.contract.balance(tokenAddress).toPromise()
 }
 
-function updatePeriods({ periods = [] }, periodDetails) {
-  const periodsIndex = periods.findIndex(({ id }) => id === periodDetails.id)
-  if (periodsIndex === -1) {
-    return periods.concat(periodDetails)
-  } else {
-    const newPeriods = Array.from(periods)
-    newPeriods[periodsIndex] = periodDetails
-    return newPeriods
-  }
-}
-
-function updateTransactions({ transactions = [] }, transactionDetails) {
-  const transactionsIndex = transactions.findIndex(({ id }) => id === transactionDetails.id)
-  if (transactionsIndex === -1) {
-    return transactions.concat(transactionDetails)
-  } else {
-    const newTransactions = Array.from(transactions)
-    newTransactions[transactionsIndex] = transactionDetails
-    return newTransactions
-  }
-}
-
-async function newBalanceEntry(tokenContract, tokenAddress, settings) {
-  const [balance, decimals, name, symbol] = await Promise.all([
-    loadTokenBalance(tokenAddress, settings),
-    loadTokenDecimals(tokenContract, tokenAddress, settings),
-    loadTokenName(tokenContract, tokenAddress, settings),
-    loadTokenSymbol(tokenContract, tokenAddress, settings),
-  ])
-
-  return {
-    decimals,
-    name,
-    symbol,
-    address: tokenAddress,
-    amount: balance,
-    verified: isTokenVerified(tokenAddress, settings.network.type) || addressesEqual(tokenAddress, settings.ethToken.address),
-  }
-}
-
-async function loadEthBalance(state, settings) {
-  return {
-    ...state,
-    balances: await updateBalances(state, settings.ethToken.address, settings),
-  }
-}
-
-function loadTokenBalance(tokenAddress, { vault }) {
-  return vault.contract.balance(tokenAddress).toPromise()
-}
-
-async function loadTokenDecimals(tokenContract, tokenAddress, { network }) {
+/**
+ * Get the decimals of a given token contract
+ * @param {String} tokenContract - token contract
+ * @param {String} tokenAddress - token address
+ * @param {Object} settings - settings object where the network details are
+ * @returns {String} the decimals or a fallback (decimals are optional)
+ */
+const loadTokenDecimals = async (tokenContract, tokenAddress, { network }) => {
   if (tokenDecimals.has(tokenContract)) {
     return tokenDecimals.get(tokenContract)
   }
@@ -324,7 +410,14 @@ async function loadTokenDecimals(tokenContract, tokenAddress, { network }) {
   return decimals
 }
 
-async function loadTokenName(tokenContract, tokenAddress, { network }) {
+/**
+ * Get the name of a given token contract
+ * @param {String} tokenContract - token contract
+ * @param {String} tokenAddress - token address
+ * @param {Object} settings - settings object where the network details are
+ * @returns {String} the name or a fallback (name is optional)
+ */
+const loadTokenName = async (tokenContract, tokenAddress, { network }) => {
   if (tokenNames.has(tokenContract)) {
     return tokenNames.get(tokenContract)
   }
@@ -341,7 +434,14 @@ async function loadTokenName(tokenContract, tokenAddress, { network }) {
   return name
 }
 
-async function loadTokenSymbol(tokenContract, tokenAddress, { network }) {
+/**
+ * Get the symbol of a given token contract
+ * @param {String} tokenContract - token contract
+ * @param {String} tokenAddress - token address
+ * @param {Object} settings - settings object where the network details are
+ * @returns {String} the symbol or a fallback (symbol is optional)
+ */
+const loadTokenSymbol = async (tokenContract, tokenAddress, { network }) => {
   if (tokenSymbols.has(tokenContract)) {
     return tokenSymbols.get(tokenContract)
   }
@@ -358,46 +458,12 @@ async function loadTokenSymbol(tokenContract, tokenAddress, { network }) {
   return symbol
 }
 
-async function loadTransactionDetails(id) {
-  return marshallTransactionDetails(await app.call('getTransaction', id).toPromise())
-}
-
-function marshallTransactionDetails({ amount, date, entity, isIncoming, paymentId, periodId, token }) {
-  return {
-    amount,
-    entity,
-    isIncoming,
-    paymentId,
-    periodId,
-    token,
-    date: marshallDate(date),
-  }
-}
-
-function marshallDate(date) {
-  // Represent dates as real numbers, as it's very unlikely they'll hit the limit...
-  // Adjust for js time (in ms vs s)
-  return parseInt(date, 10) * 1000
-}
-
-/**********************
- *                    *
- * RINKEBY TEST STATE *
- *                    *
- **********************/
-
-function loadTestnetState(nextState, settings) {
-  // Reload all the test tokens' balances for this DAO's vault
-  return loadTestnetTokenBalances(nextState, settings)
-}
-
-async function loadTestnetTokenBalances(nextState, settings) {
-  let reducedState = nextState
-  for (const tokenAddress of TEST_TOKEN_ADDRESSES) {
-    reducedState = {
-      ...reducedState,
-      balances: await updateBalances(reducedState, tokenAddress, settings),
-    }
-  }
-  return reducedState
+/**
+ * Gets the timestamp of the given block
+ * @param {String} blockNumber - the block number of which we want the timestamp
+ * @returns {Number} the timestamp of the given block in ms
+ */
+const loadTimestamp = async blockNumber => {
+  const block = await app.web3Eth('getBlock', blockNumber).toPromise()
+  return parseInt(block.timestamp, 10) * 1000 // in ms
 }

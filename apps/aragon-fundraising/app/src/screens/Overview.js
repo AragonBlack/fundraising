@@ -1,93 +1,87 @@
-import { Text } from '@aragon/ui'
-import BN from 'bignumber.js'
-import React, { useEffect, useState } from 'react'
+import React from 'react'
 import styled from 'styled-components'
-import antImage from '../assets/ant.png'
-import daiImage from '../assets/dai.png'
+import { Box } from '@aragon/ui'
+import BN from 'bn.js'
 import Chart from '../components/Chart'
+import { round } from '../lib/math-utils'
 
-const CONVERT_API_BASE = 'https://min-api.cryptocompare.com/data'
-
-const convertApiUrl = symbols => `${CONVERT_API_BASE}/price?fsym=USD&tsyms=${symbols.join(',')}`
-
-const formatCollateral = amount => new BN(amount).toFormat(0)
-
-const convertToUSD = (collateral, rate) => new BN(collateral).div(new BN(rate)).toFormat(2)
-
-export default () => {
-  const [state, setState] = useState({
-    daiCollateral: 103039,
-    antCollateral: 60421,
-    daiRate: 0,
-    antRate: 0,
-  })
-  const { daiCollateral, daiRate, antCollateral, antRate } = state
-  useEffect(() => {
-    async function getRates() {
-      const res = await fetch(convertApiUrl(['DAI', 'ANT']))
-      const rates = await res.json()
-      setState({ ...state, daiRate: rates['DAI'], antRate: rates['ANT'] })
-    }
-    getRates()
-
-    const id = setInterval(getRates, 10000)
-    return () => clearInterval(id)
-  }, [])
+export default ({ overview, bondedToken, currentBatch, polledData: { polledTotalSupply, polledBatchId } }) => {
+  const {
+    startPrice,
+    reserve,
+    tap: { allocation },
+    batches,
+  } = overview
+  const marketCap = round(startPrice * (polledTotalSupply || bondedToken.totalSupply), 3)
+  let price
+  if (polledBatchId && polledBatchId > currentBatch) {
+    // last batch is over, next batch will start with the last price of the last batch
+    // TODO: take buyPrice or sellPrice ?? change the following
+    price = startPrice
+  } else price = startPrice
   return (
-    <ContentWrapper>
-      <TokenBalances>
-        <h1 className="title">
-          <Text>Token balances</Text>
-        </h1>
+    <div>
+      <KeyMetrics heading="Key metrics" padding={false}>
         <ul>
           <li>
-            <p className="title">Bonded token supply</p>
-            <p className="number">210</p>
-            <p className="sub-number">$185,220</p>
-          </li>
-          <li>
-            <div className="title">
-              <img src={daiImage} />
-              <p>DAI Collateral</p>
+            <div>
+              <p className="title">Price</p>
+              <p className="number">${round(price, 3)}</p>
             </div>
-            <p className="number">{formatCollateral(daiCollateral)}</p>
-            <p className="sub-number">$103,039</p>
+            {/* <p className="sub-number green">+$4.82 (0.5%)</p> */}
           </li>
           <li>
-            <div className="title">
-              <img src={antImage} />
-              <p>ANT Collateral</p>
+            <div>
+              <p className="title">Market Cap</p>
+              <p className="number">${marketCap}</p>
             </div>
-            <p className="number">{formatCollateral(antCollateral)}</p>
-            <p className="sub-number">$82,181</p>
+            {/* <p className="sub-number green">+$4.82M</p> */}
           </li>
           <li>
-            <p className="title">Total balance USD</p>
-            <p className="number">$185,220</p>
-            <p className="sub-number">210 bonded tokens</p>
+            <div>
+              <p className="title">Trading Volume</p>
+              <p className="number">$1.5 M</p>
+            </div>
+            {/* <p className="sub-number green">$48M (Y)</p> */}
           </li>
           <li>
-            <p className="title">Tap rate</p>
-            <p className="number">$18,522</p>
-            <p className="sub-number">10%</p>
+            <div>
+              <p className="title">Token Supply</p>
+              <p className="number">{round(polledTotalSupply || bondedToken.totalSupply, 3)}</p>
+            </div>
+            {/* <p className="sub-number red">-$23.82 (0.5%)</p> */}
+          </li>
+          <li>
+            <div>
+              <p className="title">Reserves</p>
+              <p className="number">{reserve}</p>
+            </div>
+            {/* <p className="sub-number red">-$0.82M</p> */}
+          </li>
+          <li>
+            <div>
+              <p className="title">Monthly Allowance</p>
+              <p className="number">{allocation}</p>
+            </div>
+            {/* <p className="sub-number green">$48M (Y)</p> */}
           </li>
         </ul>
-      </TokenBalances>
-      <Chart />
-    </ContentWrapper>
+      </KeyMetrics>
+      <Chart batches={batches} />
+    </div>
   )
 }
 
-const ContentWrapper = styled.div`
-  padding: 2rem;
+const KeyMetrics = styled(Box)`
+  margin-bottom: 1rem;
 
-  @media only screen and (max-width: 700px) {
-    padding: 0;
+  .green {
+    color: #2cc68f;
   }
-`
 
-const TokenBalances = styled.div`
-  margin-bottom: 2rem;
+  .red {
+    color: #fb7777;
+  }
 
   .title {
     margin-bottom: 1rem;
@@ -97,12 +91,10 @@ const TokenBalances = styled.div`
   ul {
     display: flex;
     justify-content: space-between;
-    padding: 2rem;
     background: #fff;
-    border: 1px solid rgba(209, 209, 209, 0.5);
     box-sizing: border-box;
     border-radius: 3px;
-    box-shadow: 0px 6px 14px rgba(0, 0, 0, 0.06);
+    padding: 1rem;
   }
 
   li {
@@ -116,25 +108,25 @@ const TokenBalances = styled.div`
 
     .title {
       display: flex;
-      font-weight: 600;
-      color: #6d777b;
-      text-transform: uppercase;
-      opacity: 0.7;
+      font-size: 16px;
+      font-weight: 300;
+      color: #637381;
       white-space: nowrap;
+      margin-bottom: 0.75rem;
     }
 
     .number {
-      margin: 0.75rem 0;
-      font-size: 32px;
+      margin-bottom: 1rem;
+      font-size: 26px;
       line-height: 24px;
     }
 
     .sub-number {
-      color: #b5b5b5;
+      font-size: 16px;
     }
   }
 
-  @media only screen and (max-width: 1000px) {
+  @media only screen and (max-width: 1152px) {
     ul {
       display: flex;
       flex-direction: column;
@@ -142,18 +134,19 @@ const TokenBalances = styled.div`
     }
 
     li {
-      padding: 2rem;
-      border-bottom: 1px solid rgba(209, 209, 209, 0.5);
-    }
-  }
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem;
+      border-bottom: 1px solid #dde4e9;
 
-  @media only screen and (max-width: 700px) {
-    .title {
-      margin: 1.5rem;
+      .number {
+        margin-bottom: 0;
+      }
     }
 
-    li .title {
-      margin-left: 0;
+    li:last-child {
+      border-bottom: none;
     }
   }
 `

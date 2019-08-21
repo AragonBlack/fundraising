@@ -1,145 +1,165 @@
-import { useAragonApi } from '@aragon/api-react'
-import { AppBar, AppView, Button, Main, TabBar, useViewport, Viewport } from '@aragon/ui'
-import React, { useState } from 'react'
-import styled from 'styled-components'
-import MenuButton from './components/MenuButton'
-import TabMenuButton from './components/TabMenuButton'
-import NewOrderSidePanel from './components/NewOrderSidePanel'
-import MyOrders from './screens/MyOrders'
+import React, { Fragment, useState } from 'react'
+import { useApi } from '@aragon/api-react'
+import { Layout, Tabs, Button, Main, SidePanel, SyncIndicator } from '@aragon/ui'
+import { useInterval } from './utils/use-interval'
+import AppHeader from './components/AppHeader/AppHeader'
+import NewOrder from './components/NewOrder'
+import PresaleSidePanel from './components/PresaleSidePanel'
+import Reserves from './screens/Reserves'
 import Orders from './screens/Orders'
+import MyOrders from './screens/MyOrders'
 import Overview from './screens/Overview'
+import PresaleView from './screens/Presale'
+import { AppLogicProvider, useAppLogic } from './app-logic'
+import miniMeTokenAbi from './abi/MiniMeToken.json'
+import marketMaker from './abi/BatchedBancorMarketMaker.json'
 
-const tabs = ['Overview', 'Buys / Sells', 'My Orders', 'Settings']
+const isPresale = false
 
-const App = () => {
-  const [state, setState] = useState({
-    amount: '',
-    token: '',
-    tabIndex: 0,
-    displaySidePanel: false,
-    showTab: false,
-  })
-  const { requestMenu, displayMenuButton } = useAragonApi()
-  const { below } = useViewport()
-  const { tabIndex, displaySidePanel, amount, token, showTab } = state
-  const currentTab = tabs[tabIndex]
+const Presale = () => {
+  const [orderPanel, setOrderPanel] = useState(false)
 
   return (
     <div css="min-width: 320px">
-      <Main>
-        <AppView
-          title="Aragon Fundraising"
-          padding={0}
-          css={`
-            background-color: white;
-          `}
-          appBar={
-            <NavBar>
-              <AppBar>
-                <AppBarContainer style={{ paddingLeft: displayMenuButton ? '0px' : '30px' }}>
-                  <Title>
-                    {displayMenuButton && <MenuButton onClick={requestMenu} />}
-                    <TitleLabel>Aragon Fundraising</TitleLabel>
-                  </Title>
-                  <NewOrder>
-                    <Button mode="strong" style={{ width: '140px' }} onClick={() => setState({ ...state, displaySidePanel: true })}>
-                      New Order
-                    </Button>
-                  </NewOrder>
-                </AppBarContainer>
-              </AppBar>
-
-              <Viewport>
-                {({ below }) => (
-                  <div>
-                    {below('small') && <TabMenuButton onClick={() => setState({ ...state, showTab: !showTab })} />}
-                    <div
-                      css={
-                        below('small') &&
-                        !showTab &&
-                        `
-                          overflow: hidden;
-                          height: 0;
-                        `
-                      }
-                    >
-                      <TabBar items={tabs} selected={tabIndex} onChange={tabIndex => setState({ ...state, tabIndex })} />
-                    </div>
-                  </div>
-                )}
-              </Viewport>
-            </NavBar>
-          }
-        >
-          {currentTab === 'Overview' && <Overview />}
-          {currentTab === 'Buys / Sells' && <Orders />}
-          {currentTab === 'My Orders' && <MyOrders />}
-        </AppView>
+      <Main assetsUrl="./">
+        <Fragment>
+          <Layout>
+            <AppHeader
+              heading="Fundraising Presale"
+              action={
+                <Button mode="strong" label="Buy Presale Tokens" onClick={() => setOrderPanel(true)}>
+                  Buy Presale Tokens
+                </Button>
+              }
+            />
+            <PresaleView />
+          </Layout>
+          <PresaleSidePanel price={300.0} opened={orderPanel} onClose={() => setOrderPanel(false)} />
+        </Fragment>
       </Main>
-      <NewOrderSidePanel
-        amount={amount}
-        token={token}
-        price={'300.00'}
-        opened={displaySidePanel}
-        onClose={() => setState({ ...state, displaySidePanel: false })}
-        onSubmit={() => console.log('Handle submit')}
-      />
     </div>
   )
 }
 
-const NewOrder = styled.h1`
-  display: block;
-  padding: 0 30px;
-  justify-content:center;
-`
+const tabs = ['Overview', 'Orders', 'My Orders', 'Reserve Settings']
 
-const NavBar = styled.div`
-  background-color: #ffffff;
+const App = () => {
+  const { isReady, common, overview, ordersView, reserve } = useAppLogic()
 
-  span {
-    white-space: nowrap;
+  const [orderPanel, setOrderPanel] = useState(false)
+  const [tabIndex, setTabindex] = useState(0)
+
+  const api = useApi()
+
+  const [polledTotalSupply, setPolledTotalSupply] = useState(null)
+  const [polledBatchId, setPolledBatchId] = useState(null)
+
+  // polls the bonded token total supply, batchId, price
+  useInterval(async () => {
+    if (isReady) {
+      // totalSupply
+      const bondedTokenContract = api.external(common.bondedToken.address, miniMeTokenAbi)
+      const totalSupply = await bondedTokenContract.totalSupply().toPromise()
+      setPolledTotalSupply(totalSupply)
+      // batchId
+      const marketMakerContract = api.external(common.addresses.marketMaker, marketMaker)
+      const batchId = await marketMakerContract.getCurrentBatchId().toPromise()
+      setPolledBatchId(batchId)
+    }
+  }, 3000)
+
+  const handlePlaceOrder = async (collateralTokenAddress, amount, isBuyOrder) => {
+    const intent = { token: { address: collateralTokenAddress, value: amount, spender: common.addresses.marketMaker } }
+    // TODO: add error handling on failed tx, check token balances
+    if (isBuyOrder) {
+      console.log(`its a buy order where token: ${collateralTokenAddress}, amount: ${amount}`)
+      api
+        .openBuyOrder(collateralTokenAddress, amount, intent)
+        .toPromise()
+        .catch(console.error)
+    } else {
+      console.log(`its a sell order where token: ${collateralTokenAddress}, amount: ${amount}`)
+      api
+        .openSellOrder(collateralTokenAddress, amount)
+        .toPromise()
+        .catch(console.error)
+    }
   }
 
-  @media only screen and (max-width: 540px) {
-    ul {
-      flex-direction: column;
-    }
-
-    ul li {
-      margin-bottom: 1rem;
-    }
-
-    ul li span {
-      display: initial;
+  const handleClaim = (batchId, collateralTokenAddress, isBuyOrder) => {
+    // TODO: add error handling on failed tx, check token balances
+    if (isBuyOrder) {
+      console.log(`its a buy claim where token: ${collateralTokenAddress}, batchId: ${batchId}`)
+      api
+        .claimBuyOrder(batchId, collateralTokenAddress)
+        .toPromise()
+        .catch(console.error)
+    } else {
+      console.log(`its a sell claim where token: ${collateralTokenAddress}, batchId: ${batchId}`)
+      api
+        .claimSellOrder(batchId, collateralTokenAddress)
+        .toPromise()
+        .catch(console.error)
     }
   }
-`
 
-const AppBarContainer = styled.div`
-  display: flex;
-  width: 100%;
-  height: 100%;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: nowrap;
-`
+  const handleTappedTokenUpdate = (tapAmount, floor) => {
+    api
+      .updateTokenTap(common.daiAddress, tapAmount, floor)
+      .toPromise()
+      .catch(console.error)
+  }
 
-const Title = styled.h1`
-  display: flex;
-  flex: 1 1 auto;
-  width: 0;
-  align-items: center;
-  height: 100%;
-`
+  return (
+    <div css="min-width: 320px">
+      <Main assetsUrl="./">
+        <SyncIndicator visible={!isReady} />
+        {isReady && common.collateralsAreOk && (
+          <Fragment>
+            <Layout>
+              <AppHeader
+                heading="Fundraising"
+                action={
+                  <Button mode="strong" label="New Order" onClick={() => setOrderPanel(true)}>
+                    New Order
+                  </Button>
+                }
+              />
+              <Tabs selected={tabIndex} onChange={setTabindex} items={tabs} />
+              {tabIndex === 0 && (
+                <Overview
+                  overview={overview}
+                  bondedToken={common.bondedToken}
+                  currentBatch={common.currentBatch}
+                  polledData={{ polledTotalSupply, polledBatchId }}
+                />
+              )}
+              {tabIndex === 1 && <Orders orders={ordersView} />}
+              {tabIndex === 2 && <MyOrders orders={ordersView} account={common.connectedAccount} onClaim={handleClaim} />}
+              {tabIndex === 3 && (
+                <Reserves
+                  bondedToken={common.bondedToken}
+                  reserve={{ ...reserve, collateralTokens: common.collateralTokens }}
+                  polledData={{ polledTotalSupply }}
+                  updateTappedToken={handleTappedTokenUpdate}
+                />
+              )}
+            </Layout>
+            <SidePanel opened={orderPanel} onClose={() => setOrderPanel(false)} title="New Order">
+              <NewOrder
+                opened={orderPanel}
+                collaterals={common.collateralTokens}
+                bondedToken={common.bondedToken}
+                price={overview.startPrice}
+                onOrder={handlePlaceOrder}
+              />
+            </SidePanel>
+          </Fragment>
+        )}
+        {isReady && !common.collateralsAreOk && <h1>Something wrong with the collaterals</h1>}
+      </Main>
+    </div>
+  )
+}
 
-const TitleLabel = styled.span`
-  flex: 0 1 auto;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  margin-right: 10px;
-  font-size: 22px;
-`
-
-export default App
+export default () => <AppLogicProvider>{isPresale ? <Presale /> : <App />}</AppLogicProvider>
