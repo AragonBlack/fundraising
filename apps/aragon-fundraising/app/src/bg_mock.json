@@ -5,7 +5,7 @@
         "beneficiary": "0x9777f6dfb2CE78bDD02f30A7fbEb0B78419d6638",
         "bondedToken": {
             "address": "0x23892495dE00E1F84AfA0f2bC0f1800D612b1B76",
-            "totalSupply": "0",
+            "totalSupply": "9955282949736273",
             "decimals": "18",
             "name": "Share Token",
             "symbol": "SHARE"
@@ -15,6 +15,7 @@
             "tap": "0x3Be2C66f03ea37208aeC6A1c23fF4f3953463bE7",
             "pool": "0x62Eb613E7E1FD5de6587C1adE8f27a4d2E338CAa"
         },
+        "currentBatch": 91,
         "daiAddress": "0x46bC737df7f1B3a7436F942813498CBE041a6ea4",
         "collateralTokens": [
             {
@@ -31,13 +32,88 @@
         "collateralsAreOk": true
     },
     "overview": {
-        "reserve": "0",
+        "batches": [
+            {
+                "id": 86,
+                "collateral": "0x46bC737df7f1B3a7436F942813498CBE041a6ea4",
+                "supply": "10000000000000000000",
+                "balance": "20000000000000000000",
+                "reserveRatio": "100000",
+                "timestamp": 1566385417000,
+                "startPrice": 20.000000000000004,
+                "buyPrice": 20.044958852799766,
+                "sellPrice": null
+            },
+            {
+                "id": 88,
+                "collateral": "0x46bC737df7f1B3a7436F942813498CBE041a6ea4",
+                "supply": "10004988785496360975",
+                "balance": "20099999999999820000",
+                "reserveRatio": "100000",
+                "timestamp": 1566385494000,
+                "startPrice": 20.089977541141877,
+                "buyPrice": 20.134914180221447,
+                "sellPrice": null
+            },
+            {
+                "id": 91,
+                "collateral": "0x46bC737df7f1B3a7436F942813498CBE041a6ea4",
+                "supply": "10009955282949736273",
+                "balance": "20199999999999760000",
+                "reserveRatio": "100000",
+                "timestamp": 1566385564000,
+                "startPrice": 20.179910328277927,
+                "buyPrice": 20.179955283486816,
+                "sellPrice": null
+            }
+        ],
+        "reserve": "200100000000000000",
         "tap": {
             "allocation": 20000,
             "floor": "150"
         }
     },
-    "ordersView": [],
+    "ordersView": [
+        {
+            "transactionHash": "0x74a6f1b526bddbd4bf2d7d53c690f312d7703051c94c17dd5f02ac68118932b0",
+            "address": "0xb4124cEB3451635DAcedd11767f004d8a28c6eE7",
+            "amount": "100000000000000",
+            "timestamp": 1566385564000,
+            "type": "BUY",
+            "symbol": "DAI",
+            "collateral": "0x46bC737df7f1B3a7436F942813498CBE041a6ea4",
+            "batchId": 91,
+            "price": 20.179955283486816,
+            "tokens": 4955412368125,
+            "state": "PENDING"
+        },
+        {
+            "transactionHash": "0xd3c46fa257a1471e4d88e08678d69c193457bca02df789eb929f1d8e23836052",
+            "address": "0xb4124cEB3451635DAcedd11767f004d8a28c6eE7",
+            "amount": "100000000000000000",
+            "timestamp": 1566385494000,
+            "type": "BUY",
+            "symbol": "DAI",
+            "collateral": "0x46bC737df7f1B3a7436F942813498CBE041a6ea4",
+            "batchId": 88,
+            "price": 20.134914180221447,
+            "tokens": 4966497453375298,
+            "state": "RETURNED"
+        },
+        {
+            "transactionHash": "0x83e69ace1a2317a5ef45675ffcbdf9bba0ac2a0544a957d3c7f96ef8a7cf1521",
+            "address": "0xb4124cEB3451635DAcedd11767f004d8a28c6eE7",
+            "amount": "100000000000000000",
+            "timestamp": 1566385417000,
+            "type": "BUY",
+            "symbol": "DAI",
+            "collateral": "0x46bC737df7f1B3a7436F942813498CBE041a6ea4",
+            "batchId": 86,
+            "price": 20.044958852799766,
+            "tokens": 4988785496360975,
+            "state": "RETURNED"
+        }
+    ],
     "reserve": {
         "tap": {
             "allocation": 20000,
