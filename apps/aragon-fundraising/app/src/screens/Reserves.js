@@ -192,7 +192,7 @@ export default ({ bondedToken, reserve, polledData: { polledTotalSupply }, updat
                 {round(toMonthlyAllocation(allocation, decimals))} DAI / month
               </Text>
             </div>
-            <div css="display: flex; flex-direction: column; margin-bottom: 1rem;">
+            <div css="display: flex; flex-direction: column; margin-bottom: 1.5rem;">
               {NotificationLabel('Floor', hoverTextNotifications[2])}
               <Text as="p" style={{ paddingRight: '12px' }}>
                 {round(fromDecimals(floor, decimals))} DAI
@@ -231,8 +231,7 @@ export default ({ bondedToken, reserve, polledData: { polledTotalSupply }, updat
         <div className="item">
           <p>Token</p>
           <Badge css="height: 100%;" foreground="#4D22DF" background="rgba(204, 189, 244, 0.16)">
-            {bondedToken.name}
-            {bondedToken.symbol}
+            {`${bondedToken.name} (${bondedToken.symbol})`}
           </Badge>
         </div>
       </Box>
