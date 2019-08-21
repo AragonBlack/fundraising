@@ -258,7 +258,7 @@ export default ({ bondedToken, reserve, polledData: { polledTotalSupply }, updat
           </Wrapper>
           <ButtonWrapper>
             <Button mode="strong" type="submit" disabled={!valid} wide>
-              Edit monthly allocation
+              Save monthly allocation
             </Button>
           </ButtonWrapper>
           {errorMessage && <ValidationError message={errorMessage} />}
