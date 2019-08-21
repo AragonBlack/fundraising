@@ -4,7 +4,6 @@ import EmptyOrders from '../assets/EmptyOrders.svg'
 
 export default () => (
   <Wrapper css="display: flex;justify-content: center;align-items: center;">
-    {' '}
     <EmptyState>
       <img src={EmptyOrders} />
       <p css="font-size: 24px; margin-top: 1rem;">Something went wrong with collaterals.</p>

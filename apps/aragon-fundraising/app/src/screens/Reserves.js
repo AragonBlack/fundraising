@@ -11,9 +11,9 @@ import { round, fromDecimals, toMonthlyAllocation } from '../lib/math-utils'
 
 // In this copy we should display the user the percentage of max increase of the tap
 const hoverTextNotifications = [
-  'This will update the monthly allocation (tap rate) i.e. how much funds can be released within the bonding curve contract per 30-day period. Note: this value must be less than the max increase limit set inside the contract.',
-  "You're essentially bonding collateral when buying tokens (increasing the supply), and burning collateral when selling tokens (decreasing the supply). These relationships are defined by the smart contract.",
-  'FILL ME PLZ!!', // TODO: add floor notification
+  'The tap defines the amount of funds which can be released every month out of the market-maker reserve to the beneficiary of the fundraising campaign.',
+  'The reserve ratio defines the ratio between the amount of collateral in your market-maker reserve and the market cap of the fundraising campaign.',
+  'The floor defines the amount of funds which must be kept in the market-maker reserve regardless of the tap rate.', // TODO: add floor notification
 ]
 
 const buttonStyle = `
@@ -192,7 +192,7 @@ export default ({ bondedToken, reserve, polledData: { polledTotalSupply }, updat
                 {round(toMonthlyAllocation(allocation, decimals))} DAI / month
               </Text>
             </div>
-            <div css="display: flex; flex-direction: column; margin-bottom: 1rem;">
+            <div css="display: flex; flex-direction: column; margin-bottom: 1.5rem;">
               {NotificationLabel('Floor', hoverTextNotifications[2])}
               <Text as="p" style={{ paddingRight: '12px' }}>
                 {round(fromDecimals(floor, decimals))} DAI
@@ -231,8 +231,7 @@ export default ({ bondedToken, reserve, polledData: { polledTotalSupply }, updat
         <div className="item">
           <p>Token</p>
           <Badge css="height: 100%;" foreground="#4D22DF" background="rgba(204, 189, 244, 0.16)">
-            {bondedToken.name}
-            {bondedToken.symbol}
+            {`${bondedToken.name} (${bondedToken.symbol})`}
           </Badge>
         </div>
       </Box>
@@ -258,7 +257,7 @@ export default ({ bondedToken, reserve, polledData: { polledTotalSupply }, updat
           </Wrapper>
           <ButtonWrapper>
             <Button mode="strong" type="submit" disabled={!valid} wide>
-              Edit monthly allocation
+              Save monthly allocation
             </Button>
           </ButtonWrapper>
           {errorMessage && <ValidationError message={errorMessage} />}
