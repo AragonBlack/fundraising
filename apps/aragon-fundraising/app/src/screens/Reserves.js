@@ -186,15 +186,15 @@ export default ({ bondedToken, reserve, polledData: { polledTotalSupply }, updat
         <h1 className="title bold">Edit reserve settings</h1>
         <div className="settings-content">
           <div css="margin-right: 4rem;">
-            <div css="display: flex; flex-direction: column; margin-bottom: 1rem;">
+            <div css="display: flex; flex-direction: column; margin-bottom: 1.5rem;">
               {NotificationLabel('Monthly allocation', hoverTextNotifications[0])}
-              <Text as="p" style={{ paddingRight: '12px' }}>
+              <Text as="p" css="padding-right: 1.5rem; font-weight: bold;">
                 {round(toMonthlyAllocation(allocation, decimals))} DAI / month
               </Text>
             </div>
             <div css="display: flex; flex-direction: column; margin-bottom: 1.5rem;">
               {NotificationLabel('Floor', hoverTextNotifications[2])}
-              <Text as="p" style={{ paddingRight: '12px' }}>
+              <Text as="p" css="padding-right: 1.5rem; font-weight: bold;">
                 {round(fromDecimals(floor, decimals))} DAI
               </Text>
             </div>
@@ -215,7 +215,7 @@ export default ({ bondedToken, reserve, polledData: { polledTotalSupply }, updat
               return (
                 <div css="display: flex; flex-direction: column; margin-bottom: 1.5rem;" key={i}>
                   {NotificationLabel(`${symbol} collateralization ratio`, hoverTextNotifications[1])}
-                  <Text>{ratio}%</Text>
+                  <Text css="font-weight: bold;">{ratio}%</Text>
                 </div>
               )
             })}
