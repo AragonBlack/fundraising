@@ -354,8 +354,7 @@ contract Presale is AragonApp {
     }
 
     function _calculateExchangeRate() private {
-        uint256 exchangeRate = fundingGoal.mul(PPM).div(CONNECTOR_WEIGHT_PPM).mul(percentSupplyOffered).div(PPM);
-        tokenExchangeRate = exchangeRate;
+        tokenExchangeRate = fundingGoal.mul(PPM).div(CONNECTOR_WEIGHT_PPM).mul(percentSupplyOffered).div(PPM);
     }
 
     function _setProjectToken(MiniMeToken _projectToken, TokenManager _projectTokenManager) private {
