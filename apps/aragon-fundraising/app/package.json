@@ -22,6 +22,7 @@
   "dependencies": {
     "@aragon/api": "^2.0.0-beta.4",
     "@aragon/api-react": "^2.0.0-beta.4",
+    "@aragon/templates-tokens": "^1.3.0",
     "@aragon/ui": "^1.0.0-alpha.11",
     "bignumber.js": "^8.1.1",
     "bn.js": "^5.0.0",

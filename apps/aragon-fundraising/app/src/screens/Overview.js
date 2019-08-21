@@ -7,11 +7,11 @@ import { round } from '../lib/math-utils'
 
 export default ({ overview, bondedToken, currentBatch, polledData: { polledTotalSupply, polledBatchId } }) => {
   const {
-    startPrice,
     reserve,
     tap: { allocation },
     batches,
   } = overview
+  const startPrice = 1
   const marketCap = round(startPrice * (polledTotalSupply || bondedToken.totalSupply), 3)
   let price
   if (polledBatchId && polledBatchId > currentBatch) {

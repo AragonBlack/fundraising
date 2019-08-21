@@ -1,6 +1,8 @@
 import { Order } from './constants'
 import mock from './bg_mock.json'
 import { ETHER_TOKEN_VERIFIED_BY_SYMBOL } from './lib/verified-tokens'
+import testTokens from '@aragon/templates-tokens'
+
 /**
  * Checks whether we have enough data to start the fundraising app
  * @param {Object} state - the background script state
@@ -21,15 +23,10 @@ const ready = state => {
  * @returns {boolean} true if network is rinkeby or mainnet and collaterals are the good ones, true no matter what on any other networks
  */
 const checkCollaterals = (collateralTokens, network) => {
-  // TODO: check only mainnet and rinkeby, otherwise it's ok
-  // https://github.com/aragon/dao-templates/blob/9886bba4c0/helpers/test-token-deployer/index.js
-  // 0 is ANT and 9 DAI
-  if (network.type === 'private') return true
-  else {
-    // if network type is not private we assume its one of the following:
-    // main, kovan, rinkeby, ropsten
-    const realDaiAddress = ETHER_TOKEN_VERIFIED_BY_SYMBOL.get('DAI').toLowerCase()
-    const realAntAddress = ETHER_TOKEN_VERIFIED_BY_SYMBOL.get('ANT').toLowerCase()
+  // only check for mainnet and rinkeby
+  if (network.type === 'main' || network.type === 'rinkeby') {
+    const realDaiAddress = network.type === 'main' ? ETHER_TOKEN_VERIFIED_BY_SYMBOL.get('DAI').toLowerCase() : testTokens.rinkeby.tokens[9]
+    const realAntAddress = network.type === 'main' ? ETHER_TOKEN_VERIFIED_BY_SYMBOL.get('ANT').toLowerCase() : testTokens.rinkeby.tokens[0]
     // get DAI and ANT addresses from the fundraising app
     const collaterals = Array.from(collateralTokens).map(([address, { symbol }]) => ({ address, symbol }))
     const daiAddress = collaterals.find(c => c.symbol === 'DAI')
@@ -38,7 +35,7 @@ const checkCollaterals = (collateralTokens, network) => {
     const sameDai = daiAddress && daiAddress.toLowerCase() === realDaiAddress
     const sameAnt = antAddress && antAddress.toLowerCase() === realAntAddress
     return sameDai && sameAnt
-  }
+  } else return true
 }
 
 /**
@@ -155,13 +152,13 @@ const appStateReducer = state => {
     }
     // overview tab data
     const overview = {
-      startPrice: batches.find(b => b.id === currentBatch).startPrice,
+      // startPrice: batches.find(b => b.id === currentBatch).startPrice,
       batches,
       reserve: collateralTokens.get(daiAddress).balance,
       tap,
     }
     // orders tab data
-    const ordersView = orders.map(o => withStateAndCollateral(o, batches, currentBatch, returns, collateralTokens)).reverse()
+    const ordersView = orders ? orders.map(o => withStateAndCollateral(o, batches, currentBatch, returns, collateralTokens)).reverse() : []
     // reserve tab data
     const reserve = {
       tap,

@@ -110,6 +110,13 @@ const App = () => {
       .catch(console.error)
   }
 
+  const handleWithdraw = () => {
+    api
+      .withdraw(common.daiAddress)
+      .toPromise()
+      .catch(console.error)
+  }
+
   return (
     <div css="min-width: 320px">
       <Main assetsUrl="./">
@@ -119,7 +126,12 @@ const App = () => {
             <Layout>
               <AppHeader
                 heading="Fundraising"
-                action={
+                action1={
+                  <Button mode="strong" label="Withdraw" onClick={() => handleWithdraw()}>
+                    Withdraw
+                  </Button>
+                }
+                action2={
                   <Button mode="strong" label="New Order" onClick={() => setOrderPanel(true)}>
                     New Order
                   </Button>

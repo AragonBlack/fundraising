@@ -48,6 +48,7 @@ const getFilteredData = (data, timestampFilter) => {
 }
 
 export const filter = (batches, period, interval) => {
+  if (!batches) return []
   if (period === 0) {
     const cache = getFilteredData(batches, startOfMinute)
 

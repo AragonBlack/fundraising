@@ -2,7 +2,7 @@ import React from 'react'
 import PropTypes from 'prop-types'
 import { GU, useTheme, useLayout } from '@aragon/ui'
 
-function AppHeader({ heading, action }) {
+function AppHeader({ heading, action1, action2 }) {
   const theme = useTheme()
   const { width } = useLayout()
   return (
@@ -43,7 +43,8 @@ function AppHeader({ heading, action }) {
             heading
           )}
         </div>
-        <div>{action}</div>
+        <div>{action1}</div>
+        <div>{action2}</div>
       </div>
     </div>
   )
@@ -51,7 +52,8 @@ function AppHeader({ heading, action }) {
 
 AppHeader.propTypes = {
   heading: PropTypes.node,
-  action: PropTypes.node,
+  action1: PropTypes.node,
+  action2: PropTypes.node,
 }
 
 export default AppHeader

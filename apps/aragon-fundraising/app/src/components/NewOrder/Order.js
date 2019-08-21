@@ -63,7 +63,7 @@ const Order = ({ opened, isBuyOrder, collaterals, bondedToken, price, onOrder })
     if (valid) onOrder(collaterals[selectedCollateral].address, collateralAmount, isBuyOrder)
   }
 
-  const getInputs = () => {
+  const getInput = () => {
     const inputs = [
       <AmountField key="collateral">
         <label>
@@ -83,7 +83,6 @@ const Order = ({ opened, isBuyOrder, collaterals, bondedToken, price, onOrder })
           <DropDown items={collateralSymbols} selected={selectedCollateral} onChange={setSelectedCollateral} />
         </CombinedInput>
       </AmountField>,
-      <TransferIcon key="icon" />,
       <AmountField key="token">
         <label>
           <StyledTextBlock>TOKEN AMOUNT</StyledTextBlock>
@@ -102,14 +101,13 @@ const Order = ({ opened, isBuyOrder, collaterals, bondedToken, price, onOrder })
         </CombinedInput>
       </AmountField>,
     ]
-    return isBuyOrder ? inputs : inputs.reverse()
+    return isBuyOrder ? inputs[0] : inputs[1]
   }
 
   return (
     <form onSubmit={handleSubmit}>
-      {/* TODO: what's the token price if there is 2 collaterals and can choose between them ? */}
       <Text as="p">Token price {roundAmount(price)} DAI</Text>
-      <InputsWrapper>{getInputs()}</InputsWrapper>
+      <InputsWrapper>{getInput()}</InputsWrapper>
       <Total
         isBuyOrder={isBuyOrder}
         collateral={{ value: roundAmount(collateralAmount), symbol: collateralSymbols[selectedCollateral] }}

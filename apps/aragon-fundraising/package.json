@@ -23,7 +23,7 @@
     "abi:extract": "truffle-extract --output abi/ --keys abi",
     "prepublishOnly": "truffle compile --all && npm run abi:extract -- --no-compile",
     "apm:prepublish": "npm run compile",
-    "apm:publish:rpc:minor": "aragon apm publish major --files app/build --environment default",
+    "apm:publish:rpc:minor": "aragon apm publish minor --files app/build --environment default --skip-confirmation true --propagate-content false",
     "apm:publish:rpc:patch": "aragon apm publish patch --files app/build --environment default",
     "apm:publish:rpc:major": "aragon apm publish major --files app/build --environment default --skip-confirmation true --propagate-content false",
     "publish": "npm run apm:publish:rpc:major"
