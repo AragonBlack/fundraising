@@ -70,7 +70,7 @@ export default ({ overview, bondedToken, currentBatch, polledData: { polledTotal
           </li>
         </ul>
       </KeyMetrics>
-      <Chart batches={batches} />
+      <Chart batches={batches || []} />
     </div>
   )
 }
