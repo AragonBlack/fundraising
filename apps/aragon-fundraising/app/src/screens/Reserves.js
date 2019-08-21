@@ -199,7 +199,7 @@ export default ({ bondedToken, reserve, polledData: { polledTotalSupply }, updat
               </Text>
             </div>
             <Button css={buttonStyle} onClick={() => setOpened(true)}>
-              <img style={{ marginTop: '6px' }} src={EditIcon} />
+              <img src={EditIcon} />
               <p
                 css={`
                   margin-top: 4px;
