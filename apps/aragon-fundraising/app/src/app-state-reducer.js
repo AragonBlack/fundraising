@@ -143,9 +143,10 @@ const appStateReducer = state => {
       addresses,
       currentBatch,
       daiAddress,
-      collateralTokens: Array.from(collateralTokens).map(([address, { symbol, reserveRatio }], i) => ({
+      collateralTokens: Array.from(collateralTokens).map(([address, { symbol, decimals, reserveRatio }], i) => ({
         address,
         symbol,
+        decimals: Number(decimals),
         ratio: parseInt(reserveRatio, 10) / parseInt(ppm, 10),
       })),
       collateralsAreOk,

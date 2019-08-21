@@ -5,6 +5,7 @@ import { differenceInMonths } from 'date-fns'
 import EditIcon from '../assets/EditIcon.svg'
 import HoverNotification from '../components/HoverNotification/HoverNotification'
 import ValidationError from '../components/ValidationError'
+import { round, fromDecimals, toMonthlyAllocation } from '../lib/math-utils'
 
 // TODO: handle edit monthly alocation validation
 
@@ -107,11 +108,16 @@ const ContentWrapper = styled.div`
 `
 
 export default ({ bondedToken, reserve, polledData: { polledTotalSupply }, updateTappedToken }) => {
+  console.log(reserve)
+
   const {
     tap: { allocation, floor, timestamp },
     maximumTapIncreasePct,
     collateralTokens,
   } = reserve
+
+  const decimals = reserve.collateralTokens[0].decimals
+
   const [newAllocation, setNewAllocation] = useState(allocation)
   const [newFloor, setNewFloor] = useState(floor)
   const [errorMessage, setErrorMessage] = useState(null)
@@ -183,13 +189,13 @@ export default ({ bondedToken, reserve, polledData: { polledTotalSupply }, updat
             <div css="display: flex; flex-direction: column; margin-bottom: 1rem;">
               {NotificationLabel('Monthly allocation', hoverTextNotifications[0])}
               <Text as="p" style={{ paddingRight: '12px' }}>
-                {allocation} DAI
+                {round(toMonthlyAllocation(allocation, decimals))} DAI / month
               </Text>
             </div>
             <div css="display: flex; flex-direction: column; margin-bottom: 1rem;">
               {NotificationLabel('Floor', hoverTextNotifications[2])}
               <Text as="p" style={{ paddingRight: '12px' }}>
-                {floor} DAI
+                {round(fromDecimals(floor, decimals))} DAI
               </Text>
             </div>
             <Button css={buttonStyle} onClick={() => setOpened(true)}>
@@ -219,13 +225,14 @@ export default ({ bondedToken, reserve, polledData: { polledTotalSupply }, updat
       <Box heading="Bonded Token" css={bondedTokenStyle}>
         <div className="item">
           <p>Total Supply</p>
-          <p className="bold">{polledTotalSupply || bondedToken.totalSupply}</p>
+          <p className="bold">{round(fromDecimals(polledTotalSupply || bondedToken.totalSupply, bondedToken.decimals))}</p>
         </div>
 
         <div className="item">
           <p>Token</p>
           <Badge css="height: 100%;" foreground="#4D22DF" background="rgba(204, 189, 244, 0.16)">
-            {bondedToken.name} ({bondedToken.symbol})
+            {bondedToken.name}
+            {bondedToken.symbol}
           </Badge>
         </div>
       </Box>
