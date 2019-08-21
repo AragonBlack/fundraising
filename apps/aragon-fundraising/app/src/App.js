@@ -1,5 +1,5 @@
-import React, { Fragment, useState } from 'react'
-import { useApi } from '@aragon/api-react'
+import React, { Fragment, useState, useEffect } from 'react'
+import { useApi, useAppState } from '@aragon/api-react'
 import { Layout, Tabs, Button, Main, SidePanel, SyncIndicator } from '@aragon/ui'
 import { useInterval } from './utils/use-interval'
 import AppHeader from './components/AppHeader/AppHeader'
@@ -10,7 +10,9 @@ import Orders from './screens/Orders'
 import MyOrders from './screens/MyOrders'
 import Overview from './screens/Overview'
 import PresaleView from './screens/Presale'
-import { AppLogicProvider, useAppLogic } from './app-logic'
+import { AppLogicProvider } from './app-logic'
+import { Order } from './constants'
+import CollateralError from './screens/CollateralError'
 import miniMeTokenAbi from './abi/MiniMeToken.json'
 import marketMaker from './abi/BatchedBancorMarketMaker.json'
 
@@ -43,8 +45,35 @@ const Presale = () => {
 
 const tabs = ['Overview', 'Orders', 'My Orders', 'Reserve Settings']
 
+/**
+ * Finds whether an order is cleared or not
+ * @param {Array} order - an order coming from the state.orders
+ * @param {Number} currentBatchId - id of the current batch
+ * @returns {boolean} true if order is cleared, false otherwise
+ */
+const isCleared = ({ batchId }, currentBatchId) => {
+  return batchId < currentBatchId
+}
+
+/**
+ * Finds whether an order is returned (aka. claimed) or not
+ * @param {Array} order - an order coming from the state.orders
+ * @param {Array} returns - the list of return buy and return sell, from state.returns
+ * @returns {boolean} true if order is returned, false otherwise
+ */
+const isReturned = ({ address, collateral, batchId, type }, returns) => {
+  return returns && returns.some(r => r.address === address && r.batchId === batchId && r.collateral === collateral && r.type === type)
+}
+
+const augmentOrder = (order, returns, currentBatchId) => {
+  // handle order state (a returned order means it's already cleared)
+  if (isReturned(order, returns)) return { ...order, state: Order.State.RETURNED }
+  else if (isCleared(order, currentBatchId)) return { ...order, state: Order.State.OVER }
+  else return { ...order, state: Order.State.PENDING }
+}
+
 const App = () => {
-  const { isReady, common, overview, ordersView, reserve } = useAppLogic()
+  const { isReady, common, overview, ordersView, reserve } = useAppState()
 
   const [orderPanel, setOrderPanel] = useState(false)
   const [tabIndex, setTabindex] = useState(0)
@@ -53,6 +82,7 @@ const App = () => {
 
   const [polledTotalSupply, setPolledTotalSupply] = useState(null)
   const [polledBatchId, setPolledBatchId] = useState(null)
+  const [augmentedOrders, setAugmentedOrders] = useState(ordersView)
 
   // polls the bonded token total supply, batchId, price
   useInterval(async () => {
@@ -67,6 +97,12 @@ const App = () => {
       setPolledBatchId(batchId)
     }
   }, 3000)
+
+  // update orders state when polledBatchId, ordersView or returns is changing
+  useEffect(() => {
+    if (polledBatchId && ordersView) setAugmentedOrders(ordersView.map(o => augmentOrder(o, common.returns, polledBatchId)))
+    else setAugmentedOrders(ordersView)
+  }, [polledBatchId, ordersView, common.returns])
 
   const handlePlaceOrder = async (collateralTokenAddress, amount, isBuyOrder) => {
     const intent = { token: { address: collateralTokenAddress, value: amount, spender: common.addresses.marketMaker } }
@@ -146,8 +182,8 @@ const App = () => {
                   polledData={{ polledTotalSupply, polledBatchId }}
                 />
               )}
-              {tabIndex === 1 && <Orders orders={ordersView} />}
-              {tabIndex === 2 && <MyOrders orders={ordersView} account={common.connectedAccount} onClaim={handleClaim} />}
+              {tabIndex === 1 && <Orders orders={augmentedOrders} />}
+              {tabIndex === 2 && <MyOrders orders={augmentedOrders} account={common.connectedAccount} onClaim={handleClaim} />}
               {tabIndex === 3 && (
                 <Reserves
                   bondedToken={common.bondedToken}
@@ -168,7 +204,7 @@ const App = () => {
             </SidePanel>
           </Fragment>
         )}
-        {isReady && !common.collateralsAreOk && <h1>Something wrong with the collaterals</h1>}
+        {isReady && !common.collateralsAreOk && <CollateralError />}
       </Main>
     </div>
   )

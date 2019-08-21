@@ -39,39 +39,14 @@ const checkCollaterals = (collateralTokens, network) => {
 }
 
 /**
- * Finds whether an order is cleared or not
- * @param {Array} order - an order coming from the state.orders
- * @param {Array} batches - the list of batches, from state.batches
- * @param {Number} currentBatch - id of the current batch
- * @returns {boolean} true if order is cleared, false otherwise
- */
-const isCleared = ({ batchId, collateral }, batches, currentBatch) => {
-  if (batchId === currentBatch) return false
-  else return batches && batches.some(b => b.id === batchId && b.collateral === collateral)
-}
-
-/**
- * Finds whether an order is returned (aka. claimed) or not
- * @param {Array} order - an order coming from the state.orders
- * @param {Array} returns - the list of return buy and return sell, from state.returns
- * @returns {boolean} true if order is returned, false otherwise
- */
-const isReturned = ({ address, collateral, batchId, type }, returns) => {
-  return returns && returns.some(r => r.address === address && r.batchId === batchId && r.collateral === collateral && r.type === type)
-}
-
-/**
- * Augments the order with its given state, derived from the batches.
- * Updates the price of the order according to the `UpdatePricing` occuring during the batch.
+ * Augments the order with its price of the order according to the `UpdatePricing` occuring during the batch.
  * And adds some info about the collateral token (symbol)
  * @param {Array} order - an order coming from the state.orders
  * @param {Array} batches - the list of batches, from state.batches
- * @param {Number} currentBatch - id of the current batch
- * @param {Array} returns - the list of return buy and return sell, from state.returns
  * @param {Map} collateralTokens - the map of exisiting collateralTokens
  * @returns {Object} the order augmented with its state
  */
-const withStateAndCollateral = (order, batches, currentBatch, returns, collateralTokens) => {
+const withPriceAndCollateral = (order, batches, collateralTokens) => {
   const { address, amount, collateral, timestamp, type, transactionHash, batchId } = order
   const symbol = collateralTokens.get(collateral).symbol
   const augmentedOrder = {
@@ -95,11 +70,8 @@ const withStateAndCollateral = (order, batches, currentBatch, returns, collatera
       augmentedOrder.tokens = amount * augmentedOrder.price
     }
   }
-  // handle order state (a returned order means it's already cleared)
-  if (isReturned(order, returns)) augmentedOrder.state = Order.State.RETURNED
-  else if (isCleared(order, batches, currentBatch)) augmentedOrder.state = Order.State.OVER
-  else augmentedOrder.state = Order.State.PENDING
-  return augmentedOrder
+  // pending by default, state is computed on the frontend
+  return { ...augmentedOrder, state: Order.State.PENDING }
 }
 
 /**
@@ -150,6 +122,7 @@ const appStateReducer = state => {
         ratio: parseInt(reserveRatio, 10) / parseInt(ppm, 10),
       })),
       collateralsAreOk,
+      returns,
     }
     // overview tab data
     const overview = {
@@ -159,7 +132,7 @@ const appStateReducer = state => {
       tap,
     }
     // orders tab data
-    const ordersView = orders ? orders.map(o => withStateAndCollateral(o, batches, currentBatch, returns, collateralTokens)).reverse() : []
+    const ordersView = orders ? orders.map(o => withPriceAndCollateral(o, batches, collateralTokens)).reverse() : []
     // reserve tab data
     const reserve = {
       tap,

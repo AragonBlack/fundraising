@@ -21,7 +21,10 @@ export default ({ overview, bondedToken, currentBatch, polledData: { polledTotal
   } else price = startPrice
   return (
     <div>
-      <KeyMetrics heading="Key metrics" padding={false}>
+      <KeyMetrics
+        heading={<h1 css="margin-left: 1rem;font-size: 12px;font-weight: 600;text-transform: uppercase;color: #637381;">Key Metrics</h1>}
+        padding={false}
+      >
         <ul>
           <li>
             <div>
