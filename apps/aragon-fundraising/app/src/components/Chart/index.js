@@ -23,8 +23,6 @@ export default ({ batches }) => {
     end: endOfDay(new Date()),
   })
 
-  console.log(batches)
-
   return (
     <>
       {!batches.length && (

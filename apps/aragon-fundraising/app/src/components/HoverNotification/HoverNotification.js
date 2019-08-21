@@ -3,23 +3,19 @@ import PropTypes from 'prop-types'
 import styled, { css } from 'styled-components'
 import { font } from '@aragon/ui'
 
-// TODO: standarize the z-index across all components
-const baseStyles = css`
+const HoverNotification = styled.div`
   position: absolute;
   z-index: 5;
   border-radius: 4px;
   background: #f5f5fe;
   border-left: 2px solid #7c80f2;
-  margin: -0.25rem 2rem;
+  margin: 2rem 1rem;
   padding: 1rem;
+  width: 350px;
   span {
     ${font({ size: 'small', weight: 'normal' })}
     color: #7C80F2;
   }
-`
-
-const HoverNotification = styled.div`
-  ${baseStyles}
 `
 
 HoverNotification.propTypes = {
@@ -32,18 +28,13 @@ HoverNotification.defaultProps = {
   copy: '',
 }
 
-const WrapperHoverNotification = ({ children, copy, hoverSettings: { width: hoverWidth = 350, height: hoverHeight = 150 } }) => {
+const WrapperHoverNotification = ({ children, copy }) => {
   const [isHovering, setIsHovering] = useState(false)
   return (
     <div onMouseEnter={() => setIsHovering(true)} onMouseLeave={() => setIsHovering(false)} style={{ display: 'inline-flex' }}>
       {children}
       {isHovering && (
-        <HoverNotification
-          css={`
-            width: ${hoverWidth}px;
-            height: ${hoverHeight}px;
-          `}
-        >
+        <HoverNotification>
           <span>{copy}</span>
         </HoverNotification>
       )}

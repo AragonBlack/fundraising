@@ -36,8 +36,8 @@ const ID = 'fundraising' + Math.random()
 
 module.exports = async callback => {
   try {
-    const collateral1 = await TokenMock.new('0xb4124cEB3451635DAcedd11767f004d8a28c6eE7', 1000000000000000000, 'DAI', 'DAI')
-    const collateral2 = await TokenMock.new('0xb4124cEB3451635DAcedd11767f004d8a28c6eE7', 1000000000000000000, 'ANT', 'ANT')
+    const collateral1 = await TokenMock.new('0xb4124cEB3451635DAcedd11767f004d8a28c6eE7', 1000e18, 'DAI', 'DAI')
+    const collateral2 = await TokenMock.new('0xb4124cEB3451635DAcedd11767f004d8a28c6eE7', 1000e18, 'ANT', 'ANT')
     const COLLATERALS = [collateral1.address, collateral2.address]
 
     const template = await Template.at(process.argv[6])

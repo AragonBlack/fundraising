@@ -127,7 +127,6 @@ const appStateReducer = state => {
         ratio: parseInt(reserveRatio, 10) / parseInt(ppm, 10),
       })),
       collateralsAreOk,
-      returns,
     }
     // overview tab data
     const overview = {
@@ -150,6 +149,7 @@ const appStateReducer = state => {
       overview,
       ordersView,
       reserve,
+      returns,
     }
     console.log(JSON.stringify(reducedState))
     return reducedState
