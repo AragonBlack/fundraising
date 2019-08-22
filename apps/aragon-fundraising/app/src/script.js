@@ -49,6 +49,9 @@ const initialize = async (poolAddress, tapAddress, marketMakerAddress) => {
   const bondedTokenAddress = await marketMakerContract.token().toPromise()
   const bondedTokenContract = app.external(bondedTokenAddress, miniMeTokenAbi)
 
+  // preload bancor formula address
+  const formulaAddress = await marketMakerContract.formula().toPromise()
+
   // get network characteristics
   const network = await app
     .network()
@@ -73,6 +76,9 @@ const initialize = async (poolAddress, tapAddress, marketMakerAddress) => {
     bondedToken: {
       address: bondedTokenAddress,
       contract: bondedTokenContract,
+    },
+    formula: {
+      address: formulaAddress,
     },
   }
 
@@ -147,6 +153,7 @@ const initState = settings => async cachedState => {
       marketMaker: settings.marketMaker.address,
       tap: settings.tap.address,
       pool: settings.pool.address,
+      formula: settings.formula.address,
     },
     network: settings.network,
   }
