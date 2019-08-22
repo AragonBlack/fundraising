@@ -125,6 +125,7 @@ const App = () => {
         .toPromise()
         .catch(console.error)
     }
+    setOrderPanel(false)
   }
 
   const handleClaim = (batchId, collateralTokenAddress, isBuyOrder) => {
