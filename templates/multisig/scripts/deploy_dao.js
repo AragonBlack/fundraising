@@ -26,18 +26,18 @@ const SHARE_VOTING_SETTINGS = [SHARE_SUPPORT_REQUIRED, SHARE_MIN_ACCEPTANCE_QUOR
 
 const MAX_TAP_INCREASE_PCT = Math.pow(10, 17)
 
-const VIRTUAL_SUPPLIES = [Math.pow(10, 19), Math.pow(10, 18)]
-const VIRTUAL_BALANCES = [2 * Math.pow(10, 19), 2 * Math.pow(10, 18)]
+const VIRTUAL_SUPPLIES = [Math.pow(10, 23), Math.pow(10, 23)]
+const VIRTUAL_BALANCES = [Math.pow(10, 22), Math.pow(10, 22)]
 const TAPS = [5 * Math.pow(10, 15), 1]
-const FLOORS = [150, 0]
-const SLIPPAGES = [3 * Math.pow(10, 19), Math.pow(10, 18)]
+const FLOORS = [Math.pow(10, 21), 0]
+const SLIPPAGES = [Math.pow(10, 18), Math.pow(10, 18)]
 
 const ID = 'fundraising' + Math.random()
 
 module.exports = async callback => {
   try {
-    const collateral1 = await TokenMock.new('0xb4124cEB3451635DAcedd11767f004d8a28c6eE7', 1000e18, 'DAI', 'DAI')
-    const collateral2 = await TokenMock.new('0xb4124cEB3451635DAcedd11767f004d8a28c6eE7', 1000e18, 'ANT', 'ANT')
+    const collateral1 = await TokenMock.new('0xb4124cEB3451635DAcedd11767f004d8a28c6eE7', 100000e18, 'DAI', 'DAI')
+    const collateral2 = await TokenMock.new('0xb4124cEB3451635DAcedd11767f004d8a28c6eE7', 100000e18, 'ANT', 'ANT')
     const COLLATERALS = [collateral1.address, collateral2.address]
 
     const template = await Template.at(process.argv[6])

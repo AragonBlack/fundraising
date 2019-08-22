@@ -1,6 +1,6 @@
 import React from 'react'
 import styled from 'styled-components'
-import { Box } from '@aragon/ui'
+import { Box, Info, Text } from '@aragon/ui'
 import BN from 'bn.js'
 import Chart from '../components/Chart'
 import { round, toMonthlyAllocation } from '../lib/math-utils'
@@ -83,18 +83,21 @@ export default ({
           <li>
             <div>
               <p className="title">Reserves</p>
-              <p className="number">{adjustedReserves}</p>
+              <p className="number">${adjustedReserves}</p>
             </div>
             {/* <p className="sub-number red">-$0.82M</p> */}
           </li>
           <li>
             <div>
               <p className="title">Monthly Allowance</p>
-              <p className="number">{adjustedMonthlyAllowance}</p>
+              <p className="number">${adjustedMonthlyAllowance}</p>
             </div>
             {/* <p className="sub-number green">$48M (Y)</p> */}
           </li>
         </ul>
+        <Info css="margin: 1rem; margin-top: 0; width: auto; display: inline-block;">
+          <Text>Token address: {bondedToken.address}</Text>
+        </Info>
       </KeyMetrics>
       <Chart batches={batches || []} />
     </div>

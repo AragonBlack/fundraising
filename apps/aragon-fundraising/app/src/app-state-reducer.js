@@ -120,7 +120,7 @@ const appStateReducer = state => {
     const common = {
       connectedAccount,
       beneficiary,
-      bondedToken,
+      bondedToken: { ...bondedToken, decimals: Number(bondedToken.decimals) },
       addresses,
       currentBatch,
       daiAddress,

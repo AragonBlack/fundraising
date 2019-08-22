@@ -74,12 +74,11 @@ const Order = ({ opened, isBuyOrder, collaterals, bondedToken, price, onOrder })
 
   return (
     <form onSubmit={handleSubmit}>
-      <Text as="p">Token price {roundAmount(price)} DAI</Text>
       <InputsWrapper>
         {isBuyOrder && (
           <AmountField key="collateral">
             <label>
-              <StyledTextBlock>COLLATERAL AMOUNT</StyledTextBlock>
+              <StyledTextBlock>{collaterals[selectedCollateral].symbol} TO SPEND</StyledTextBlock>
             </label>
             <CombinedInput>
               <TextInput
@@ -100,7 +99,7 @@ const Order = ({ opened, isBuyOrder, collaterals, bondedToken, price, onOrder })
         {!isBuyOrder && (
           <AmountField key="token">
             <label>
-              <StyledTextBlock>TOKEN AMOUNT</StyledTextBlock>
+              <StyledTextBlock>{bondedToken.symbol} TO SELL</StyledTextBlock>
             </label>
             <CombinedInput>
               <TextInput
@@ -120,12 +119,12 @@ const Order = ({ opened, isBuyOrder, collaterals, bondedToken, price, onOrder })
       </InputsWrapper>
       <Total
         isBuyOrder={isBuyOrder}
-        collateral={{ value: roundAmount(collateralAmount), symbol: collateralSymbols[selectedCollateral] }}
-        token={{ value: roundAmount(tokenAmount), symbol: bondedToken.symbol }}
+        collateral={{ value: roundAmount(collateralAmount), decimals: collaterals[selectedCollateral].decimals, symbol: collateralSymbols[selectedCollateral] }}
+        token={{ value: roundAmount(tokenAmount), decimals: bondedToken.decimals, symbol: bondedToken.symbol }}
       />
       <ButtonWrapper>
         <Button mode="strong" type="submit" disabled={!valid} wide>
-          Place {isBuyOrder ? 'buy' : 'sell'} order
+          Open {isBuyOrder ? 'buy' : 'sell'} order
         </Button>
       </ButtonWrapper>
       <Info isBuyOrder={isBuyOrder} />

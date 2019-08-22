@@ -54,9 +54,9 @@ const filter = (orders, state) => {
     })
     .sort((a, b) => {
       if (state.price.payload[state.price.active] === 'Ascending') {
-        return a.price.minus(b.price).toNumber()
+        return a.price - b.price
       } else if (state.price.payload[state.price.active] === 'Descending') {
-        return b.price.minus(a.price).toNumber()
+        return b.price - a.price
       }
 
       return 0
