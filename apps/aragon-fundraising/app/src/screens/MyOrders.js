@@ -73,9 +73,9 @@ const getIconState = state => {
   }
 }
 
-const getCollaterals = orders => ['All'].concat(Array.from(new Set(orders.map(o => o.symbol))))
-
 export default ({ orders, collateralTokens: [{ decimals: daiDecimals }], bondedToken: { decimals: tokenDecimals }, account, onClaim }) => {
+  const getCollaterals = orders => ['All'].concat(Array.from(new Set(orders.map(o => o.symbol))))
+
   const filteredOrders = orders ? orders.filter(({ address }) => address === account) : []
   const [state, setState] = useState({
     order: { active: 0, payload: ['All', 'Buy', 'Sell'] },
@@ -148,6 +148,8 @@ export default ({ orders, collateralTokens: [{ decimals: daiDecimals }], bondedT
             </div>
           }
           renderEntry={data => {
+            const adjustedCollateral = formatTokenAmount(data.amount, data.type === Order.Type.BUY, daiDecimals, true, { rounding: 2 })
+            const adjustedtoken = formatTokenAmount(data.tokens, data.type === Order.Type.BUY, tokenDecimals, true, { rounding: 2 })
             return [
               <StyledText>{format(data.timestamp, 'MM/dd/yyyy - HH:mm:ss', { awareOfUnicodeTokens: true })}</StyledText>,
               <div css="display: flex; align-items: center;">
@@ -155,7 +157,7 @@ export default ({ orders, collateralTokens: [{ decimals: daiDecimals }], bondedT
                 <p css="margin-top: 0.25rem; margin-left: 0.25rem;">{data.state.charAt(0) + data.state.slice(1).toLowerCase()}</p>
               </div>,
               <p css={data.type === Order.Type.BUY ? 'font-weight: 600; color: #2CC68F;' : 'font-weight: 600;'}>
-                {formatTokenAmount(data.amount, data.type === Order.Type.BUY, daiDecimals, true, { rounding: 2 }) + ' '}
+                {Order.Type.BUY ? adjustedCollateral : adjustedtoken + ' '}
                 {data.symbol}
               </p>,
               <p css="font-weight: 600;">${round(data.price, 2)}</p>,
@@ -190,7 +192,7 @@ export default ({ orders, collateralTokens: [{ decimals: daiDecimals }], bondedT
                   {data.type}
                 </div>
               ),
-              <p css="font-weight: 600;">{formatTokenAmount(data.tokens, data.type === Order.Type.BUY, tokenDecimals, true, { rounding: 2 }) + ' '}</p>,
+              <p css="font-weight: 600;">{Order.Type.BUY ? adjustedtoken : adjustedCollateral + ' '}</p>,
               data.state === Order.State.OVER ? (
                 <Button mode="strong" label="Claim" onClick={() => handleClaim(data)}>
                   Claim
