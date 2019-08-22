@@ -269,8 +269,8 @@ export default ({ bondedToken, reserve, polledData: { polledTotalSupply }, updat
           <Info css="margin-top: 1rem;">
             <p css="font-weight: 700;">Info</p>
             <Text as="p">You can increase the tap by {maximumTapIncreasePct * 100}%.</Text>
-            <Text as="p">Current monthly allocation: {allocation} DAI</Text>
-            <Text as="p">Current floor: {floor} DAI</Text>
+            <Text as="p">Current monthly allocation: {adjustedAllocation} DAI</Text>
+            <Text as="p">Current floor: {adjustedFloor} DAI</Text>
           </Info>
         </form>
       </SidePanel>
