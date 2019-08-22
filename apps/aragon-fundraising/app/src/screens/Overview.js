@@ -1,11 +1,19 @@
 import React from 'react'
 import styled from 'styled-components'
 import { Box } from '@aragon/ui'
+import BN from 'bn.js'
 import Chart from '../components/Chart'
 import { round, toMonthlyAllocation } from '../lib/math-utils'
 import { formatTokenAmount } from '../lib/utils'
 
-export default ({ overview, bondedToken, currentBatch, collateralTokens: [{ decimals }], polledData: { polledTotalSupply, polledBatchId } }) => {
+export default ({
+  overview,
+  orders,
+  bondedToken,
+  currentBatch,
+  collateralTokens: [{ address, decimals }],
+  polledData: { polledTotalSupply, polledBatchId },
+}) => {
   const {
     reserve,
     tap: { allocation },
@@ -20,6 +28,15 @@ export default ({ overview, bondedToken, currentBatch, collateralTokens: [{ deci
   // TODO: use big number ?
   const marketCap = startPrice * (polledTotalSupply || bondedToken.totalSupply)
   const adjustedMarketCap = formatTokenAmount(marketCap, false, bondedToken.decimals, false, { rounding: 2 })
+
+  const tradingVolume = orders
+    // only keep DAI orders
+    .filter(o => o.collateral === address)
+    // transform amounts in BN
+    .map(o => new BN(o.amount))
+    // sum them and tada, you got the trading volume
+    .reduce((acc, current) => acc.add(current), new BN('0'))
+  const adjsutedTradingVolume = formatTokenAmount(tradingVolume.toString(), false, decimals, false, { rounding: 2 })
 
   let price
   if (polledBatchId && polledBatchId > currentBatch) {
@@ -52,7 +69,7 @@ export default ({ overview, bondedToken, currentBatch, collateralTokens: [{ deci
             <div>
               <p className="title">Trading Volume</p>
               {/* TODO: handle trading volume */}
-              <p className="number">$1.5 M</p>
+              <p className="number">{adjsutedTradingVolume}</p>
             </div>
             {/* <p className="sub-number green">$48M (Y)</p> */}
           </li>
