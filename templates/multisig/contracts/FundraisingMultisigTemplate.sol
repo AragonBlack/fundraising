@@ -124,10 +124,13 @@ contract FundraisingMultisigTemplate is BaseTemplate {
         _ensureFundraisingAppsCache();
 
         Kernel dao = _popDaoCache();
+        ACL acl = ACL(dao.acl());
         (, Voting shareVoting) = _popShareAppsCache();
 
         _setupCollateralTokens(dao, _collaterals, _virtualSupplies, _virtualBalances, _slippages, _taps, _floors);
         _setupControllerPermissions(dao);
+
+        _createEvmScriptsRegistryPermissions(acl, shareVoting, shareVoting);
 
         _transferRootPermissionsFromTemplateAndFinalizeDAO(dao, shareVoting, shareVoting);
 
