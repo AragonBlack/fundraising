@@ -105,15 +105,13 @@ const initialize = async (poolAddress, tapAddress, marketMakerAddress) => {
          * Fundraising events
          ***********************/
         case 'AddCollateralToken':
-          return addCollateralToken(nextState, returnValues, settings)
         case 'UpdateCollateralToken':
-          return updateCollateralToken(nextState, returnValues, settings)
+          return handleCollateralToken(nextState, returnValues, settings)
         case 'RemoveCollateralToken':
           return removeCollateralToken(nextState, returnValues)
         case 'AddTappedToken':
-          return addTappedToken(nextState, returnValues)
         case 'UpdateTappedToken':
-          return updateTappedToken(nextState, returnValues, blockNumber)
+          return handleTappedToken(nextState, returnValues, blockNumber)
         case 'NewBuyOrder':
         case 'NewSellOrder':
           return newOrder(nextState, returnValues, blockNumber, transactionHash)
@@ -228,7 +226,7 @@ const updateConnectedAccount = (state, { account }) => {
   }
 }
 
-const addCollateralToken = async (state, { collateral, reserveRatio, slippage, virtualBalance, virtualSupply }, settings) => {
+const handleCollateralToken = async (state, { collateral, reserveRatio, slippage, virtualBalance, virtualSupply }, settings) => {
   const collateralTokens = state.collateralTokens || new Map()
 
   // find the corresponding contract in the in memory map or get the external
@@ -259,21 +257,6 @@ const addCollateralToken = async (state, { collateral, reserveRatio, slippage, v
   }
 }
 
-const updateCollateralToken = (state, { collateral, reserveRatio, slippage, virtualBalance, virtualSupply }, settings) => {
-  if (state.collateralTokens.has(collateral)) {
-    // TODO: update balance ? why not using addCollateralToken (same as AddTappedToken and UpdateTappedToken)
-    // update the collateral token
-    state.collateralTokens.set(collateral, {
-      ...state.collateralTokens.get(collateral),
-      virtualSupply,
-      virtualBalance,
-      reserveRatio,
-      slippage,
-    })
-  } else console.error('Collateral not found!')
-  return state
-}
-
 const removeCollateralToken = (state, { collateral }) => {
   // find the corresponding contract in the in memory map or get the external
   const tokenContract = tokenContracts.has(collateral) ? tokenContracts.get(collateral) : app.external(collateral, tokenAbi)
@@ -286,16 +269,7 @@ const removeCollateralToken = (state, { collateral }) => {
   return state
 }
 
-const addTappedToken = (state, { token, tap, floor }) => {
-  const taps = state.taps || new Map()
-  taps.set(token, { allocation: parseInt(tap, 10), floor })
-  return {
-    ...state,
-    taps,
-  }
-}
-
-const updateTappedToken = async (state, { token, tap, floor }, blockNumber) => {
+const handleTappedToken = async (state, { token, tap, floor }, blockNumber) => {
   const taps = state.taps || new Map()
   const timestamp = await loadTimestamp(blockNumber)
   taps.set(token, { allocation: parseInt(tap, 10), floor, timestamp })
@@ -363,6 +337,7 @@ const newBatch = async (state, { id, collateral, supply, balance, reserveRatio }
 const updatePricing = (state, { batchId, collateral, totalBuyReturn, totalBuySpend, totalSellReturn, totalSellSpend }) => {
   const batch = state.batches.find(b => b.id === parseInt(batchId, 10) && b.collateral === collateral)
   if (batch) {
+    // TODO: move the calculation into the app reducer ?
     batch.buyPrice = totalBuySpend / totalBuyReturn
     batch.sellPrice = totalSellReturn / totalSellSpend
   }
