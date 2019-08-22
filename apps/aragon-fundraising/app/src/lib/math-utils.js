@@ -93,3 +93,13 @@ export function toMonthlyAllocation(allocation, decimals, { truncate = true } = 
 
   return fromDecimals(allocation.toString(), decimals, { truncate })
 }
+
+export function fromMonthlyAllocation(allocation, decimals, { truncate = true } = {}) {
+  const decimalsAllocation = toDecimals(allocation.toString(), decimals, { truncate })
+
+  console.log('Allocation to decimals: ' + decimalsAllocation)
+
+  console.log('Allocation transformed to per block: ' + Number(decimalsAllocation) / (4 * 60 * 24 * 30))
+
+  return Math.round(Number(decimalsAllocation) / (4 * 60 * 24 * 30)).toString()
+}

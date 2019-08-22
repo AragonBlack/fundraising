@@ -1,18 +1,26 @@
 import React from 'react'
 import styled from 'styled-components'
 import { Box } from '@aragon/ui'
-import BN from 'bn.js'
 import Chart from '../components/Chart'
-import { round } from '../lib/math-utils'
+import { round, toMonthlyAllocation } from '../lib/math-utils'
+import { formatTokenAmount } from '../lib/utils'
 
-export default ({ overview, bondedToken, currentBatch, polledData: { polledTotalSupply, polledBatchId } }) => {
+export default ({ overview, bondedToken, currentBatch, collateralTokens: [{ decimals }], polledData: { polledTotalSupply, polledBatchId } }) => {
   const {
     reserve,
     tap: { allocation },
     batches,
   } = overview
+
   const startPrice = 1
-  const marketCap = round(startPrice * (polledTotalSupply || bondedToken.totalSupply), 3)
+  // human readable values
+  const adjustedTokenSupply = formatTokenAmount(polledTotalSupply || bondedToken.totalSupply, false, bondedToken.decimals, false, { rounding: 2 })
+  const adjustedReserves = formatTokenAmount(reserve, false, decimals, false, { rounding: 2 })
+  const adjustedMonthlyAllowance = round(toMonthlyAllocation(allocation.toString(), decimals))
+  // TODO: use big number ?
+  const marketCap = startPrice * (polledTotalSupply || bondedToken.totalSupply)
+  const adjustedMarketCap = formatTokenAmount(marketCap, false, bondedToken.decimals, false, { rounding: 2 })
+
   let price
   if (polledBatchId && polledBatchId > currentBatch) {
     // last batch is over, next batch will start with the last price of the last batch
@@ -36,13 +44,14 @@ export default ({ overview, bondedToken, currentBatch, polledData: { polledTotal
           <li>
             <div>
               <p className="title">Market Cap</p>
-              <p className="number">${marketCap}</p>
+              <p className="number">${adjustedMarketCap}</p>
             </div>
             {/* <p className="sub-number green">+$4.82M</p> */}
           </li>
           <li>
             <div>
               <p className="title">Trading Volume</p>
+              {/* TODO: handle trading volume */}
               <p className="number">$1.5 M</p>
             </div>
             {/* <p className="sub-number green">$48M (Y)</p> */}
@@ -50,21 +59,21 @@ export default ({ overview, bondedToken, currentBatch, polledData: { polledTotal
           <li>
             <div>
               <p className="title">Token Supply</p>
-              <p className="number">{round(polledTotalSupply || bondedToken.totalSupply, 3)}</p>
+              <p className="number">{adjustedTokenSupply}</p>
             </div>
             {/* <p className="sub-number red">-$23.82 (0.5%)</p> */}
           </li>
           <li>
             <div>
               <p className="title">Reserves</p>
-              <p className="number">{reserve}</p>
+              <p className="number">{adjustedReserves}</p>
             </div>
             {/* <p className="sub-number red">-$0.82M</p> */}
           </li>
           <li>
             <div>
               <p className="title">Monthly Allowance</p>
-              <p className="number">{allocation}</p>
+              <p className="number">{adjustedMonthlyAllowance}</p>
             </div>
             {/* <p className="sub-number green">$48M (Y)</p> */}
           </li>
