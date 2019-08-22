@@ -131,6 +131,7 @@ const Chart = styled(Box)`
 
     .timeline {
       display: flex;
+      justify-content: space-between;
       width: 100%;
 
       & > div:nth-child(1) {
