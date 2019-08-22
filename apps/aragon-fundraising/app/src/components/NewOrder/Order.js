@@ -4,7 +4,6 @@ import { Button, DropDown, Text, TextInput, theme, unselectable } from '@aragon/
 import Total from './Total'
 import Info from './Info'
 import { round, toDecimals } from '../../lib/math-utils'
-import { formatDecimals } from '../../lib/utils'
 
 const Order = ({ opened, isBuyOrder, collaterals, bondedToken, price, onOrder }) => {
   const [selectedCollateral, setSelectedCollateral] = useState(0)
@@ -146,24 +145,6 @@ const InputsWrapper = styled.div`
   display: flex;
   flex-direction: column;
 `
-
-const TransferIconWrapper = styled.div`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin: 0 10px;
-`
-
-const TransferIcon = () => (
-  <TransferIconWrapper>
-    <img
-      src={transferArrows}
-      css={`
-        height: 16px;
-      `}
-    />
-  </TransferIconWrapper>
-)
 
 const CombinedInput = styled.div`
   display: flex;

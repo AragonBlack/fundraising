@@ -2,10 +2,11 @@ import React, { useEffect, useState } from 'react'
 import { Badge, Box, Button, DiscButton, Text, TextInput, theme, SidePanel, unselectable } from '@aragon/ui'
 import styled from 'styled-components'
 import { differenceInMonths } from 'date-fns'
+import BN from 'bn.js'
 import EditIcon from '../assets/EditIcon.svg'
 import HoverNotification from '../components/HoverNotification/HoverNotification'
 import ValidationError from '../components/ValidationError'
-import { round, fromDecimals, toMonthlyAllocation } from '../lib/math-utils'
+import { round, fromDecimals, toDecimals, toMonthlyAllocation, fromMonthlyAllocation } from '../lib/math-utils'
 
 // TODO: handle edit monthly alocation validation
 
@@ -108,18 +109,20 @@ const ContentWrapper = styled.div`
 `
 
 export default ({ bondedToken, reserve, polledData: { polledTotalSupply }, updateTappedToken }) => {
-  console.log(reserve)
-
   const {
     tap: { allocation, floor, timestamp },
     maximumTapIncreasePct,
     collateralTokens,
+    collateralTokens: [{ decimals }],
   } = reserve
 
-  const decimals = reserve.collateralTokens[0].decimals
+  // allocation and floor converted to human readable numbers
+  const adjustedAllocation = round(toMonthlyAllocation(allocation.toString(), decimals)).toString()
+  const adjustedFloor = round(fromDecimals(floor.toString(), decimals)).toString()
 
-  const [newAllocation, setNewAllocation] = useState(allocation)
-  const [newFloor, setNewFloor] = useState(floor)
+  // interal component state
+  const [newAllocation, setNewAllocation] = useState(adjustedAllocation)
+  const [newFloor, setNewFloor] = useState(adjustedFloor)
   const [errorMessage, setErrorMessage] = useState(null)
   const [valid, setValid] = useState(false)
   const [opened, setOpened] = useState(false)
@@ -127,10 +130,10 @@ export default ({ bondedToken, reserve, polledData: { polledTotalSupply }, updat
   // handle reset when opening
   useEffect(() => {
     if (opened) {
-      // reset to default values
-      setNewAllocation(allocation)
-      setNewFloor(floor)
-      setErrorMessage(null)
+      // reset to default values and validate them
+      setNewAllocation(adjustedAllocation)
+      setNewFloor(adjustedFloor)
+      validate()
     }
   }, [opened])
 
@@ -148,10 +151,13 @@ export default ({ bondedToken, reserve, polledData: { polledTotalSupply }, updat
   }
 
   const validate = () => {
+    console.log(adjustedAllocation)
+    console.log(newAllocation)
+    console.log(timestamp)
     // check if it's a tap decrease
-    const isDecrease = allocation >= newAllocation
+    const isDecrease = adjustedAllocation >= newAllocation
     // check if the tap increase respects the max tap increase
-    const regularIncrease = allocation * maximumTapIncreasePct + allocation >= newAllocation
+    const regularIncrease = adjustedAllocation * maximumTapIncreasePct + adjustedAllocation >= newAllocation
     // check if the last tap update is at least one month old
     // when a tap have never been updated, there's no timestamp, and can be updated
     const atLeastOneMonthOld = timestamp ? differenceInMonths(new Date(), new Date(timestamp)) >= 1 : true
@@ -174,9 +180,13 @@ export default ({ bondedToken, reserve, polledData: { polledTotalSupply }, updat
 
   const handleSubmit = event => {
     event.preventDefault()
+    console.log(fromMonthlyAllocation(newAllocation, decimals))
+    console.log(toDecimals(newFloor, decimals))
     if (valid) {
       setOpened(false)
-      updateTappedToken(newAllocation, newFloor)
+      const allocation = fromMonthlyAllocation(newAllocation, decimals)
+      const floor = toDecimals(newFloor, decimals)
+      updateTappedToken(allocation, floor)
     }
   }
 
@@ -189,13 +199,13 @@ export default ({ bondedToken, reserve, polledData: { polledTotalSupply }, updat
             <div css="display: flex; flex-direction: column; margin-bottom: 1rem;">
               {NotificationLabel('Monthly allocation', hoverTextNotifications[0])}
               <Text as="p" style={{ paddingRight: '12px' }}>
-                {round(toMonthlyAllocation(allocation, decimals))} DAI / month
+                {adjustedAllocation} DAI / month
               </Text>
             </div>
             <div css="display: flex; flex-direction: column; margin-bottom: 1.5rem;">
               {NotificationLabel('Floor', hoverTextNotifications[2])}
               <Text as="p" style={{ paddingRight: '12px' }}>
-                {round(fromDecimals(floor, decimals))} DAI
+                {adjustedFloor} DAI
               </Text>
             </div>
             <Button css={buttonStyle} onClick={() => setOpened(true)}>
@@ -240,8 +250,8 @@ export default ({ bondedToken, reserve, polledData: { polledTotalSupply }, updat
         <form onSubmit={handleSubmit}>
           <Wrapper>
             <Text as="p">You can increase the tap by {maximumTapIncreasePct * 100}%.</Text>
-            <Text as="p">Current monthly allocation: {allocation} DAI</Text>
-            <Text as="p">Current floor: {floor} DAI</Text>
+            <Text as="p">Current monthly allocation: {adjustedAllocation} DAI</Text>
+            <Text as="p">Current floor: {adjustedFloor} DAI</Text>
           </Wrapper>
           <Wrapper>
             <label>

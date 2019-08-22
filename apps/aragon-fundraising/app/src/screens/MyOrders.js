@@ -20,6 +20,7 @@ import DateRangeInput from '../components/DateRange/DateRangeInput'
 import ToggleFiltersButton from '../components/ToggleFiltersButton'
 import { Order } from '../constants'
 import { round } from '../lib/math-utils'
+import { formatTokenAmount } from '../lib/utils'
 import EmptyOrders from '../assets/EmptyOrders.svg'
 
 const filter = (orders, state) => {
@@ -74,7 +75,7 @@ const getIconState = state => {
 
 const getCollaterals = orders => ['All'].concat(Array.from(new Set(orders.map(o => o.symbol))))
 
-export default ({ orders, account, onClaim }) => {
+export default ({ orders, collateralTokens: [{ decimals: daiDecimals }], bondedToken: { decimals: tokenDecimals }, account, onClaim }) => {
   const filteredOrders = orders ? orders.filter(({ address }) => address === account) : []
   const [state, setState] = useState({
     order: { active: 0, payload: ['All', 'Buy', 'Sell'] },
@@ -154,8 +155,7 @@ export default ({ orders, account, onClaim }) => {
                 <p css="margin-top: 0.25rem; margin-left: 0.25rem;">{data.state.charAt(0) + data.state.slice(1).toLowerCase()}</p>
               </div>,
               <p css={data.type === Order.Type.BUY ? 'font-weight: 600; color: #2CC68F;' : 'font-weight: 600;'}>
-                {data.type === Order.Type.BUY ? '+' : '-'}
-                {round(data.amount, 3) + ' '}
+                {formatTokenAmount(data.amount, data.type === Order.Type.BUY, daiDecimals, true, { rounding: 2 }) + ' '}
                 {data.symbol}
               </p>,
               <p css="font-weight: 600;">${round(data.price, 3)}</p>,
@@ -190,7 +190,7 @@ export default ({ orders, account, onClaim }) => {
                   {data.type}
                 </div>
               ),
-              <p css="font-weight: 600;">{round(data.tokens, 3)}</p>,
+              <p css="font-weight: 600;">{formatTokenAmount(data.tokens, data.type === Order.Type.BUY, tokenDecimals, true, { rounding: 2 }) + ' '}</p>,
               data.state === Order.State.OVER ? (
                 <Button mode="strong" label="Claim" onClick={() => handleClaim(data)}>
                   Claim
