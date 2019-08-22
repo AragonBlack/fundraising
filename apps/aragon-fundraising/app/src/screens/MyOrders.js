@@ -157,7 +157,7 @@ export default ({ orders, collateralTokens: [{ decimals: daiDecimals }], bondedT
                 <p css="margin-top: 0.25rem; margin-left: 0.25rem;">{data.state.charAt(0) + data.state.slice(1).toLowerCase()}</p>
               </div>,
               <p css={data.type === Order.Type.BUY ? 'font-weight: 600; color: #2CC68F;' : 'font-weight: 600;'}>
-                {Order.Type.BUY ? adjustedCollateral : adjustedtoken + ' '}
+                {data.type === Order.Type.BUY ? adjustedCollateral : adjustedtoken + ' '}
                 {data.symbol}
               </p>,
               <p css="font-weight: 600;">${round(data.price, 2)}</p>,
@@ -192,7 +192,7 @@ export default ({ orders, collateralTokens: [{ decimals: daiDecimals }], bondedT
                   {data.type}
                 </div>
               ),
-              <p css="font-weight: 600;">{Order.Type.BUY ? adjustedtoken : adjustedCollateral + ' '}</p>,
+              <p css="font-weight: 600;">{data.type === Order.Type.BUY ? adjustedtoken : adjustedCollateral + ' '}</p>,
               data.state === Order.State.OVER ? (
                 <Button mode="strong" label="Claim" onClick={() => handleClaim(data)}>
                   Claim
