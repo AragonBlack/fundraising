@@ -78,8 +78,8 @@ export default ({ overview, bondedToken, currentBatch, collateralTokens: [{ deci
             {/* <p className="sub-number green">$48M (Y)</p> */}
           </li>
         </ul>
-        <Info css="margin: 1rem; width: auto; display: inline-block;">
-          <Text>Token address: 0xde0b295669a9fd93d5f28d9ec85e40f4cb697bae</Text>
+        <Info css="margin: 1rem; margin-top: 0; width: auto; display: inline-block;">
+          <Text>Token address: {bondedToken.address}</Text>
         </Info>
       </KeyMetrics>
       <Chart batches={batches || []} />
