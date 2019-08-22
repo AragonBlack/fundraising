@@ -30,7 +30,7 @@ const VIRTUAL_SUPPLIES = [Math.pow(10, 23), Math.pow(10, 23)]
 const VIRTUAL_BALANCES = [Math.pow(10, 22), Math.pow(10, 22)]
 const TAPS = [5 * Math.pow(10, 15), 1]
 const FLOORS = [Math.pow(10, 21), 0]
-const SLIPPAGES = [Math.pow(10, 18), Math.pow(10, 18)]
+const SLIPPAGES = [2 * Math.pow(10, 17), Math.pow(10, 18)]
 
 const ID = 'fundraising' + Math.random()
 
