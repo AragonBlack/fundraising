@@ -152,7 +152,7 @@ contract AragonFundraisingController is EtherTokenConstant, IsContract, IMarketM
     }
 
     /**
-     * @notice Open a sell order worth `@tokenAmount(self.token(), _amount)`
+     * @notice Open a sell order worth `@tokenAmount(self.token(): address, _amount)`
      * @param _collateral The address of the collateral token to be returned
      * @param _amount The amount of bonded token to be spent
     */
@@ -179,6 +179,10 @@ contract AragonFundraisingController is EtherTokenConstant, IsContract, IMarketM
     }
 
     /***** public view functions *****/
+
+    function token() public view isInitialized returns (address) {
+        return marketMaker.token();
+    }
 
     function getMaximumWithdrawal(address _token) public view isInitialized returns (uint256) {
         return tap.getMaximumWithdrawal(_token);
