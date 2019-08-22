@@ -264,7 +264,7 @@ const handleCollateralToken = async (state, { collateral, reserveRatio, slippage
   tokenContracts.set(collateral, tokenContract)
 
   // loads data related to the collateral token
-  const [balance, toBeClaimed, decimals, name, symbol] = await Promise.all([
+  const [balance, collateralsToBeClaimed, decimals, name, symbol] = await Promise.all([
     loadTokenBalance(collateral, settings),
     loadCollateralsToBeClaimed(collateral, settings),
     loadTokenDecimals(tokenContract, collateral, settings),
@@ -280,7 +280,7 @@ const handleCollateralToken = async (state, { collateral, reserveRatio, slippage
     virtualBalance,
     reserveRatio,
     slippage,
-    toBeClaimed,
+    collateralsToBeClaimed,
   })
 
   return {
