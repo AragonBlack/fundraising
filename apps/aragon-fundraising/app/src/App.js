@@ -80,17 +80,22 @@ const App = () => {
 
   const api = useApi()
 
-  const [polledTotalSupply, setPolledTotalSupply] = useState(null)
+  const [polledDaiBalance, setPolledDaiBalance] = useState(null)
+  const [polledAntBalance, setPolledAntBalance] = useState(null)
   const [polledBatchId, setPolledBatchId] = useState(null)
   const [augmentedOrders, setAugmentedOrders] = useState(ordersView)
 
   // polls the bonded token total supply, batchId, price
   useInterval(async () => {
     if (isReady) {
-      // totalSupply
-      const bondedTokenContract = api.external(common.bondedToken.address, miniMeTokenAbi)
-      const totalSupply = await bondedTokenContract.totalSupply().toPromise()
-      setPolledTotalSupply(totalSupply)
+      // TODO: handle externals instanciation in the app state reducer
+      // balances
+      const promises = common.collateralTokens.map(t => api.call('balanceOf', common.addresses.pool, t.address).toPromise())
+      const [daiBalance, antBalance] = await Promise.all(promises)
+      setPolledDaiBalance(daiBalance)
+      setPolledAntBalance(antBalance)
+      console.log(polledDaiBalance)
+      console.log(polledAntBalance)
       // batchId
       const marketMakerContract = api.external(common.addresses.marketMaker, marketMaker)
       const batchId = await marketMakerContract.getCurrentBatchId().toPromise()
@@ -180,10 +185,11 @@ const App = () => {
               {tabIndex === 0 && (
                 <Overview
                   overview={overview}
+                  orders={ordersView}
                   bondedToken={common.bondedToken}
                   currentBatch={common.currentBatch}
                   collateralTokens={common.collateralTokens}
-                  polledData={{ polledTotalSupply, polledBatchId }}
+                  polledData={{ polledBatchId }}
                 />
               )}
               {tabIndex === 1 && <Orders orders={augmentedOrders} collateralTokens={common.collateralTokens} bondedToken={common.bondedToken} />}
@@ -200,7 +206,7 @@ const App = () => {
                 <Reserves
                   bondedToken={common.bondedToken}
                   reserve={{ ...reserve, collateralTokens: common.collateralTokens }}
-                  polledData={{ polledTotalSupply }}
+                  polledData={{}}
                   updateTappedToken={handleTappedTokenUpdate}
                 />
               )}

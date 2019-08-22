@@ -120,10 +120,10 @@ const initialize = async (poolAddress, tapAddress, marketMakerAddress) => {
           return handleTappedToken(nextState, returnValues, blockNumber)
         case 'NewBuyOrder':
         case 'NewSellOrder':
-          return newOrder(nextState, returnValues, blockNumber, transactionHash)
+          return newOrder(nextState, returnValues, settings, blockNumber, transactionHash)
         case 'ReturnBuyOrder':
         case 'ReturnSellOrder':
-          return newReturn(nextState, returnValues)
+          return newReturn(nextState, returnValues, settings)
         case 'NewBatch':
           return newBatch(nextState, returnValues, blockNumber)
         case 'UpdatePricing':
@@ -199,22 +199,26 @@ const loadPoolData = async (state, settings) => {
  * @returns {Object} the current store's state augmented with the smart contract data
  */
 const loadMarketMakerData = async (state, settings) => {
-  // loads data related to the bonded token
-  const [totalSupply, decimals, name, symbol] = await Promise.all([
+  // loads data related to the bonded token and market maker contract
+  const [totalSupply, decimals, name, symbol, ppm, tokensToBeMinted] = await Promise.all([
     settings.bondedToken.contract.totalSupply().toPromise(),
     settings.bondedToken.contract.decimals().toPromise(),
     settings.bondedToken.contract.name().toPromise(),
     settings.bondedToken.contract.symbol().toPromise(),
+    settings.marketMaker.contract.PPM().toPromise(),
+    settings.marketMaker.contract.tokensToBeMinted().toPromise(),
   ])
   return {
     ...state,
-    ppm: parseInt(await settings.marketMaker.contract.PPM().toPromise(), 10),
+    // TODO: bn ?
+    ppm: parseInt(ppm, 10),
     bondedToken: {
       address: settings.bondedToken.address,
       totalSupply,
       decimals,
       name,
       symbol,
+      tokensToBeMinted,
     },
   }
 }
@@ -241,8 +245,9 @@ const handleCollateralToken = async (state, { collateral, reserveRatio, slippage
   tokenContracts.set(collateral, tokenContract)
 
   // loads data related to the collateral token
-  const [balance, decimals, name, symbol] = await Promise.all([
+  const [balance, toBeClaimed, decimals, name, symbol] = await Promise.all([
     loadTokenBalance(collateral, settings),
+    loadCollateralsToBeClaimed(collateral, settings),
     loadTokenDecimals(tokenContract, collateral, settings),
     loadTokenName(tokenContract, collateral, settings),
     loadTokenSymbol(tokenContract, collateral, settings),
@@ -256,6 +261,7 @@ const handleCollateralToken = async (state, { collateral, reserveRatio, slippage
     virtualBalance,
     reserveRatio,
     slippage,
+    toBeClaimed,
   })
 
   return {
@@ -279,7 +285,7 @@ const removeCollateralToken = (state, { collateral }) => {
 const handleTappedToken = async (state, { token, tap, floor }, blockNumber) => {
   const taps = state.taps || new Map()
   const timestamp = await loadTimestamp(blockNumber)
-  taps.set(token, { allocation: parseInt(tap, 10), floor, timestamp })
+  taps.set(token, { allocation: tap, floor, timestamp })
   return {
     ...state,
     taps,
@@ -287,7 +293,7 @@ const handleTappedToken = async (state, { token, tap, floor }, blockNumber) => {
 }
 
 // TODO: amount or value? standardize it between buy and sell events?
-const newOrder = async (state, { buyer, seller, collateral, batchId, value, amount }, blockNumber, transactionHash) => {
+const newOrder = async (state, { buyer, seller, collateral, batchId, value, amount }, settings, blockNumber, transactionHash) => {
   const orders = state.orders || []
   const timestamp = await loadTimestamp(blockNumber)
   orders.push({
@@ -302,10 +308,12 @@ const newOrder = async (state, { buyer, seller, collateral, batchId, value, amou
   return {
     ...state,
     orders,
+    bondedToken: await updateBondedToken(state.bondedToken, settings, true, buyer !== 'undefined'),
+    collateralTokens: await updateCollateralsToken(state.collateralTokens, collateral, settings, true, buyer !== 'undefined'),
   }
 }
 
-const newReturn = (state, { buyer, seller, collateral, batchId, value, amount }) => {
+const newReturn = async (state, { buyer, seller, collateral, batchId, value, amount }, settings) => {
   const returns = state.returns || []
   returns.push({
     address: buyer || seller,
@@ -317,6 +325,8 @@ const newReturn = (state, { buyer, seller, collateral, batchId, value, amount })
   return {
     ...state,
     returns,
+    bondedToken: await updateBondedToken(state.bondedToken, settings, false, buyer !== 'undefined'),
+    collateralTokens: await updateCollateralsToken(state.collateralTokens, collateral, settings, false, buyer !== 'undefined'),
   }
 }
 
@@ -358,13 +368,23 @@ const updatePricing = (state, { batchId, collateral, totalBuyReturn, totalBuySpe
  ***********************/
 
 /**
- * Get the current balance of a given token address
+ * Get the current balance of a given collateral
  * @param {String} tokenAddress - the given token address
- * @param {Object} settings - the settings where the pool contract is
- * @returns {String} a promise that resolves the balance
+ * @param {Object} settings - the settings where the pool address is
+ * @returns {Promise} a promise that resolves the balance
  */
 const loadTokenBalance = (tokenAddress, { pool }) => {
-  return pool.contract.balance(tokenAddress).toPromise()
+  return app.call('balanceOf', pool.address, tokenAddress).toPromise()
+}
+
+/**
+ * Get the current amount of collaterals to be claimed for the given collateral
+ * @param {String} tokenAddress - the given token address
+ * @param {Object} settings - the settings where the marketMaker contract is
+ * @returns {Promise} a promise that resolves the collaterals to be claimed
+ */
+const loadCollateralsToBeClaimed = (tokenAddress, { marketMaker }) => {
+  return marketMaker.contract.collateralsToBeClaimed(tokenAddress).toPromise()
 }
 
 /**
@@ -448,4 +468,61 @@ const loadTokenSymbol = async (tokenContract, tokenAddress, { network }) => {
 const loadTimestamp = async blockNumber => {
   const block = await app.web3Eth('getBlock', blockNumber).toPromise()
   return parseInt(block.timestamp, 10) * 1000 // in ms
+}
+
+/**
+ * Updates the bonded token when an order or claim happens
+ * @param {Object} bondedToken - the bonded token to update
+ * @param {Object} settings - settings object where the needed contracts are
+ * @param {boolean} isOrder - order or claim
+ * @param {boolean} isBuy - buy or sell
+ * @returns {Object} the updated bonded token
+ */
+const updateBondedToken = async (bondedToken, settings, isOrder, isBuy) => {
+  if (isOrder && isBuy) {
+    // buy order
+    return {
+      ...bondedToken,
+      tokensToBeMinted: await settings.marketMaker.contract.tokensToBeMinted().toPromise(),
+    }
+  } else if (isOrder) {
+    // sell order
+    return {
+      ...bondedToken,
+      totalSupply: await settings.bondedToken.contract.totalSupply().toPromise(),
+    }
+  } else if (!isOrder && isBuy) {
+    // claim buy
+    return {
+      ...bondedToken,
+      tokensToBeMinted: await settings.marketMaker.contract.tokensToBeMinted().toPromise(),
+      totalSupply: await settings.bondedToken.contract.totalSupply().toPromise(),
+    }
+  } else return bondedToken
+}
+
+/**
+ * Updates the collaterals tokens when an order or claim happens
+ * @param {Map} collaterals - the bonded token to update
+ * @param {String} collateral - current address of the collateral to update
+ * @param {Object} settings - settings object where the needed contracts are
+ * @param {boolean} isOrder - order or claim
+ * @param {boolean} isBuy - buy or sell
+ * @returns {Object} the updated collaterals
+ */
+const updateCollateralsToken = async (collaterals, collateral, settings, isOrder, isBuy) => {
+  if (isOrder && !isBuy) {
+    // sell order
+    collaterals.set(collateral, {
+      ...collaterals.get(collateral),
+      toBeClaimed: await loadCollateralsToBeClaimed(collateral, settings),
+    })
+  } else if (!isOrder && !isBuy) {
+    // sell claim
+    collaterals.set(collateral, {
+      ...collaterals.get(collateral),
+      toBeClaimed: await loadCollateralsToBeClaimed(collateral, settings),
+    })
+  }
+  return collaterals
 }
