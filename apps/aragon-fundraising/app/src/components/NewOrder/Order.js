@@ -113,6 +113,18 @@ const Order = ({ opened, isBuyOrder, collaterals, bondedToken, price, onOrder })
                 required
                 wide
               />
+              <Text
+                as="span"
+                css={`
+                  display: flex;
+                  justify-content: center;
+                  align-items: center;
+                  margin: 0 10px;
+                `}
+              >
+                for
+              </Text>
+              <DropDown items={collateralSymbols} selected={selectedCollateral} onChange={setSelectedCollateral} />
             </CombinedInput>
           </AmountField>
         )}

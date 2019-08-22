@@ -9,9 +9,9 @@ import { formatTokenAmount } from '../lib/utils'
 export default ({
   overview,
   orders,
-  bondedToken,
+  bondedToken: { address: tokenAddress, decimals: tokenDecimals, totalSupply, tokensToBeMinted },
   currentBatch,
-  collateralTokens: [{ address, decimals }],
+  collateralTokens: [{ address: daiAddress, decimals: daiDecimals, collateralsToBeClaimed }],
   polledData: { polledTotalSupply, polledBatchId },
 }) => {
   const {
@@ -22,21 +22,24 @@ export default ({
 
   const startPrice = 1
   // human readable values
-  const adjustedTokenSupply = formatTokenAmount(polledTotalSupply || bondedToken.totalSupply, false, bondedToken.decimals, false, { rounding: 2 })
-  const adjustedReserves = formatTokenAmount(reserve, false, decimals, false, { rounding: 2 })
-  const adjustedMonthlyAllowance = round(toMonthlyAllocation(allocation.toString(), decimals))
-  // TODO: use big number ?
-  const marketCap = startPrice * (polledTotalSupply || bondedToken.totalSupply)
-  const adjustedMarketCap = formatTokenAmount(marketCap, false, bondedToken.decimals, false, { rounding: 2 })
+  const tokenSupply = new BN(totalSupply).add(new BN(tokensToBeMinted))
+  const adjustedTokenSupply = formatTokenAmount(tokenSupply.toString(), false, tokenDecimals, false, {
+    rounding: 2,
+  })
+  const reserves = new BN(reserve).sub(new BN(collateralsToBeClaimed))
+  const adjustedReserves = formatTokenAmount(reserves.toString(), false, daiDecimals, false, { rounding: 2 })
+  const adjustedMonthlyAllowance = round(toMonthlyAllocation(allocation.toString(), daiDecimals))
+  const marketCap = new BN(startPrice).mul(new BN(totalSupply))
+  const adjustedMarketCap = formatTokenAmount(marketCap.toString(), false, daiDecimals, false, { rounding: 2 })
 
   const tradingVolume = orders
     // only keep DAI orders
-    .filter(o => o.collateral === address)
+    .filter(o => o.collateral === daiAddress)
     // transform amounts in BN
     .map(o => new BN(o.amount))
     // sum them and tada, you got the trading volume
     .reduce((acc, current) => acc.add(current), new BN('0'))
-  const adjsutedTradingVolume = formatTokenAmount(tradingVolume.toString(), false, decimals, false, { rounding: 2 })
+  const adjsutedTradingVolume = formatTokenAmount(tradingVolume.toString(), false, daiDecimals, false, { rounding: 2 })
 
   let price
   if (polledBatchId && polledBatchId > currentBatch) {
@@ -96,7 +99,7 @@ export default ({
           </li>
         </ul>
         <Info css="margin: 1rem; margin-top: 0; width: auto; display: inline-block;">
-          <Text>Token address: {bondedToken.address}</Text>
+          <Text>Token address: {tokenAddress}</Text>
         </Info>
       </KeyMetrics>
       <Chart batches={batches || []} />

@@ -160,7 +160,8 @@ const initState = settings => async cachedState => {
   const withTapData = await loadTapData(newState, settings)
   const withPoolData = await loadPoolData(withTapData, settings)
   const withMarketMakerData = await loadMarketMakerData(withPoolData, settings)
-  return withMarketMakerData
+  const withDefaultValues = loadDefaultValues(withMarketMakerData)
+  return withDefaultValues
 }
 
 /**
@@ -223,6 +224,24 @@ const loadMarketMakerData = async (state, settings) => {
   }
 }
 
+/**
+ *
+ * @param {Object} state - the current store's state
+ * @returns {Object} the current store's state augmented with default values where needed
+ */
+const loadDefaultValues = state => {
+  // set empty maps and arrays if not populated yet
+  // for collateralTokens, taps, orders, returns, batches
+  return {
+    collateralTokens: new Map(),
+    taps: new Map(),
+    orders: [],
+    returns: [],
+    batches: [],
+    ...state,
+  }
+}
+
 /***********************
  *                     *
  *   Event Handlers    *
@@ -238,14 +257,14 @@ const updateConnectedAccount = (state, { account }) => {
 }
 
 const handleCollateralToken = async (state, { collateral, reserveRatio, slippage, virtualBalance, virtualSupply }, settings) => {
-  const collateralTokens = state.collateralTokens || new Map()
+  const collateralTokens = state.collateralTokens
 
   // find the corresponding contract in the in memory map or get the external
   const tokenContract = tokenContracts.has(collateral) ? tokenContracts.get(collateral) : app.external(collateral, tokenAbi)
   tokenContracts.set(collateral, tokenContract)
 
   // loads data related to the collateral token
-  const [balance, toBeClaimed, decimals, name, symbol] = await Promise.all([
+  const [balance, collateralsToBeClaimed, decimals, name, symbol] = await Promise.all([
     loadTokenBalance(collateral, settings),
     loadCollateralsToBeClaimed(collateral, settings),
     loadTokenDecimals(tokenContract, collateral, settings),
@@ -261,7 +280,7 @@ const handleCollateralToken = async (state, { collateral, reserveRatio, slippage
     virtualBalance,
     reserveRatio,
     slippage,
-    toBeClaimed,
+    collateralsToBeClaimed,
   })
 
   return {
@@ -283,7 +302,7 @@ const removeCollateralToken = (state, { collateral }) => {
 }
 
 const handleTappedToken = async (state, { token, tap, floor }, blockNumber) => {
-  const taps = state.taps || new Map()
+  const taps = state.taps
   const timestamp = await loadTimestamp(blockNumber)
   taps.set(token, { allocation: tap, floor, timestamp })
   return {
@@ -294,7 +313,7 @@ const handleTappedToken = async (state, { token, tap, floor }, blockNumber) => {
 
 // TODO: amount or value? standardize it between buy and sell events?
 const newOrder = async (state, { buyer, seller, collateral, batchId, value, amount }, settings, blockNumber, transactionHash) => {
-  const orders = state.orders || []
+  const orders = state.orders
   const timestamp = await loadTimestamp(blockNumber)
   orders.push({
     address: buyer || seller,
@@ -314,7 +333,7 @@ const newOrder = async (state, { buyer, seller, collateral, batchId, value, amou
 }
 
 const newReturn = async (state, { buyer, seller, collateral, batchId, value, amount }, settings) => {
-  const returns = state.returns || []
+  const returns = state.returns
   returns.push({
     address: buyer || seller,
     collateral,
@@ -331,7 +350,7 @@ const newReturn = async (state, { buyer, seller, collateral, batchId, value, amo
 }
 
 const newBatch = async (state, { id, collateral, supply, balance, reserveRatio }, blockNumber) => {
-  const batches = state.batches || []
+  const batches = state.batches
   const timestamp = await loadTimestamp(blockNumber)
   const startPrice = (balance * state.ppm) / (supply * reserveRatio)
   batches.push({

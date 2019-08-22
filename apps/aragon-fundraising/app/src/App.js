@@ -13,7 +13,6 @@ import PresaleView from './screens/Presale'
 import { AppLogicProvider } from './app-logic'
 import { Order } from './constants'
 import CollateralError from './screens/CollateralError'
-import miniMeTokenAbi from './abi/MiniMeToken.json'
 import marketMaker from './abi/BatchedBancorMarketMaker.json'
 
 const isPresale = false

@@ -55,7 +55,7 @@ export const filter = (batches, period, interval) => {
     return Object.keys(cache)
       .slice(-60)
       .map(key => ({
-        price: cache[key].avg,
+        price: cache[key].avg.toFixed(2),
         date: format(Number(key), 'HH:mm'),
       }))
   }
@@ -66,7 +66,7 @@ export const filter = (batches, period, interval) => {
     return Object.keys(cache)
       .slice(-48)
       .map(key => ({
-        price: cache[key].avg,
+        price: cache[key].avg.toFixed(2),
         date: format(Number(key), 'MMM dd HH:mm'),
       }))
   }
@@ -77,7 +77,7 @@ export const filter = (batches, period, interval) => {
     return Object.keys(cache)
       .slice(-60)
       .map(key => ({
-        price: cache[key].avg,
+        price: cache[key].avg.toFixed(2),
         date: format(Number(key), 'MMM dd HH:mm'),
       }))
   }
@@ -88,7 +88,7 @@ export const filter = (batches, period, interval) => {
     return Object.keys(cache)
       .slice(-56)
       .map(key => ({
-        price: cache[key].avg,
+        price: cache[key].avg.toFixed(2),
         date: format(Number(key), 'y MMM dd'),
       }))
   }
@@ -97,7 +97,7 @@ export const filter = (batches, period, interval) => {
     const cache = getFilteredData(batches, startOfMonth)
 
     return Object.keys(cache).map(key => ({
-      price: cache[key].avg,
+      price: cache[key].avg.toFixed(2),
       date: format(Number(key), 'y MMM dd'),
     }))
   }
@@ -110,7 +110,7 @@ export const filter = (batches, period, interval) => {
       return Object.keys(cache)
         .filter(key => Number(key) > interval.start && Number(key) < interval.end)
         .map(key => ({
-          price: cache[key].avg,
+          price: cache[key].avg.toFixed(2),
           date: format(Number(key), 'MMM dd HH:mm'),
         }))
     } else if (difference < 31) {
@@ -119,7 +119,7 @@ export const filter = (batches, period, interval) => {
       return Object.keys(cache)
         .filter(key => Number(key) > interval.start && Number(key) < interval.end)
         .map(key => ({
-          price: cache[key].avg,
+          price: cache[key].avg.toFixed(2),
           date: format(Number(key), 'MMM dd HH:mm'),
         }))
     } else if (difference < 365) {
@@ -128,7 +128,7 @@ export const filter = (batches, period, interval) => {
       return Object.keys(cache)
         .filter(key => Number(key) > interval.start && Number(key) < interval.end)
         .map(key => ({
-          price: cache[key].avg,
+          price: cache[key].avg.toFixed(2),
           date: format(Number(key), 'y MMM dd'),
         }))
     } else {
@@ -137,7 +137,7 @@ export const filter = (batches, period, interval) => {
       return Object.keys(cache)
         .filter(key => Number(key) > interval.start && Number(key) < interval.end)
         .map(key => ({
-          price: cache[key].avg,
+          price: cache[key].avg.toFixed(2),
           date: format(Number(key), 'y MMM dd'),
         }))
     }
