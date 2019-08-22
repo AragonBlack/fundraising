@@ -1,6 +1,6 @@
 import React, { Fragment, useState, useEffect } from 'react'
 import { useApi, useAppState } from '@aragon/api-react'
-import { Layout, Tabs, Button, Main, SidePanel, SyncIndicator } from '@aragon/ui'
+import { Layout, Tabs, Button, Main, SidePanel, SyncIndicator, Info, Text } from '@aragon/ui'
 import { useInterval } from './utils/use-interval'
 import AppHeader from './components/AppHeader/AppHeader'
 import NewOrder from './components/NewOrder'
@@ -163,6 +163,13 @@ const App = () => {
         {isReady && common.collateralsAreOk && (
           <Fragment>
             <Layout>
+              <Info mode="warning" css="margin-top: 1.5rem;">
+                <Text>
+                  This demo of Aragon Fundraising is still in the experimental phase. It's a peek into the capabilities of the final version and we are looking
+                  forward to your feedback.
+                </Text>
+                <Text css="display: block;">Expect daily frontend updates and future smart contract updates.</Text>
+              </Info>
               <AppHeader
                 heading="Fundraising"
                 action1={

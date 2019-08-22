@@ -1,6 +1,6 @@
 import React from 'react'
 import styled from 'styled-components'
-import { Box } from '@aragon/ui'
+import { Box, Info, Text } from '@aragon/ui'
 import Chart from '../components/Chart'
 import { round, toMonthlyAllocation } from '../lib/math-utils'
 import { formatTokenAmount } from '../lib/utils'
@@ -66,18 +66,21 @@ export default ({ overview, bondedToken, currentBatch, collateralTokens: [{ deci
           <li>
             <div>
               <p className="title">Reserves</p>
-              <p className="number">{adjustedReserves}</p>
+              <p className="number">${adjustedReserves}</p>
             </div>
             {/* <p className="sub-number red">-$0.82M</p> */}
           </li>
           <li>
             <div>
               <p className="title">Monthly Allowance</p>
-              <p className="number">{adjustedMonthlyAllowance}</p>
+              <p className="number">${adjustedMonthlyAllowance}</p>
             </div>
             {/* <p className="sub-number green">$48M (Y)</p> */}
           </li>
         </ul>
+        <Info css="margin: 1rem; width: auto; display: inline-block;">
+          <Text>Token address: 0xde0b295669a9fd93d5f28d9ec85e40f4cb697bae</Text>
+        </Info>
       </KeyMetrics>
       <Chart batches={batches || []} />
     </div>
