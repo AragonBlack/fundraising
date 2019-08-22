@@ -62,12 +62,12 @@ const Order = ({ opened, isBuyOrder, collaterals, bondedToken, price, onOrder })
     const collateral = collaterals[selectedCollateral]
     const decimals = isBuyOrder ? collateral.decimals : bondedToken.decimals
     const amount = isBuyOrder ? collateralAmount : tokenAmount
-    console.log(decimals)
+    // console.log(decimals)
 
-    console.log(collaterals[selectedCollateral])
-    console.log(bondedToken)
-    console.log('old amount: ' + amount)
-    console.log('new amount:' + toDecimals(amount, decimals))
+    // console.log(collaterals[selectedCollateral])
+    // console.log(bondedToken)
+    // console.log('old amount: ' + amount)
+    // console.log('new amount:' + toDecimals(amount, decimals))
 
     if (valid) onOrder(collateral.address, toDecimals(amount, decimals), isBuyOrder)
   }
@@ -127,7 +127,7 @@ const Order = ({ opened, isBuyOrder, collaterals, bondedToken, price, onOrder })
           Open {isBuyOrder ? 'buy' : 'sell'} order
         </Button>
       </ButtonWrapper>
-      <Info isBuyOrder={isBuyOrder} />
+      <Info isBuyOrder={isBuyOrder} slippage={collaterals[selectedCollateral].slippage} />
     </form>
   )
 }

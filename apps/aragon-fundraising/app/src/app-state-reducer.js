@@ -128,6 +128,7 @@ const appStateReducer = state => {
         address,
         ...data,
         decimals: Number(data.decimals),
+        slippage: Number(data.slippage) / Math.pow(10, 16),
         ratio: parseInt(data.reserveRatio, 10) / parseInt(ppm, 10),
       })),
       collateralsAreOk,
