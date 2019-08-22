@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Badge, Box, Button, DiscButton, Text, TextInput, theme, SidePanel, unselectable } from '@aragon/ui'
+import { Badge, Box, Button, DiscButton, Text, TextInput, theme, SidePanel, unselectable, Info } from '@aragon/ui'
 import styled from 'styled-components'
 import { differenceInMonths } from 'date-fns'
 import BN from 'bn.js'
@@ -196,15 +196,15 @@ export default ({ bondedToken, reserve, polledData: { polledTotalSupply }, updat
         <h1 className="title bold">Edit reserve settings</h1>
         <div className="settings-content">
           <div css="margin-right: 4rem;">
-            <div css="display: flex; flex-direction: column; margin-bottom: 1rem;">
+            <div css="display: flex; flex-direction: column; margin-bottom: 1.5rem;">
               {NotificationLabel('Monthly allocation', hoverTextNotifications[0])}
-              <Text as="p" style={{ paddingRight: '12px' }}>
+              <Text as="p" css="padding-right: 1.5rem; font-weight: bold;">
                 {adjustedAllocation} DAI / month
               </Text>
             </div>
             <div css="display: flex; flex-direction: column; margin-bottom: 1.5rem;">
               {NotificationLabel('Floor', hoverTextNotifications[2])}
-              <Text as="p" style={{ paddingRight: '12px' }}>
+              <Text as="p" css="padding-right: 1.5rem; font-weight: bold;">
                 {adjustedFloor} DAI
               </Text>
             </div>
@@ -225,7 +225,7 @@ export default ({ bondedToken, reserve, polledData: { polledTotalSupply }, updat
               return (
                 <div css="display: flex; flex-direction: column; margin-bottom: 1.5rem;" key={i}>
                   {NotificationLabel(`${symbol} collateralization ratio`, hoverTextNotifications[1])}
-                  <Text>{ratio}%</Text>
+                  <Text css="font-weight: bold;">{ratio}%</Text>
                 </div>
               )
             })}
@@ -249,11 +249,6 @@ export default ({ bondedToken, reserve, polledData: { polledTotalSupply }, updat
         <div css="margin: 0 -30px 24px; border: 1px solid #DFE3E8;" />
         <form onSubmit={handleSubmit}>
           <Wrapper>
-            <Text as="p">You can increase the tap by {maximumTapIncreasePct * 100}%.</Text>
-            <Text as="p">Current monthly allocation: {adjustedAllocation} DAI</Text>
-            <Text as="p">Current floor: {adjustedFloor} DAI</Text>
-          </Wrapper>
-          <Wrapper>
             <label>
               <StyledTextBlock>Tap (DAI)</StyledTextBlock>
             </label>
@@ -271,6 +266,12 @@ export default ({ bondedToken, reserve, polledData: { polledTotalSupply }, updat
             </Button>
           </ButtonWrapper>
           {errorMessage && <ValidationError message={errorMessage} />}
+          <Info css="margin-top: 1rem;">
+            <p css="font-weight: 700;">Info</p>
+            <Text as="p">You can increase the tap by {maximumTapIncreasePct * 100}%.</Text>
+            <Text as="p">Current monthly allocation: {allocation} DAI</Text>
+            <Text as="p">Current floor: {floor} DAI</Text>
+          </Info>
         </form>
       </SidePanel>
     </ContentWrapper>
