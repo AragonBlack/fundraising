@@ -2,7 +2,7 @@ import { Order } from './constants'
 import mock from './bg_mock.json'
 import { ETHER_TOKEN_VERIFIED_BY_SYMBOL } from './lib/verified-tokens'
 import testTokens from '@aragon/templates-tokens'
-
+import BN from 'bn.js'
 /**
  * Checks whether we have enough data to start the fundraising app
  * @param {Object} state - the background script state
@@ -63,11 +63,14 @@ const withPriceAndCollateral = (order, batches, collateralTokens) => {
   const batch = batches.find(b => b.id === batchId && b.collateral === collateral)
   if (batch) {
     if (type === Order.Type.BUY) {
+      // TODO: check calculations
+      // to avoid missing buyPrice = O
       augmentedOrder.price = typeof batch.buyPrice !== 'undefined' ? batch.buyPrice : batch.startPrice
-      augmentedOrder.tokens = amount / augmentedOrder.price
+      augmentedOrder.tokens = (amount / augmentedOrder.price).toString()
     } else {
+      // to avoid missing sellPrice = O
       augmentedOrder.price = typeof batch.sellPrice !== 'undefined' ? batch.sellPrice : batch.startPrice
-      augmentedOrder.tokens = amount * augmentedOrder.price
+      augmentedOrder.tokens = (amount * augmentedOrder.price).toString()
     }
   }
   // pending by default, state is computed on the frontend
@@ -106,6 +109,12 @@ const appStateReducer = state => {
     } = state
     const daiAddress = Array.from(collateralTokens).find(t => t[1].symbol === 'DAI')[0]
     const tap = taps.get(daiAddress)
+    const tapBn = {
+      ...tap,
+      allocation: new BN(tap.allocation),
+      floor: new BN(tap.floor),
+    }
+
     const collateralsAreOk = checkCollaterals(collateralTokens, network)
     // common data
     const common = {
@@ -128,13 +137,13 @@ const appStateReducer = state => {
       // startPrice: batches.find(b => b.id === currentBatch).startPrice,
       batches,
       reserve: collateralTokens.get(daiAddress).balance,
-      tap,
+      tap: tapBn,
     }
     // orders tab data
     const ordersView = orders ? orders.map(o => withPriceAndCollateral(o, batches, collateralTokens)).reverse() : []
     // reserve tab data
     const reserve = {
-      tap,
+      tap: tapBn,
       maximumTapIncreasePct,
     }
     // reduced state
