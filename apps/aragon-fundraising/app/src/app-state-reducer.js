@@ -10,9 +10,9 @@ import BN from 'bn.js'
  */
 // TODO: check if we can start the app with no collateral token and no tap
 const ready = state => {
-  const synced = !(state === null || state.isSyncing)
-  const hasCollateralTokens = state !== null && state.collateralTokens
-  const hasTaps = state !== null && state.taps
+  const synced = state !== null && !state.isSyncing
+  const hasCollateralTokens = state !== null && state.collateralTokens.size > 0
+  const hasTaps = state !== null && state.taps.size > 0
   return synced && hasCollateralTokens && hasTaps
 }
 
