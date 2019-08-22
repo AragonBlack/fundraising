@@ -1,10 +1,14 @@
 import React from 'react'
 import PropTypes from 'prop-types'
 import { GU, useTheme, useLayout } from '@aragon/ui'
+import { useAragonApi } from '@aragon/api-react'
+import MenuButton from '../MenuButton'
 
 function AppHeader({ heading, action1, action2 }) {
   const theme = useTheme()
   const { width } = useLayout()
+  const { requestMenu, displayMenuButton } = useAragonApi()
+
   return (
     <div
       css={
@@ -29,6 +33,7 @@ function AppHeader({ heading, action1, action2 }) {
           height: ${5 * GU}px;
         `}
       >
+        {displayMenuButton && <MenuButton onClick={requestMenu} />}
         <div>
           {typeof heading === 'string' ? (
             <h1
