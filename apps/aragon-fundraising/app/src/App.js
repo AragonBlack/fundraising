@@ -140,6 +140,9 @@ const App = () => {
   }
 
   const handleTappedTokenUpdate = (tapAmount, floor) => {
+    console.log(tapAmount)
+    console.log(floor)
+    console.log(common.daiAddress)
     api
       .updateTokenTap(common.daiAddress, tapAmount, floor)
       .toPromise()
@@ -179,11 +182,20 @@ const App = () => {
                   overview={overview}
                   bondedToken={common.bondedToken}
                   currentBatch={common.currentBatch}
+                  collateralTokens={common.collateralTokens}
                   polledData={{ polledTotalSupply, polledBatchId }}
                 />
               )}
-              {tabIndex === 1 && <Orders orders={augmentedOrders} />}
-              {tabIndex === 2 && <MyOrders orders={augmentedOrders} account={common.connectedAccount} onClaim={handleClaim} />}
+              {tabIndex === 1 && <Orders orders={augmentedOrders} collateralTokens={common.collateralTokens} bondedToken={common.bondedToken} />}
+              {tabIndex === 2 && (
+                <MyOrders
+                  orders={augmentedOrders}
+                  collateralTokens={common.collateralTokens}
+                  bondedToken={common.bondedToken}
+                  account={common.connectedAccount}
+                  onClaim={handleClaim}
+                />
+              )}
               {tabIndex === 3 && (
                 <Reserves
                   bondedToken={common.bondedToken}
