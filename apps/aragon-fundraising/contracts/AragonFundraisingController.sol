@@ -152,7 +152,7 @@ contract AragonFundraisingController is EtherTokenConstant, IsContract, IMarketM
     }
 
     /**
-     * @notice Open a sell order worth `@tokenAmount(self.token(): address, _amount)`
+     * @notice Open a sell order worth `@tokenAmount(self.token(): address, _amount)` against `_collateral.symbol(): string`
      * @param _collateral The address of the collateral token to be returned
      * @param _amount The amount of bonded token to be spent
     */
