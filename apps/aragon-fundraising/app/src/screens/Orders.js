@@ -171,7 +171,7 @@ export default ({ orders, collateralTokens: [{ decimals: daiDecimals }], bondedT
                 {formatTokenAmount(data.amount, data.type === Order.Type.BUY, daiDecimals, true, { rounding: 2 }) + ' '}
                 {data.symbol}
               </p>,
-              <p css="font-weight: 600;">${round(data.price, 3)}</p>,
+              <p css="font-weight: 600;">${round(data.price, 2)}</p>,
               data.type === Order.Type.BUY ? (
                 <div
                   css={`
