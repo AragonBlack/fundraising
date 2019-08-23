@@ -19,6 +19,7 @@
     "prepublishOnly": "truffle compile --all && npm run abi:extract -- --no-compile",
     "apm:prepublish": "npm run compile",
     "apm:publish:rpc": "aragon apm publish major --environment default --skip-confirmation true --propagate-content false",
+    "apm:publish:hatch:major": "aragon apm publish major --use-frame --environment hatch",
     "publish": "npm run apm:publish:rpc"
   },
   "files": [
