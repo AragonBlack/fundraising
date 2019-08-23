@@ -7,19 +7,16 @@ import { round, toMonthlyAllocation } from '../lib/math-utils'
 import { formatTokenAmount } from '../lib/utils'
 
 export default ({
-  overview,
+  overview: {
+    tap: { allocation },
+    batches,
+  },
   price,
   orders,
   bondedToken: { address: tokenAddress, decimals: tokenDecimals, totalSupply, tokensToBeMinted },
-  currentBatch,
-  collateralTokens: [{ address: daiAddress, decimals: daiDecimals, collateralsToBeClaimed, virtualSupply }],
-  polledData: { polledDaiBalance, polledBatchId },
+  collateralTokens: [{ address: daiAddress, decimals: daiDecimals, virtualBalance }],
+  polledData: { polledDaiBalance },
 }) => {
-  const {
-    tap: { allocation },
-    batches,
-  } = overview
-
   // human readable values
   //  TODO: review all of this...
   const tokenSupply = new BN(totalSupply).add(new BN(tokensToBeMinted))
@@ -27,7 +24,7 @@ export default ({
     rounding: 2,
   })
   const adjustedReserves = polledDaiBalance
-    ? formatTokenAmount(polledDaiBalance.sub(new BN(virtualSupply)).toString(), false, daiDecimals, false, { rounding: 2 })
+    ? formatTokenAmount(polledDaiBalance.sub(new BN(virtualBalance)).toString(), false, daiDecimals, false, { rounding: 2 })
     : '...'
   const adjustedMonthlyAllowance = round(toMonthlyAllocation(allocation.toString(), daiDecimals))
   const marketCap = price ? new BN(parseInt(price * 100).toString()).mul(new BN(totalSupply).add(new BN(tokensToBeMinted))) : '...'
@@ -77,7 +74,7 @@ export default ({
             <div>
               <p className="title">Trading Volume</p>
               {/* TODO: handle trading volume */}
-              <p className="number">{adjsutedTradingVolume}</p>
+              <p className="number">${adjsutedTradingVolume}</p>
             </div>
             {/* <p className="sub-number green">$48M (Y)</p> */}
           </li>

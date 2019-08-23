@@ -100,15 +100,12 @@ const App = () => {
       const { value } = common.bondedToken.computedSupply.find(s => s.symbol === 'DAI')
       setPolledDaiBalance(new BN(daiBalance).add(daiToken.computedFactor))
       setPolledAntBalance(new BN(antBalance).add(antToken.computedFactor))
-      console.log(value.toString())
-      console.log(polledDaiBalance.toString())
       // const price = await marketMakerContract.getStaticPrice(value.toString(), polledDaiBalance.toString(), daiToken.reserveRatio).toPromise()
       const price =
         new BN(common.ppm.toString())
           .mul(polledDaiBalance.mul(new BN('100')))
           .div(value.mul(new BN(daiToken.reserveRatio)))
           .toNumber() / 100
-      console.log(price)
       setPolledPrice(price)
       // batchId
       const batchId = await marketMakerContract.getCurrentBatchId().toPromise()
