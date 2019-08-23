@@ -534,13 +534,13 @@ const updateCollateralsToken = async (collaterals, collateral, settings, isOrder
     // sell order
     collaterals.set(collateral, {
       ...collaterals.get(collateral),
-      toBeClaimed: await loadCollateralsToBeClaimed(collateral, settings),
+      collateralsToBeClaimed: await loadCollateralsToBeClaimed(collateral, settings),
     })
   } else if (!isOrder && !isBuy) {
     // sell claim
     collaterals.set(collateral, {
       ...collaterals.get(collateral),
-      toBeClaimed: await loadCollateralsToBeClaimed(collateral, settings),
+      collateralsToBeClaimed: await loadCollateralsToBeClaimed(collateral, settings),
     })
   }
   return collaterals

@@ -4,7 +4,7 @@ import { TabBar } from '@aragon/ui'
 
 import Order from './Order'
 
-const NewOrder = ({ opened, collaterals, bondedToken, price, onOrder }) => {
+const NewOrder = ({ opened, collaterals, bondedToken, price, onOrder, polledData }) => {
   const [screenIndex, setScreenIndex] = useState(0)
 
   // handle reset when opening
@@ -21,8 +21,8 @@ const NewOrder = ({ opened, collaterals, bondedToken, price, onOrder }) => {
         <TabBar items={['Buy', 'Sell']} selected={screenIndex} onChange={setScreenIndex} />
       </TabBarWrapper>
 
-      {screenIndex === 0 && <Order opened={opened} isBuyOrder collaterals={collaterals} bondedToken={bondedToken} price={price} onOrder={onOrder} />}
-      {screenIndex === 1 && <Order opened={opened} collaterals={collaterals} bondedToken={bondedToken} price={price} onOrder={onOrder} />}
+      {screenIndex === 0 && <Order opened={opened} isBuyOrder collaterals={collaterals} bondedToken={bondedToken} polledData={polledData} onOrder={onOrder} />}
+      {screenIndex === 1 && <Order opened={opened} collaterals={collaterals} bondedToken={bondedToken} polledData={polledData} onOrder={onOrder} />}
     </div>
   )
 }
