@@ -15,7 +15,7 @@
   "scripts": {
     "lint": "eslint ./src",
     "sync-assets": "copy-aragon-ui-assets -n aragon-ui ./build && copyfiles -u 1 './public/**/*' ./build",
-    "start": "npm run sync-assets && npm run build:script -- --no-minify && cross-env NODE_ENV=test parcel serve index.html -p 3001 --out-dir build/",
+    "start": "npm run sync-assets && npm run build:script -- --no-minify && parcel serve index.html -p 3001 --out-dir build/",
     "build": "npm run sync-assets && npm run build:script && parcel build index.html --out-dir build/ --public-url '.'",
     "build:script": "parcel build src/script.js --out-dir build/"
   },

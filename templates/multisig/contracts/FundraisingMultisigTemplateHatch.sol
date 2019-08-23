@@ -8,7 +8,7 @@ import {AragonFundraisingController as Controller} from "@ablack/fundraising-ara
 import {BatchedBancorMarketMaker as MarketMaker} from "@ablack/fundraising-batched-bancor-market-maker/contracts/BatchedBancorMarketMaker.sol";
 
 
-contract FundraisingMultisigTemplate is BaseTemplate {
+contract FundraisingMultisigTemplateHatch is BaseTemplate {
     string constant private ERROR_EMPTY_BOARD = "FM_EMPTY_BOARD";
     string constant private ERROR_BAD_VOTE_SETTINGS = "FM_BAD_VOTE_SETTINGS";
     string constant private ERROR_BAD_FUNDRAISING_SETTINGS = "FM_BAD_FUNDRAISING_SETTINGS";
