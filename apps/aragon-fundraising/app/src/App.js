@@ -1,6 +1,7 @@
 import React, { Fragment, useState, useEffect } from 'react'
 import { useApi, useAppState } from '@aragon/api-react'
 import { Layout, Tabs, Button, Main, SidePanel, SyncIndicator, Info, Text } from '@aragon/ui'
+import BN from 'bn.js'
 import { useInterval } from './utils/use-interval'
 import AppHeader from './components/AppHeader/AppHeader'
 import NewOrder from './components/NewOrder'
@@ -82,21 +83,34 @@ const App = () => {
   const [polledDaiBalance, setPolledDaiBalance] = useState(null)
   const [polledAntBalance, setPolledAntBalance] = useState(null)
   const [polledBatchId, setPolledBatchId] = useState(null)
+  const [polledPrice, setPolledPrice] = useState(0)
   const [augmentedOrders, setAugmentedOrders] = useState(ordersView)
 
   // polls the bonded token total supply, batchId, price
   useInterval(async () => {
     if (isReady) {
+      const marketMakerContract = api.external(common.addresses.marketMaker, marketMaker)
       // TODO: handle externals instanciation in the app state reducer
       // balances
-      const promises = common.collateralTokens.map(t => api.call('balanceOf', common.addresses.pool, t.address).toPromise())
-      const [daiBalance, antBalance] = await Promise.all(promises)
-      setPolledDaiBalance(daiBalance)
-      setPolledAntBalance(antBalance)
-      console.log(polledDaiBalance)
-      console.log(polledAntBalance)
+      const daiToken = common.collateralTokens.find(t => t.symbol === 'DAI')
+      const daiPromise = api.call('balanceOf', common.addresses.pool, daiToken.address).toPromise()
+      const antToken = common.collateralTokens.find(t => t.symbol === 'ANT')
+      const antPromise = api.call('balanceOf', common.addresses.pool, antToken.address).toPromise()
+      const [daiBalance, antBalance] = await Promise.all([daiPromise, antPromise])
+      const { value } = common.bondedToken.computedSupply.find(s => s.symbol === 'DAI')
+      setPolledDaiBalance(new BN(daiBalance).add(daiToken.computedFactor))
+      setPolledAntBalance(new BN(antBalance).add(antToken.computedFactor))
+      console.log(value.toString())
+      console.log(polledDaiBalance.toString())
+      // const price = await marketMakerContract.getStaticPrice(value.toString(), polledDaiBalance.toString(), daiToken.reserveRatio).toPromise()
+      const price =
+        new BN(common.ppm.toString())
+          .mul(polledDaiBalance.mul(new BN('100')))
+          .div(value.mul(new BN(daiToken.reserveRatio)))
+          .toNumber() / 100
+      console.log(price)
+      setPolledPrice(price)
       // batchId
-      const marketMakerContract = api.external(common.addresses.marketMaker, marketMaker)
       const batchId = await marketMakerContract.getCurrentBatchId().toPromise()
       setPolledBatchId(batchId)
     }
@@ -196,11 +210,12 @@ const App = () => {
               {tabIndex === 0 && (
                 <Overview
                   overview={overview}
+                  price={polledPrice}
                   orders={ordersView}
                   bondedToken={common.bondedToken}
                   currentBatch={common.currentBatch}
                   collateralTokens={common.collateralTokens}
-                  polledData={{ polledBatchId }}
+                  polledData={{ polledDaiBalance, polledBatchId }}
                 />
               )}
               {tabIndex === 1 && <Orders orders={augmentedOrders} collateralTokens={common.collateralTokens} bondedToken={common.bondedToken} />}
@@ -227,7 +242,7 @@ const App = () => {
                 opened={orderPanel}
                 collaterals={common.collateralTokens}
                 bondedToken={common.bondedToken}
-                price={overview.startPrice}
+                polledData={{ polledDaiBalance, polledAntBalance }}
                 onOrder={handlePlaceOrder}
               />
             </SidePanel>

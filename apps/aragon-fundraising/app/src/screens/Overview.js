@@ -8,29 +8,33 @@ import { formatTokenAmount } from '../lib/utils'
 
 export default ({
   overview,
+  price,
   orders,
   bondedToken: { address: tokenAddress, decimals: tokenDecimals, totalSupply, tokensToBeMinted },
   currentBatch,
-  collateralTokens: [{ address: daiAddress, decimals: daiDecimals, collateralsToBeClaimed }],
-  polledData: { polledTotalSupply, polledBatchId },
+  collateralTokens: [{ address: daiAddress, decimals: daiDecimals, collateralsToBeClaimed, virtualSupply }],
+  polledData: { polledDaiBalance, polledBatchId },
 }) => {
   const {
-    reserve,
     tap: { allocation },
     batches,
   } = overview
 
-  const startPrice = 1
   // human readable values
+  //  TODO: review all of this...
   const tokenSupply = new BN(totalSupply).add(new BN(tokensToBeMinted))
   const adjustedTokenSupply = formatTokenAmount(tokenSupply.toString(), false, tokenDecimals, false, {
     rounding: 2,
   })
-  const reserves = new BN(reserve).sub(new BN(collateralsToBeClaimed))
-  const adjustedReserves = formatTokenAmount(reserves.toString(), false, daiDecimals, false, { rounding: 2 })
+  const adjustedReserves = polledDaiBalance
+    ? formatTokenAmount(polledDaiBalance.sub(new BN(virtualSupply)).toString(), false, daiDecimals, false, { rounding: 2 })
+    : '...'
   const adjustedMonthlyAllowance = round(toMonthlyAllocation(allocation.toString(), daiDecimals))
-  const marketCap = new BN(startPrice).mul(new BN(totalSupply))
-  const adjustedMarketCap = formatTokenAmount(marketCap.toString(), false, daiDecimals, false, { rounding: 2 })
+  const marketCap = price ? new BN(parseInt(price * 100).toString()).mul(new BN(totalSupply).add(new BN(tokensToBeMinted))) : '...'
+  const truncatedMarketCap = marketCap.toString().substr(0, marketCap.toString().length - 2)
+  const adjustedMarketCap = price ? formatTokenAmount(truncatedMarketCap, false, daiDecimals, false, { rounding: 2 }) : '...'
+
+  const adjustedPrice = price || '...'
 
   const tradingVolume = orders
     // only keep DAI orders
@@ -41,12 +45,13 @@ export default ({
     .reduce((acc, current) => acc.add(current), new BN('0'))
   const adjsutedTradingVolume = formatTokenAmount(tradingVolume.toString(), false, daiDecimals, false, { rounding: 2 })
 
-  let price
-  if (polledBatchId && polledBatchId > currentBatch) {
-    // last batch is over, next batch will start with the last price of the last batch
-    // TODO: take buyPrice or sellPrice ?? change the following
-    price = startPrice
-  } else price = startPrice
+  // let price
+  // if (polledBatchId && polledBatchId > currentBatch) {
+  //   // last batch is over, next batch will start with the last price of the last batch
+  //   // TODO: take buyPrice or sellPrice ?? change the following
+  //   price = startPrice
+  // } else price = startPrice
+
   return (
     <div>
       <KeyMetrics
@@ -57,7 +62,7 @@ export default ({
           <li>
             <div>
               <p className="title">Price</p>
-              <p className="number">${round(price, 3)}</p>
+              <p className="number">${adjustedPrice}</p>
             </div>
             {/* <p className="sub-number green">+$4.82 (0.5%)</p> */}
           </li>

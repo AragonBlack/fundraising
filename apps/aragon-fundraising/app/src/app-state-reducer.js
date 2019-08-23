@@ -1,5 +1,4 @@
 import { Order } from './constants'
-import mock from './bg_mock.json'
 import { ETHER_TOKEN_VERIFIED_BY_SYMBOL } from './lib/verified-tokens'
 import testTokens from '@aragon/templates-tokens'
 import BN from 'bn.js'
@@ -83,8 +82,6 @@ const withPriceAndCollateral = (order, batches, collateralTokens) => {
  * @returns {Object} a reduced state, easier to interact with on the frontend
  */
 const appStateReducer = state => {
-  // TODO: remove this quick and dirty hack
-  if (process.env.NODE_ENV === 'test') return mock
   // don't reduce not yet populated state
   const isReady = ready(state)
   if (isReady) {
@@ -115,23 +112,38 @@ const appStateReducer = state => {
       floor: new BN(tap.floor),
     }
 
+    const computedBondedToken = {
+      ...bondedToken,
+      decimals: Number(bondedToken.decimals),
+      computedSupply: Array.from(collateralTokens).map(([address, { symbol, virtualSupply }]) => {
+        return {
+          address,
+          symbol,
+          value: new BN(bondedToken.totalSupply).add(new BN(bondedToken.tokensToBeMinted).add(new BN(virtualSupply))),
+        }
+      }),
+    }
+
+    const computedCollateralTokens = Array.from(collateralTokens).map(([address, data]) => ({
+      address,
+      ...data,
+      decimals: Number(data.decimals),
+      ratio: parseInt(data.reserveRatio, 10) / parseInt(ppm, 10),
+      computedFactor: new BN(data.collateralToBeClaimed).add(new BN(data.virtualBalance)),
+    }))
+
     const collateralsAreOk = checkCollaterals(collateralTokens, network)
     // common data
     const common = {
       connectedAccount,
       beneficiary,
-      bondedToken: { ...bondedToken, decimals: Number(bondedToken.decimals) },
+      bondedToken: computedBondedToken,
       addresses,
       currentBatch,
       daiAddress,
-      collateralTokens: Array.from(collateralTokens).map(([address, data], i) => ({
-        address,
-        ...data,
-        decimals: Number(data.decimals),
-        slippage: Number(data.slippage) / Math.pow(10, 16),
-        ratio: parseInt(data.reserveRatio, 10) / parseInt(ppm, 10),
-      })),
+      collateralTokens: computedCollateralTokens,
       collateralsAreOk,
+      ppm,
     }
     // overview tab data
     const overview = {
@@ -148,7 +160,7 @@ const appStateReducer = state => {
       maximumTapIncreasePct,
     }
     // reduced state
-    const reducedState = {
+    return {
       isReady,
       common,
       overview,
@@ -156,8 +168,6 @@ const appStateReducer = state => {
       reserve,
       returns,
     }
-    console.log(JSON.stringify(reducedState))
-    return reducedState
   } else {
     return {
       ...state,

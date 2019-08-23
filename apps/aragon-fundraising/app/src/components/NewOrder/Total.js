@@ -1,39 +1,48 @@
 import React, { useState, useEffect } from 'react'
 import { Text } from '@aragon/ui'
 import { useApi, useAppState } from '@aragon/api-react'
+import styled from 'styled-components'
 import BN from 'bn.js'
 import BancorFormulaAbi from '../../abi/BancorFormula.json'
 import { round, fromDecimals, toDecimals } from '../../lib/math-utils'
 
-const Total = ({ isBuyOrder, collateral, token }) => {
+const Total = ({ isBuyOrder, amount, conversionSymbol, polledData, bondedToken, onError }) => {
   const { common } = useAppState()
   const api = useApi()
-
   const [evaluatedPrice, setEvaluatedPrice] = useState(0)
+
   const formula = api.external(common.addresses.formula, BancorFormulaAbi)
+
+  const errorCb = () => {
+    setEvaluatedPrice(null)
+    onError(false, 'The amount is out of range of the supply')
+  }
+
+  const okCb = () => onError(true, null)
 
   useEffect(() => {
     let didCancel = false
 
     const evaluateOrderReturn = async () => {
-      if (isBuyOrder) {
-        const result = await formula
-          .calculatePurchaseReturn('100000000000000000000000', '10000000000000000000000', 100000, toDecimals(collateral.value.toString(), collateral.decimals))
+      const functionToCall = isBuyOrder ? 'calculatePurchaseReturn' : 'calculateSaleReturn'
+      const amountBn = new BN(amount.value)
+      const a = toDecimals(amountBn.toString(), amount.decimals)
+      // supply, balance, weight, amount
+      const currentSymbol = isBuyOrder ? amount.symbol : conversionSymbol
+      const supply = bondedToken.computedSupply.find(s => s.symbol === currentSymbol).value
+      const balance = amount.symbol === 'DAI' ? polledData.polledDaiBalance : polledData.polledAntBalance
+      console.log(balance)
+      if (balance) {
+        const result = await formula[functionToCall](supply.toString(), balance.toString(), 100000, a)
           .toPromise()
-          .catch(console.error)
-
-        if (!didCancel) {
-          setEvaluatedPrice(round(fromDecimals(result.toString(), token.decimals)))
+          .catch(errorCb)
+        if (!didCancel && result) {
+          okCb()
+          const resultBn = new BN(result)
+          setEvaluatedPrice(round(fromDecimals(resultBn.toString(), amount.decimals)))
         }
       } else {
-        const result = await formula
-          .calculateSaleReturn('100000000000000000000000', '10000000000000000000000', 100000, toDecimals(token.value.toString(), token.decimals))
-          .toPromise()
-          .catch(console.error)
-
-        if (!didCancel) {
-          setEvaluatedPrice(round(fromDecimals(result.toString(), collateral.decimals)))
-        }
+        onError(false, null)
       }
     }
 
@@ -42,23 +51,29 @@ const Total = ({ isBuyOrder, collateral, token }) => {
     return () => {
       didCancel = true
     }
-  }, [isBuyOrder, collateral, token])
+  }, [isBuyOrder, amount, conversionSymbol])
 
   return (
-    <div css="display: flex;">
-      <div css="width: 50%">
+    <div css="display: flex; justify-content: space-between; padding: 0 5px;">
+      <div>
         <Text weight="bold">TOTAL</Text>
       </div>
-      <div css="width: 25%; display: flex; flex-direction: column; direction: rtl;">
-        <Text weight="bold">{isBuyOrder ? collateral.value || 0 : token.value || 0}</Text>
-        <Text color="grey">{evaluatedPrice}~</Text>
-      </div>
-      <div css="width: 25%; display: flex; flex-direction: column; margin-left: 1rem;">
-        <Text weight="bold">{isBuyOrder ? collateral.symbol : token.symbol}</Text>
-        <Text color="grey">{isBuyOrder ? token.symbol : collateral.symbol}</Text>
+      <div css="display: flex; flex-direction: column">
+        <div css="display: flex; justify-content: flex-end;">
+          <AmountField weight="bold">{amount.value}</AmountField>
+          <Text weight="bold">{amount.symbol}</Text>
+        </div>
+        <div css="display: flex; justify-content: flex-end;">
+          {evaluatedPrice !== null && <AmountField color="grey">~{evaluatedPrice}</AmountField>}
+          {evaluatedPrice !== null && <Text color="grey">{conversionSymbol}</Text>}
+        </div>
       </div>
     </div>
   )
 }
+
+const AmountField = styled(Text)`
+  margin-right: 10px;
+`
 
 export default Total
