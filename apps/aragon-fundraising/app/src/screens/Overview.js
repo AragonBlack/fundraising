@@ -10,10 +10,10 @@ export default ({
   overview,
   price,
   orders,
-  bondedToken: { address: tokenAddress, decimals: tokenDecimals, totalSupply, tokensToBeMinted },
+  bondedToken: { address: tokenAddress, decimals: tokenDecimals, totalSupply, tokensToBeMinted, realSupply },
   currentBatch,
   collateralTokens: [{ address: daiAddress, decimals: daiDecimals, collateralsToBeClaimed, virtualSupply }],
-  polledData: { polledDaiBalance, polledBatchId },
+  polledData: { polledDaiBalance, polledBatchId, polledReserveBalance },
 }) => {
   const {
     tap: { allocation },
@@ -22,12 +22,19 @@ export default ({
 
   // human readable values
   //  TODO: review all of this...
+  console.log('TOTAL SUPPLY')
+  console.log(totalSupply)
+  console.log('TokensToBeMinted')
+  console.log(tokensToBeMinted)
+  console.log('collateralsToBeClaimed')
+  console.log(collateralsToBeClaimed)
+
   const tokenSupply = new BN(totalSupply).add(new BN(tokensToBeMinted))
   const adjustedTokenSupply = formatTokenAmount(tokenSupply.toString(), false, tokenDecimals, false, {
     rounding: 2,
   })
-  const adjustedReserves = polledDaiBalance
-    ? formatTokenAmount(polledDaiBalance.sub(new BN(virtualSupply)).toString(), false, daiDecimals, false, { rounding: 2 })
+  const adjustedReserves = polledReserveBalance
+    ? formatTokenAmount(polledReserveBalance.sub(new BN(collateralsToBeClaimed)).toString(), false, daiDecimals, false, { rounding: 2 })
     : '...'
   const adjustedMonthlyAllowance = round(toMonthlyAllocation(allocation.toString(), daiDecimals))
   const marketCap = price ? new BN(parseInt(price * 100).toString()).mul(new BN(totalSupply).add(new BN(tokensToBeMinted))) : '...'
@@ -40,7 +47,15 @@ export default ({
     // only keep DAI orders
     .filter(o => o.collateral === daiAddress)
     // transform amounts in BN
-    .map(o => new BN(o.amount))
+    .map(o => {
+      if (o.type === 'SELL') {
+        // console.log(new BN(parseInt(o.tokens)).toString())
+        // return new BN(parseInt(o.tokens))
+        return o.tokens
+      } else {
+        return new BN(o.amount)
+      }
+    })
     // sum them and tada, you got the trading volume
     .reduce((acc, current) => acc.add(current), new BN('0'))
   const adjsutedTradingVolume = formatTokenAmount(tradingVolume.toString(), false, daiDecimals, false, { rounding: 2 })

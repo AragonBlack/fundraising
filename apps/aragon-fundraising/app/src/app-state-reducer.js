@@ -69,7 +69,7 @@ const withPriceAndCollateral = (order, batches, collateralTokens) => {
     } else {
       // to avoid missing sellPrice = O
       augmentedOrder.price = typeof batch.sellPrice !== 'undefined' ? batch.sellPrice : batch.startPrice
-      augmentedOrder.tokens = (amount * augmentedOrder.price).toString()
+      augmentedOrder.tokens = new BN(amount).mul(new BN(parseInt(augmentedOrder.price * 1000000))).div(new BN(1000000))
     }
   }
   // pending by default, state is computed on the frontend
@@ -120,6 +120,13 @@ const appStateReducer = state => {
           address,
           symbol,
           value: new BN(bondedToken.totalSupply).add(new BN(bondedToken.tokensToBeMinted).add(new BN(virtualSupply))),
+        }
+      }),
+      realSupply: Array.from(collateralTokens).map(([address, { symbol, virtualSupply }]) => {
+        return {
+          address,
+          symbol,
+          value: new BN(bondedToken.totalSupply).add(new BN(bondedToken.tokensToBeMinted)),
         }
       }),
     }

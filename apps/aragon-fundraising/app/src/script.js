@@ -327,7 +327,7 @@ const newOrder = async (state, { buyer, seller, collateral, batchId, value, amou
   return {
     ...state,
     orders,
-    bondedToken: await updateBondedToken(state.bondedToken, settings, true, buyer !== 'undefined'),
+    bondedToken: await updateBondedToken(state.bondedToken, settings, true, typeof buyer !== 'undefined'),
     collateralTokens: await updateCollateralsToken(state.collateralTokens, collateral, settings, true, buyer !== 'undefined'),
   }
 }
@@ -345,7 +345,7 @@ const newReturn = async (state, { buyer, seller, collateral, batchId, value, amo
     ...state,
     returns,
     bondedToken: await updateBondedToken(state.bondedToken, settings, false, buyer !== 'undefined'),
-    collateralTokens: await updateCollateralsToken(state.collateralTokens, collateral, settings, false, buyer !== 'undefined'),
+    collateralTokens: await updateCollateralsToken(state.collateralTokens, collateral, settings, false, typeof buyer !== 'undefined'),
   }
 }
 
@@ -498,11 +498,13 @@ const loadTimestamp = async blockNumber => {
  * @returns {Object} the updated bonded token
  */
 const updateBondedToken = async (bondedToken, settings, isOrder, isBuy) => {
+  console.log('UPDATE BONDED TOKEN')
   if (isOrder && isBuy) {
     // buy order
     return {
       ...bondedToken,
       tokensToBeMinted: await settings.marketMaker.contract.tokensToBeMinted().toPromise(),
+      totalSupply: await settings.bondedToken.contract.totalSupply().toPromise(),
     }
   } else if (isOrder) {
     // sell order
@@ -530,13 +532,13 @@ const updateBondedToken = async (bondedToken, settings, isOrder, isBuy) => {
  * @returns {Object} the updated collaterals
  */
 const updateCollateralsToken = async (collaterals, collateral, settings, isOrder, isBuy) => {
-  if (isOrder && !isBuy) {
+  if (isOrder) {
     // sell order
     collaterals.set(collateral, {
       ...collaterals.get(collateral),
       collateralsToBeClaimed: await loadCollateralsToBeClaimed(collateral, settings),
     })
-  } else if (!isOrder && !isBuy) {
+  } else {
     // sell claim
     collaterals.set(collateral, {
       ...collaterals.get(collateral),
