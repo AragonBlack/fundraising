@@ -35,7 +35,6 @@ const SLIPPAGES = [2 * Math.pow(10, 17), Math.pow(10, 18)]
 const ID = 'fundraising' + Math.random()
 
 module.exports = async callback => {
-  console.log(process.argv[4])
   try {
     if (process.argv[4] === 'rpc') {
       const collateral1 = await TokenMock.new('0xb4124cEB3451635DAcedd11767f004d8a28c6eE7', 100000e18, 'DAI', 'DAI')
