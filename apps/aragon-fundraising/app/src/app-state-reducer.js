@@ -1,5 +1,4 @@
 import { Order } from './constants'
-import mock from './bg_mock.json'
 import { ETHER_TOKEN_VERIFIED_BY_SYMBOL } from './lib/verified-tokens'
 import testTokens from '@aragon/templates-tokens'
 import BN from 'bn.js'
@@ -83,8 +82,6 @@ const withPriceAndCollateral = (order, batches, collateralTokens) => {
  * @returns {Object} a reduced state, easier to interact with on the frontend
  */
 const appStateReducer = state => {
-  // TODO: remove this quick and dirty hack
-  if (process.env.NODE_ENV === 'test') return mock
   // don't reduce not yet populated state
   const isReady = ready(state)
   if (isReady) {
