@@ -136,7 +136,7 @@ const appStateReducer = state => {
       ...data,
       decimals: Number(data.decimals),
       ratio: parseInt(data.reserveRatio, 10) / parseInt(ppm, 10),
-      computedFactor: new BN(data.collateralToBeClaimed).add(new BN(data.virtualBalance)),
+      computedFactor: new BN(data.virtualBalance).sub(new BN(data.collateralToBeClaimed)),
     }))
 
     const collateralsAreOk = checkCollaterals(collateralTokens, network)
