@@ -511,7 +511,7 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
         // totalBuyReturn >= totalBuySpend / ((startingPricePPM / PPM) * (PCT + maximumSlippage) / PCT_BASE)
         // totalBuyReturn * startingPrice * ( PCT + maximumSlippage) >= totalBuySpend * PCT_BASE * PPM
 
-        if (_batch.totalBuyReturn.mul(_startingPricePPM).mul(PCT_BASE.add(_maximumSlippage)) >= _batch.totalBuySpend.mul(PCT_BASE).mul(PPM)) {
+        if (_batch.totalBuyReturn.mul(_startingPricePPM).mul(PCT_BASE.add(_maximumSlippage)) >= _batch.totalBuySpend.mul(PCT_BASE).mul(uint256(PPM))) {
             return true;
         }
 
@@ -534,7 +534,7 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
         // totalSellReturn >= (startingPricePPM / PPM) * (PCT_BASE - maximumSlippage) * totalBuySpend / PCT_BASE
         // totalSellReturn * PCT_BASE * PPM = startingPricePPM * (PCT_BASE - maximumSlippage) * totalBuySpend
 
-        if (_batch.totalSellReturn.mul(PCT_BASE).mul(PPM) >= _startingPricePPM.mul(PCT_BASE.sub(_maximumSlippage)).mul(_batch.totalSellSpend)) {
+        if (_batch.totalSellReturn.mul(PCT_BASE).mul(uint256(PPM)) >= _startingPricePPM.mul(PCT_BASE.sub(_maximumSlippage)).mul(_batch.totalSellSpend)) {
             return true;
         }
 
@@ -747,7 +747,7 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
 
         // static price is the current exact price in collateral
         // per token according to the initial state of the batch
-        uint256 staticPrice = _staticPrice(batch.supply, batch.balance, batch.reserveRatio);
+        uint256 staticPricePPM = _staticPricePPM(batch.supply, batch.balance, batch.reserveRatio);
 
         // if staticPrice is zero then resultOfSell [= 0] <= batch.totalBuySpend
         // so totalSellReturn will be zero and totalBuyReturn will be
@@ -757,7 +757,7 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
         // 2. to do this we check the result of all sell and buy orders at the current
         // exact price: if the result of sells is larger than the pending buys,
         // there are more sells than buys [and vice-versa]
-        uint256 resultOfSell = batch.totalSellSpend.mul(staticPrice);
+        uint256 resultOfSell = batch.totalSellSpend.mul(staticPricePPM).div(uint256(PPM));
 
         if (resultOfSell > batch.totalBuySpend) {
             // >> there are more sells than buys
@@ -769,7 +769,7 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
 
             // the number of tokens bought as a result of all buy orders combined at the
             // current exact price [which is less than the total amount of tokens to be sold]
-            batch.totalBuyReturn = batch.totalBuySpend.div(staticPrice);
+            batch.totalBuyReturn = batch.totalBuySpend.mul(uint256(PPM)).div(staticPricePPM);
             // the number of tokens left over to be sold along the curve which is the difference
             // between the original total sell order and the result of all the buy orders
             uint256 remainingSell = batch.totalSellSpend.sub(batch.totalBuyReturn);
