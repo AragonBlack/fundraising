@@ -7,8 +7,7 @@ import EditIcon from '../assets/EditIcon.svg'
 import HoverNotification from '../components/HoverNotification/HoverNotification'
 import ValidationError from '../components/ValidationError'
 import { round, fromDecimals, toDecimals, toMonthlyAllocation, fromMonthlyAllocation } from '../lib/math-utils'
-
-// TODO: handle edit monthly alocation validation
+import { formatTokenAmount } from '../lib/utils'
 
 // In this copy we should display the user the percentage of max increase of the tap
 const hoverTextNotifications = [
@@ -108,7 +107,9 @@ const ContentWrapper = styled.div`
   }
 `
 
-export default ({ bondedToken, reserve, polledData: { polledTotalSupply }, updateTappedToken }) => {
+export default ({ bondedToken, reserve, updateTappedToken }) => {
+  const { name, symbol, decimals: tokenDecimals, totalSupply, tokensToBeMinted } = bondedToken
+
   const {
     tap: { allocation, floor, timestamp },
     maximumTapIncreasePct,
@@ -116,7 +117,11 @@ export default ({ bondedToken, reserve, polledData: { polledTotalSupply }, updat
     collateralTokens: [{ decimals }],
   } = reserve
 
-  // allocation and floor converted to human readable numbers
+  // tokenSupply, allocation and floor converted to human readable numbers
+  const tokenSupply = new BN(totalSupply).add(new BN(tokensToBeMinted))
+  const adjustedTokenSupply = formatTokenAmount(tokenSupply.toString(), false, tokenDecimals, false, {
+    rounding: 2,
+  })
   const adjustedAllocation = round(toMonthlyAllocation(allocation.toString(), decimals)).toString()
   const adjustedFloor = round(fromDecimals(floor.toString(), decimals)).toString()
 
@@ -235,13 +240,13 @@ export default ({ bondedToken, reserve, polledData: { polledTotalSupply }, updat
       <Box heading="Bonded Token" css={bondedTokenStyle}>
         <div className="item">
           <p>Total Supply</p>
-          <p className="bold">{round(fromDecimals(polledTotalSupply || bondedToken.totalSupply, bondedToken.decimals))}</p>
+          <p className="bold">{adjustedTokenSupply}</p>
         </div>
 
         <div className="item">
           <p>Token</p>
           <Badge css="height: 100%;" foreground="#4D22DF" background="rgba(204, 189, 244, 0.16)">
-            {`${bondedToken.name} (${bondedToken.symbol})`}
+            {`${name} (${symbol})`}
           </Badge>
         </div>
       </Box>
