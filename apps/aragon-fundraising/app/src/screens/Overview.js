@@ -42,13 +42,6 @@ export default ({
     .reduce((acc, current) => acc.add(current), new BN('0'))
   const adjsutedTradingVolume = formatTokenAmount(tradingVolume.toString(), false, daiDecimals, false, { rounding: 2 })
 
-  // let price
-  // if (polledBatchId && polledBatchId > currentBatch) {
-  //   // last batch is over, next batch will start with the last price of the last batch
-  //   // TODO: take buyPrice or sellPrice ?? change the following
-  //   price = startPrice
-  // } else price = startPrice
-
   return (
     <div>
       <KeyMetrics
