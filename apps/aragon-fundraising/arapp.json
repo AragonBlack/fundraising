@@ -11,6 +11,11 @@
       "appName": "aragon-fundraising.aragonpm.eth",
       "network": "rinkeby"
     },
+    "hatch": {
+      "registry": "0x98Df287B6C145399Aaa709692c8D308357bC085D",
+      "appName": "aragon-fundraising.hatch.aragonpm.eth",
+      "network": "rinkeby"
+    },
     "staging": {
       "registry": "0xfe03625ea880a8cba336f9b5ad6e15b0a3b5a939",
       "appName": "aragon-fundraising.aragonpm.eth",

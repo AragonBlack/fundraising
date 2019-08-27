@@ -80,6 +80,7 @@ const App = () => {
 
   const api = useApi()
 
+  const [polledReserveBalance, setPolledReserveBalance] = useState(null)
   const [polledDaiBalance, setPolledDaiBalance] = useState(null)
   const [polledAntBalance, setPolledAntBalance] = useState(null)
   const [polledBatchId, setPolledBatchId] = useState(null)
@@ -98,8 +99,10 @@ const App = () => {
       const antPromise = api.call('balanceOf', common.addresses.pool, antToken.address).toPromise()
       const [daiBalance, antBalance] = await Promise.all([daiPromise, antPromise])
       const { value } = common.bondedToken.computedSupply.find(s => s.symbol === 'DAI')
+      setPolledReserveBalance(new BN(daiBalance))
       setPolledDaiBalance(new BN(daiBalance).add(daiToken.computedFactor))
       setPolledAntBalance(new BN(antBalance).add(antToken.computedFactor))
+
       // const price = await marketMakerContract.getStaticPrice(value.toString(), polledDaiBalance.toString(), daiToken.reserveRatio).toPromise()
       const price =
         new BN(common.ppm.toString())
@@ -212,7 +215,7 @@ const App = () => {
                   bondedToken={common.bondedToken}
                   currentBatch={common.currentBatch}
                   collateralTokens={common.collateralTokens}
-                  polledData={{ polledDaiBalance, polledBatchId }}
+                  polledData={{ polledDaiBalance, polledBatchId, polledReserveBalance }}
                 />
               )}
               {tabIndex === 1 && <Orders orders={augmentedOrders} collateralTokens={common.collateralTokens} bondedToken={common.bondedToken} />}

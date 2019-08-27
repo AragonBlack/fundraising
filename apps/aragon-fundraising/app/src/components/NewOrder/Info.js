@@ -1,6 +1,6 @@
 import React from 'react'
 
-const Info = ({ isBuyOrder }) => {
+const Info = ({ isBuyOrder, slippage }) => {
   return (
     <div
       css={`
@@ -14,8 +14,12 @@ const Info = ({ isBuyOrder }) => {
     >
       <p css="font-weight: 700;">Info</p>
       <p>
-        For a {isBuyOrder ? 'buying' : 'selling'} order, the more collateral is staked into the bonding curve, you may opt to sell a small share of your tokens
-        in order to redeem collateral from the contract and fund the development of the project.
+        {isBuyOrder && 'Opening a buy order will lead you to purchase some shares in this organization.'}
+        {!isBuyOrder && 'Opening a sell order will lead you to redeem some of your shares in this organization.'}
+      </p>
+      <p>
+        Note that the return of your order may be different than the one indicated if other users open buy or sell orders simultaneously. In any case you can be
+        assured that the price slippage won't exceed <b>{slippage / 10000000000000000} %</b>.
       </p>
     </div>
   )

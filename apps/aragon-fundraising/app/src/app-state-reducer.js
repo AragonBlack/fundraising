@@ -23,18 +23,20 @@ const ready = state => {
  */
 const checkCollaterals = (collateralTokens, network) => {
   // only check for mainnet and rinkeby
-  if (network.type === 'main' || network.type === 'rinkeby') {
-    const realDaiAddress = network.type === 'main' ? ETHER_TOKEN_VERIFIED_BY_SYMBOL.get('DAI').toLowerCase() : testTokens.rinkeby.tokens[9]
-    const realAntAddress = network.type === 'main' ? ETHER_TOKEN_VERIFIED_BY_SYMBOL.get('ANT').toLowerCase() : testTokens.rinkeby.tokens[0]
-    // get DAI and ANT addresses from the fundraising app
-    const collaterals = Array.from(collateralTokens).map(([address, { symbol }]) => ({ address, symbol }))
-    const daiAddress = collaterals.find(c => c.symbol === 'DAI')
-    const antAddress = collaterals.find(c => c.symbol === 'ANT')
-    // check they are the same
-    const sameDai = daiAddress && daiAddress.toLowerCase() === realDaiAddress
-    const sameAnt = antAddress && antAddress.toLowerCase() === realAntAddress
-    return sameDai && sameAnt
-  } else return true
+  // if (network.type === 'main' || network.type === 'rinkeby') {
+  //   const realDaiAddress = network.type === 'main' ? ETHER_TOKEN_VERIFIED_BY_SYMBOL.get('DAI').toLowerCase() : testTokens.rinkeby.tokens[9]
+  //   const realAntAddress = network.type === 'main' ? ETHER_TOKEN_VERIFIED_BY_SYMBOL.get('ANT').toLowerCase() : testTokens.rinkeby.tokens[0]
+  //   // get DAI and ANT addresses from the fundraising app
+  //   const collaterals = Array.from(collateralTokens).map(([address, { symbol }]) => ({ address, symbol }))
+  //   const daiAddress = collaterals.find(c => c.symbol === 'DAI')
+  //   const antAddress = collaterals.find(c => c.symbol === 'ANT')
+  //   // check they are the same
+  //   const sameDai = daiAddress && daiAddress.toLowerCase() === realDaiAddress
+  //   const sameAnt = antAddress && antAddress.toLowerCase() === realAntAddress
+  //   return sameDai && sameAnt
+  // } else return true
+
+  return true
 }
 
 /**
@@ -69,7 +71,7 @@ const withPriceAndCollateral = (order, batches, collateralTokens) => {
     } else {
       // to avoid missing sellPrice = O
       augmentedOrder.price = typeof batch.sellPrice !== 'undefined' ? batch.sellPrice : batch.startPrice
-      augmentedOrder.tokens = (amount * augmentedOrder.price).toString()
+      augmentedOrder.tokens = new BN(amount).mul(new BN(parseInt(augmentedOrder.price * 1000000))).div(new BN(1000000))
     }
   }
   // pending by default, state is computed on the frontend
@@ -122,6 +124,13 @@ const appStateReducer = state => {
           value: new BN(bondedToken.totalSupply).add(new BN(bondedToken.tokensToBeMinted).add(new BN(virtualSupply))),
         }
       }),
+      realSupply: Array.from(collateralTokens).map(([address, { symbol, virtualSupply }]) => {
+        return {
+          address,
+          symbol,
+          value: new BN(bondedToken.totalSupply).add(new BN(bondedToken.tokensToBeMinted)),
+        }
+      }),
     }
 
     const computedCollateralTokens = Array.from(collateralTokens).map(([address, data]) => ({
@@ -160,6 +169,14 @@ const appStateReducer = state => {
       maximumTapIncreasePct,
     }
     // reduced state
+
+    console.log('STATE')
+    console.log(common)
+    console.log(overview)
+    console.log(ordersView)
+    console.log(reserve)
+    console.log(returns)
+
     return {
       isReady,
       common,

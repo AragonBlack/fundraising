@@ -30,23 +30,37 @@ const VIRTUAL_SUPPLIES = [Math.pow(10, 23), Math.pow(10, 23)]
 const VIRTUAL_BALANCES = [Math.pow(10, 22), Math.pow(10, 22)]
 const TAPS = [5 * Math.pow(10, 15), 1]
 const FLOORS = [Math.pow(10, 21), 0]
-const SLIPPAGES = [Math.pow(10, 18), Math.pow(10, 18)]
+const SLIPPAGES = [2 * Math.pow(10, 17), Math.pow(10, 18)]
 
 const ID = 'fundraising' + Math.random()
 
 module.exports = async callback => {
   try {
-    const collateral1 = await TokenMock.new('0xb4124cEB3451635DAcedd11767f004d8a28c6eE7', 100000e18, 'DAI', 'DAI')
-    const collateral2 = await TokenMock.new('0xb4124cEB3451635DAcedd11767f004d8a28c6eE7', 100000e18, 'ANT', 'ANT')
-    const COLLATERALS = [collateral1.address, collateral2.address]
+    if (process.argv[4] === 'rpc') {
+      const collateral1 = await TokenMock.new('0xb4124cEB3451635DAcedd11767f004d8a28c6eE7', 100000e18, 'DAI', 'DAI')
+      const collateral2 = await TokenMock.new('0xb4124cEB3451635DAcedd11767f004d8a28c6eE7', 100000e18, 'ANT', 'ANT')
+      const COLLATERALS = [collateral1.address, collateral2.address]
 
-    const template = await Template.at(process.argv[6])
-    const receipt = await template.deployBaseInstance(BOARD_TOKEN_NAME, BOARD_TOKEN_SYMBOL, BOARD_MEMBERS, BOARD_VOTING_SETTINGS, 0)
-    await template.installFundraisingApps(ID, SHARE_TOKEN_NAME, SHARE_TOKEN_SYMBOL, SHARE_VOTING_SETTINGS, MAX_TAP_INCREASE_PCT)
-    await template.finalizeInstance(COLLATERALS, VIRTUAL_SUPPLIES, VIRTUAL_BALANCES, SLIPPAGES, TAPS, FLOORS)
-    const dao = getEventArgument(receipt, 'DeployDao', 'dao')
+      const template = await Template.at(process.argv[7])
+      const receipt = await template.deployBaseInstance(BOARD_TOKEN_NAME, BOARD_TOKEN_SYMBOL, BOARD_MEMBERS, BOARD_VOTING_SETTINGS, 0)
+      await template.installFundraisingApps(ID, SHARE_TOKEN_NAME, SHARE_TOKEN_SYMBOL, SHARE_VOTING_SETTINGS, MAX_TAP_INCREASE_PCT)
+      await template.finalizeInstance(COLLATERALS, VIRTUAL_SUPPLIES, VIRTUAL_BALANCES, SLIPPAGES, TAPS, FLOORS)
+      const dao = getEventArgument(receipt, 'DeployDao', 'dao')
 
-    console.log('DAO deployed at ' + dao)
+      console.log('DAO deployed at ' + dao)
+    } else if (process.argv[4] === 'hatch') {
+      const COLLATERALS = ['0x0527e400502d0cb4f214dd0d2f2a323fc88ff924', '0x0d5263b7969144a852d58505602f630f9b20239d']
+      const owner = '0xb71d2d88030a00830c3d45f84c12cc8aaf6857a5'
+      const template = await Template.at(process.argv[7])
+      const receipt = await template.deployBaseInstance(BOARD_TOKEN_NAME, BOARD_TOKEN_SYMBOL, BOARD_MEMBERS, BOARD_VOTING_SETTINGS, 0, { from: owner })
+      await template.installFundraisingApps(ID, SHARE_TOKEN_NAME, SHARE_TOKEN_SYMBOL, SHARE_VOTING_SETTINGS, MAX_TAP_INCREASE_PCT, { from: owner })
+      await template.finalizeInstance(COLLATERALS, VIRTUAL_SUPPLIES, VIRTUAL_BALANCES, SLIPPAGES, TAPS, FLOORS, { from: owner })
+      const dao = getEventArgument(receipt, 'DeployDao', 'dao')
+
+      console.log('DAO deployed at ' + dao)
+    } else {
+      throw new Error('Unknown network: pick rpc or hatch')
+    }
   } catch (err) {
     console.log(err)
   }

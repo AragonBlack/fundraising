@@ -347,6 +347,10 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
         );
     }
 
+    function getStaticPricePPM(uint256 _supply, uint256 _balance, uint32 _reserveRatio) public view returns (uint256) {
+        return _staticPricePPM(_supply, _balance, _reserveRatio);
+    }
+
     function getStaticPrice(uint256 _supply, uint256 _balance, uint32 _reserveRatio) public view returns (uint256) {
         return _staticPrice(_supply, _balance, _reserveRatio);
     }
@@ -358,6 +362,10 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
     }
 
     /***** internal functions *****/
+
+    function _staticPricePPM(uint256 _supply, uint256 _balance, uint32 _reserveRatio) internal view returns (uint256) {
+        return uint256(PPM).mul(uint256(PPM)).mul(_balance).div(_supply.mul(uint256(_reserveRatio)));
+    }
 
     function _staticPrice(uint256 _supply, uint256 _balance, uint32 _reserveRatio) internal view returns (uint256) {
         return uint256(PPM).mul(_balance).div(_supply.mul(uint256(_reserveRatio)));
@@ -481,35 +489,36 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
     }
 
     function _slippageIsValid(Batch storage _batch, address _collateral) internal view returns (bool) {
-        uint256 staticPrice = _staticPrice(_batch.supply, _batch.balance, _batch.reserveRatio);
+        uint256 staticPricePPM = _staticPricePPM(_batch.supply, _batch.balance, _batch.reserveRatio);
         uint256 maximumSlippage = collaterals[_collateral].slippage;
 
         // if static price is zero let's consider that every slippage is valid
-        if (staticPrice == 0) {
+        if (staticPricePPM == 0) {
             return true;
         }
 
-        return _buySlippageIsValid(_batch, staticPrice, maximumSlippage) && _sellSlippageIsValid(_batch, staticPrice, maximumSlippage);
+        return _buySlippageIsValid(_batch, staticPricePPM, maximumSlippage) && _sellSlippageIsValid(_batch, staticPricePPM, maximumSlippage);
     }
 
-    function _buySlippageIsValid(Batch storage _batch, uint256 _startingPrice, uint256 _maximumSlippage) internal view returns (bool) {
+    function _buySlippageIsValid(Batch storage _batch, uint256 _startingPricePPM, uint256 _maximumSlippage) internal view returns (bool) {
         // the case where starting price is zero is handled
         // by the meta function _slippageIsValid()
 
         // slippage is valid if:
         // totalBuyReturn >= totalBuySpend / (startingPrice * (1 + maxSlippage))
-        // totalBuyReturn >= totalBuySpend / (startingPrice * (1 + maximumSlippage / PCT_BASE))
-        // totalBuyReturn >= totalBuySpend / (startingPrice * (PCT + maximumSlippage) / PCT_BASE)
-        // totalBuyReturn * startingPrice * ( PCT + maximumSlippage) >= totalBuySpend * PCT_BASE
+        // totalBuyReturn >= totalBuySpend / ((startingPricePPM / PPM) * (1 + maximumSlippage / PCT_BASE))
+        // totalBuyReturn >= totalBuySpend / ((startingPricePPM / PPM) * (1 + maximumSlippage / PCT_BASE))
+        // totalBuyReturn >= totalBuySpend / ((startingPricePPM / PPM) * (PCT + maximumSlippage) / PCT_BASE)
+        // totalBuyReturn * startingPrice * ( PCT + maximumSlippage) >= totalBuySpend * PCT_BASE * PPM
 
-        if (_batch.totalBuyReturn.mul(_startingPrice).mul(PCT_BASE.add(_maximumSlippage)) >= _batch.totalBuySpend.mul(PCT_BASE)) {
+        if (_batch.totalBuyReturn.mul(_startingPricePPM).mul(PCT_BASE.add(_maximumSlippage)) >= _batch.totalBuySpend.mul(PCT_BASE).mul(uint256(PPM))) {
             return true;
         }
 
         return false;
     }
 
-    function _sellSlippageIsValid(Batch storage _batch, uint256 _startingPrice, uint256 _maximumSlippage) internal view returns (bool) {
+    function _sellSlippageIsValid(Batch storage _batch, uint256 _startingPricePPM, uint256 _maximumSlippage) internal view returns (bool) {
         // the case where starting price is zero is handled
         // by the meta function _slippageIsValid()
 
@@ -521,11 +530,11 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
 
         // slippage is valid if:
         // totalSellReturn >= startingPrice * (1 - maxSlippage) * totalBuySpend
-        // totalSellReturn >= startingPrice * (1 - maximumSlippage / PCT_BASE) * totalBuySpend
-        // totalSellReturn >= startingPrice * (PCT_BASE - maximumSlippage) * totalBuySpend / PCT_BASE
-        // totalSellReturn * PCT_BASE >= startingPrice * (PCT_BASE - maximumSlippage) * totalBuySpend
+        // totalSellReturn >= (startingPricePPM / PPM) * (1 - maximumSlippage / PCT_BASE) * totalBuySpend
+        // totalSellReturn >= (startingPricePPM / PPM) * (PCT_BASE - maximumSlippage) * totalBuySpend / PCT_BASE
+        // totalSellReturn * PCT_BASE * PPM = startingPricePPM * (PCT_BASE - maximumSlippage) * totalBuySpend
 
-        if (_batch.totalSellReturn.mul(PCT_BASE) >= _startingPrice.mul(PCT_BASE.sub(_maximumSlippage)).mul(_batch.totalSellSpend)) {
+        if (_batch.totalSellReturn.mul(PCT_BASE).mul(uint256(PPM)) >= _startingPricePPM.mul(PCT_BASE.sub(_maximumSlippage)).mul(_batch.totalSellSpend)) {
             return true;
         }
 
@@ -738,7 +747,7 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
 
         // static price is the current exact price in collateral
         // per token according to the initial state of the batch
-        uint256 staticPrice = _staticPrice(batch.supply, batch.balance, batch.reserveRatio);
+        uint256 staticPricePPM = _staticPricePPM(batch.supply, batch.balance, batch.reserveRatio);
 
         // if staticPrice is zero then resultOfSell [= 0] <= batch.totalBuySpend
         // so totalSellReturn will be zero and totalBuyReturn will be
@@ -748,7 +757,7 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
         // 2. to do this we check the result of all sell and buy orders at the current
         // exact price: if the result of sells is larger than the pending buys,
         // there are more sells than buys [and vice-versa]
-        uint256 resultOfSell = batch.totalSellSpend.mul(staticPrice);
+        uint256 resultOfSell = batch.totalSellSpend.mul(staticPricePPM).div(uint256(PPM));
 
         if (resultOfSell > batch.totalBuySpend) {
             // >> there are more sells than buys
@@ -760,7 +769,7 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
 
             // the number of tokens bought as a result of all buy orders combined at the
             // current exact price [which is less than the total amount of tokens to be sold]
-            batch.totalBuyReturn = batch.totalBuySpend.div(staticPrice);
+            batch.totalBuyReturn = batch.totalBuySpend.mul(uint256(PPM)).div(staticPricePPM);
             // the number of tokens left over to be sold along the curve which is the difference
             // between the original total sell order and the result of all the buy orders
             uint256 remainingSell = batch.totalSellSpend.sub(batch.totalBuyReturn);
