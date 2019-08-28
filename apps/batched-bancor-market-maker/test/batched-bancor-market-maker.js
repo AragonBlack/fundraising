@@ -108,8 +108,8 @@ contract('BatchedBancorMarketMaker app', accounts => {
   const SELL_FEE_PERCENT = 100000000000000000
   const MAXIMUM_SLIPPAGE = 10 * PCT_BASE // x10
 
-  const VIRTUAL_SUPPLIES = [10 * Math.pow(10, 18), 100 * Math.pow(10, 18), 20]
-  const VIRTUAL_BALANCES = [1 * Math.pow(10, 18), 1 * Math.pow(10, 18), 1]
+  const VIRTUAL_SUPPLIES = [new web3.BigNumber(Math.pow(10, 23)), new web3.BigNumber(Math.pow(10, 22)), 20]
+  const VIRTUAL_BALANCES = [new web3.BigNumber(Math.pow(10, 22)), new web3.BigNumber(Math.pow(10, 20)), 1]
   const RESERVE_RATIOS = [(PPM * 10) / 100, (PPM * 1) / 100, (PPM * 20) / 100]
 
   const root = accounts[0]
@@ -198,17 +198,16 @@ contract('BatchedBancorMarketMaker app', accounts => {
   //   return Math.floor(supply * (Math.pow(1 + amount / balance, reserveRatio / PPM) - 1))
   // }
 
+  const BN = amount => {
+    return new web3.BigNumber(amount)
+  }
+
   const purchaseReturn = async (index, supply, balance, amount) => {
     supply = new web3.BigNumber(supply.toString(10))
     balance = new web3.BigNumber(balance.toString(10))
     amount = new web3.BigNumber(amount.toString(10))
 
-    return formula.calculatePurchaseReturn(
-      VIRTUAL_SUPPLIES[index] + supply.toNumber(),
-      VIRTUAL_BALANCES[index] + balance.toNumber(),
-      RESERVE_RATIOS[index],
-      amount.toNumber()
-    )
+    return formula.calculatePurchaseReturn(VIRTUAL_SUPPLIES[index].add(supply), VIRTUAL_BALANCES[index].add(balance), RESERVE_RATIOS[index], amount)
   }
 
   const saleReturn = async (index, supply, balance, amount) => {
@@ -216,12 +215,7 @@ contract('BatchedBancorMarketMaker app', accounts => {
     balance = new web3.BigNumber(balance.toString(10))
     amount = new web3.BigNumber(amount.toString(10))
 
-    return formula.calculateSaleReturn(
-      VIRTUAL_SUPPLIES[index] + supply.toNumber(),
-      VIRTUAL_BALANCES[index] + balance.toNumber(),
-      RESERVE_RATIOS[index],
-      amount.toNumber()
-    )
+    return formula.calculateSaleReturn(VIRTUAL_SUPPLIES[index].add(supply), VIRTUAL_BALANCES[index].add(balance), RESERVE_RATIOS[index], amount)
   }
 
   const randomAmount = () => {
@@ -1699,84 +1693,111 @@ contract('BatchedBancorMarketMaker app', accounts => {
       const user2 = authorized2
 
       context('> there are only buy orders', () => {
-        it('it should return the right amount of bonded tokens', async () => {
-          const amount1 = randomSmallAmount()
-          const amount2 = randomSmallAmount()
-          const fee1 = computeBuyFee(amount1)
-          const fee2 = computeBuyFee(amount2)
-          const amountAfterFee1 = amount1.minus(fee1)
-          const amountAfterFee2 = amount2.minus(fee2)
-          const amount = amount1.minus(fee1).plus(amount2.minus(fee2))
-          const amountAfterFee = amountAfterFee1.plus(amountAfterFee2)
-          const purchase = await purchaseReturn(index, 0, 0, amount)
-
-          const receipt = await openBuyOrder(user1, collaterals[index], amount1, { from: authorized })
-          await openBuyOrder(user2, collaterals[index], amount2, { from: authorized })
-          const batchId = getBuyOrderBatchId(receipt)
-          const batch = await getBatch(batchId, collaterals[index])
-
-          await progressToNextBatch()
-
-          await curve.claimBuyOrder(user1, batchId, collaterals[index])
-          await curve.claimBuyOrder(user2, batchId, collaterals[index])
-
-          const balance1 = await balance(token.address, user1)
-          const balance2 = await balance(token.address, user2)
-
-          const return1 = batch.totalBuyReturn.mul(amountAfterFee1).div(amountAfterFee)
-          const return2 = batch.totalBuyReturn.mul(amountAfterFee2).div(amountAfterFee)
-
-          assert.equal(batch.totalBuySpend.toNumber(), amount.toNumber())
-          assert.equal(batch.totalBuyReturn.toNumber(), purchase.toNumber())
-          assert.equal(balance1.toNumber(), return1.toNumber())
-          assert.equal(balance2.toNumber(), return2.toNumber())
-        })
+        // it('it should return the right amount of bonded tokens', async () => {
+        //   const amount1 = randomSmallAmount()
+        //   const amount2 = randomSmallAmount()
+        //   const fee1 = computeBuyFee(amount1)
+        //   const fee2 = computeBuyFee(amount2)
+        //   const amountAfterFee1 = amount1.minus(fee1)
+        //   const amountAfterFee2 = amount2.minus(fee2)
+        //   const amount = amount1.minus(fee1).plus(amount2.minus(fee2))
+        //   const amountAfterFee = amountAfterFee1.plus(amountAfterFee2)
+        //   const purchase = await purchaseReturn(index, 0, 0, amount)
+        //   const receipt = await openBuyOrder(user1, collaterals[index], amount1, { from: authorized })
+        //   await openBuyOrder(user2, collaterals[index], amount2, { from: authorized })
+        //   const batchId = getBuyOrderBatchId(receipt)
+        //   const batch = await getBatch(batchId, collaterals[index])
+        //   await progressToNextBatch()
+        //   await curve.claimBuyOrder(user1, batchId, collaterals[index])
+        //   await curve.claimBuyOrder(user2, batchId, collaterals[index])
+        //   const balance1 = await balance(token.address, user1)
+        //   const balance2 = await balance(token.address, user2)
+        //   const return1 = batch.totalBuyReturn.mul(amountAfterFee1).div(amountAfterFee)
+        //   const return2 = batch.totalBuyReturn.mul(amountAfterFee2).div(amountAfterFee)
+        //   assert.equal(batch.totalBuySpend.toNumber(), amount.toNumber())
+        //   assert.equal(batch.totalBuyReturn.toNumber(), purchase.toNumber())
+        //   assert.equal(balance1.toNumber(), return1.toNumber())
+        //   assert.equal(balance2.toNumber(), return2.toNumber())
+        // })
       })
 
       context('> there are only sell orders', () => {
         it('it should return the right amount of collaterals', async () => {
           const buyAmount1 = randomSmallAmount()
           const buyAmount2 = randomSmallAmount()
-          const buyFee1 = computeBuyFee(sellAmount1)
-          const buyFee2 = computeBuyFee(sellAmount2)
+          const buyFee1 = computeBuyFee(buyAmount1)
+          const buyFee2 = computeBuyFee(buyAmount2)
           const buyAmountAfterFee1 = buyAmount1.minus(buyFee1)
           const buyAmountAfterFee2 = buyAmount2.minus(buyFee2)
           const buyAmount = buyAmount1.minus(buyFee1).plus(buyAmount2.minus(buyFee2))
           const buyAmountAfterFee = buyAmountAfterFee1.plus(buyAmountAfterFee2)
-
           const sellAmount1 = await openAndClaimBuyOrder(user1, collaterals[index], buyAmount1, { from: authorized })
           const sellAmount2 = await openAndClaimBuyOrder(user2, collaterals[index], buyAmount2, { from: authorized })
           const supply = sellAmount1.plus(sellAmount2)
-
-          const sellFee1 = computeSellFee(sellAmount1)
-          const sellFee2 = computeSellFee(sellAmount2)
-          const sellAmountAfterFee1 = sellAmount1.minus(sellFee1)
-          const sellAmountAfterFee2 = sellAmount2.minus(sellFee2)
-          const sellAmount = sellAmount1.minus(sellFee1).plus(sellAmount2.minus(sellFee2))
-          const sellAmountAfterFee = sellAmountAfterFee1.plus(sellAmountAfterFee2)
-          const sale = await saleReturn(index, supply, buyAmountAfterFee, sellAmountAfterFee)
-
+          const sellAmount = supply
+          const sale = await saleReturn(index, supply, buyAmountAfterFee, sellAmount)
           const receipt = await openSellOrder(user1, collaterals[index], sellAmount1, { from: authorized })
-          await openSellOrder(user1, collaterals[index], sellAmount2, { from: authorized })
+          await openSellOrder(user2, collaterals[index], sellAmount2, { from: authorized })
           const batchId = getSellOrderBatchId(receipt)
           const batch = await getBatch(batchId, collaterals[index])
-
           await progressToNextBatch()
-
+          const _balance1 = await balance(collaterals[index], user1)
+          const _balance2 = await balance(collaterals[index], user2)
           await curve.claimSellOrder(user1, batchId, collaterals[index])
           await curve.claimSellOrder(user2, batchId, collaterals[index])
-
-          const balance1 = await balance(token.address, user1)
-          const balance2 = await balance(token.address, user2)
-
-          const return1 = batch.totalBuyReturn.mul(sellAmountAfterFee1).div(sellAmountAfterFee)
-          const return2 = batch.totalBuyReturn.mul(sellAmountAfterFee2).div(sellAmountAfterFee)
-
-          assert.equal(batch.totalBuySpend.toNumber(), sellAmount.toNumber())
-          assert.equal(batch.totalBuyReturn.toNumber(), purchase.toNumber())
-          assert.equal(balance1.toNumber(), return1.toNumber())
-          assert.equal(balance2.toNumber(), return2.toNumber())
+          const balance1_ = await balance(collaterals[index], user1)
+          const balance2_ = await balance(collaterals[index], user2)
+          const return1 = balance1_.minus(_balance1)
+          const return2 = balance2_.minus(_balance2)
+          const expectedReturn1_ = batch.totalSellReturn.mul(sellAmount1).div(sellAmount)
+          const expectedReturn2_ = batch.totalSellReturn.mul(sellAmount2).div(sellAmount)
+          const expectedReturn1 = expectedReturn1_.minus(computeSellFee(expectedReturn1_))
+          const expectedReturn2 = expectedReturn2_.minus(computeSellFee(expectedReturn2_))
+          assert.equal(batch.totalSellSpend.toNumber(), sellAmount.toNumber())
+          assert.equal(batch.totalSellReturn.toNumber(), sale.toNumber())
+          assert.equal(return1.toNumber(), expectedReturn1.toNumber())
+          assert.equal(return2.toNumber(), expectedReturn2.toNumber())
         })
+      })
+
+      context('> there are both buy and sell orders', () => {
+        // context('> buy orders are worth more than sell orders', () => {
+        //   it('it should return the right amount of bonds and collaterals', async () => {
+        //     // let's first buy some bonds to redeem them afterwards
+        //     const preAmount = BN(Math.pow(10, 20))
+        //     const preAmountFee = computeBuyFee(preAmount)
+        //     const preAmountAfterFee = preAmount.minus(preAmountFee)
+        //     // we now have some minted bonds
+        //     const minted = await openAndClaimBuyOrder(user1, collaterals[index], preAmount, { from: authorized })
+        //     // let's compute what is the static price once these bonds have been minted
+        //     const overallSupply = minted.add(VIRTUAL_SUPPLIES[index])
+        //     const overallBalance = preAmountAfterFee.add(VIRTUAL_BALANCES[index])
+        //     const staticPricePPM = await curve.getStaticPricePPM(overallSupply, overallBalance, RESERVE_RATIOS[index])
+        //     // let's open some buy and sell orders
+        //     const buyAmount = BN(Math.pow(10, 19))
+        //     const buyAmountFee = computeBuyFee(buyAmount)
+        //     const buyAmountAfterFee = buyAmount.minus(buyAmountFee)
+        //     const sellAmount = BN(Math.pow(10, 18))
+        //     const receipt = await openBuyOrder(user2, collaterals[index], buyAmount, { from: authorized })
+        //     await openSellOrder(user1, collaterals[index], sellAmount, { from: authorized })
+        //     // let's fetch the batch
+        //     const batchId = getBuyOrderBatchId(receipt)
+        //     const batch = await getBatch(batchId, collaterals[index])
+        //     // buy orders are worth more than sell orders so ...
+        //     // sell orders should be matched against the buy orders at the current static price
+        //     const expectedSaleReturn = staticPricePPM.mul(sellAmount).div(PPM)
+        //     // no need to check claims as their logic is the same than where there are only sell orders [already checked above]
+        //     assert.equal(batch.totalSellSpend.toNumber(), sellAmount.toNumber())
+        //     assert.equal(batch.totalSellReturn.toNumber(), expectedSaleReturn.toNumber())
+        //     // now that sell orders have been matched the remaining buy orders should be added matched normally along the formula
+        //     const remainingBuy = buyAmountAfterFee.minus(expectedSaleReturn)
+        //     const expectedRemainingBuyReturn = await purchaseReturn(index, minted, preAmountAfterFee, remainingBuy)
+        //     const expectedBuyReturn = expectedRemainingBuyReturn.add(sellAmount)
+        //     // no need to check claims as their logic is the same than where there are only sell orders [already checked above]
+        //     assert.equal(batch.totalBuySpend.toNumber(), buyAmountAfterFee.toNumber())
+        //     assert.equal(batch.totalBuyReturn.toNumber(), expectedBuyReturn.toNumber())
+        //   })
+        // })
       })
     })
   })
