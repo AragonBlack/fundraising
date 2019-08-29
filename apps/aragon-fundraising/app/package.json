@@ -28,6 +28,7 @@
     "bignumber.js": "^8.1.1",
     "bn.js": "^5.0.0",
     "date-fns": "^2.0.0-alpha.27",
+    "lodash.clonedeep": "^4.5.0",
     "prop-types": "^15.7.2",
     "react": "^16.8.6",
     "react-dom": "^16.8.6",
