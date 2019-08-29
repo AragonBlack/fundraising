@@ -1,0 +1,18 @@
+{
+  "name": "@ablack/fundraising-test-helpers",
+  "version": "0.1.0",
+  "author": "Aragon Assocation <legal@aragon.org>",
+  "contributors": [
+    "Olivier Sarrouy <olivier@aragon.black>"
+  ],
+  "license": "(GPL-3.0-or-later OR AGPL-3.0-or-later)",
+  "homepage": "https://github.com/AragonBlack/fundraising",
+  "scripts": {},
+  "files": [
+    "*.js"
+  ],
+  "dependencies": {
+    "@aragon/test-helpers": "^2.0.0"
+  },
+  "devDependencies": {}
+}

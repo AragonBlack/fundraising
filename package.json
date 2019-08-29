@@ -29,7 +29,7 @@
     "publish": "lerna run --scope=@ablack/fundraising-* --concurrency=1 --stream publish"
   },
   "devDependencies": {
-    "lerna": "^3.4.3",
+    "lerna": "^3.10.3",
     "lerna-update-wizard": "^0.16.0",
     "prettier": "^1.16.4"
   }
