@@ -741,33 +741,35 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
     }
 
     function _updatePricing(Batch storage batch, uint256 _batchId, address _collateral) internal {
-        // if there are no orders do nothing
-        if (batch.totalSellSpend == 0 && batch.totalBuySpend == 0)
-            return;
+        // the situation where there are no buy nor sell orders can't happen [keep commented]
+        // if (batch.totalSellSpend == 0 && batch.totalBuySpend == 0)
+        //     return;
 
         // static price is the current exact price in collateral
         // per token according to the initial state of the batch
+        // [expressed in PPM for precision sake]
         uint256 staticPricePPM = _staticPricePPM(batch.supply, batch.balance, batch.reserveRatio);
 
+        // [NOTE]
         // if staticPrice is zero then resultOfSell [= 0] <= batch.totalBuySpend
         // so totalSellReturn will be zero and totalBuyReturn will be
         // computed normally along the formula
 
-        // 1. we want to find out if there are more buy orders or more sell orders
-        // 2. to do this we check the result of all sell and buy orders at the current
-        // exact price: if the result of sells is larger than the pending buys,
-        // there are more sells than buys [and vice-versa]
+        // 1. we want to find out if buy orders are worth more sell orders [or vice-versa]
+        // 2. we thus check the return of sell orders at the current exact price
+        // 3. if the return of sell orders is larger than the pending buys,
+        //    there are more sells than buys [and vice-versa]
         uint256 resultOfSell = batch.totalSellSpend.mul(staticPricePPM).div(uint256(PPM));
 
         if (resultOfSell > batch.totalBuySpend) {
-            // >> there are more sells than buys
+            // >> sell orders are worth more than buy orders
 
             // 1. first we execute all pending buy orders at the current exact
             // price because there is at least one sell order for each buy order
             // 2. then the final sell return is the addition of this first
-            // matched return and the remaining bonding curve return
+            // matched return with the remaining bonding curve return
 
-            // the number of tokens bought as a result of all buy orders combined at the
+            // the number of tokens bought as a result of all buy orders matched at the
             // current exact price [which is less than the total amount of tokens to be sold]
             batch.totalBuyReturn = batch.totalBuySpend.mul(uint256(PPM)).div(staticPricePPM);
             // the number of tokens left over to be sold along the curve which is the difference
@@ -781,14 +783,14 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
             // plus the remaining sells which were executed along the bonding curve
             batch.totalSellReturn = batch.totalBuySpend.add(remainingSellReturn);
         } else {
-            // >> there are more buys than sells
+            // >> buy orders are worth more than sell orders
 
             // 1. first we execute all pending sell orders at the current exact
             // price because there is at least one buy order for each sell order
             // 2. then the final buy return is the addition of this first
-            // matched return and the remaining bonding curve return
+            // matched return with the remaining bonding curve return
 
-            // the number of collaterals bought as a result of all sell orders combined at the
+            // the number of collaterals bought as a result of all sell orders matched at the
             // current exact price [which is less than the total amount of collateral to be spent]
             batch.totalSellReturn = resultOfSell;
             // the number of collaterals left over to be spent along the curve which is the difference
