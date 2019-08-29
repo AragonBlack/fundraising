@@ -1693,54 +1693,60 @@ contract('BatchedBancorMarketMaker app', accounts => {
       const user2 = authorized2
 
       context('> there are only buy orders', () => {
-        // it('it should return the right amount of bonded tokens', async () => {
-        //   const amount1 = randomSmallAmount()
-        //   const amount2 = randomSmallAmount()
-        //   const fee1 = computeBuyFee(amount1)
-        //   const fee2 = computeBuyFee(amount2)
-        //   const amountAfterFee1 = amount1.minus(fee1)
-        //   const amountAfterFee2 = amount2.minus(fee2)
-        //   const amount = amount1.minus(fee1).plus(amount2.minus(fee2))
-        //   const amountAfterFee = amountAfterFee1.plus(amountAfterFee2)
-        //   const purchase = await purchaseReturn(index, 0, 0, amount)
-        //   const receipt = await openBuyOrder(user1, collaterals[index], amount1, { from: authorized })
-        //   await openBuyOrder(user2, collaterals[index], amount2, { from: authorized })
-        //   const batchId = getBuyOrderBatchId(receipt)
-        //   const batch = await getBatch(batchId, collaterals[index])
-        //   await progressToNextBatch()
-        //   await curve.claimBuyOrder(user1, batchId, collaterals[index])
-        //   await curve.claimBuyOrder(user2, batchId, collaterals[index])
-        //   const balance1 = await balance(token.address, user1)
-        //   const balance2 = await balance(token.address, user2)
-        //   const return1 = batch.totalBuyReturn.mul(amountAfterFee1).div(amountAfterFee)
-        //   const return2 = batch.totalBuyReturn.mul(amountAfterFee2).div(amountAfterFee)
-        //   assert.equal(batch.totalBuySpend.toNumber(), amount.toNumber())
-        //   assert.equal(batch.totalBuyReturn.toNumber(), purchase.toNumber())
-        //   assert.equal(balance1.toNumber(), return1.toNumber())
-        //   assert.equal(balance2.toNumber(), return2.toNumber())
-        // })
+        it('it should return the right amount of bonded tokens', async () => {
+          const amount1 = randomSmallAmount()
+          const amount2 = randomSmallAmount()
+          const fee1 = computeBuyFee(amount1)
+          const fee2 = computeBuyFee(amount2)
+          const amountAfterFee1 = amount1.minus(fee1)
+          const amountAfterFee2 = amount2.minus(fee2)
+          const amountAfterFee = amountAfterFee1.plus(amountAfterFee2)
+          const purchase = await purchaseReturn(index, 0, 0, amountAfterFee)
+          const receipt = await openBuyOrder(user1, collaterals[index], amount1, { from: authorized })
+          await openBuyOrder(user2, collaterals[index], amount2, { from: authorized })
+          const batchId = getBuyOrderBatchId(receipt)
+          const batch = await getBatch(batchId, collaterals[index])
+          await progressToNextBatch()
+          await curve.claimBuyOrder(user1, batchId, collaterals[index])
+          await curve.claimBuyOrder(user2, batchId, collaterals[index])
+          const balance1 = await balance(token.address, user1)
+          const balance2 = await balance(token.address, user2)
+          const return1 = batch.totalBuyReturn.mul(amountAfterFee1).div(amountAfterFee)
+          const return2 = batch.totalBuyReturn.mul(amountAfterFee2).div(amountAfterFee)
+          assert.equal(batch.totalBuySpend.toNumber(), amountAfterFee.toNumber())
+          assert.equal(batch.totalBuyReturn.toNumber(), purchase.toNumber())
+          assert.equal(balance1.toNumber(), return1.toNumber())
+          assert.equal(balance2.toNumber(), return2.toNumber())
+        })
       })
 
       context('> there are only sell orders', () => {
         it('it should return the right amount of collaterals', async () => {
+          // let's buy some bonds to redeem them afterwards
           const buyAmount1 = randomSmallAmount()
           const buyAmount2 = randomSmallAmount()
           const buyFee1 = computeBuyFee(buyAmount1)
           const buyFee2 = computeBuyFee(buyAmount2)
           const buyAmountAfterFee1 = buyAmount1.minus(buyFee1)
           const buyAmountAfterFee2 = buyAmount2.minus(buyFee2)
-          const buyAmount = buyAmount1.minus(buyFee1).plus(buyAmount2.minus(buyFee2))
           const buyAmountAfterFee = buyAmountAfterFee1.plus(buyAmountAfterFee2)
+          // we now have minted bonds we can redeem
           const sellAmount1 = await openAndClaimBuyOrder(user1, collaterals[index], buyAmount1, { from: authorized })
           const sellAmount2 = await openAndClaimBuyOrder(user2, collaterals[index], buyAmount2, { from: authorized })
           const supply = sellAmount1.plus(sellAmount2)
           const sellAmount = supply
-          const sale = await saleReturn(index, supply, buyAmountAfterFee, sellAmount)
+          // let's redeem these bonds
           const receipt = await openSellOrder(user1, collaterals[index], sellAmount1, { from: authorized })
           await openSellOrder(user2, collaterals[index], sellAmount2, { from: authorized })
+          await progressToNextBatch()
+          // let's compute how orders should be matched
+          const sale = await saleReturn(index, supply, buyAmountAfterFee, sellAmount)
+          // let's check that orders have been matched properly
           const batchId = getSellOrderBatchId(receipt)
           const batch = await getBatch(batchId, collaterals[index])
-          await progressToNextBatch()
+          assert.equal(batch.totalSellSpend.toNumber(), sellAmount.toNumber())
+          assert.equal(batch.totalSellReturn.toNumber(), sale.toNumber())
+          // let's compute how many collaterals should be returned
           const _balance1 = await balance(collaterals[index], user1)
           const _balance2 = await balance(collaterals[index], user2)
           await curve.claimSellOrder(user1, batchId, collaterals[index])
@@ -1753,682 +1759,91 @@ contract('BatchedBancorMarketMaker app', accounts => {
           const expectedReturn2_ = batch.totalSellReturn.mul(sellAmount2).div(sellAmount)
           const expectedReturn1 = expectedReturn1_.minus(computeSellFee(expectedReturn1_))
           const expectedReturn2 = expectedReturn2_.minus(computeSellFee(expectedReturn2_))
-          assert.equal(batch.totalSellSpend.toNumber(), sellAmount.toNumber())
-          assert.equal(batch.totalSellReturn.toNumber(), sale.toNumber())
+          // let's check that returned collaterals match expected returns
           assert.equal(return1.toNumber(), expectedReturn1.toNumber())
           assert.equal(return2.toNumber(), expectedReturn2.toNumber())
         })
       })
 
       context('> there are both buy and sell orders', () => {
-        // context('> buy orders are worth more than sell orders', () => {
-        //   it('it should return the right amount of bonds and collaterals', async () => {
-        //     // let's first buy some bonds to redeem them afterwards
-        //     const preAmount = BN(Math.pow(10, 20))
-        //     const preAmountFee = computeBuyFee(preAmount)
-        //     const preAmountAfterFee = preAmount.minus(preAmountFee)
-        //     // we now have some minted bonds
-        //     const minted = await openAndClaimBuyOrder(user1, collaterals[index], preAmount, { from: authorized })
-        //     // let's compute what is the static price once these bonds have been minted
-        //     const overallSupply = minted.add(VIRTUAL_SUPPLIES[index])
-        //     const overallBalance = preAmountAfterFee.add(VIRTUAL_BALANCES[index])
-        //     const staticPricePPM = await curve.getStaticPricePPM(overallSupply, overallBalance, RESERVE_RATIOS[index])
-        //     // let's open some buy and sell orders
-        //     const buyAmount = BN(Math.pow(10, 19))
-        //     const buyAmountFee = computeBuyFee(buyAmount)
-        //     const buyAmountAfterFee = buyAmount.minus(buyAmountFee)
-        //     const sellAmount = BN(Math.pow(10, 18))
-        //     const receipt = await openBuyOrder(user2, collaterals[index], buyAmount, { from: authorized })
-        //     await openSellOrder(user1, collaterals[index], sellAmount, { from: authorized })
-        //     // let's fetch the batch
-        //     const batchId = getBuyOrderBatchId(receipt)
-        //     const batch = await getBatch(batchId, collaterals[index])
-        //     // buy orders are worth more than sell orders so ...
-        //     // sell orders should be matched against the buy orders at the current static price
-        //     const expectedSaleReturn = staticPricePPM.mul(sellAmount).div(PPM)
-        //     // no need to check claims as their logic is the same than where there are only sell orders [already checked above]
-        //     assert.equal(batch.totalSellSpend.toNumber(), sellAmount.toNumber())
-        //     assert.equal(batch.totalSellReturn.toNumber(), expectedSaleReturn.toNumber())
-        //     // now that sell orders have been matched the remaining buy orders should be added matched normally along the formula
-        //     const remainingBuy = buyAmountAfterFee.minus(expectedSaleReturn)
-        //     const expectedRemainingBuyReturn = await purchaseReturn(index, minted, preAmountAfterFee, remainingBuy)
-        //     const expectedBuyReturn = expectedRemainingBuyReturn.add(sellAmount)
-        //     // no need to check claims as their logic is the same than where there are only sell orders [already checked above]
-        //     assert.equal(batch.totalBuySpend.toNumber(), buyAmountAfterFee.toNumber())
-        //     assert.equal(batch.totalBuyReturn.toNumber(), expectedBuyReturn.toNumber())
-        //   })
-        // })
+        context('> buy orders are worth more than sell orders', () => {
+          it('it should return the right amount of bonds and collaterals', async () => {
+            // let's buy some bonds to redeem them afterwards
+            const preAmount = BN(Math.pow(10, 20))
+            const preAmountFee = computeBuyFee(preAmount)
+            const preAmountAfterFee = preAmount.minus(preAmountFee)
+            // we now have some minted bonds
+            const minted = await openAndClaimBuyOrder(user1, collaterals[index], preAmount, { from: authorized })
+            // let's compute what is the static price once these bonds have been minted
+            const overallSupply = minted.add(VIRTUAL_SUPPLIES[index])
+            const overallBalance = preAmountAfterFee.add(VIRTUAL_BALANCES[index])
+            const staticPricePPM = await curve.getStaticPricePPM(overallSupply, overallBalance, RESERVE_RATIOS[index])
+            // let's open some buy and sell orders
+            const buyAmount = BN(Math.pow(10, 19))
+            const buyAmountFee = computeBuyFee(buyAmount)
+            const buyAmountAfterFee = buyAmount.minus(buyAmountFee)
+            const sellAmount = BN(Math.pow(10, 18))
+            const receipt = await openBuyOrder(user2, collaterals[index], buyAmount, { from: authorized })
+            await openSellOrder(user1, collaterals[index], sellAmount, { from: authorized })
+            // let's fetch the batch
+            const batchId = getBuyOrderBatchId(receipt)
+            const batch = await getBatch(batchId, collaterals[index])
+            // buy orders are worth more than sell orders so ...
+            // sell orders should be matched against the buy orders at the current static price
+            const expectedSaleReturn = staticPricePPM.mul(sellAmount).div(PPM)
+            // no need to check claims as their logic is the same than where there are only sell orders [already checked above]
+            assert.equal(batch.totalSellSpend.toNumber(), sellAmount.toNumber())
+            assert.equal(batch.totalSellReturn.toNumber(), expectedSaleReturn.toNumber())
+            // now that sell orders have been matched the remaining buy orders should be added and matched normally along the formula
+            const remainingBuy = buyAmountAfterFee.minus(expectedSaleReturn)
+            const expectedRemainingBuyReturn = await purchaseReturn(index, minted, preAmountAfterFee, remainingBuy)
+            const expectedBuyReturn = expectedRemainingBuyReturn.add(sellAmount)
+            // no need to check claims as their logic is the same than where there are only buy orders [already checked above]
+            assert.equal(batch.totalBuySpend.toNumber(), buyAmountAfterFee.toNumber())
+            assert.equal(batch.totalBuyReturn.toNumber(), expectedBuyReturn.toNumber())
+          })
+        })
+
+        context('> sell orders are worth more than buy orders', () => {
+          it('it should return the right amount of bonds and collaterals', async () => {
+            // let's buy some bonds to redeem them afterwards
+            const preAmount = BN(Math.pow(10, 20))
+            const preAmountFee = computeBuyFee(preAmount)
+            const preAmountAfterFee = preAmount.minus(preAmountFee)
+            // we now have some minted bonds
+            const minted = await openAndClaimBuyOrder(user1, collaterals[index], preAmount, { from: authorized })
+            // let's compute what is the static price once these bonds have been minted
+            const overallSupply = minted.add(VIRTUAL_SUPPLIES[index])
+            const overallBalance = preAmountAfterFee.add(VIRTUAL_BALANCES[index])
+            const staticPricePPM = await curve.getStaticPricePPM(overallSupply, overallBalance, RESERVE_RATIOS[index])
+            // let's open some buy and sell orders
+            const buyAmount = BN(Math.pow(10, 18))
+            const buyAmountFee = computeBuyFee(buyAmount)
+            const buyAmountAfterFee = buyAmount.minus(buyAmountFee)
+            const sellAmount = BN(Math.pow(10, 19))
+            const receipt = await openBuyOrder(user2, collaterals[index], buyAmount, { from: authorized })
+            await openSellOrder(user1, collaterals[index], sellAmount, { from: authorized })
+            // let's fetch the batch
+            const batchId = getBuyOrderBatchId(receipt)
+            const batch = await getBatch(batchId, collaterals[index])
+            // sell orders are worth more than buy orders so ...
+            // buy orders should be matched against the sell orders at the current static price
+            const expectedBuyReturn = buyAmountAfterFee.mul(PPM).div(staticPricePPM)
+            // no need to check claims as their logic is the same than where there are only buy orders [already checked above]
+            assert.equal(batch.totalBuySpend.toNumber(), buyAmountAfterFee.toNumber())
+            assert.equal(batch.totalBuyReturn.toNumber(), expectedBuyReturn.toNumber())
+            // now that buy orders have been matched the remaining sell orders should be added and matched normally along the formula
+            const remainingSell = sellAmount.minus(expectedBuyReturn)
+            const expectedRemainingSellReturn = await saleReturn(index, minted, preAmountAfterFee, remainingSell)
+            const expectedSellReturn = expectedRemainingSellReturn.add(buyAmountAfterFee)
+            // no need to check claims as their logic is the same than where there are only sell orders [already checked above]
+            assert.equal(batch.totalSellSpend.toNumber(), sellAmount.toNumber())
+            assert.equal(batch.totalSellReturn.toNumber(), expectedSellReturn.toNumber())
+          })
+        })
       })
     })
   })
-
-  // #region maths
-  // context('#maths', () => {
-  //   forEach(['ETH', 'ERC20']).describe(`> %s`, collateralTokenIndex => {
-  //     // forEach(['ETH', 'ERC20', 'ETH', 'ERC20', 'ETH', 'ERC20']).describe(`> %s`, collateralTokenIndex => {
-  //     let totalSupply, balance, reserveRatio, _token, collateralToken, tokens
-  //     collateralTokenIndex = collateralTokenIndex === 'ETH' ? 0 : 1
-  //     const percentageOffsetErrorMargin = 0.999
-  //     beforeEach(() => {
-  //       totalSupply = new web3.BigNumber(VIRTUAL_SUPPLIES[collateralTokenIndex])
-  //       balance = new web3.BigNumber(VIRTUAL_BALANCES[collateralTokenIndex])
-  //       reserveRatio = new web3.BigNumber(RESERVE_RATIOS[collateralTokenIndex]).div(PPM)
-  //       tokens = [ETH, token1, token2]
-  //       _token = tokens[collateralTokenIndex]
-  //       collateralToken = typeof _token.address === 'undefined' ? ETH : _token.address
-  //     })
-
-  //     // #region buyOrders
-  //     context('> there are just buy orders', () => {
-  //       it('it should return the correct estimate', async () => {
-  //         let amount = randomAmount()
-  //         const fee = computeBuyFee(amount)
-  //         const amountAfterFee = amount.minus(fee)
-  //         let expectedReturn = getBuy({
-  //           amount: amountAfterFee,
-  //           totalSupply,
-  //           balance,
-  //           reserveRatio,
-  //         })
-  //         expectedReturn = new web3.BigNumber(expectedReturn.slope.toFixed(0))
-  //         let estimatedReturn = await curve.getBuy(collateralToken, '0', '0', amountAfterFee.toString(10))
-
-  //         let numerator = estimatedReturn.gt(expectedReturn) ? expectedReturn : estimatedReturn
-  //         let denominator = estimatedReturn.gt(expectedReturn) ? estimatedReturn : expectedReturn
-  //         let percentageOffset = numerator.div(denominator)
-
-  //         assert(
-  //           percentageOffset.gt(percentageOffsetErrorMargin),
-  //           `getBuy estimate was wrong expectedReturn: ${expectedReturn.toString(10)} estimatedReturn: ${estimatedReturn.toString(
-  //             10
-  //           )} percentageOffset: ${percentageOffset.toString(10)}`
-  //         )
-  //       })
-
-  //       it('it should match the estimate to the result for one order', async () => {
-  //         const amount = randomAmount()
-  //         const fee = computeBuyFee(amount)
-
-  //         const estimatedReturn = await curve.getBuy(collateralToken, 0, 0, amount.minus(fee))
-  //         const result = await createAndClaimBuyOrder({ address: authorized, collateralToken, amount, from: authorized })
-  //         assert.equal(estimatedReturn.toNumber(), result.toNumber())
-  //       })
-
-  //       it('it should match the estimate to the result for two orders', async () => {
-  //         const amount1 = randomAmount()
-  //         const amount2 = randomAmount()
-  //         const fee1 = computeBuyFee(amount1)
-  //         const fee2 = computeBuyFee(amount2)
-  //         const amount = amount1.plus(amount2)
-
-  //         const estimatedTotalReturn = await curve.getBuy(collateralToken, 0, 0, amount.minus(fee1).minus(fee2))
-  //         const percentage1 = amount1.div(amount)
-  //         const estimatedReturn1 = estimatedTotalReturn.mul(percentage1).round(0)
-  //         const estimatedReturn2 = estimatedTotalReturn.sub(estimatedReturn1).round(0)
-
-  //         const batchId1 = await buyToken({ curve, address: authorized, collateralToken, amount: amount1, from: authorized })
-  //         const batchId2 = await buyToken({ curve, address: authorized2, collateralToken, amount: amount2, from: authorized2 })
-
-  //         assert.equal(batchId1, batchId2)
-
-  //         await progressToNextBatch()
-  //         await curve.clearBatches({ from: root })
-
-  //         await curve.claimBuy(authorized, collateralToken, batchId1, { from: root })
-  //         await curve.claimBuy(authorized2, collateralToken, batchId1, { from: root })
-
-  //         const balance1 = await token.balanceOf(authorized)
-  //         const balance2 = await token.balanceOf(authorized2)
-
-  //         let numerator = balance1.gt(estimatedReturn1) ? estimatedReturn1 : balance1
-  //         let denominator = balance1.gt(estimatedReturn1) ? balance1 : estimatedReturn1
-  //         let percentageOffset = numerator.div(denominator)
-
-  //         assert(
-  //           percentageOffset.gt(percentageOffsetErrorMargin),
-  //           `estimatedReturn1: ${estimatedReturn1.toString()} balance1: ${balance1.toString(10)} percentageOffset: ${percentageOffset.toString(10)}`
-  //         )
-
-  //         numerator = balance2.gt(estimatedReturn2) ? estimatedReturn2 : balance2
-  //         denominator = balance2.gt(estimatedReturn2) ? balance2 : estimatedReturn2
-  //         percentageOffset = numerator.div(denominator)
-
-  //         assert(
-  //           percentageOffset.gt(percentageOffsetErrorMargin),
-  //           `estimatedReturn2: ${estimatedReturn2.toString()} balance2: ${balance2.toString(10)} percentageOffset: ${percentageOffset.toString(10)}`
-  //         )
-  //       })
-  //     })
-  //     // #endregion
-
-  //     context('> there are just sell orders', () => {
-  //       it('it should return the correct estimate', async () => {
-  //         const balanceOf = await createAndClaimBuyOrder({ address: authorized, collateralToken, amount: randomAmount(), from: authorized })
-
-  //         // sell half
-  //         const amount = balanceOf.div(2).floor(0)
-  //         const actualTotalSupply = await token.totalSupply()
-  //         const actualBalance = await controller.balanceOf(pool.address, collateralToken)
-
-  //         const combinedTotalSupply = totalSupply.plus(actualTotalSupply.toString(10))
-  //         const combinedBalance = balance.plus(actualBalance.toString(10))
-
-  //         const _expectedReturn = getSell({ amount, totalSupply: combinedTotalSupply, balance: combinedBalance, reserveRatio })
-  //         const expectedReturn = new web3.BigNumber(_expectedReturn.slope.toFixed(0))
-  //         const expectedReturnAfterFee = expectedReturn.minus(computeSellFee(expectedReturn))
-  //         // virtual supply and virtual balance included contract-side
-  //         const estimatedReturn = await curve.getSell(collateralToken, actualTotalSupply, actualBalance, amount.toString(10))
-  //         const estimatedReturnAfterFee = estimatedReturn.minus(computeSellFee(estimatedReturn))
-
-  //         let numerator = expectedReturnAfterFee.gt(estimatedReturnAfterFee) ? estimatedReturnAfterFee : expectedReturnAfterFee
-  //         let denominator = expectedReturnAfterFee.gt(estimatedReturnAfterFee) ? expectedReturnAfterFee : estimatedReturnAfterFee
-  //         let percentageOffset = numerator.div(denominator)
-
-  //         assert(
-  //           percentageOffset.gt(percentageOffsetErrorMargin),
-  //           `expectedReturnAfterFee: ${expectedReturnAfterFee.toString()} estimatedReturnAfterFee: ${estimatedReturnAfterFee.toString(
-  //             10
-  //           )} percentageOffset: ${percentageOffset.toString(10)}`
-  //         )
-  //       })
-
-  //       it('it should match the estimate to the result for one order', async () => {
-  //         let balanceOf = await buyAndClaimTokens({
-  //           token,
-  //           curve,
-  //           address: authorized,
-  //           collateralToken,
-  //           amount: randomAmount(),
-  //           from: undefined,
-  //         })
-  //         // sell half
-  //         let amount = balanceOf.div(2).floor(0)
-
-  //         // fees
-  //         let actualTotalSupply = await token.totalSupply()
-  //         let actualBalance = await controller.balanceOf(pool.address, collateralToken)
-
-  //         // virtualSupply and virtualBalance handled contract-side
-  //         let estimatedReturn = await curve.getSell(collateralToken, actualTotalSupply, actualBalance, amount.toString(10))
-
-  //         let estimatedReturnAfterFee = estimatedReturn.minus(computeSellFee(estimatedReturn))
-
-  //         // BEGIN COUNTING GAS
-  //         let collateralBalanceBefore
-  //         if (collateralToken === ETH) {
-  //           collateralBalanceBefore = await getBalance(authorized)
-  //         } else {
-  //           collateralBalanceBefore = await _token.balanceOf(authorized)
-  //         }
-  //         const { firstApprove, secondApprove, sellReceipt } = await sellHalfAsMuchAsPossible({
-  //           curve,
-  //           token,
-  //           address: authorized,
-  //           collateralToken,
-  //         })
-  //         const sellGas = new web3.BigNumber(sellReceipt.receipt.gasUsed)
-  //         const firstApproveGas = new web3.BigNumber(firstApprove.receipt.gasUsed)
-  //         const secondApproveGas = new web3.BigNumber(secondApprove.receipt.gasUsed)
-
-  //         let NewSellOrder = sellReceipt.logs.find(l => l.event === 'NewSellOrder')
-  //         let sellBatchNumber = NewSellOrder ? NewSellOrder.args.batchId.toNumber() : new Error('No Sell Order')
-
-  //         await increaseBlocks(BLOCKS_IN_BATCH)
-
-  //         await curve.clearBatches({ from: root })
-
-  //         await curve.claimSell(authorized, collateralToken, sellBatchNumber, { from: root })
-
-  //         let collateralBalanceAfter
-  //         if (collateralToken === ETH) {
-  //           let gasSpent = sellGas.plus(firstApproveGas).plus(secondApproveGas)
-  //           collateralBalanceAfter = await getBalance(authorized)
-  //           collateralBalanceAfter = collateralBalanceAfter.plus(gasSpent.mul(gasCost))
-  //         } else {
-  //           collateralBalanceAfter = await _token.balanceOf(authorized)
-  //         }
-
-  //         const netGain = collateralBalanceAfter.sub(collateralBalanceBefore)
-
-  //         let numerator = netGain.gt(estimatedReturnAfterFee) ? estimatedReturnAfterFee : netGain
-  //         let denominator = netGain.gt(estimatedReturnAfterFee) ? netGain : estimatedReturnAfterFee
-  //         let percentageOffset = numerator.div(denominator)
-
-  //         assert(
-  //           percentageOffset.gt(percentageOffsetErrorMargin),
-  //           `Didn't receive as many tokens as predicted from collateralTokenIndex ${collateralTokenIndex} netGain: ${netGain.toString(
-  //             10
-  //           )} estimatedReturnAfterFee: ${estimatedReturnAfterFee.toString(10)} percentageOffset: ${percentageOffset.toString(10)}`
-  //         )
-  //       })
-
-  //       it('it should match the estimate to the result for two sells', async () => {
-  //         let balanceOfOne = await buyAndClaimTokens({
-  //           token,
-  //           curve,
-  //           address: authorized,
-  //           collateralToken,
-  //           amount: randomAmount(),
-  //           from: authorized,
-  //         })
-  //         // sell half
-  //         let firstAmount = balanceOfOne.div(2).floor(0)
-
-  //         let balanceOfTwo = await buyAndClaimTokens({
-  //           token,
-  //           curve,
-  //           address: authorized2,
-  //           collateralToken,
-  //           amount: randomAmount(),
-  //           from: authorized2,
-  //         })
-  //         // sell half
-  //         let secondAmount = balanceOfTwo.div(2).floor(0)
-
-  //         let amount = firstAmount.plus(secondAmount)
-
-  //         let actualTotalSupply = await token.totalSupply()
-  //         let actualBalance = await controller.balanceOf(pool.address, collateralToken)
-
-  //         // virtualSupply and virtualBalance handled contract-side
-  //         let estimatedTotalReturn = await curve.getSell(collateralToken, actualTotalSupply, actualBalance, amount.toString(10))
-  //         let estimatedTotalReturnAfterFee = estimatedTotalReturn.minus(computeSellFee(estimatedTotalReturn))
-
-  //         let firstPercentage = firstAmount.div(amount)
-  //         let secondPercentage = secondAmount.div(amount)
-
-  //         let estimatedFirstReturn = estimatedTotalReturnAfterFee.mul(firstPercentage).floor(0)
-  //         let estimatedSecondReturn = estimatedTotalReturnAfterFee.mul(secondPercentage).floor(0)
-
-  //         await progressToNextBatch()
-
-  //         // BEGIN COUNTING GAS
-
-  //         // Seller 1
-  //         let collateralBalanceBefore1
-  //         if (collateralToken === ETH) {
-  //           collateralBalanceBefore1 = await getBalance(authorized)
-  //         } else {
-  //           collateralBalanceBefore1 = await _token.balanceOf(authorized)
-  //         }
-
-  //         // Seller 2
-  //         let collateralBalanceBefore2
-  //         if (collateralToken === ETH) {
-  //           collateralBalanceBefore2 = await getBalance(authorized2)
-  //         } else {
-  //           collateralBalanceBefore2 = await _token.balanceOf(authorized2)
-  //         }
-
-  //         // Seller 1
-  //         let { firstApprove, secondApprove, sellReceipt } = await sellSomeAmount({
-  //           curve,
-  //           token,
-  //           address: authorized,
-  //           collateralToken,
-  //           amount: firstAmount.toString(10),
-  //         })
-  //         const firstApprove1 = firstApprove
-  //         const secondApprove1 = secondApprove
-  //         const sellReceipt1 = sellReceipt
-
-  //         const firstApproveGas1 = new web3.BigNumber(firstApprove1.receipt.gasUsed)
-  //         const secondApproveGas1 = new web3.BigNumber(secondApprove1.receipt.gasUsed)
-  //         const sellGas1 = new web3.BigNumber(sellReceipt1.receipt.gasUsed)
-
-  //         let NewSellOrder1 = sellReceipt1.logs.find(l => l.event === 'NewSellOrder')
-  //         let sellBatchNumber = NewSellOrder1 ? NewSellOrder1.args.batchId.toNumber() : new Error('No Buy Order')
-
-  //         // Seller 2
-  //         const { firstApprove2, secondApprove2, sellReceipt2 } = await (async () => {
-  //           let { firstApprove, secondApprove, sellReceipt } = await sellSomeAmount({
-  //             curve,
-  //             token,
-  //             address: authorized2,
-  //             collateralToken,
-  //             amount: secondAmount.toString(10),
-  //           })
-  //           return {
-  //             firstApprove2: firstApprove,
-  //             secondApprove2: secondApprove,
-  //             sellReceipt2: sellReceipt,
-  //           }
-  //         })()
-
-  //         assert(firstApprove1.tx !== firstApprove2.tx, "txs shouldn't match (1)")
-  //         assert(secondApprove1.tx !== secondApprove2.tx, "txs shouldn't match (2)")
-  //         assert(sellReceipt1.tx !== sellReceipt2.tx, "txs shouldn't match (3)")
-
-  //         const firstApproveGas2 = new web3.BigNumber(firstApprove2.receipt.gasUsed)
-  //         const secondApproveGas2 = new web3.BigNumber(secondApprove2.receipt.gasUsed)
-  //         const sellGas2 = new web3.BigNumber(sellReceipt2.receipt.gasUsed)
-
-  //         let NewSellOrder2 = sellReceipt2.logs.find(l => l.event === 'NewSellOrder')
-  //         let sellBatchNumber2 = NewSellOrder2 ? NewSellOrder2.args.batchId.toNumber() : new Error('No Buy Order')
-
-  //         assert(sellBatchNumber === sellBatchNumber2, `Sell batches don't match ${sellBatchNumber} ${sellBatchNumber2}`)
-
-  //         // clear batches and count the money
-  //         await increaseBlocks(BLOCKS_IN_BATCH)
-
-  //         // execute from root account so the gas costs don't need to be calculated
-  //         await curve.clearBatches({ from: root })
-  //         await curve.claimSell(authorized, collateralToken, sellBatchNumber, { from: root })
-  //         await curve.claimSell(authorized2, collateralToken, sellBatchNumber, { from: root })
-
-  //         // Seller 1
-  //         let collateralBalanceAfter1
-  //         if (collateralToken === ETH) {
-  //           let gasSpent1 = sellGas1.plus(firstApproveGas1).plus(secondApproveGas1)
-  //           collateralBalanceAfter1 = await getBalance(authorized)
-  //           collateralBalanceAfter1 = collateralBalanceAfter1.plus(gasSpent1.mul(gasCost))
-  //         } else {
-  //           collateralBalanceAfter1 = await _token.balanceOf(authorized)
-  //         }
-  //         const netGain1 = collateralBalanceAfter1.sub(collateralBalanceBefore1)
-
-  //         let numerator = netGain1.gt(estimatedFirstReturn) ? estimatedFirstReturn : netGain1
-  //         let denominator = netGain1.gt(estimatedFirstReturn) ? netGain1 : estimatedFirstReturn
-  //         let percentageOffset = numerator.div(denominator)
-
-  //         assert(
-  //           percentageOffset.gt(percentageOffsetErrorMargin),
-  //           `Didn't receive as many tokens as predicted from collateralTokenIndex ${collateralTokenIndex} for seller1 netGain1: ${netGain1.toString(
-  //             10
-  //           )} estimatedFirstReturn: ${estimatedFirstReturn.toString(10)} percentageOffset: ${percentageOffset.toString(10)}`
-  //         )
-
-  //         // Seller 2
-  //         let collateralBalanceAfter2
-  //         if (collateralToken === ETH) {
-  //           let gasSpent2 = sellGas2.plus(firstApproveGas2).plus(secondApproveGas2)
-  //           collateralBalanceAfter2 = await getBalance(authorized2)
-  //           collateralBalanceAfter2 = collateralBalanceAfter2.plus(gasSpent2.mul(gasCost))
-  //         } else {
-  //           collateralBalanceAfter2 = await _token.balanceOf(authorized2)
-  //         }
-  //         const netGain2 = collateralBalanceAfter2.sub(collateralBalanceBefore2)
-
-  //         numerator = netGain2.gt(estimatedSecondReturn) ? estimatedSecondReturn : netGain2
-  //         denominator = netGain2.gt(estimatedSecondReturn) ? netGain2 : estimatedSecondReturn
-  //         percentageOffset = numerator.div(denominator)
-
-  //         assert(
-  //           percentageOffset.gt(percentageOffsetErrorMargin),
-  //           `Didn't receive as many tokens as predicted from collateralTokenIndex ${collateralTokenIndex} for seller 2 netGain2: ${netGain2.toString(
-  //             10
-  //           )} estimatedSecondReturn: ${estimatedSecondReturn.toString(10)} percentageOffset: ${percentageOffset.toString(10)}`
-  //         )
-  //       })
-  //     })
-
-  //     context('> Buys & Sells', () => {
-  //       it('it should match the estimate for equal buy and sells', async () => {
-  //         // buy some tokens, either spend 5 ETH or some random amount of ERC20
-  //         const amount = randomAmount()
-  //         // the buy results in an amount called sellAmount, becuase it will be used for a sell soon.
-  //         let sellAmount = await buyAndClaimTokens({
-  //           token,
-  //           curve,
-  //           address: authorized,
-  //           collateralToken,
-  //           amount,
-  //           from: authorized,
-  //         })
-
-  //         const actualTotalSupply = await token.totalSupply()
-  //         const actualBalance = await controller.balanceOf(pool.address, collateralToken)
-
-  //         // contract calculated virtualSupply and virtualBalance
-  //         const currentPricePPM = await curve.getPricePPM(collateralToken, actualTotalSupply.toString(10), actualBalance.toString(10))
-
-  //         // this is the amount a second user will spend to match the sellAmount
-  //         const spendAmountAfterFee = new web3.BigNumber(
-  //           sellAmount
-  //             .mul(currentPricePPM)
-  //             .div(PPM)
-  //             .toString(10)
-  //             .split('.')[0]
-  //         )
-  //         // an additional amount needs to be added for the fee
-  //         // initialAmount = afterFeeAmount / (1-fee)
-  //         const spendAmount = computeAmountBeforeBuyFee(spendAmountAfterFee).round(0)
-  //         await progressToNextBatch()
-
-  //         // the first user sells the original sell amount
-  //         const { sellBatchNumber } = await sellSomeAmount({
-  //           curve,
-  //           token,
-  //           address: authorized,
-  //           collateralToken,
-  //           amount: sellAmount.toString(10),
-  //         })
-
-  //         // the second user buys the original sell amount (with the addition of their fee)
-  //         const buyBatchNumber = await buyToken({
-  //           curve,
-  //           address: authorized2,
-  //           collateralToken,
-  //           amount: spendAmount,
-  //           from: authorized2,
-  //         })
-  //         assert(sellBatchNumber === buyBatchNumber, `sellBatchNumber  (${sellBatchNumber}) did not equal buyBatchNumber (${buyBatchNumber})`)
-
-  //         await increaseBlocks(BLOCKS_IN_BATCH)
-  //         await curve.clearBatches({ from: root })
-  //         await curve.claimBuy(authorized2, collateralToken, buyBatchNumber, { from: root })
-  //         await curve.claimSell(authorized, collateralToken, sellBatchNumber, { from: root })
-
-  //         const balanceOfSeller = await token.balanceOf(authorized)
-  //         const balanceOfBuyer = await token.balanceOf(authorized2)
-
-  //         let numerator = balanceOfBuyer.gt(sellAmount) ? sellAmount : balanceOfBuyer
-  //         let denominator = balanceOfBuyer.gt(sellAmount) ? balanceOfBuyer : sellAmount
-  //         let percentageOffset = numerator.div(denominator)
-
-  //         assert(
-  //           percentageOffset.gt(percentageOffsetErrorMargin),
-  //           `Buyer did not have original sellAmount. Expected ${sellAmount.toString(10)}, got ${balanceOfBuyer.toString(
-  //             10
-  //           )}, percentageOffset: ${percentageOffset.toString(10)}`
-  //         )
-  //         assert(balanceOfSeller.eq(0), `Seller did not get rid of all their tokens. Expected 0, got ${balanceOfSeller.toString(10)}`)
-  //       })
-  //       it('it should match the estimates on more sells than buys', async () => {
-  //         const amount = randomAmount()
-  //         let authorizedBalanceToken = await buyAndClaimTokens({
-  //           token,
-  //           curve,
-  //           address: authorized,
-  //           collateralToken,
-  //           amount,
-  //           from: authorized,
-  //         })
-
-  //         const sellAmountToken = authorizedBalanceToken.div(2)
-
-  //         const actualTotalSupply = await token.totalSupply()
-  //         const actualBalance = await controller.balanceOf(pool.address, collateralToken)
-  //         // virtualSupply and virtualBalance included contract-side
-  //         const currentPricePPM = await curve.getPricePPM(collateralToken, actualTotalSupply.toString(10), actualBalance.toString(10))
-  //         const matchSellAmountCollateral = sellAmountToken.mul(currentPricePPM).div(PPM)
-
-  //         const matchSellAmountCollaterlAfterSellFee = matchSellAmountCollateral.minus(computeSellFee(matchSellAmountCollateral))
-  //         const matchSellAmountCollateralIncludingFee = computeAmountBeforeBuyFee(matchSellAmountCollateral)
-
-  //         await progressToNextBatch()
-
-  //         let sellersCollateralBalanceBefore
-  //         if (collateralToken === ETH) {
-  //           sellersCollateralBalanceBefore = await getBalance(authorized)
-  //         } else {
-  //           sellersCollateralBalanceBefore = await _token.balanceOf(authorized)
-  //         }
-
-  //         const { firstApprove, secondApprove, sellReceipt, sellBatchNumber } = await sellSomeAmount({
-  //           curve,
-  //           token,
-  //           address: authorized,
-  //           collateralToken,
-  //           amount: sellAmountToken.floor(0),
-  //         })
-  //         const buyBatchNumber = await buyToken({
-  //           curve,
-  //           address: authorized2,
-  //           collateralToken,
-  //           amount: matchSellAmountCollateralIncludingFee.floor(0),
-  //           from: authorized2,
-  //         })
-  //         assert(sellBatchNumber === buyBatchNumber, `sellBatchNumber  (${sellBatchNumber}) did not equal buyBatchNumber (${buyBatchNumber})`)
-
-  //         await increaseBlocks(BLOCKS_IN_BATCH)
-  //         await curve.clearBatches({ from: root })
-  //         await curve.claimBuy(authorized2, collateralToken, buyBatchNumber, { from: root })
-  //         await curve.claimSell(authorized, collateralToken, sellBatchNumber, { from: root })
-  //         const balanceOfBuyer = await token.balanceOf(authorized2)
-
-  //         let numerator = balanceOfBuyer.gt(sellAmountToken) ? sellAmountToken : balanceOfBuyer
-  //         let denominator = balanceOfBuyer.gt(sellAmountToken) ? balanceOfBuyer : sellAmountToken
-  //         let percentageOffset = numerator.div(denominator)
-
-  //         assert(
-  //           percentageOffset.gt(percentageOffsetErrorMargin),
-  //           `Buyer did not have original sellAmountToken. Expected ${sellAmountToken.toString(10)}, got ${balanceOfBuyer.toString(
-  //             10
-  //           )} with percentageOffset ${percentageOffset.toString(10)}`
-  //         )
-
-  //         let sellersCollateralBalanceAfter
-  //         if (collateralToken === ETH) {
-  //           sellersCollateralBalanceAfter = await getBalance(authorized)
-  //           sellersCollateralBalanceAfter = sellersCollateralBalanceAfter
-  //             .plus(new web3.BigNumber(firstApprove.receipt.gasUsed).mul(gasCost))
-  //             .plus(new web3.BigNumber(secondApprove.receipt.gasUsed).mul(gasCost))
-  //             .plus(new web3.BigNumber(sellReceipt.receipt.gasUsed).mul(gasCost))
-  //         } else {
-  //           sellersCollateralBalanceAfter = await _token.balanceOf(authorized)
-  //         }
-
-  //         const sellersProfit = sellersCollateralBalanceAfter.sub(sellersCollateralBalanceBefore)
-
-  //         numerator = sellersProfit.gt(matchSellAmountCollaterlAfterSellFee) ? matchSellAmountCollaterlAfterSellFee : sellersProfit
-  //         denominator = sellersProfit.gt(matchSellAmountCollaterlAfterSellFee) ? sellersProfit : matchSellAmountCollaterlAfterSellFee
-  //         percentageOffset = numerator.div(denominator)
-
-  //         assert(
-  //           percentageOffset.gt(percentageOffsetErrorMargin),
-  //           `Seller did not get rid of their tokens. Expected ${matchSellAmountCollaterlAfterSellFee.toString(10)}, got ${sellersProfit.toString(10)}`
-  //         )
-  //       })
-
-  //       it('it should match the estimates on more buys than sells', async () => {
-  //         const amount = randomAmount()
-  //         let authorizedBalance = await buyAndClaimTokens({
-  //           token,
-  //           curve,
-  //           address: authorized,
-  //           collateralToken,
-  //           amount,
-  //           from: authorized,
-  //         })
-
-  //         const sellAmountToken = authorizedBalance.div(2)
-
-  //         const actualTotalSupply = await token.totalSupply()
-  //         const actualBalance = await controller.balanceOf(pool.address, collateralToken)
-  //         // contract calculated virtualSupply and virtualBalance
-  //         const currentPricePPM = await curve.getPricePPM(collateralToken, actualTotalSupply.toString(10), actualBalance.toString(10))
-  //         // if authorized were to sell half their balance (sellAmountToken) at the current price
-  //         // they would receive sellAmountMatch of collateralToken
-  //         const matchSellAmountCollateral = sellAmountToken.mul(currentPricePPM).div(PPM)
-  //         const matchSellAmountCollateralWithFee = computeAmountBeforeBuyFee(matchSellAmountCollateral)
-  //         const matchSellAmountCollaterlAfterSellFee = matchSellAmountCollateral.minus(computeSellFee(matchSellAmountCollateral))
-
-  //         const combinedTotalSupply = actualTotalSupply.add(totalSupply)
-  //         const combinedBalance = actualBalance.add(balance)
-
-  //         // if authorized2 were to buy the sellAmountToken of Tokens at the current price
-  //         // plus some amount of tokens beyond that, it would be calculated by the bonding curve.
-  //         const buyBeyondMatchCollateral = randomAmount()
-  //         const buyBeyondMatchCollateralAfterFee = buyBeyondMatchCollateral.minus(computeBuyFee(buyBeyondMatchCollateral))
-  //         let resultOfBondingCurveBuyToken = getBuy({
-  //           amount: buyBeyondMatchCollateralAfterFee,
-  //           totalSupply: combinedTotalSupply,
-  //           balance: combinedBalance,
-  //           reserveRatio,
-  //         })
-  //         const totalBuyCollateral = buyBeyondMatchCollateral.plus(matchSellAmountCollateralWithFee)
-
-  //         // the totalResultOfBuy for the buyer would be the matched amount plus the result of the bonding curve buy
-  //         const totalResultOfBuyToken = sellAmountToken.plus(resultOfBondingCurveBuyToken.bancor.toString(10))
-
-  //         let sellersCollateralBalanceBefore
-  //         if (collateralToken === ETH) {
-  //           sellersCollateralBalanceBefore = await getBalance(authorized)
-  //         } else {
-  //           sellersCollateralBalanceBefore = await _token.balanceOf(authorized)
-  //         }
-
-  //         await progressToNextBatch()
-  //         const { firstApprove, secondApprove, sellReceipt, sellBatchNumber } = await sellSomeAmount({
-  //           curve,
-  //           token,
-  //           address: authorized,
-  //           collateralToken,
-  //           amount: sellAmountToken.toString(10),
-  //         })
-  //         const buyBatchNumber = await buyToken({
-  //           curve,
-  //           address: authorized2,
-  //           collateralToken,
-  //           amount: totalBuyCollateral.floor(0).toString(10),
-  //           from: authorized2,
-  //         })
-  //         assert(sellBatchNumber === buyBatchNumber, `sellBatchNumber  (${sellBatchNumber}) did not equal buyBatchNumber (${buyBatchNumber})`)
-
-  //         await increaseBlocks(BLOCKS_IN_BATCH)
-  //         await curve.clearBatches({ from: root })
-  //         await curve.claimBuy(authorized2, collateralToken, buyBatchNumber, { from: root })
-  //         await curve.claimSell(authorized, collateralToken, sellBatchNumber, { from: root })
-
-  //         let sellersCollateralBalanceAfter
-  //         if (collateralToken === ETH) {
-  //           sellersCollateralBalanceAfter = await getBalance(authorized)
-  //           sellersCollateralBalanceAfter = sellersCollateralBalanceAfter
-  //             .plus(new web3.BigNumber(firstApprove.receipt.gasUsed).mul(gasCost))
-  //             .plus(new web3.BigNumber(secondApprove.receipt.gasUsed).mul(gasCost))
-  //             .plus(new web3.BigNumber(sellReceipt.receipt.gasUsed).mul(gasCost))
-  //         } else {
-  //           sellersCollateralBalanceAfter = await _token.balanceOf(authorized)
-  //         }
-
-  //         const balanceOfBuyer = await token.balanceOf(authorized2)
-
-  //         let numerator = balanceOfBuyer.gt(totalResultOfBuyToken) ? totalResultOfBuyToken : balanceOfBuyer
-  //         let denominator = balanceOfBuyer.gt(totalResultOfBuyToken) ? balanceOfBuyer : totalResultOfBuyToken
-  //         let percentageOffset = numerator.div(denominator)
-
-  //         assert(
-  //           percentageOffset.gt(percentageOffsetErrorMargin),
-  //           `Buyer did not have original sellAmountToken. Expected ${totalResultOfBuyToken.toString(10)}, got ${balanceOfBuyer.toString(
-  //             10
-  //           )} with percentageOffset ${percentageOffset.toString(10)}`
-  //         )
-
-  //         const sellersProfit = sellersCollateralBalanceAfter.sub(sellersCollateralBalanceBefore)
-
-  //         numerator = sellersProfit.gt(matchSellAmountCollaterlAfterSellFee) ? matchSellAmountCollaterlAfterSellFee : sellersProfit
-  //         denominator = sellersProfit.gt(matchSellAmountCollaterlAfterSellFee) ? sellersProfit : matchSellAmountCollaterlAfterSellFee
-  //         percentageOffset = numerator.div(denominator)
-
-  //         assert(
-  //           percentageOffset.gt(percentageOffsetErrorMargin),
-  //           `Seller did not get rid of their tokens. Expected ${matchSellAmountCollaterlAfterSellFee.toString(10)}, got ${sellersProfit.toString(10)}`
-  //         )
-  //       })
-  //     })
-  //   })
-  // })
   // #endregion
 })
 
