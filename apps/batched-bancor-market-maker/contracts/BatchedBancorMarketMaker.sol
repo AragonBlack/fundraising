@@ -297,7 +297,7 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
     }
 
     /**
-     * @notice Return the investments of `_buyer`'s `_collateral.symbol(): string` sell orders from cancelled batch #`_batchId`
+     * @notice Return the investments of `_buyer`'s `_collateral.symbol(): string` buy orders from cancelled batch #`_batchId`
      * @param _buyer The address of the user whose cancelled buy orders are to be returned
      * @param _batchId The id of the batch used
      * @param _collateral The address of the collateral token used
