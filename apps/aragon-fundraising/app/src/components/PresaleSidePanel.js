@@ -1,7 +1,7 @@
 import { Button, SidePanel, Text, TextInput } from '@aragon/ui'
 import React from 'react'
 import styled from 'styled-components'
-import transferArrows from '../assets/transferArrows.svg'
+import transferArrows from '../assets/TransferArrows.svg'
 
 const amount = 0
 
