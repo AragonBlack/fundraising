@@ -232,7 +232,6 @@ const App = () => {
                 <Reserves
                   bondedToken={common.bondedToken}
                   reserve={{ ...reserve, collateralTokens: common.collateralTokens }}
-                  polledData={{}}
                   updateTappedToken={handleTappedTokenUpdate}
                 />
               )}
