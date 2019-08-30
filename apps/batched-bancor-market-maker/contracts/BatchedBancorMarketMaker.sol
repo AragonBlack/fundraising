@@ -134,8 +134,8 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
         address                _beneficiary,
         IBancorFormula         _formula,
         uint256                _batchBlocks,
-        uint256                _buyFee,
-        uint256                _sellFee
+        uint256                _buyFeePct,
+        uint256                _sellFeePct
     )
         external onlyInit
     {
@@ -147,7 +147,7 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
         require(isContract(_formula), ERROR_CONTRACT_IS_EOA);
         require(_beneficiaryIsValid(_beneficiary), ERROR_INVALID_BENEFICIARY);
         require(_batchBlocks > 0, ERROR_BATCH_BLOCKS_ZERO);
-        require(_pctIsValid(_buyFee) && _pctIsValid(_sellFee), ERROR_FEE_PERCENTAGE_TOO_HIGH);
+        require(_pctIsValid(_buyFeePct) && _pctIsValid(_sellFeePct), ERROR_FEE_PERCENTAGE_TOO_HIGH);
 
         controller = _controller;
         tokenManager = _tokenManager;
@@ -156,8 +156,8 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
         beneficiary = _beneficiary;
         formula = _formula;
         batchBlocks = _batchBlocks;
-        buyFeePct = _buyFee;
-        sellFeePct = _sellFee;
+        buyFeePct = _buyFeePct;
+        sellFeePct = _sellFeePct;
     }
 
     /***** external functions *****/
