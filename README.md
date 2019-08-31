@@ -97,35 +97,35 @@ npm install
 ### Run
 
 #### Aragon Devchain
-> From a new terminal window
+> `From a new terminal window`
 
 ```bash
 aragon devchain
 ```
 
 #### Aragon IPFS Node
-> From a new terminal window
-> 
+> `From a new terminal window`
+
 ```bash
 aragon ipfs start
 ```
 
 #### Aragon Client
-> From the Aragon Client directory
+> `From the Aragon Client directory`
 
 ```bash
 npm run start:local
 ```
 
 #### Publish Fundraising Apps
-> From the Aragon Fundraising Monorepo directory
+> `From the Aragon Fundraising Monorepo directory`
 
 ```bash
 npm run publish
 ```
 
 #### Deploy a test DAO
-> From the Aragon Fundraising Monorepo directory
+> `From the Aragon Fundraising Monorepo directory`
 
 ```bash
 npm run deploy:dao:rpc
