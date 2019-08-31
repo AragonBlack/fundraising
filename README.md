@@ -46,12 +46,12 @@
 
 ### NPM Packages
 
-| Package                                                                                | Version | Description                                                                                          |
-| -------------------------------------------------------------------------------------- | ------- | ---------------------------------------------------------------------------------------------------- |
-| [`@ablack/fundraising-bancor-formula`](/apps/bancor-formula)                           |         | `BancorFormula` computation contract                                                                 |
-| [`@ablack/fundraising-batched-bancor-market-maker`](/apps/batched-bancor-market-maker) |         | Automated market-maker batching orders filled through the `BancorFormula`                            |
-| [`@ablack/fundraising-tap`](/apps/tap)                                                 |         | Control the flow of funds from a reserve to a beneficiary                                            |
-| [`@ablack/fundraising-aragon-fundraising`](/apps/aragon-fundraising)                   |         | `API` providing a single entry-point to interact consistently with all fundraising-related contracts |
+| Package                                                                                | Version | Description                                                                                                   |
+| -------------------------------------------------------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------- |
+| [`@ablack/fundraising-bancor-formula`](/apps/bancor-formula)                           |         | `BancorFormula` computation contract                                                                          |
+| [`@ablack/fundraising-batched-bancor-market-maker`](/apps/batched-bancor-market-maker) |         | Automated market-maker batching orders filled through the `BancorFormula`                                     |
+| [`@ablack/fundraising-tap`](/apps/tap)                                                 |         | Control the flow of funds from a reserve to a beneficiary                                                     |
+| [`@ablack/fundraising-aragon-fundraising`](/apps/aragon-fundraising)                   |         | `API` contract providing a single entry-point to interact consistently with all fundraising-related contracts |
 
 
 
