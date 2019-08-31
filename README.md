@@ -133,7 +133,7 @@ npm run deploy:dao:rpc
 
 ### Browse
 
-> Copy the newly deployed DAO address [0x...] and head your browser to:
+> `Copy the newly deployed DAO address [0x...] and head your browser to`
 ```bash 
 http://localhost:3000/#/0x...
 ```
