@@ -56,7 +56,7 @@
 
 ## Contributing
 
-We are highly open to the commpunity helping use improve and shape the future of `Aragon Fundraising`.
+We are highly open to the community helping use improve and shape the future of `Aragon Fundraising`.
 
 ### Install
 
