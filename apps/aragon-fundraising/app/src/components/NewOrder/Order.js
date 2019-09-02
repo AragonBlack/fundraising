@@ -2,11 +2,12 @@ import React, { useEffect, useContext, useRef, useState } from 'react'
 import styled from 'styled-components'
 import { useApi, useAppState } from '@aragon/api-react'
 import { Button, DropDown, Text, TextInput, theme, unselectable } from '@aragon/ui'
+import BigNumber from 'bignumber.js'
 import { MainViewContext } from '../../context'
 import Total from './Total'
 import Info from './Info'
 import ValidationError from '../ValidationError'
-import { round, toDecimals } from '../../lib/math-utils'
+import { toDecimals } from '../../utils/bn-utils'
 
 const Order = ({ isBuyOrder }) => {
   const {
@@ -16,12 +17,10 @@ const Order = ({ isBuyOrder }) => {
   } = useAppState()
   const collateralItems = [collaterals.dai, collaterals.ant]
   // get data from the react context
-  const {
-    order: { orderPanel, setOrderPanel },
-  } = useContext(MainViewContext)
+  const { orderPanel, setOrderPanel } = useContext(MainViewContext)
 
   const [selectedCollateral, setSelectedCollateral] = useState(1)
-  const [amount, setAmount] = useState(undefined)
+  const [amount, setAmount] = useState('')
   const [valid, setValid] = useState(false)
   const [errorMessage, setErrorMessage] = useState(null)
 
@@ -34,7 +33,7 @@ const Order = ({ isBuyOrder }) => {
     if (orderPanel) {
       // reset to default values
       setSelectedCollateral(0)
-      setAmount(undefined)
+      setAmount('')
       setValid(false)
       setErrorMessage(null)
       // focus the right input, given the order type
@@ -42,11 +41,6 @@ const Order = ({ isBuyOrder }) => {
       amountInput && setTimeout(() => amountInput.current.focus(), 20)
     }
   }, [orderPanel, isBuyOrder])
-
-  // // validate when new amounts
-  useEffect(() => {
-    validate()
-  }, [amount])
 
   const handleAmountUpdate = event => {
     setAmount(event.target.value)
@@ -57,23 +51,20 @@ const Order = ({ isBuyOrder }) => {
     setErrorMessage(message)
   }
 
-  const roundAmount = amount => {
-    return amount ? round(amount) : ''
-  }
-
   const handleSubmit = event => {
     event.preventDefault()
     const address = collateralItems[selectedCollateral].address
     if (valid) {
+      const amountBn = toDecimals(new BigNumber(amount), collateralItems[selectedCollateral].decimals).toFixed()
       if (isBuyOrder) {
-        const intent = { token: { address, value: amount, spender: marketMaker } }
+        const intent = { token: { address, value: amountBn, spender: marketMaker } }
         api
-          .openBuyOrder(address, amount, intent)
+          .openBuyOrder(address, amountBn, intent)
           .toPromise()
           .catch(console.error)
       } else {
         api
-          .openSellOrder(address, amount)
+          .openSellOrder(address, amountBn)
           .toPromise()
           .catch(console.error)
       }
@@ -93,6 +84,10 @@ const Order = ({ isBuyOrder }) => {
     return isBuyOrder ? bondedSymbol : collateralItems[selectedCollateral].symbol
   }
 
+  const getReserveRatio = () => {
+    return collateralItems[selectedCollateral].reserveRatio
+  }
+
   return (
     <form onSubmit={handleSubmit}>
       <InputsWrapper>
@@ -102,17 +97,7 @@ const Order = ({ isBuyOrder }) => {
             {!isBuyOrder && <StyledTextBlock>{bondedSymbol} TO SELL</StyledTextBlock>}
           </label>
           <CombinedInput>
-            <TextInput
-              ref={amountInput}
-              type="number"
-              value={roundAmount(amount)}
-              onChange={handleAmountUpdate}
-              min={0}
-              placeholder="0"
-              step="any"
-              required
-              wide
-            />
+            <TextInput ref={amountInput} type="number" value={amount} onChange={handleAmountUpdate} min={0} placeholder="0" step="any" required wide />
             {!isBuyOrder && (
               <Text
                 as="span"
@@ -132,7 +117,7 @@ const Order = ({ isBuyOrder }) => {
       </InputsWrapper>
       <Total
         isBuyOrder={isBuyOrder}
-        amount={{ value: amount, decimals: getDecimals(), symbol: getSymbol() }}
+        amount={{ value: amount, decimals: getDecimals(), symbol: getSymbol(), reserveRatio: getReserveRatio() }}
         conversionSymbol={getConversionSymbol()}
         onError={validate}
       />
@@ -141,9 +126,8 @@ const Order = ({ isBuyOrder }) => {
           Open {isBuyOrder ? 'buy' : 'sell'} order
         </Button>
       </ButtonWrapper>
-
-      <Info isBuyOrder={isBuyOrder} slippage={collateralItems[selectedCollateral].slippage} />
       {errorMessage && <ValidationError message={errorMessage} />}
+      <Info isBuyOrder={isBuyOrder} slippage={collateralItems[selectedCollateral].slippage} />
     </form>
   )
 }

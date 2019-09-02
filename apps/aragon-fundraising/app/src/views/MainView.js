@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { useApi, useAppState } from '@aragon/api-react'
-import { Layout, Tabs, Button, SidePanel } from '@aragon/ui'
+import { Layout, Tabs, Button } from '@aragon/ui'
 import BigNumber from 'bignumber.js'
 import { useInterval } from '../hooks/use-interval'
 import AppHeader from '../components/AppHeader'
@@ -42,13 +42,13 @@ export default () => {
 
   // react context accessible on child components
   const context = {
-      reserveBalance: polledReserveBalance,
-      daiBalance: polledDaiBalance,
-      antBalance: polledAntBalance,
-      batchId: polledBatchId,
-      price: polledPrice,
-      orderPanel,
-      setOrderPanel,
+    reserveBalance: polledReserveBalance,
+    daiBalance: polledDaiBalance,
+    antBalance: polledAntBalance,
+    batchId: polledBatchId,
+    price: polledPrice,
+    orderPanel,
+    setOrderPanel,
   }
 
   // polls the balances, batchId and price
@@ -97,9 +97,7 @@ export default () => {
         {tabIndex === 2 && <MyOrders />}
         {tabIndex === 3 && <Reserves />}
       </Layout>
-      <SidePanel opened={orderPanel} onClose={() => setOrderPanel(false)} title="New Order">
-        <NewOrder />
-      </SidePanel>
+      <NewOrder />
     </MainViewContext.Provider>
   )
 }

@@ -1,14 +1,12 @@
 import React, { useEffect, useContext, useState } from 'react'
 import styled from 'styled-components'
-import { TabBar } from '@aragon/ui'
+import { SidePanel, TabBar } from '@aragon/ui'
 import { MainViewContext } from '../../context'
 import Order from './Order'
 
 const NewOrder = () => {
   // get data from the react context
-  const {
-    order: { orderPanel },
-  } = useContext(MainViewContext)
+  const { orderPanel, setOrderPanel } = useContext(MainViewContext)
 
   const [screenIndex, setScreenIndex] = useState(0)
 
@@ -21,14 +19,14 @@ const NewOrder = () => {
   }, [orderPanel])
 
   return (
-    <div>
+    <SidePanel opened={orderPanel} onClose={() => setOrderPanel(false)} title="New Order">
       <TabBarWrapper>
         <TabBar items={['Buy', 'Sell']} selected={screenIndex} onChange={setScreenIndex} />
       </TabBarWrapper>
 
       {screenIndex === 0 && <Order isBuyOrder />}
       {screenIndex === 1 && <Order />}
-    </div>
+    </SidePanel>
   )
 }
 
