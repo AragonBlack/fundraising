@@ -1,7 +1,7 @@
 import Aragon, { events } from '@aragon/api'
 import { zip } from 'rxjs'
 import { first } from 'rxjs/operators'
-// import { addressesEqual } from './utils/web3'
+import cloneDeep from 'lodash.clonedeep'
 import { tokenDataFallback, getTokenSymbol, getTokenName } from './lib/token-utils'
 import poolAbi from './abi/Pool.json'
 import tapAbi from './abi/Tap.json'
@@ -10,7 +10,7 @@ import miniMeTokenAbi from './abi/MiniMeToken.json'
 import tokenDecimalsAbi from './abi/token-decimals.json'
 import tokenNameAbi from './abi/token-name.json'
 import tokenSymbolAbi from './abi/token-symbol.json'
-import { retryEvery } from './utils/bg-utils'
+import retryEvery from './utils/retryEvery'
 import { Order } from './constants'
 
 // abis used to call decimals, name and symbol on a token
@@ -27,7 +27,6 @@ const tokenSymbols = new Map() // External contract -> symbol
 const app = new Aragon()
 
 // get the token address to initialize ourselves
-// TODO: add formula contract (abi and stuff)
 const externals = zip(app.call('reserve'), app.call('tap'), app.call('marketMaker'))
 retryEvery(retry => {
   externals.subscribe(
@@ -98,9 +97,6 @@ const initialize = async (poolAddress, tapAddress, marketMakerAddress) => {
       console.log('#########################')
       const { event, returnValues, blockNumber, transactionHash } = evt
       switch (event) {
-        // handle account changes events
-        case events.ACCOUNTS_TRIGGER:
-          return updateConnectedAccount(nextState, returnValues)
         // app is syncing
         case events.SYNC_STATUS_SYNCING:
           return { ...nextState, isSyncing: true }
@@ -128,6 +124,8 @@ const initialize = async (poolAddress, tapAddress, marketMakerAddress) => {
           return newBatch(nextState, returnValues, blockNumber)
         case 'UpdatePricing':
           return updatePricing(nextState, returnValues)
+        case 'UpdateMaximumTapIncreasePct':
+          return updateMaximumTapIncreasePct(nextState, returnValues)
         default:
           return nextState
       }
@@ -148,7 +146,6 @@ const initState = settings => async cachedState => {
   const newState = {
     ...cachedState,
     isSyncing: true,
-    connectedAccount: null,
     addresses: {
       marketMaker: settings.marketMaker.address,
       tap: settings.tap.address,
@@ -157,86 +154,64 @@ const initState = settings => async cachedState => {
     },
     network: settings.network,
   }
-  const withTapData = await loadTapData(newState, settings)
-  const withPoolData = await loadPoolData(withTapData, settings)
-  const withMarketMakerData = await loadMarketMakerData(withPoolData, settings)
-  const withDefaultValues = loadDefaultValues(withMarketMakerData)
+  const withContractsData = await loadContractsData(newState, settings)
+  const withDefaultValues = loadDefaultValues(withContractsData)
   return withDefaultValues
 }
 
 /**
- * Loads relevant data related to the TAP smart contract
+ * Loads relevant data related to the fundraising smart contracts
  * @param {Object} state - the current store's state
  * @param {Object} settings - the settings needed to access external contracts data
- * @returns {Object} the current store's state augmented with the smart contract data
+ * @returns {Object} the current store's state augmented with the smart contracts data
  */
-const loadTapData = async (state, settings) => {
-  const maximumTapIncreasePct = await settings.tap.contract.maximumTapIncreasePct().toPromise()
-  const pctBase = await settings.tap.contract.PCT_BASE().toPromise()
-  return {
-    ...state,
-    beneficiary: await settings.tap.contract.beneficiary().toPromise(),
-    maximumTapIncreasePct: maximumTapIncreasePct / pctBase,
-  }
-}
-
-/**
- * Loads relevant data related to the POOL smart contract
- * @param {Object} state - the current store's state
- * @param {Object} settings - the settings needed to access external contracts data
- * @returns {Object} the current store's state augmented with the smart contract data
- */
-const loadPoolData = async (state, settings) => {
-  return {
-    ...state,
-    // collateralTokensLength: await settings.pool.contract.collateralTokensLength().toPromise(),
-  }
-}
-
-/**
- * Loads relevant data related to the MARKET MAKER smart contract
- * @param {Object} state - the current store's state
- * @param {Object} settings - the settings needed to access external contracts data
- * @returns {Object} the current store's state augmented with the smart contract data
- */
-const loadMarketMakerData = async (state, settings) => {
-  // loads data related to the bonded token and market maker contract
-  const [totalSupply, decimals, name, symbol, ppm, tokensToBeMinted] = await Promise.all([
-    settings.bondedToken.contract.totalSupply().toPromise(),
-    settings.bondedToken.contract.decimals().toPromise(),
-    settings.bondedToken.contract.name().toPromise(),
-    settings.bondedToken.contract.symbol().toPromise(),
-    settings.marketMaker.contract.PPM().toPromise(),
-    settings.marketMaker.contract.tokensToBeMinted().toPromise(),
+const loadContractsData = async (state, { bondedToken, marketMaker, tap }) => {
+  // loads data related to the bonded token, market maker and tap contracts
+  const [symbol, name, decimals, totalSupply, toBeMinted, PPM, maximumTapIncreasePct, PCT_BASE] = await Promise.all([
+    bondedToken.contract.symbol().toPromise(),
+    bondedToken.contract.name().toPromise(),
+    bondedToken.contract.decimals().toPromise(),
+    bondedToken.contract.totalSupply().toPromise(),
+    marketMaker.contract.tokensToBeMinted().toPromise(),
+    marketMaker.contract.PPM().toPromise(),
+    tap.contract.maximumTapIncreasePct().toPromise(),
+    tap.contract.PCT_BASE().toPromise(),
   ])
   return {
     ...state,
-    // TODO: bn ?
-    ppm: parseInt(ppm, 10),
+    constants: {
+      ...state.constants,
+      PPM,
+      PCT_BASE,
+    },
+    values: {
+      ...state.values,
+      maximumTapIncreasePct,
+    },
     bondedToken: {
-      address: settings.bondedToken.address,
-      totalSupply,
-      decimals,
-      name,
+      address: bondedToken.address,
       symbol,
-      tokensToBeMinted,
+      name,
+      decimals: parseInt(decimals, 10),
+      totalSupply,
+      toBeMinted,
+      // realSupply and overallSupply will be calculated on the reducer
     },
   }
 }
 
 /**
- *
+ * Intialize background script state with default values
  * @param {Object} state - the current store's state
  * @returns {Object} the current store's state augmented with default values where needed
  */
 const loadDefaultValues = state => {
   // set empty maps and arrays if not populated yet
-  // for collateralTokens, taps, orders, returns, batches
+  // (that's why new values are on top of the returned object, will be overwritten if exists in the state)
+  // for collaterals, orders, batches
   return {
-    collateralTokens: new Map(),
-    taps: new Map(),
+    collaterals: new Map(),
     orders: [],
-    returns: [],
     batches: [],
     ...state,
   }
@@ -248,44 +223,33 @@ const loadDefaultValues = state => {
  *                     *
  ***********************/
 
-const updateConnectedAccount = (state, { account }) => {
-  // TODO: handle account change ?
-  return {
-    ...state,
-    connectedAccount: account,
-  }
-}
-
 const handleCollateralToken = async (state, { collateral, reserveRatio, slippage, virtualBalance, virtualSupply }, settings) => {
-  const collateralTokens = state.collateralTokens
-
+  const collaterals = cloneDeep(state.collaterals)
   // find the corresponding contract in the in memory map or get the external
   const tokenContract = tokenContracts.has(collateral) ? tokenContracts.get(collateral) : app.external(collateral, tokenAbi)
   tokenContracts.set(collateral, tokenContract)
-
   // loads data related to the collateral token
-  const [balance, collateralsToBeClaimed, decimals, name, symbol] = await Promise.all([
+  const [symbol, name, decimals, actualBalance, toBeClaimed] = await Promise.all([
+    loadTokenSymbol(tokenContract, collateral, settings),
+    loadTokenName(tokenContract, collateral, settings),
+    loadTokenDecimals(tokenContract, collateral, settings),
     loadTokenBalance(collateral, settings),
     loadCollateralsToBeClaimed(collateral, settings),
-    loadTokenDecimals(tokenContract, collateral, settings),
-    loadTokenName(tokenContract, collateral, settings),
-    loadTokenSymbol(tokenContract, collateral, settings),
   ])
-  collateralTokens.set(collateral, {
-    balance,
-    decimals,
-    name,
+  collaterals.set(collateral, {
     symbol,
+    name,
+    decimals: parseInt(decimals, 10),
+    reserveRatio,
     virtualSupply,
     virtualBalance,
-    reserveRatio,
+    actualBalance, // will be polled on the frontend too, until aragon.js PR#361 gets merged
+    toBeClaimed, // will be updated when a new order or new claim event is catched
     slippage,
-    collateralsToBeClaimed,
   })
-
   return {
     ...state,
-    collateralTokens,
+    collaterals,
   }
 }
 
@@ -297,87 +261,130 @@ const removeCollateralToken = (state, { collateral }) => {
   tokenDecimals.delete(tokenContract)
   tokenNames.delete(tokenContract)
   tokenSymbols.delete(tokenContract)
-  state.collateralTokens.delete(collateral)
-  return state
-}
-
-const handleTappedToken = async (state, { token, tap, floor }, blockNumber) => {
-  const taps = state.taps
-  const timestamp = await loadTimestamp(blockNumber)
-  taps.set(token, { allocation: tap, floor, timestamp })
+  const collaterals = cloneDeep(state.collaterals).delete(collateral)
   return {
     ...state,
-    taps,
+    collaterals,
   }
 }
 
-// TODO: amount or value? standardize it between buy and sell events?
-const newOrder = async (state, { buyer, seller, collateral, batchId, value, amount }, settings, blockNumber, transactionHash) => {
-  const orders = state.orders
+const handleTappedToken = async (state, { token, tap: rate, floor }, blockNumber) => {
+  const collaterals = cloneDeep(state.collaterals)
   const timestamp = await loadTimestamp(blockNumber)
+  const tap = { rate, floor, timestamp }
+  collaterals.set(token, { ...collaterals.get(token), tap })
+  return {
+    ...state,
+    collaterals,
+  }
+}
+
+const newOrder = async (state, { buyer, seller, collateral, batchId, value, amount }, settings, blockNumber, transactionHash) => {
+  // if it's a buy order, seller and amount will undefined
+  // if it's a sell order, buyer and value will be undefined
+  const orders = cloneDeep(state.orders)
+  const tokenContract = tokenContracts.has(collateral) ? tokenContracts.get(collateral) : app.external(collateral, tokenAbi)
+  const [timestamp, symbol, bondedToken, collaterals] = await Promise.all([
+    loadTimestamp(blockNumber),
+    loadTokenSymbol(tokenContract, collateral, settings),
+    updateBondedToken(state.bondedToken, settings),
+    updateCollateralsToken(state.collaterals, collateral, settings),
+  ])
   orders.push({
-    address: buyer || seller,
-    collateral,
-    amount: value || amount,
-    batchId: parseInt(batchId, 10),
-    timestamp,
-    type: buyer ? Order.Type.BUY : Order.Type.SELL,
     transactionHash,
+    timestamp,
+    batchId: parseInt(batchId, 10),
+    collateral,
+    symbol,
+    user: buyer || seller,
+    type: buyer ? Order.type.BUY : Order.type.SELL,
+    state: Order.state.PENDING, // start with a PENDING state
+    amount, // can be undefined
+    value, // can be undefined
+    // price is calculated in the reducer
   })
   return {
     ...state,
     orders,
-    bondedToken: await updateBondedToken(state.bondedToken, settings, true, typeof buyer !== 'undefined'),
-    collateralTokens: await updateCollateralsToken(state.collateralTokens, collateral, settings, true, buyer !== 'undefined'),
+    bondedToken,
+    collaterals,
   }
 }
 
 const newReturn = async (state, { buyer, seller, collateral, batchId, value, amount }, settings) => {
-  const returns = state.returns
-  returns.push({
-    address: buyer || seller,
-    collateral,
-    amount: value || amount,
-    batchId: parseInt(batchId, 10),
-    type: buyer ? Order.Type.BUY : Order.Type.SELL,
-  })
+  // if it's a buy return, seller and value will undefined
+  // if it's a sell return, buyer and amount will be undefined
+  const user = buyer || seller
+  const type = buyer ? Order.type.BUY : Order.type.SELL
+  const orders = cloneDeep(state.orders)
+    // find orders concerned by this event and update values
+    .map(o => {
+      if (o.user === user && o.batchId === parseInt(batchId, 10) && o.collateral === collateral && o.type === type) {
+        return {
+          ...o,
+          amount: o.amount ? o.amount : amount, // update amount for a buy order
+          value: o.value ? o.value : value, // update value for a sell order
+          state: Order.state.CLAIMED,
+        }
+      } else return o
+    })
+  const [bondedToken, collaterals] = await Promise.all([
+    updateBondedToken(state.bondedToken, settings),
+    updateCollateralsToken(state.collaterals, collateral, settings),
+  ])
   return {
     ...state,
-    returns,
-    bondedToken: await updateBondedToken(state.bondedToken, settings, false, buyer !== 'undefined'),
-    collateralTokens: await updateCollateralsToken(state.collateralTokens, collateral, settings, false, typeof buyer !== 'undefined'),
+    orders,
+    bondedToken,
+    collaterals,
   }
 }
 
 const newBatch = async (state, { id, collateral, supply, balance, reserveRatio }, blockNumber) => {
-  const batches = state.batches
+  const batches = cloneDeep(state.batches)
   const timestamp = await loadTimestamp(blockNumber)
-  const startPrice = (balance * state.ppm) / (supply * reserveRatio)
   batches.push({
     id: parseInt(id, 10),
+    timestamp,
     collateral,
     supply,
     balance,
     reserveRatio,
-    timestamp,
-    startPrice,
+    // startPrice, buyPrice, sellPrice are calculated in the reducer
+    // totalBuySpend, totalBuyReturn, totalSellReturn, totalSellSpend updated via updatePricing events
   })
-  const currentBatch = parseInt(id, 10)
   return {
     ...state,
     batches,
-    currentBatch,
   }
 }
 
 const updatePricing = (state, { batchId, collateral, totalBuyReturn, totalBuySpend, totalSellReturn, totalSellSpend }) => {
-  const batch = state.batches.find(b => b.id === parseInt(batchId, 10) && b.collateral === collateral)
-  if (batch) {
-    // TODO: move the calculation into the app reducer ?
-    batch.buyPrice = totalBuySpend / totalBuyReturn
-    batch.sellPrice = totalSellReturn / totalSellSpend
+  const batches = cloneDeep(state.batches).map(b => {
+    if (b.id === parseInt(batchId, 10) && b.collateral === collateral) {
+      return {
+        ...b,
+        totalBuySpend,
+        totalBuyReturn,
+        totalSellSpend,
+        totalSellReturn,
+      }
+    } else return b
+  })
+  return {
+    ...state,
+    batches,
   }
-  return state
+}
+
+const updateMaximumTapIncreasePct = (state, { maximumTapIncreasePct }) => {
+  return {
+    ...state,
+    values: {
+      ...state.values,
+      maximumTapIncreasePct,
+    },
+  }
 }
 
 /***********************
@@ -493,57 +500,33 @@ const loadTimestamp = async blockNumber => {
  * Updates the bonded token when an order or claim happens
  * @param {Object} bondedToken - the bonded token to update
  * @param {Object} settings - settings object where the needed contracts are
- * @param {boolean} isOrder - order or claim
- * @param {boolean} isBuy - buy or sell
  * @returns {Object} the updated bonded token
  */
-const updateBondedToken = async (bondedToken, settings, isOrder, isBuy) => {
-  console.log('UPDATE BONDED TOKEN')
-  if (isOrder && isBuy) {
-    // buy order
-    return {
-      ...bondedToken,
-      tokensToBeMinted: await settings.marketMaker.contract.tokensToBeMinted().toPromise(),
-      totalSupply: await settings.bondedToken.contract.totalSupply().toPromise(),
-    }
-  } else if (isOrder) {
-    // sell order
-    return {
-      ...bondedToken,
-      totalSupply: await settings.bondedToken.contract.totalSupply().toPromise(),
-    }
-  } else if (!isOrder && isBuy) {
-    // claim buy
-    return {
-      ...bondedToken,
-      tokensToBeMinted: await settings.marketMaker.contract.tokensToBeMinted().toPromise(),
-      totalSupply: await settings.bondedToken.contract.totalSupply().toPromise(),
-    }
-  } else return bondedToken
+const updateBondedToken = async (bondedToken, settings) => {
+  const updatedBondedToken = cloneDeep(bondedToken)
+  const [toBeMinted, totalSupply] = await Promise.all([
+    settings.marketMaker.contract.tokensToBeMinted().toPromise(),
+    settings.bondedToken.contract.totalSupply().toPromise(),
+  ])
+  return {
+    ...updatedBondedToken,
+    toBeMinted,
+    totalSupply,
+  }
 }
 
 /**
  * Updates the collaterals tokens when an order or claim happens
- * @param {Map} collaterals - the bonded token to update
+ * @param {Map} collaterals - map of the collaterals
  * @param {String} collateral - current address of the collateral to update
  * @param {Object} settings - settings object where the needed contracts are
- * @param {boolean} isOrder - order or claim
- * @param {boolean} isBuy - buy or sell
  * @returns {Object} the updated collaterals
  */
-const updateCollateralsToken = async (collaterals, collateral, settings, isOrder, isBuy) => {
-  if (isOrder) {
-    // sell order
-    collaterals.set(collateral, {
-      ...collaterals.get(collateral),
-      collateralsToBeClaimed: await loadCollateralsToBeClaimed(collateral, settings),
-    })
-  } else {
-    // sell claim
-    collaterals.set(collateral, {
-      ...collaterals.get(collateral),
-      collateralsToBeClaimed: await loadCollateralsToBeClaimed(collateral, settings),
-    })
-  }
-  return collaterals
+const updateCollateralsToken = async (collaterals, collateral, settings) => {
+  const updatedCollaterals = cloneDeep(collaterals)
+  updatedCollaterals.set(collateral, {
+    ...updatedCollaterals.get(collateral),
+    toBeClaimed: await loadCollateralsToBeClaimed(collateral, settings),
+  })
+  return updatedCollaterals
 }

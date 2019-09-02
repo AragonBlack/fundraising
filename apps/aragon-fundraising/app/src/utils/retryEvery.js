@@ -13,7 +13,7 @@
  * }, 1000, 2)
  *
  */
-export const retryEvery = (callback, initialRetryTimer = 1000, increaseFactor = 5) => {
+export default (callback, initialRetryTimer = 1000, increaseFactor = 5) => {
   const attempt = (retryTimer = initialRetryTimer) => {
     // eslint-disable-next-line standard/no-callback-literal
     callback(() => {
