@@ -6,7 +6,7 @@
 </h1>
 
 <h4 align="center">
-    A continuous fundraising apps suite for <a href="https://www.aragon.org" target="_blank">Aragon</a> organizations.
+    Continuous Fundraising Apps Suite for <a href="https://www.aragon.org" target="_blank">Aragon</a> Organizations
 </h4>
 
 <p align="center">
@@ -28,6 +28,12 @@
         alt="Donate"
     >
   </a>
+  <a href="https://aragon.chat">
+    <img
+        src="https://img.shields.io/badge/chat-Rocket.Chat-GREEN"
+        alt="Chat"
+    >
+  </a>
   <a href="https://twitter.com/AragonBlackTeam">
     <img 
         src="https://img.shields.io/twitter/follow/AragonBlackTeam?label=Follow"
@@ -35,6 +41,23 @@
     >
   </a>
 </p>
+
+## Overview
+
+Aragon Fundraising is a suite of Aragon apps providing Aragon organizations continuous fundraising capabilities. It implements the following features.
+
+### Presale
+
+This module allows organizations to set a presale target that must be reached during a given period of time for the continous fundraising campaign to actually start.
+
+### Automatic Batched Market Making
+
+This module provides market liquidity to the fundraising campaign by automatically matching all the buy and sell orders according to a bonding curve tied to the Bancor formula. To mitigate front-running attacks and authorizing slow-trading this module also batches all the buy and sell orders received during a parametrable period of time to be matched given a common price.
+
+### Tap
+
+This module enforce a tap-based control of the funds allowed to be withdrawn from the market-maker reserve pool to a discretionnary pool whose funds can be spent to sustain the organization. To provide more guarantees to the investors this tap module also allows this flow of funds to be floored [thus ensuring that the market maker reserve pool can't be emptied even slowly during a long period of time].
+
 
 ## Architecture
 
@@ -70,13 +93,9 @@ npm install -g @aragon/cli
 
 ```bash
 git clone https://github.com/aragon/aragon.git
-```
 
-```bash
 cd aragon
-```
 
-```bash
 npm install
 ```
 
@@ -84,13 +103,9 @@ npm install
 
 ```bash
 git clone https://github.com/AragonBlack/fundraising.git
-```
 
-```bash
 cd fundraising
-```
 
-```bash
 npm install
 ```
 
