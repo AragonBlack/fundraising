@@ -66,15 +66,22 @@ export const computeValues = values => ({
  * @returns {Object} transformed collateral
  */
 const transformCollateral = (address, data) => {
+  const virtualBalance = new BigNumber(data.virtualBalance)
+  const toBeClaimed = new BigNumber(data.toBeClaimed)
+  const actualBalance = new BigNumber(data.actualBalance)
+  const realBalance = actualBalance.minus(toBeClaimed)
+  const overallBalance = realBalance.plus(virtualBalance)
   return {
     address,
     ...data,
     reserveRatio: new BigNumber(data.reserveRatio),
     virtualSupply: new BigNumber(data.virtualSupply),
-    virtualBalance: new BigNumber(data.virtualBalance),
-    toBeClaimed: new BigNumber(data.toBeClaimed),
-    actualBalance: new BigNumber(data.actualBalance),
-    // actualBalance, realBalance, overallBalance calculated on the frontend, until PR#361 gets merged
+    slippage: new BigNumber(data.slippage),
+    virtualBalance,
+    toBeClaimed,
+    actualBalance,
+    realBalance,
+    overallBalance,
     tap: {
       ...data.tap,
       rate: new BigNumber(data.tap.rate),
