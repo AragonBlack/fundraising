@@ -172,3 +172,91 @@ startPrice = (balance * ppm) / (supply * reserveRatio)
 All values coming from the event, except `ppm` which can be found on the background script state.
 
 (TODO: Should we continue to calculate it on the background script ?)
+
+## JSON view of the frontend state
+
+```json
+{
+    "constants": {
+        "PPM": BigNumber,
+        "PCT_BASE": BigNumber
+    },
+    "values": {
+        "maximumTapIncreasePct": BigNumber
+    },
+    "network": {
+        "id": Number,
+        "type": String // "private or rinkeby or main"
+    },
+    "addresses": {
+        "marketMaker": address,
+        "formula": address,
+        "tap": address,
+        "reserve": address
+    },
+    "collaterals": {
+        "dai": {
+            "address": String,
+            "symbol": String,
+            "name": String,
+            "decimals": Number,
+            "reserveRatio": BigNumber,
+            "virtualSupply": BigNumber,
+            "virtualBalance": BigNumber,
+            "toBeClaimed": BigNumber,
+            "actualBalance": BigNumber, // "this one needs to fetched from frontend for now ..."
+            "realBalance": BigNumber, // "= actualBalance - toBeClaimed"
+            "overallBalance": BigNumber, // "=realBalance + virtualBalance"
+            "tap" : {
+                "rate": BigNumber,
+                "floor": BigNumber,
+                "timestamp": Number
+            },
+            "slippage": BigNumber
+        },
+        "ant": {
+        }
+    },
+    "bondedToken": {
+        "address": String,
+        "symbol": String,
+        "name": String,
+        "decimals": Number,
+        "totalSupply": BigNumber,
+        "toBeMinted": BigNumber,
+        "realSupply": BigNumber, // "= totalSupply + toBeMinted"
+        "overallSupply": {
+           "dai":  BigNumber, // "=realSupply + virtualBalance(dai)"
+           "ant":  BigNumber // "=realSupply + virtualBalance(ant)"
+        }
+    },
+    "batches": {
+      "id": Number,
+      "timestamp": Date,
+      "collateral": address || String,
+      "supply": BigNumber,
+      "balance": BigNumber,
+      "reserveRatio": BigNumber,
+      "totalBuySpend": BigNumber,
+      "totalBuyReturn": BigNumber,
+      "totalSellSpend": BigNumber,
+      "totalSellReturn": BigNumber,
+      "startPrice": BigNumber, // "=(balance * PPM) / (supply * reserveRatio)"
+      "buyPrice": BigNumber, // "=totalBuySpend / totalBuyReturn"
+      "sellPrice": BigNumber // "=totalSellReturn / totalSellSpend"
+    },
+    "orders": {
+        "transactionHash": String,
+        "timestamp": Date,
+        "batchId": Number,
+        "collateral": String,
+        "symbol": String,
+        "user": String,
+        "type": String, // "BUY or SELL"
+        "state": String, // "PENDING or OVER or RETURNED"
+        "amount": BigNumber, // "always expressed in number of bonds"
+        "value": BigNumber, // "always expressed in number of collaterals"
+        "price": BigNumber, // "derived in app-reducer from batch parameters"
+    }
+}
+```
