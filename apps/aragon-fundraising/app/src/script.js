@@ -2,7 +2,6 @@ import Aragon, { events } from '@aragon/api'
 import { zip } from 'rxjs'
 import { first } from 'rxjs/operators'
 import cloneDeep from 'lodash.clonedeep'
-import { tokenDataFallback, getTokenSymbol, getTokenName } from './lib/token-utils'
 import poolAbi from './abi/Pool.json'
 import tapAbi from './abi/Tap.json'
 import marketMakerAbi from './abi/BatchedBancorMarketMaker.json'
@@ -424,9 +423,7 @@ const loadTokenDecimals = async (tokenContract, tokenAddress, { network }) => {
   if (tokenDecimals.has(tokenContract)) {
     return tokenDecimals.get(tokenContract)
   }
-
-  const fallback = tokenDataFallback(tokenAddress, 'decimals', network.type) || '0'
-
+  const fallback = '0'
   let decimals
   try {
     decimals = (await tokenContract.decimals().toPromise()) || fallback
@@ -449,11 +446,10 @@ const loadTokenName = async (tokenContract, tokenAddress, { network }) => {
   if (tokenNames.has(tokenContract)) {
     return tokenNames.get(tokenContract)
   }
-  const fallback = tokenDataFallback(tokenAddress, 'name', network.type) || ''
-
+  const fallback = ''
   let name
   try {
-    name = (await getTokenName(app, tokenAddress)) || fallback
+    name = (await tokenContract.name().toPromise()) || fallback
     tokenNames.set(tokenContract, name)
   } catch (err) {
     // name is optional
@@ -473,11 +469,10 @@ const loadTokenSymbol = async (tokenContract, tokenAddress, { network }) => {
   if (tokenSymbols.has(tokenContract)) {
     return tokenSymbols.get(tokenContract)
   }
-  const fallback = tokenDataFallback(tokenAddress, 'symbol', network.type) || ''
-
+  const fallback = ''
   let symbol
   try {
-    symbol = (await getTokenSymbol(app, tokenAddress)) || fallback
+    symbol = (await tokenContract.symbol().toPromise()) || fallback
     tokenSymbols.set(tokenContract, symbol)
   } catch (err) {
     // symbol is optional
