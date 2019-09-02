@@ -5,8 +5,10 @@
   <br>
 </h1>
 
+<br>
 <h4 align="center">
     Continuous Fundraising Apps Suite for <a href="https://www.aragon.org" target="_blank">Aragon</a> Organizations
+
 </h4>
 
 <p align="center">
@@ -41,6 +43,9 @@
     >
   </a>
 </p>
+
+<br>
+
 
 ## Overview
 
