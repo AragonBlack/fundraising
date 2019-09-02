@@ -1,13 +1,12 @@
 import React, { useEffect, useState } from 'react'
 import { Badge, Box, Button, DiscButton, Text, TextInput, theme, SidePanel, unselectable, Info } from '@aragon/ui'
+import { useApi, useAppState } from '@aragon/api-react'
 import styled from 'styled-components'
 import { differenceInMonths } from 'date-fns'
-import BN from 'bn.js'
 import EditIcon from '../assets/EditIcon.svg'
 import HoverNotification from '../components/HoverNotification/HoverNotification'
 import ValidationError from '../components/ValidationError'
-import { round, fromDecimals, toDecimals, toMonthlyAllocation, fromMonthlyAllocation } from '../lib/math-utils'
-import { formatTokenAmount } from '../lib/utils'
+import { formatBigNumber, fromMonthlyAllocation, toMonthlyAllocation, toDecimals } from '../utils/bn-utils'
 
 // In this copy we should display the user the percentage of max increase of the tap
 const hoverTextNotifications = [
@@ -107,27 +106,38 @@ const ContentWrapper = styled.div`
   }
 `
 
-export default ({ bondedToken, reserve, updateTappedToken }) => {
-  const { name, symbol, decimals: tokenDecimals, totalSupply, tokensToBeMinted } = bondedToken
-
+export default () => {
   const {
-    tap: { allocation, floor, timestamp },
-    maximumTapIncreasePct,
-    collateralTokens,
-    collateralTokens: [{ decimals }],
-  } = reserve
+    constants: { PPM, PCT_BASE },
+    values: { maximumTapIncreasePct },
+    collaterals: {
+      dai: {
+        address: daiAddress,
+        reserveRatio: daiReserveRatio,
+        symbol: daiSymbol,
+        decimals: daiDecimals,
+        tap: { rate, floor, timestamp },
+      },
+      ant: { reserveRatio: antReserveRatio, symbol: antSymbol },
+    },
+    bondedToken: { name, symbol, decimals: tokenDecimals, realSupply },
+  } = useAppState()
 
-  // tokenSupply, allocation and floor converted to human readable numbers
-  const tokenSupply = new BN(totalSupply).add(new BN(tokensToBeMinted))
-  const adjustedTokenSupply = formatTokenAmount(tokenSupply.toString(), false, tokenDecimals, false, {
-    rounding: 2,
-  })
-  const adjustedAllocation = round(toMonthlyAllocation(allocation.toString(), decimals)).toString()
-  const adjustedFloor = round(fromDecimals(floor.toString(), decimals)).toString()
+  const api = useApi()
+
+  // values converted to human readable numbers
+  const adjustedTokenSupply = formatBigNumber(realSupply, tokenDecimals)
+  const adjustedRate = toMonthlyAllocation(rate, daiDecimals)
+  const displayRate = formatBigNumber(adjustedRate, daiDecimals)
+  const displayFloor = formatBigNumber(floor, daiDecimals)
+  const adjustedIncrease = maximumTapIncreasePct.div(PCT_BASE)
+  const displayIncrease = formatBigNumber(adjustedIncrease.times(100), 0, 0)
+  const daiRatio = formatBigNumber(daiReserveRatio.div(PPM), 0)
+  const antRatio = formatBigNumber(antReserveRatio.div(PPM), 0)
 
   // interal component state
-  const [newAllocation, setNewAllocation] = useState(adjustedAllocation)
-  const [newFloor, setNewFloor] = useState(adjustedFloor)
+  const [newRate, setNewRate] = useState(adjustedRate.shiftedBy(-daiDecimals).toNumber())
+  const [newFloor, setNewFloor] = useState(floor.shiftedBy(-daiDecimals).toNumber())
   const [errorMessage, setErrorMessage] = useState(null)
   const [valid, setValid] = useState(false)
   const [opened, setOpened] = useState(false)
@@ -136,19 +146,19 @@ export default ({ bondedToken, reserve, updateTappedToken }) => {
   useEffect(() => {
     if (opened) {
       // reset to default values and validate them
-      setNewAllocation(adjustedAllocation)
-      setNewFloor(adjustedFloor)
+      setNewRate(adjustedRate.shiftedBy(-daiDecimals).toNumber())
+      setNewFloor(floor.shiftedBy(-daiDecimals).toNumber())
       validate()
     }
   }, [opened])
 
-  // validate when new allocation or new floor
+  // validate when new rate or new floor
   useEffect(() => {
     validate()
-  }, [newAllocation, newFloor])
+  }, [newRate, newFloor])
 
   const handleMonthlyChange = event => {
-    setNewAllocation(event.target.value)
+    setNewRate(event.target.value)
   }
 
   const handleFloorChange = event => {
@@ -156,13 +166,10 @@ export default ({ bondedToken, reserve, updateTappedToken }) => {
   }
 
   const validate = () => {
-    console.log(adjustedAllocation)
-    console.log(newAllocation)
-    console.log(timestamp)
     // check if it's a tap decrease
-    const isDecrease = adjustedAllocation >= newAllocation
+    const isDecrease = fromMonthlyAllocation(newRate, daiDecimals).lte(rate)
     // check if the tap increase respects the max tap increase
-    const regularIncrease = adjustedAllocation * maximumTapIncreasePct + adjustedAllocation >= newAllocation
+    const regularIncrease = fromMonthlyAllocation(newRate, daiDecimals).lte(rate.times(adjustedIncrease).plus(rate))
     // check if the last tap update is at least one month old
     // when a tap have never been updated, there's no timestamp, and can be updated
     const atLeastOneMonthOld = timestamp ? differenceInMonths(new Date(), new Date(timestamp)) >= 1 : true
@@ -175,9 +182,7 @@ export default ({ bondedToken, reserve, updateTappedToken }) => {
       setValid(true)
     } else {
       setErrorMessage(
-        !atLeastOneMonthOld
-          ? 'You cannot increase the tap more than once per month'
-          : `You cannot increase the tap by more than ${maximumTapIncreasePct * 100}%}`
+        !atLeastOneMonthOld ? 'You cannot increase the tap more than once per month' : `You cannot increase the tap by more than ${displayIncrease}%}`
       )
       setValid(false)
     }
@@ -185,13 +190,18 @@ export default ({ bondedToken, reserve, updateTappedToken }) => {
 
   const handleSubmit = event => {
     event.preventDefault()
-    console.log(fromMonthlyAllocation(newAllocation, decimals))
-    console.log(toDecimals(newFloor, decimals))
     if (valid) {
       setOpened(false)
-      const allocation = fromMonthlyAllocation(newAllocation, decimals)
-      const floor = toDecimals(newFloor, decimals)
-      updateTappedToken(allocation, floor)
+      // toFixed(0) returns rounded integers
+      const rate = fromMonthlyAllocation(newRate, daiDecimals).toFixed(0)
+      const floor = toDecimals(newFloor, daiDecimals).toFixed(0)
+      console.log(daiAddress)
+      console.log(rate)
+      console.log(floor)
+      api
+        .updateTokenTap(daiAddress, rate, floor)
+        .toPromise()
+        .catch(console.error)
     }
   }
 
@@ -204,13 +214,13 @@ export default ({ bondedToken, reserve, updateTappedToken }) => {
             <div css="display: flex; flex-direction: column; margin-bottom: 1.5rem;">
               {NotificationLabel('Monthly allocation', hoverTextNotifications[0])}
               <Text as="p" css="padding-right: 1.5rem; font-weight: bold;">
-                {adjustedAllocation} DAI / month
+                {displayRate} DAI / month
               </Text>
             </div>
             <div css="display: flex; flex-direction: column; margin-bottom: 1.5rem;">
               {NotificationLabel('Floor', hoverTextNotifications[2])}
               <Text as="p" css="padding-right: 1.5rem; font-weight: bold;">
-                {adjustedFloor} DAI
+                {displayFloor} DAI
               </Text>
             </div>
             <Button css={buttonStyle} onClick={() => setOpened(true)}>
@@ -226,7 +236,7 @@ export default ({ bondedToken, reserve, updateTappedToken }) => {
             </Button>
           </div>
           <div>
-            {collateralTokens.map(({ symbol, ratio }, i) => {
+            {[{ symbol: daiSymbol, ratio: daiRatio }, { symbol: antSymbol, ratio: antRatio }].map(({ symbol, ratio }, i) => {
               return (
                 <div css="display: flex; flex-direction: column; margin-bottom: 1.5rem;" key={i}>
                   {NotificationLabel(`${symbol} collateralization ratio`, hoverTextNotifications[1])}
@@ -257,7 +267,7 @@ export default ({ bondedToken, reserve, updateTappedToken }) => {
             <label>
               <StyledTextBlock>Tap (DAI)</StyledTextBlock>
             </label>
-            <TextInput type="number" value={newAllocation} onChange={handleMonthlyChange} wide required />
+            <TextInput type="number" value={newRate} onChange={handleMonthlyChange} wide required />
           </Wrapper>
           <Wrapper>
             <label>
@@ -273,9 +283,9 @@ export default ({ bondedToken, reserve, updateTappedToken }) => {
           {errorMessage && <ValidationError message={errorMessage} />}
           <Info css="margin-top: 1rem;">
             <p css="font-weight: 700;">Info</p>
-            <Text as="p">You can increase the tap by {maximumTapIncreasePct * 100}%.</Text>
-            <Text as="p">Current monthly allocation: {adjustedAllocation} DAI</Text>
-            <Text as="p">Current floor: {adjustedFloor} DAI</Text>
+            <Text as="p">You can increase the tap by {displayIncrease}%.</Text>
+            <Text as="p">Current monthly allocation: {displayRate} DAI</Text>
+            <Text as="p">Current floor: {displayFloor} DAI</Text>
           </Info>
         </form>
       </SidePanel>

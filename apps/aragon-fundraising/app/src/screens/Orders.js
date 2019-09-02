@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import {
   DataView,
+  _DateRange as DateRange,
   DropDown,
   SafeLink,
   Text,
@@ -15,13 +16,12 @@ import {
   IconEllipsis,
   shortenAddress,
 } from '@aragon/ui'
+import { useAppState } from '@aragon/api-react'
 import { format, subYears, endOfToday } from 'date-fns'
 import styled from 'styled-components'
-import DateRangeInput from '../components/DateRange/DateRangeInput'
 import ToggleFiltersButton from '../components/ToggleFiltersButton'
 import { Order } from '../constants'
-import { round } from '../lib/math-utils'
-import { formatTokenAmount } from '../lib/utils'
+import { formatBigNumber } from '../utils/bn-utils'
 import EmptyOrders from '../assets/EmptyOrders.svg'
 
 const filter = (orders, state) => {
@@ -46,7 +46,7 @@ const filter = (orders, state) => {
         }
 
         if (type === 'holder' && filter.payload[filter.active] !== 'All') {
-          if (filter.payload[filter.active].toLowerCase() !== order.address.toLowerCase()) {
+          if (filter.payload[filter.active].toLowerCase() !== order.user.toLowerCase()) {
             return false
           }
         }
@@ -59,6 +59,7 @@ const filter = (orders, state) => {
       }
       return true
     })
+    .reverse()
     .sort((a, b) => {
       if (state.price.payload[state.price.active] === 'Ascending') {
         return a.price - b.price
@@ -71,19 +72,27 @@ const filter = (orders, state) => {
 }
 
 const getIconState = state => {
-  if (state === Order.State.RETURNED) {
+  if (state === Order.state.CLAIMED) {
     return <IconCheck size="small" color="#2CC68F" />
-  } else if (state === Order.State.OVER) {
+  } else if (state === Order.state.OVER) {
     return <IconClock size="small" color="#08BEE5" />
-  } else if (state === Order.State.PENDING) {
+  } else if (state === Order.state.PENDING) {
     return <IconEllipsis size="small" color="#6D777B" />
   }
 }
 
-export default ({ orders, collateralTokens: [{ decimals: daiDecimals }], bondedToken: { decimals: tokenDecimals } }) => {
-  const getHolders = orders => ['All'].concat(Array.from(new Set(orders.map(o => o.address))))
-  const getCollaterals = orders => ['All'].concat(Array.from(new Set(orders.map(o => o.symbol))))
+const getHolders = orders => ['All'].concat(Array.from(new Set(orders.map(o => o.user))))
+const getCollaterals = orders => ['All'].concat(Array.from(new Set(orders.map(o => o.symbol))))
 
+export default () => {
+  const {
+    orders,
+    collaterals: {
+      dai: { decimals: daiDecimals },
+      ant: { decimals: antDecimals },
+    },
+    bondedToken: { decimals: tokenDecimals },
+  } = useAppState()
   const [state, setState] = useState({
     order: { active: 0, payload: ['All', 'Buy', 'Sell'] },
     price: { active: 0, payload: ['Default', 'Ascending', 'Descending'] },
@@ -117,7 +126,7 @@ export default ({ orders, collateralTokens: [{ decimals: daiDecimals }], bondedT
               )}
               <div className={layoutName !== 'large' ? (state.showFilters ? 'filter-nav' : ' filter-nav hide') : 'filter-nav'}>
                 <div className="filter-item">
-                  <DateRangeInput
+                  <DateRange
                     startDate={new Date(state.date.payload.start)}
                     endDate={new Date(state.date.payload.end)}
                     onChange={payload => setState({ ...state, date: { payload: { start: payload.start.getTime(), end: payload.end.getTime() } } })}
@@ -128,6 +137,7 @@ export default ({ orders, collateralTokens: [{ decimals: daiDecimals }], bondedT
                   <span className="filter-label">Holder</span>
                   <DropDown
                     items={state.holder.payload}
+                    selected={state.holder.active}
                     renderLabel={() => shortenAddress(state.holder.payload[state.holder.active])}
                     onChange={idx => setState({ ...state, holder: { ...state.holder, active: idx } })}
                   />
@@ -160,21 +170,20 @@ export default ({ orders, collateralTokens: [{ decimals: daiDecimals }], bondedT
             </div>
           }
           renderEntry={data => {
-            const adjustedCollateral = formatTokenAmount(data.amount, data.type === Order.Type.BUY, daiDecimals, true, { rounding: 2 })
-            const adjustedtoken = formatTokenAmount(data.tokens, data.type === Order.Type.BUY, tokenDecimals, true, { rounding: 2 })
             return [
-              <StyledText>{format(data.timestamp, 'MM/dd/yyyy - HH:mm:ss', { awareOfUnicodeTokens: true })}</StyledText>,
-              <IdentityBadge entity={data.address} />,
-              <div css="display: flex; align-items: center;">
+              <StyledText key="date">{format(data.timestamp, 'MM/dd/yyyy - HH:mm:ss', { awareOfUnicodeTokens: true })}</StyledText>,
+              <IdentityBadge key="address" entity={data.user} />,
+              <div key="status" css="display: flex; align-items: center;">
                 {getIconState(data.state)}
                 <p css="margin-top: 0.25rem; margin-left: 0.25rem;">{data.state.charAt(0) + data.state.slice(1).toLowerCase()}</p>
               </div>,
-              <p css={data.type === Order.Type.BUY ? 'font-weight: 600; color: #2CC68F;' : 'font-weight: 600;'}>
-                {data.type === Order.Type.BUY ? adjustedCollateral : adjustedtoken + ' '}
-                {data.symbol}
+              <p key="orderAmount" css={data.type === Order.type.BUY ? 'font-weight: 600; color: #2CC68F;' : 'font-weight: 600;'}>
+                {formatBigNumber(data.value, data.symbol === 'DAI' ? daiDecimals : antDecimals)} {data.symbol}
               </p>,
-              <p css="font-weight: 600;">${round(data.price, 2)}</p>,
-              data.type === Order.Type.BUY ? (
+              <p key="tokenPrice" css="font-weight: 600;">
+                ${formatBigNumber(data.price, 0)}
+              </p>,
+              data.type === Order.type.BUY ? (
                 <div
                   css={`
                     display: inline-block;
@@ -205,7 +214,9 @@ export default ({ orders, collateralTokens: [{ decimals: daiDecimals }], bondedT
                   {data.type}
                 </div>
               ),
-              <p css="font-weight: 600;">{data.type === Order.Type.BUY ? adjustedtoken : adjustedCollateral + ' '}</p>,
+              <p key="tokens" css="font-weight: 600;">
+                {formatBigNumber(data.amount, tokenDecimals)}
+              </p>,
             ]
           }}
           renderEntryActions={data => (

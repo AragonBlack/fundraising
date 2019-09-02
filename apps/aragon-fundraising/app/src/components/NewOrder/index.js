@@ -1,19 +1,24 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useContext, useState } from 'react'
 import styled from 'styled-components'
 import { TabBar } from '@aragon/ui'
-
+import { MainViewContext } from '../../context'
 import Order from './Order'
 
-const NewOrder = ({ opened, collaterals, bondedToken, price, onOrder, polledData }) => {
+const NewOrder = () => {
+  // get data from the react context
+  const {
+    order: { orderPanel },
+  } = useContext(MainViewContext)
+
   const [screenIndex, setScreenIndex] = useState(0)
 
   // handle reset when opening
   useEffect(() => {
-    if (opened) {
+    if (orderPanel) {
       // reset to default values
       setScreenIndex(0)
     }
-  }, [opened])
+  }, [orderPanel])
 
   return (
     <div>
@@ -21,8 +26,8 @@ const NewOrder = ({ opened, collaterals, bondedToken, price, onOrder, polledData
         <TabBar items={['Buy', 'Sell']} selected={screenIndex} onChange={setScreenIndex} />
       </TabBarWrapper>
 
-      {screenIndex === 0 && <Order opened={opened} isBuyOrder collaterals={collaterals} bondedToken={bondedToken} polledData={polledData} onOrder={onOrder} />}
-      {screenIndex === 1 && <Order opened={opened} collaterals={collaterals} bondedToken={bondedToken} polledData={polledData} onOrder={onOrder} />}
+      {screenIndex === 0 && <Order isBuyOrder />}
+      {screenIndex === 1 && <Order />}
     </div>
   )
 }

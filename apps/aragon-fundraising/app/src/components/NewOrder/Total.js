@@ -1,17 +1,26 @@
-import React, { useState, useEffect } from 'react'
+import React, { useContext, useState, useEffect } from 'react'
 import { Text } from '@aragon/ui'
 import { useApi, useAppState } from '@aragon/api-react'
 import styled from 'styled-components'
-import BN from 'bn.js'
+import BigNumber from 'bignumber.js'
+import { MainViewContext } from '../../context'
 import BancorFormulaAbi from '../../abi/BancorFormula.json'
-import { round, fromDecimals, toDecimals } from '../../lib/math-utils'
+import { formatBigNumber, toDecimals } from '../../utils/bn-utils'
 
-const Total = ({ isBuyOrder, amount, conversionSymbol, polledData, bondedToken, onError }) => {
-  const { common } = useAppState()
+const Total = ({ isBuyOrder, amount, conversionSymbol, onError }) => {
+  const {
+    addresses: { formula: formulaAddress },
+    bondedToken: { overallSupply },
+  } = useAppState()
+
+  const {
+    polledData: { daiBalance, antBalance },
+  } = useContext(MainViewContext)
+
   const api = useApi()
-  const [evaluatedPrice, setEvaluatedPrice] = useState(0)
+  const formula = api.external(formulaAddress, BancorFormulaAbi)
 
-  const formula = api.external(common.addresses.formula, BancorFormulaAbi)
+  const [evaluatedPrice, setEvaluatedPrice] = useState(0)
 
   const errorCb = () => {
     setEvaluatedPrice(null)
@@ -25,21 +34,20 @@ const Total = ({ isBuyOrder, amount, conversionSymbol, polledData, bondedToken, 
 
     const evaluateOrderReturn = async () => {
       const functionToCall = isBuyOrder ? 'calculatePurchaseReturn' : 'calculateSaleReturn'
-      const amountBn = new BN(amount.value)
-      const a = toDecimals(amountBn.toString(), amount.decimals)
+      const amountBn = toDecimals(new BigNumber(amount.value), amount.decimals)
       // supply, balance, weight, amount
       const currentSymbol = isBuyOrder ? amount.symbol : conversionSymbol
-      const supply = bondedToken.computedSupply.find(s => s.symbol === currentSymbol).value
-      const balance = amount.symbol === 'DAI' ? polledData.polledDaiBalance : polledData.polledAntBalance
-      console.log(balance)
+      const supply = currentSymbol === 'DAI' ? overallSupply.dai : overallSupply.ant
+      const balance = amount.symbol === 'DAI' ? daiBalance : antBalance
       if (balance) {
-        const result = await formula[functionToCall](supply.toString(), balance.toString(), 100000, a)
+        const result = await formula[functionToCall](supply.toFixed(), balance.toFixed(), 100000, amountBn.toFixed())
           .toPromise()
           .catch(errorCb)
         if (!didCancel && result) {
           okCb()
-          const resultBn = new BN(result)
-          setEvaluatedPrice(round(fromDecimals(resultBn.toString(), amount.decimals)))
+          const price = formatBigNumber(new BigNumber(result), amount.decimals)
+          console.log(price)
+          setEvaluatedPrice(price)
         }
       } else {
         onError(false, null)
@@ -64,8 +72,8 @@ const Total = ({ isBuyOrder, amount, conversionSymbol, polledData, bondedToken, 
           <Text weight="bold">{amount.symbol}</Text>
         </div>
         <div css="display: flex; justify-content: flex-end;">
-          {evaluatedPrice !== null && <AmountField color="grey">~{evaluatedPrice}</AmountField>}
-          {evaluatedPrice !== null && <Text color="grey">{conversionSymbol}</Text>}
+          {evaluatedPrice && <AmountField color="grey">~{evaluatedPrice}</AmountField>}
+          {evaluatedPrice && <Text color="grey">{conversionSymbol}</Text>}
         </div>
       </div>
     </div>

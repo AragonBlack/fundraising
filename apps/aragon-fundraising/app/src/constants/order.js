@@ -2,13 +2,13 @@
  * Shared constants between the background script and the frontend
  */
 export const Order = {
-  Type: {
+  type: {
     BUY: 'BUY',
     SELL: 'SELL',
   },
-  State: {
+  state: {
     PENDING: 'PENDING',
     OVER: 'OVER',
-    RETURNED: 'RETURNED',
+    CLAIMED: 'CLAIMED',
   },
 }
