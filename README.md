@@ -1,7 +1,10 @@
 <h1 align="center">
+<br>
+
  <img src="./.github/images/icon.svg" alt="Aragon Fundraising" width="200">
   <br>
   Aragon Fundraising
+  <br>
   <br>
 </h1>
 
