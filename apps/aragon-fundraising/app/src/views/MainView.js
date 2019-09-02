@@ -18,6 +18,7 @@ const tabs = ['Overview', 'Orders', 'My Orders', 'Reserve Settings']
 export default () => {
   const {
     addresses: { marketMaker: marketMakerAddress, pool },
+    constants: { PPM },
     bondedToken: {
       overallSupply: { dai: daiSupply },
     },
@@ -41,17 +42,13 @@ export default () => {
 
   // react context accessible on child components
   const context = {
-    polledData: {
       reserveBalance: polledReserveBalance,
       daiBalance: polledDaiBalance,
       antBalance: polledAntBalance,
       batchId: polledBatchId,
       price: polledPrice,
-    },
-    order: {
       orderPanel,
       setOrderPanel,
-    },
   }
 
   // polls the balances, batchId and price
@@ -62,12 +59,12 @@ export default () => {
     const batchIdPromise = marketMakerContract.getCurrentBatchId().toPromise()
     const [daiBalance, antBalance, batchId] = await Promise.all([daiPromise, antPromise, batchIdPromise])
     setPolledReserveBalance(new BigNumber(daiBalance))
-    setPolledDaiBalance(new BigNumber(daiBalance).plus(daiToBeClaimed).minus(daiVirtualBalance))
-    setPolledAntBalance(new BigNumber(antBalance).plus(antToBeClaimed).minus(antVirtualBalance))
+    setPolledDaiBalance(new BigNumber(daiBalance).minus(daiToBeClaimed).plus(daiVirtualBalance))
+    setPolledAntBalance(new BigNumber(antBalance).minus(antToBeClaimed).plus(antVirtualBalance))
     setPolledBatchId(parseInt(batchId, 10))
     // polling price
     const price = await marketMakerContract.getStaticPricePPM(daiSupply.toFixed(), polledDaiBalance.toFixed(), reserveRatio.toFixed()).toPromise()
-    setPolledPrice(price)
+    setPolledPrice(new BigNumber(price).div(PPM))
   }, 3000)
 
   const handleWithdraw = () => {
