@@ -4,7 +4,7 @@ import { useApi, useAppState } from '@aragon/api-react'
 import styled from 'styled-components'
 import { differenceInMonths } from 'date-fns'
 import EditIcon from '../assets/EditIcon.svg'
-import HoverNotification from '../components/HoverNotification/HoverNotification'
+import HoverNotification from '../components/HoverNotification'
 import ValidationError from '../components/ValidationError'
 import { formatBigNumber, fromMonthlyAllocation, toMonthlyAllocation, toDecimals } from '../utils/bn-utils'
 

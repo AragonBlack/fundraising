@@ -22,16 +22,14 @@ export default () => {
   } = useAppState()
 
   // get polled data from the react context
-  const {
-    polledData: { reserveBalance, price },
-  } = useContext(MainViewContext)
+  const { reserveBalance, price } = useContext(MainViewContext)
 
   // human readable values
   const adjustedTokenSupply = formatBigNumber(realSupply, tokenDecimals)
   const adjustedReserves = reserveBalance ? formatBigNumber(reserveBalance.minus(toBeClaimed), daiDecimals) : '...'
   const adjustedMonthlyAllowance = formatBigNumber(toMonthlyAllocation(rate, daiDecimals), daiDecimals)
-  const adjustedMarketCap = price ? formatBigNumber(price.mul(realSupply), daiDecimals) : '...'
-  const adjustedPrice = price ? formatBigNumber(price, daiDecimals) : '...'
+  const adjustedMarketCap = price ? formatBigNumber(price.times(realSupply), daiDecimals) : '...'
+  const adjustedPrice = price ? formatBigNumber(price, 0) : '...'
   const tradingVolume = orders
     // only keep DAI orders
     .filter(o => o.collateral === daiAddress)
