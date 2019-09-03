@@ -52,20 +52,20 @@ const deploy = {
     await test.acl.createPermission(daoManager, test.dao.address, test.APP_MANAGER_ROLE, daoManager, { from: daoManager })
   },
 
-  /* POOL */
-  deployPool: async (test, appManager) => {
+  /* RESERVE */
+  deployReserve: async (test, appManager) => {
     const appBase = await Pool.new()
     const receipt = await test.dao.newAppInstance(hash('pool.aragonpm.eth'), appBase.address, '0x', false, { from: appManager })
-    test.pool = Pool.at(deploy.getProxyAddress(receipt))
+    test.reserve = Pool.at(deploy.getProxyAddress(receipt))
     test.POOL_TRANSFER_ROLE = await appBase.TRANSFER_ROLE()
     test.POOL_ADD_PROTECTED_TOKEN_ROLE = await appBase.ADD_PROTECTED_TOKEN_ROLE()
   },
-  setPoolPermissions: async (test, appManager) => {
-    await test.acl.createPermission(ANY_ADDRESS, test.pool.address, test.POOL_TRANSFER_ROLE, appManager, { from: appManager })
-    await test.acl.createPermission(ANY_ADDRESS, test.pool.address, test.POOL_ADD_PROTECTED_TOKEN_ROLE, appManager, { from: appManager })
+  setReservePermissions: async (test, appManager) => {
+    await test.acl.createPermission(ANY_ADDRESS, test.reserve.address, test.POOL_TRANSFER_ROLE, appManager, { from: appManager })
+    await test.acl.createPermission(ANY_ADDRESS, test.reserve.address, test.POOL_ADD_PROTECTED_TOKEN_ROLE, appManager, { from: appManager })
   },
-  initializePool: async (test) => {
-    await test.pool.initialize()
+  initializeReserve: async (test) => {
+    await test.reserve.initialize()
   },
 
   /* TAP */
@@ -135,7 +135,7 @@ const deploy = {
     await test.acl.createPermission(ANY_ADDRESS, test.fundraising.address, test.FUNDRAISING_ADD_COLLATERAL_TOKEN_ROLE, appManager, { from: appManager })
   },
   initializeFundraising: async (test) => {
-    await test.fundraising.initialize(test.marketMaker.address, test.pool.address, test.tap.address)
+    await test.fundraising.initialize(test.marketMaker.address, test.reserve.address, test.tap.address)
   },
 
   /* VAULT */
@@ -200,7 +200,7 @@ const deploy = {
       params.fundingGoal,
       params.percentSupplyOffered,
       params.fundingPeriod,
-      params.pool,
+      params.reserve,
       params.beneficiaryAddress,
       params.percentFundingForBeneficiary,
       params.startDate
@@ -217,7 +217,7 @@ const deploy = {
       fundingGoal: FUNDING_GOAL,
       percentSupplyOffered: PERCENT_SUPPLY_OFFERED,
       fundingPeriod: FUNDING_PERIOD,
-      pool: test.pool.address,
+      reserve: test.reserve.address,
       beneficiaryAddress,
       percentFundingForBeneficiary: PERCENT_FUNDING_FOR_BENEFICIARY,
       startDate: 0
@@ -246,7 +246,7 @@ const deploy = {
 		// await deploy.deployBancorFormula(test, appManager)
 
     // await deploy.deployVault(test, appManager)
-    await deploy.deployPool(test, appManager)
+    await deploy.deployReserve(test, appManager)
     // await deploy.deployTap(test, appManager)
     // await deploy.deployMarketMaker(test, appManager)
     // await deploy.deployFundraising(test, appManager)
@@ -254,7 +254,7 @@ const deploy = {
     await deploy.deployMarketMakerController(test, appManager)
 
     // await deploy.setVaultPermissions(test, appManager)
-    await deploy.setPoolPermissions(test, appManager)
+    await deploy.setReservePermissions(test, appManager)
     // await deploy.setTapPermissions(test, appManager)
     // await deploy.setFundraisingPermissions(test, appManager)
     // await deploy.setMarketMakerPermissions(test, appManager)
@@ -263,7 +263,7 @@ const deploy = {
     // await deploy.setMarketMakerControllerPermissions(test, appManager)
 
     // await deploy.initializeVault(test)
-    await deploy.initializePool(test)
+    await deploy.initializeReserve(test)
     // await deploy.initializeMarketMakerController(test)
     // await deploy.initializeTap(test, appManager)
     // await deploy.initializeFundraising(test)

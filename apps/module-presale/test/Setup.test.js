@@ -41,7 +41,7 @@ contract('Presale, setup', ([anyone, appManager, someEOA]) => {
       })
 
       it('Deploys fundraising related apps', async () => {
-        expect(web3.isAddress(this.pool.address)).to.equal(true)
+        expect(web3.isAddress(this.reserve.address)).to.equal(true)
       })
 
       it('startDate is set correctly', async () => {
@@ -119,11 +119,11 @@ contract('Presale, setup', ([anyone, appManager, someEOA]) => {
       )
     })
 
-    it('Reverts when setting an invalid fundraising pool', async () => {
+    it('Reverts when setting an invalid reserve', async () => {
       await assertRevert(
         initializePresale(this, { ...defaultParams,
-          pool: someEOA
-        }), 'PRESALE_INVALID_POOL'
+          reserve: someEOA
+        }), 'PRESALE_INVALID_RESERVE'
       )
     })
 

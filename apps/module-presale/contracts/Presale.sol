@@ -36,7 +36,7 @@ contract Presale is AragonApp {
     string private constant ERROR_INVALID_TIME_PERIOD      = "PRESALE_INVALID_TIME_PERIOD";
     string private constant ERROR_INVALID_FUNDING_GOAL     = "PRESALE_INVALID_FUNDING_GOAL";
     string private constant ERROR_INVALID_PERCENT_VALUE    = "PRESALE_INVALID_PERCENT_VALUE";
-    string private constant ERROR_INVALID_POOL             = "PRESALE_INVALID_POOL";
+    string private constant ERROR_INVALID_RESERVE          = "PRESALE_INVALID_RESERVE";
     string private constant ERROR_INVALID_BENEFIC_ADDRESS  = "PRESALE_INVALID_BENEFIC_ADDRESS";
     string private constant ERROR_EXCEEDS_FUNDING_GOAL     = "PRESALE_EXCEEDS_FUNDING_GOAL";
 
@@ -81,8 +81,8 @@ contract Presale is AragonApp {
     uint256 public percentSupplyOffered; // Represented in PPM, see below
 
     // Once the sale is closed, totalRaised is split according to
-    // percentFundingForBeneficiary, between beneficiaryAddress and fundraisingPool.
-    address public fundraisingPool;
+    // percentFundingForBeneficiary, between beneficiaryAddress and reserve.
+    address public reserve;
     address public beneficiaryAddress;
     uint256 public percentFundingForBeneficiary; // Represented in PPM, see below
 
@@ -131,7 +131,7 @@ contract Presale is AragonApp {
      */
 
     /**
-    * @notice Initialize Presale app with `_contributionToken` to be used for purchasing `_projectToken`, controlled by `_projectTokenManager`. Project tokens are provided in vested form using `_vestingCliffPeriod` and `_vestingCompletePeriod`. The Presale accepts tokens until `_fundingGoal` is reached. `percentSupplyOffered` is used to calculate the contribution token to project token exchange rate. The presale allows project token purchases for `_fundingPeriod` after the sale is started. If the funding goal is reached, part of the raised funds are sent to `_fundraisingPool`, associated with a Fundraising app. The raised funds that are not sent to the fundraising pool are sent to `_beneficiaryAddress` according to the ratio specified in `_percentFundingForBenefiriary`. Optionally, if a non-zero `_startDate` is provided, the sale will start at the specified date, without the need of the owner of the START_ROLE calling `start()`.
+    * @notice Initialize Presale app with `_contributionToken` to be used for purchasing `_projectToken`, controlled by `_projectTokenManager`. Project tokens are provided in vested form using `_vestingCliffPeriod` and `_vestingCompletePeriod`. The Presale accepts tokens until `_fundingGoal` is reached. `percentSupplyOffered` is used to calculate the contribution token to project token exchange rate. The presale allows project token purchases for `_fundingPeriod` after the sale is started. If the funding goal is reached, part of the raised funds are sent to `_reserve`, associated with a Fundraising app. The raised funds that are not sent to the fundraising pool are sent to `_beneficiaryAddress` according to the ratio specified in `_percentFundingForBenefiriary`. Optionally, if a non-zero `_startDate` is provided, the sale will start at the specified date, without the need of the owner of the START_ROLE calling `start()`.
     * @param _contributionToken ERC20 Token accepted for purchasing project tokens.
     * @param _projectToken MiniMeToken project tokens being offered for sale in vested form.
     * @param _projectTokenManager TokenManager Token manager in control of the offered project tokens.
@@ -140,7 +140,7 @@ contract Presale is AragonApp {
     * @param _fundingGoal uint256 Target contribution token funding goal.
     * @param _percentSupplyOffered uin256 Percent of the total supply of project tokens that will be offered in this sale and in further fundraising stages.
     * @param _fundingPeriod uint64 The period within which this sale accepts project token purchases.
-    * @param _fundraisingPool Pool The fundraising pool associated with the Fundraising app where part of the raised contribution tokens will be sent to, if this sale is succesful.
+    * @param _reserve Pool The fundraising pool associated with the Fundraising app where part of the raised contribution tokens will be sent to, if this sale is succesful.
     * @param _beneficiaryAddress address The address to which part of the raised contribution tokens will be sent to, if this sale is successful.
     * @param _percentFundingForBenefiriary uint256 The percentage of the raised contribution tokens that will be sent to the beneficiary address, instead of the fundraising pool, when this sale is closed.
     * @param _startDate uint64 Optional start date of the sale, ignored if 0.
@@ -154,7 +154,7 @@ contract Presale is AragonApp {
         uint256 _fundingGoal,
         uint256 _percentSupplyOffered,
         uint64 _fundingPeriod,
-        address _fundraisingPool,
+        address _reserve,
         address _beneficiaryAddress,
         uint256 _percentFundingForBenefiriary,
         uint64 _startDate
@@ -163,7 +163,7 @@ contract Presale is AragonApp {
         onlyInit
     {
         require(isContract(_contributionToken), ERROR_INVALID_CONTRIBUTE_TOKEN);
-        require(isContract(_fundraisingPool), ERROR_INVALID_POOL);
+        require(isContract(_reserve), ERROR_INVALID_RESERVE);
         require(_fundingPeriod > 0, ERROR_INVALID_TIME_PERIOD);
         require(_vestingCliffPeriod > _fundingPeriod, ERROR_INVALID_TIME_PERIOD);
         require(_vestingCompletePeriod > _vestingCliffPeriod, ERROR_INVALID_TIME_PERIOD);
@@ -179,7 +179,7 @@ contract Presale is AragonApp {
         contributionToken = _contributionToken;
         _setProjectToken(_projectToken, _projectTokenManager);
 
-        fundraisingPool = _fundraisingPool;
+        reserve = _reserve;
 
         vestingCliffPeriod = _vestingCliffPeriod;
         vestingCompletePeriod = _vestingCompletePeriod;
@@ -287,7 +287,7 @@ contract Presale is AragonApp {
 
         // (presale) ~~~> contribution tokens ~~~> (pool)
         uint256 tokensForPool = contributionToken.balanceOf(address(this));
-        require(contributionToken.transfer(fundraisingPool, tokensForPool), ERROR_TOKEN_TRANSFER_REVERTED);
+        require(contributionToken.transfer(reserve, tokensForPool), ERROR_TOKEN_TRANSFER_REVERTED);
 
         saleClosed = true;
 

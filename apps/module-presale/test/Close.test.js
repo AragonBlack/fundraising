@@ -51,15 +51,15 @@ contract('Presale, close() functionality', ([anyone, appManager, buyer1]) => {
           expect((await this.presale.currentSaleState()).toNumber()).to.equal(SALE_STATE.CLOSED)
         })
 
-        it('Raised funds are transferred to the fundraising pool and the beneficiary address', async () => {
+        it('Raised funds are transferred to the fundraising reserve and the beneficiary address', async () => {
           expect((await this.contributionToken.balanceOf(this.presale.address)).toNumber()).to.equal(0)
 
           const totalRaised = (await this.presale.totalRaised()).toNumber()
           const tokensForBeneficiary = Math.floor(totalRaised * PERCENT_FUNDING_FOR_BENEFICIARY / PPM)
-          const tokensForPool = totalRaised - tokensForBeneficiary
-          const fundraisingPool = await this.presale.fundraisingPool()
+          const tokensForReserve = totalRaised - tokensForBeneficiary
+          const reserve = await this.presale.reserve()
           expect((await this.contributionToken.balanceOf(appManager)).toNumber()).to.equal(tokensForBeneficiary)
-          expect((await this.contributionToken.balanceOf(fundraisingPool)).toNumber()).to.equal(tokensForPool)
+          expect((await this.contributionToken.balanceOf(reserve)).toNumber()).to.equal(tokensForReserve)
         })
 
         it('Sale cannot be closed again', async () => {
