@@ -16,6 +16,9 @@ import { MainViewContext } from '../context'
 const tabs = ['Overview', 'Orders', 'My Orders', 'Reserve Settings']
 
 export default () => {
+  // *****************************
+  // background script state
+  // *****************************
   const {
     addresses: { marketMaker: marketMakerAddress, pool },
     constants: { PPM },
@@ -28,12 +31,21 @@ export default () => {
     },
   } = useAppState()
 
+  // *****************************
+  // aragon api
+  // *****************************
   const api = useApi()
   const marketMakerContract = api.external(marketMakerAddress, marketMaker)
 
+  // *****************************
+  // internal state, also shared through context
+  // *****************************
   const [tabIndex, setTabindex] = useState(0)
   const [orderPanel, setOrderPanel] = useState(false)
 
+  // *****************************
+  // context state
+  // *****************************
   const [polledReserveBalance, setPolledReserveBalance] = useState(null)
   const [polledDaiBalance, setPolledDaiBalance] = useState(daiOverallBalance)
   const [polledAntBalance, setPolledAntBalance] = useState(antOverallBalance)
@@ -67,6 +79,10 @@ export default () => {
     setPolledPrice(new BigNumber(price).div(PPM))
   }, 3000)
 
+  /**
+   * Calls the `controller.withdraw` smart contarct function on button click
+   * @returns {void}
+   */
   const handleWithdraw = () => {
     api
       .withdraw(daiAddress)

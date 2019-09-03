@@ -2,10 +2,12 @@ import React from 'react'
 import { useAppState } from '@aragon/api-react'
 
 const Info = ({ isBuyOrder, slippage }) => {
+  // *****************************
+  // background script state
+  // *****************************
   const {
     constants: { PCT_BASE },
   } = useAppState()
-
   const slippagePct = slippage.div(PCT_BASE).toFixed(2)
 
   return (

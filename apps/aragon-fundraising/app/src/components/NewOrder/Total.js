@@ -9,20 +9,34 @@ import { formatBigNumber, toDecimals } from '../../utils/bn-utils'
 
 const Total = ({ isBuyOrder, amount, conversionSymbol, onError }) => {
   const { value, decimals, symbol, reserveRatio } = amount
-
+  // *****************************
+  // background script state
+  // *****************************
   const {
     addresses: { formula: formulaAddress },
     bondedToken: { overallSupply },
   } = useAppState()
 
-  const { daiBalance, antBalance } = useContext(MainViewContext)
-
+  // *****************************
+  // aragon api
+  // *****************************
   const api = useApi()
   const formula = api.external(formulaAddress, BancorFormulaAbi)
 
-  const [evaluatedPrice, setEvaluatedPrice] = useState(null)
-  const [formattedAmount, setFormattedAmount] = useState(formatBigNumber(new BigNumber(0), 0))
+  // *****************************
+  // context state
+  // *****************************
+  const { daiBalance, antBalance } = useContext(MainViewContext)
 
+  // *****************************
+  // internal state
+  // *****************************
+  const [evaluatedPrice, setEvaluatedPrice] = useState(null)
+  const [formattedAmount, setFormattedAmount] = useState(formatBigNumber(0, 0))
+
+  // *****************************
+  // handlers
+  // *****************************
   const errorCb = (msg = null) => {
     setEvaluatedPrice(null)
     onError(false, msg)
@@ -30,12 +44,16 @@ const Total = ({ isBuyOrder, amount, conversionSymbol, onError }) => {
 
   const okCb = () => onError(true, null)
 
+  // *****************************
+  // effects
+  // *****************************
+  // recalculate price when amount, collateral or type of order changed
   useEffect(() => {
     let didCancel = false
 
     const evaluateOrderReturn = async () => {
       const functionToCall = isBuyOrder ? 'calculatePurchaseReturn' : 'calculateSaleReturn'
-      const valueBn = toDecimals(new BigNumber(value), decimals)
+      const valueBn = toDecimals(value, decimals)
       // supply, balance, weight, amount
       const currentSymbol = isBuyOrder ? symbol : conversionSymbol
       const supply = currentSymbol === 'DAI' ? overallSupply.dai : overallSupply.ant
@@ -46,7 +64,7 @@ const Total = ({ isBuyOrder, amount, conversionSymbol, onError }) => {
           .catch(() => errorCb('The amount is out of range of the supply'))
         if (!didCancel && result) {
           okCb()
-          const price = formatBigNumber(new BigNumber(result), decimals)
+          const price = formatBigNumber(result, decimals)
           setEvaluatedPrice(price)
         }
       } else {
@@ -56,10 +74,10 @@ const Total = ({ isBuyOrder, amount, conversionSymbol, onError }) => {
     if (value?.length && value > 0) {
       // only try to evaluate when an amount is entered, and valid
       evaluateOrderReturn()
-      setFormattedAmount(formatBigNumber(new BigNumber(value), 0))
+      setFormattedAmount(formatBigNumber(value, 0))
     } else {
       // if input is empty, reset to default values and disable order button
-      setFormattedAmount(formatBigNumber(new BigNumber(0), 0))
+      setFormattedAmount(formatBigNumber(0, 0))
       errorCb(null)
     }
 

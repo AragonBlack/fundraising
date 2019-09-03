@@ -10,24 +10,38 @@ import ValidationError from '../ValidationError'
 import { toDecimals } from '../../utils/bn-utils'
 
 const Order = ({ isBuyOrder }) => {
+  // *****************************
+  // background script state
+  // *****************************
   const {
     addresses: { marketMaker },
     collaterals,
     bondedToken: { decimals: bondedDecimals, symbol: bondedSymbol },
   } = useAppState()
   const collateralItems = [collaterals.dai, collaterals.ant]
-  // get data from the react context
+
+  // *****************************
+  // aragon api
+  // *****************************
+  const api = useApi()
+
+  // *****************************
+  // context state
+  // *****************************
   const { orderPanel, setOrderPanel } = useContext(MainViewContext)
 
+  // *****************************
+  // internal state
+  // *****************************
   const [selectedCollateral, setSelectedCollateral] = useState(1)
   const [amount, setAmount] = useState('')
   const [valid, setValid] = useState(false)
   const [errorMessage, setErrorMessage] = useState(null)
-
   const amountInput = useRef(null)
 
-  const api = useApi()
-
+  // *****************************
+  // effects
+  // *****************************
   // handle reset when opening
   useEffect(() => {
     if (orderPanel) {
@@ -42,6 +56,9 @@ const Order = ({ isBuyOrder }) => {
     }
   }, [orderPanel, isBuyOrder])
 
+  // *****************************
+  // handlers
+  // *****************************
   const handleAmountUpdate = event => {
     setAmount(event.target.value)
   }
@@ -55,7 +72,7 @@ const Order = ({ isBuyOrder }) => {
     event.preventDefault()
     const address = collateralItems[selectedCollateral].address
     if (valid) {
-      const amountBn = toDecimals(new BigNumber(amount), collateralItems[selectedCollateral].decimals).toFixed()
+      const amountBn = toDecimals(amount, collateralItems[selectedCollateral].decimals).toFixed()
       if (isBuyOrder) {
         const intent = { token: { address, value: amountBn, spender: marketMaker } }
         api

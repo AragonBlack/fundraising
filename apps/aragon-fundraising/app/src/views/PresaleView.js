@@ -5,6 +5,9 @@ import AppHeader from '../components/AppHeader'
 import PresaleSidePanel from '../components/PresaleSidePanel'
 
 export default () => {
+  // *****************************
+  // internal state
+  // *****************************
   const [orderPanel, setOrderPanel] = useState(false)
 
   return (

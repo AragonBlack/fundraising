@@ -6,9 +6,13 @@ import MainView from './views/MainView'
 import PresaleView from './views/PresaleView'
 import CollateralError from './screens/CollateralError'
 
+// TODO: handle it the right way
 const isPresale = false
 
 const App = () => {
+  // *****************************
+  // background script state
+  // *****************************
   const { isReady, collateralsAreOk } = useAppState()
 
   return (

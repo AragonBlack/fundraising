@@ -5,11 +5,19 @@ import { MainViewContext } from '../../context'
 import Order from './Order'
 
 const NewOrder = () => {
-  // get data from the react context
+  // *****************************
+  // context state
+  // *****************************
   const { orderPanel, setOrderPanel } = useContext(MainViewContext)
 
+  // *****************************
+  // internal state
+  // *****************************
   const [screenIndex, setScreenIndex] = useState(0)
 
+  // *****************************
+  // effects
+  // *****************************
   // handle reset when opening
   useEffect(() => {
     if (orderPanel) {

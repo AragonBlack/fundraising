@@ -6,13 +6,13 @@ import { differenceInMonths } from 'date-fns'
 import EditIcon from '../assets/EditIcon.svg'
 import HoverNotification from '../components/HoverNotification'
 import ValidationError from '../components/ValidationError'
-import { formatBigNumber, fromMonthlyAllocation, toMonthlyAllocation, toDecimals } from '../utils/bn-utils'
+import { formatBigNumber, fromMonthlyAllocation, toMonthlyAllocation, toDecimals, fromDecimals } from '../utils/bn-utils'
 
 // In this copy we should display the user the percentage of max increase of the tap
 const hoverTextNotifications = [
   'The tap defines the amount of funds which can be released every month out of the market-maker reserve to the beneficiary of the fundraising campaign.',
   'The reserve ratio defines the ratio between the amount of collateral in your market-maker reserve and the market cap of the fundraising campaign.',
-  'The floor defines the amount of funds which must be kept in the market-maker reserve regardless of the tap rate.', // TODO: add floor notification
+  'The floor defines the amount of funds which must be kept in the market-maker reserve regardless of the tap rate.',
 ]
 
 const buttonStyle = `
@@ -107,6 +107,9 @@ const ContentWrapper = styled.div`
 `
 
 export default () => {
+  // *****************************
+  // background script state
+  // *****************************
   const {
     constants: { PPM, PCT_BASE },
     values: { maximumTapIncreasePct },
@@ -123,9 +126,14 @@ export default () => {
     bondedToken: { name, symbol, decimals: tokenDecimals, realSupply },
   } = useAppState()
 
+  // *****************************
+  // aragon api
+  // *****************************
   const api = useApi()
 
-  // values converted to human readable numbers
+  // *****************************
+  // human readable values
+  // *****************************
   const adjustedTokenSupply = formatBigNumber(realSupply, tokenDecimals)
   const adjustedRate = toMonthlyAllocation(rate, daiDecimals)
   const displayRate = formatBigNumber(adjustedRate, daiDecimals)
@@ -135,19 +143,24 @@ export default () => {
   const daiRatio = formatBigNumber(daiReserveRatio.div(PPM), 0)
   const antRatio = formatBigNumber(antReserveRatio.div(PPM), 0)
 
-  // interal component state
-  const [newRate, setNewRate] = useState(adjustedRate.shiftedBy(-daiDecimals).toNumber())
-  const [newFloor, setNewFloor] = useState(floor.shiftedBy(-daiDecimals).toNumber())
+  // *****************************
+  // internal state
+  // *****************************
+  const [newRate, setNewRate] = useState(fromDecimals(adjustedRate, daiDecimals).toFixed())
+  const [newFloor, setNewFloor] = useState(fromDecimals(floor, daiDecimals).toFixed())
   const [errorMessage, setErrorMessage] = useState(null)
   const [valid, setValid] = useState(false)
   const [opened, setOpened] = useState(false)
 
+  // *****************************
+  // effects
+  // *****************************
   // handle reset when opening
   useEffect(() => {
     if (opened) {
       // reset to default values and validate them
-      setNewRate(adjustedRate.shiftedBy(-daiDecimals).toNumber())
-      setNewFloor(floor.shiftedBy(-daiDecimals).toNumber())
+      setNewRate(fromDecimals(adjustedRate, daiDecimals).toFixed())
+      setNewFloor(fromDecimals(floor, daiDecimals).toFixed())
       validate()
     }
   }, [opened])
@@ -157,6 +170,9 @@ export default () => {
     validate()
   }, [newRate, newFloor])
 
+  // *****************************
+  // handlers
+  // *****************************
   const handleMonthlyChange = event => {
     setNewRate(event.target.value)
   }

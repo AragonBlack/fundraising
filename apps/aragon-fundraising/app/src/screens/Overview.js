@@ -8,6 +8,9 @@ import { formatBigNumber, toMonthlyAllocation } from '../utils/bn-utils'
 import { MainViewContext } from '../context'
 
 export default () => {
+  // *****************************
+  // background script state
+  // *****************************
   const {
     bondedToken: { address: tokenAddress, decimals: tokenDecimals, realSupply },
     collaterals: {
@@ -21,10 +24,14 @@ export default () => {
     orders,
   } = useAppState()
 
-  // get polled data from the react context
+  // *****************************
+  // context state
+  // *****************************
   const { reserveBalance, price } = useContext(MainViewContext)
 
+  // *****************************
   // human readable values
+  // *****************************
   const adjustedTokenSupply = formatBigNumber(realSupply, tokenDecimals)
   const adjustedReserves = reserveBalance ? formatBigNumber(reserveBalance.minus(toBeClaimed), daiDecimals) : '...'
   const adjustedMonthlyAllowance = formatBigNumber(toMonthlyAllocation(rate, daiDecimals), daiDecimals)
@@ -63,7 +70,6 @@ export default () => {
           <li>
             <div>
               <p className="title">Trading Volume</p>
-              {/* TODO: handle trading volume */}
               <p className="number">${adjsutedTradingVolume}</p>
             </div>
             {/* <p className="sub-number green">$48M (Y)</p> */}
