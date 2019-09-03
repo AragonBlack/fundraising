@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Badge, Box, Button, DiscButton, Text, TextInput, theme, SidePanel, unselectable, Info } from '@aragon/ui'
+import { Tag, Box, Button, DiscButton, Text, TextInput, theme, SidePanel, unselectable, Info } from '@aragon/ui'
 import { useApi, useAppState } from '@aragon/api-react'
 import styled from 'styled-components'
 import { differenceInMonths } from 'date-fns'
@@ -271,9 +271,9 @@ export default () => {
 
         <div className="item">
           <p>Token</p>
-          <Badge css="height: 100%;" foreground="#4D22DF" background="rgba(204, 189, 244, 0.16)">
+          <Tag css="height: 100%;" foreground="#4D22DF" background="rgba(204, 189, 244, 0.16)">
             {`${name} (${symbol})`}
-          </Badge>
+          </Tag>
         </div>
       </Box>
       <SidePanel opened={opened} onClose={() => setOpened(false)} title="Monthly allocation">
