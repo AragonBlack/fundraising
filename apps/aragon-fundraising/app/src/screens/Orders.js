@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useContext, useEffect, useState } from 'react'
 import {
   DataView,
   _DateRange as DateRange,
@@ -11,18 +11,18 @@ import {
   useLayout,
   ContextMenu,
   ContextMenuItem,
-  IconCheck,
-  IconClock,
-  IconEllipsis,
   shortenAddress,
 } from '@aragon/ui'
 import { useAppState } from '@aragon/api-react'
 import { format, subYears, endOfToday } from 'date-fns'
 import styled from 'styled-components'
 import ToggleFiltersButton from '../components/ToggleFiltersButton'
+import OrderTypeTag from '../components/OrderTypeTag'
+import OrderState from '../components/OrderState'
 import { Order } from '../constants'
 import { formatBigNumber } from '../utils/bn-utils'
 import EmptyOrders from '../assets/EmptyOrders.svg'
+import { MainViewContext } from '../context'
 
 const filter = (orders, state) => {
   const keys = Object.keys(state)
@@ -71,20 +71,13 @@ const filter = (orders, state) => {
     })
 }
 
-const getIconState = state => {
-  if (state === Order.state.CLAIMED) {
-    return <IconCheck size="small" color="#2CC68F" />
-  } else if (state === Order.state.OVER) {
-    return <IconClock size="small" color="#08BEE5" />
-  } else if (state === Order.state.PENDING) {
-    return <IconEllipsis size="small" color="#6D777B" />
-  }
-}
-
 const getHolders = orders => ['All'].concat(Array.from(new Set(orders.map(o => o.user))))
 const getCollaterals = orders => ['All'].concat(Array.from(new Set(orders.map(o => o.symbol))))
 
 export default () => {
+  // *****************************
+  // background script state
+  // *****************************
   const {
     orders,
     collaterals: {
@@ -93,31 +86,53 @@ export default () => {
     },
     bondedToken: { decimals: tokenDecimals },
   } = useAppState()
+
+  // *****************************
+  // context state
+  // *****************************
+  const { batchId } = useContext(MainViewContext)
+
+  // *****************************
+  // internal state
+  // *****************************
+  const [filteredOrders, setFilteredOrders] = useState(orders)
   const [state, setState] = useState({
     order: { active: 0, payload: ['All', 'Buy', 'Sell'] },
     price: { active: 0, payload: ['Default', 'Ascending', 'Descending'] },
-    token: { active: 0, payload: getCollaterals(orders) },
-    holder: { active: 0, payload: getHolders(orders) },
+    token: { active: 0, payload: getCollaterals(filteredOrders) },
+    holder: { active: 0, payload: getHolders(filteredOrders) },
     date: { payload: { start: subYears(new Date(), 1).getTime(), end: endOfToday() } },
     showFilters: false,
   })
   const [page, setPage] = useState(0)
   const { name: layoutName } = useLayout()
 
+  // *****************************
+  // effects
+  // *****************************
+  // filter the polled batchId changes
+  useEffect(() => {
+    const updatedOrders = orders.map(o => {
+      if (o.batchId < batchId && o.state === Order.state.PENDING) return { ...o, state: Order.state.OVER }
+      else return o
+    })
+    setFilteredOrders(updatedOrders)
+  }, [batchId])
+
   return (
     <ContentWrapper>
-      {!orders.length && (
+      {!filteredOrders.length && (
         <EmptyState>
           <img src={EmptyOrders} />
           <p css="font-size: 24px; margin-top: 1rem;">There are no orders to show.</p>
         </EmptyState>
       )}
-      {!!orders.length && (
+      {!!filteredOrders.length && (
         <DataView
           page={page}
           onPageChange={setPage}
           fields={['Date', 'Address', 'Status', 'Order Amount', 'Token Price', 'Order Type', 'Tokens']}
-          entries={filter(orders, state)}
+          entries={filter(filteredOrders, state)}
           mode={layoutName !== 'large' ? 'list' : 'table'}
           heading={
             <div>
@@ -174,8 +189,7 @@ export default () => {
               <StyledText key="date">{format(data.timestamp, 'MM/dd/yyyy - HH:mm:ss', { awareOfUnicodeTokens: true })}</StyledText>,
               <IdentityBadge key="address" entity={data.user} />,
               <div key="status" css="display: flex; align-items: center;">
-                {getIconState(data.state)}
-                <p css="margin-top: 0.25rem; margin-left: 0.25rem;">{data.state.charAt(0) + data.state.slice(1).toLowerCase()}</p>
+                <OrderState state={data.state} />
               </div>,
               <p key="orderAmount" css={data.type === Order.type.BUY ? 'font-weight: 600; color: #2CC68F;' : 'font-weight: 600;'}>
                 {formatBigNumber(data.value, data.symbol === 'DAI' ? daiDecimals : antDecimals)} {data.symbol}
@@ -183,37 +197,7 @@ export default () => {
               <p key="tokenPrice" css="font-weight: 600;">
                 ${formatBigNumber(data.price, 0)}
               </p>,
-              data.type === Order.type.BUY ? (
-                <div
-                  css={`
-                    display: inline-block;
-                    border-radius: 100px;
-                    background-color: rgba(204, 189, 244, 0.3);
-                    padding: 2px 2rem;
-                    text-transform: uppercase;
-                    color: #7546f2;
-                    font-size: 12px;
-                    font-weight: 700;
-                  `}
-                >
-                  {data.type}
-                </div>
-              ) : (
-                <div
-                  css={`
-                    display: inline-block;
-                    border-radius: 100px;
-                    background-color: rgb(255, 212, 140, 0.3);
-                    padding: 2px 2rem;
-                    text-transform: uppercase;
-                    color: #f08658;
-                    font-size: 12px;
-                    font-weight: 700;
-                  `}
-                >
-                  {data.type}
-                </div>
-              ),
+              <OrderTypeTag key="type" type={data.type} />,
               <p key="tokens" css="font-weight: 600;">
                 {formatBigNumber(data.amount, tokenDecimals)}
               </p>,
