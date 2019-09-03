@@ -40,8 +40,8 @@ export default () => {
   const tradingVolume = orders
     // only keep DAI orders
     .filter(o => o.collateral === daiAddress)
-    // keep amounts
-    .map(o => o.amount)
+    // keep values
+    .map(o => o.value)
     // sum them and tada, you got the trading volume
     .reduce((acc, current) => acc.plus(current), new BigNumber(0))
   const adjsutedTradingVolume = formatBigNumber(tradingVolume, daiDecimals)
