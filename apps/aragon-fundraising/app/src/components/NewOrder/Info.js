@@ -1,6 +1,15 @@
 import React from 'react'
+import { useAppState } from '@aragon/api-react'
 
 const Info = ({ isBuyOrder, slippage }) => {
+  // *****************************
+  // background script state
+  // *****************************
+  const {
+    constants: { PCT_BASE },
+  } = useAppState()
+  const slippagePct = slippage.div(PCT_BASE).times(100).toFixed(2)
+
   return (
     <div
       css={`
@@ -19,7 +28,7 @@ const Info = ({ isBuyOrder, slippage }) => {
       </p>
       <p>
         Note that the return of your order may be different than the one indicated if other users open buy or sell orders simultaneously. In any case you can be
-        assured that the price slippage won't exceed <b>{slippage / 10000000000000000} %</b>.
+        assured that the price slippage won't exceed <b>{slippagePct} %</b>.
       </p>
     </div>
   )

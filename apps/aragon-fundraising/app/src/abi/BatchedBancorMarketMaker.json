@@ -1353,6 +1353,33 @@
         "type": "uint32"
       }
     ],
+    "name": "getStaticPricePPM",
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [
+      {
+        "name": "_supply",
+        "type": "uint256"
+      },
+      {
+        "name": "_balance",
+        "type": "uint256"
+      },
+      {
+        "name": "_reserveRatio",
+        "type": "uint32"
+      }
+    ],
     "name": "getStaticPrice",
     "outputs": [
       {

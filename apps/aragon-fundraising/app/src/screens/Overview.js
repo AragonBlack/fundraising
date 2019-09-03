@@ -1,68 +1,55 @@
-import React from 'react'
+import React, { useContext } from 'react'
 import styled from 'styled-components'
+import { useAppState } from '@aragon/api-react'
 import { Box, Info, Text } from '@aragon/ui'
-import BN from 'bn.js'
+import BigNumber from 'bignumber.js'
 import Chart from '../components/Chart'
-import { round, toMonthlyAllocation } from '../lib/math-utils'
-import { formatTokenAmount } from '../lib/utils'
+import { formatBigNumber, toMonthlyAllocation } from '../utils/bn-utils'
+import { MainViewContext } from '../context'
 
-export default ({
-  overview: {
-    tap: { allocation },
-    batches,
-  },
-  price,
-  orders,
-  bondedToken: { address: tokenAddress, decimals: tokenDecimals, totalSupply, tokensToBeMinted, realSupply },
-  currentBatch,
-  collateralTokens: [{ address: daiAddress, decimals: daiDecimals, collateralsToBeClaimed, virtualSupply }],
-  polledData: { polledDaiBalance, polledBatchId, polledReserveBalance },
-}) => {
+export default () => {
+  // *****************************
+  // background script state
+  // *****************************
+  const {
+    bondedToken: { address: tokenAddress, decimals: tokenDecimals, realSupply },
+    collaterals: {
+      dai: {
+        address: daiAddress,
+        decimals: daiDecimals,
+        toBeClaimed,
+        tap: { rate },
+      },
+    },
+    orders,
+  } = useAppState()
+
+  // *****************************
+  // context state
+  // *****************************
+  const { reserveBalance, price } = useContext(MainViewContext)
+
+  // *****************************
   // human readable values
-  //  TODO: review all of this...
-  console.log('TOTAL SUPPLY')
-  console.log(totalSupply)
-  console.log('TokensToBeMinted')
-  console.log(tokensToBeMinted)
-  console.log('collateralsToBeClaimed')
-  console.log(collateralsToBeClaimed)
-
-  const tokenSupply = new BN(totalSupply).add(new BN(tokensToBeMinted))
-  const adjustedTokenSupply = formatTokenAmount(tokenSupply.toString(), false, tokenDecimals, false, {
-    rounding: 2,
-  })
-
-  const adjustedReserves = polledReserveBalance
-    ? formatTokenAmount(polledReserveBalance.sub(new BN(collateralsToBeClaimed)).toString(), false, daiDecimals, false, { rounding: 2 })
-    : '...'
-  const adjustedMonthlyAllowance = round(toMonthlyAllocation(allocation.toString(), daiDecimals))
-  const marketCap = price ? new BN(parseInt(price * 100).toString()).mul(new BN(totalSupply).add(new BN(tokensToBeMinted))) : '...'
-  const truncatedMarketCap = marketCap.toString().substr(0, marketCap.toString().length - 2)
-  const adjustedMarketCap = price ? formatTokenAmount(truncatedMarketCap, false, daiDecimals, false, { rounding: 2 }) : '...'
-
-  const adjustedPrice = price || '...'
-
+  // *****************************
+  const adjustedTokenSupply = formatBigNumber(realSupply, tokenDecimals)
+  const adjustedReserves = reserveBalance ? formatBigNumber(reserveBalance.minus(toBeClaimed), daiDecimals) : '...'
+  const adjustedMonthlyAllowance = formatBigNumber(toMonthlyAllocation(rate, daiDecimals), daiDecimals)
+  const adjustedMarketCap = price ? formatBigNumber(price.times(realSupply), daiDecimals) : '...'
+  const adjustedPrice = price ? formatBigNumber(price, 0) : '...'
   const tradingVolume = orders
     // only keep DAI orders
     .filter(o => o.collateral === daiAddress)
-    // transform amounts in BN
-    .map(o => {
-      if (o.type === 'SELL') {
-        // console.log(new BN(parseInt(o.tokens)).toString())
-        // return new BN(parseInt(o.tokens))
-        return o.tokens
-      } else {
-        return new BN(o.amount)
-      }
-    })
+    // keep values
+    .map(o => o.value)
     // sum them and tada, you got the trading volume
-    .reduce((acc, current) => acc.add(current), new BN('0'))
-  const adjsutedTradingVolume = formatTokenAmount(tradingVolume.toString(), false, daiDecimals, false, { rounding: 2 })
+    .reduce((acc, current) => acc.plus(current), new BigNumber(0))
+  const adjsutedTradingVolume = formatBigNumber(tradingVolume, daiDecimals)
 
   return (
     <div>
       <KeyMetrics
-        heading={<h1 css="margin-left: 1rem;font-size: 12px;font-weight: 600;text-transform: uppercase;color: #637381;">Key Metrics</h1>}
+        heading={<span css="margin-left: 1rem;font-size: 12px;font-weight: 600;text-transform: uppercase;color: #637381;">Key Metrics</span>}
         padding={false}
       >
         <ul>
@@ -83,7 +70,6 @@ export default ({
           <li>
             <div>
               <p className="title">Trading Volume</p>
-              {/* TODO: handle trading volume */}
               <p className="number">${adjsutedTradingVolume}</p>
             </div>
             {/* <p className="sub-number green">$48M (Y)</p> */}
@@ -114,7 +100,7 @@ export default ({
           <Text>Token address: {tokenAddress}</Text>
         </Info>
       </KeyMetrics>
-      <Chart batches={batches || []} />
+      <Chart />
     </div>
   )
 }

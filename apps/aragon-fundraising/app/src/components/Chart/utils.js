@@ -1,5 +1,7 @@
 import { differenceInDays, format, startOfMinute, startOfMonth, startOfWeek } from 'date-fns'
 
+// TODO: filter DAI orders
+
 const roundTimeHalfAnHour = time => {
   const timeToReturn = new Date(time)
   timeToReturn.setMilliseconds(Math.round(time.getMilliseconds() / 1000) * 1000)
@@ -27,21 +29,21 @@ const roundTime12Hours = time => {
 }
 
 const getFilteredData = (data, timestampFilter) => {
-  let cache = {}
+  const cache = {}
   data.forEach(item => {
     const timestamp = timestampFilter(item.timestamp).getTime()
-    let current = cache[timestamp]
-
+    const current = cache[timestamp]
+    let avg, iteration
     if (current) {
-      cache[timestamp] = {
-        avg: (item.startPrice + current.avg * current.iteration) / (current.iteration + 1),
-        iteration: current.iteration + 1,
-      }
+      avg = item.startPrice.plus(current.avg.times(current.iteration)).div(current.iteration + 1)
+      iteration = current.iteration + 1
     } else {
-      cache[timestamp] = {
-        avg: item.startPrice,
-        iteration: 1,
-      }
+      avg = item.startPrice
+      iteration = 1
+    }
+    cache[timestamp] = {
+      avg,
+      iteration,
     }
   })
   return cache

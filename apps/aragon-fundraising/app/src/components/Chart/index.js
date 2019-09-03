@@ -1,9 +1,9 @@
-import { Box, DropDown } from '@aragon/ui'
 import React, { useState } from 'react'
+import { Box, _DateRange as DateRange, DropDown } from '@aragon/ui'
+import { useAppState } from '@aragon/api-react'
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, ReferenceDot, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import styled from 'styled-components'
 import { startOfDay, endOfDay } from 'date-fns'
-import DateRangeInput from '../DateRange/DateRangeInput'
 import { filter } from './utils'
 import EmptyOrders from '../../assets/EmptyOrders.svg'
 
@@ -15,7 +15,8 @@ const bondingCurveData = [...Array(600).keys()].map(idx => ({
 
 const items = ['Bonding curve', 'History chart']
 
-export default ({ batches }) => {
+export default () => {
+  const { batches } = useAppState()
   const [activeItem, setActiveItem] = useState(1)
   const [activeNavItem, setActiveNavItem] = useState(1)
   const [date, setDate] = useState({
@@ -58,7 +59,7 @@ export default ({ batches }) => {
                     ALL
                   </span>
                 </div>
-                <DateRangeInput
+                <DateRange
                   startDate={date.start}
                   endDate={date.end}
                   onClick={() => setActiveNavItem(5)}
@@ -84,7 +85,6 @@ export default ({ batches }) => {
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="8 8" vertical={false} />
-
                 <XAxis
                   type="number"
                   dataKey="tokens"

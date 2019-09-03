@@ -2,7 +2,7 @@ import React from 'react'
 import PropTypes from 'prop-types'
 import { GU, useTheme, useLayout } from '@aragon/ui'
 import { useAragonApi } from '@aragon/api-react'
-import MenuButton from '../MenuButton'
+import MenuButton from './MenuButton'
 
 function AppHeader({ heading, action1, action2 }) {
   const theme = useTheme()
