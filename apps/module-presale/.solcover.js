@@ -1,0 +1,32 @@
+module.exports = {
+    norpc: true,
+    copyPackages: [
+      '@aragon/os',
+      '@aragon/apps-vault',
+      '@aragon/apps-agent',
+      '@aragon/apps-token-manager',
+      '@aragon/test-helpers',
+      "@ablack/fundraising-interface-core",
+      "@ablack/fundraising-formula-bancor",
+      "@ablack/fundraising-controller-aragon-fundraising",
+      "@ablack/fundraising-market-maker-bancor",
+      "@ablack/fundraising-module-pool",
+      "@ablack/fundraising-module-tap",
+      "@aragon/apps-shared-minime",
+    ],
+    skipFiles: [
+        'test',
+        '@aragon/os',
+        '@aragon/apps-vault',
+        '@aragon/apps-agent',
+        '@aragon/apps-token-manager',
+        '@aragon/test-helpers',
+        "@ablack/fundraising-interface-core",
+        "@ablack/fundraising-formula-bancor",
+        "@ablack/fundraising-controller-aragon-fundraising",
+        "@ablack/fundraising-market-maker-bancor",
+        "@ablack/fundraising-module-pool",
+        "@ablack/fundraising-module-tap",
+        "@aragon/apps-shared-minime",
+    ]
+}
