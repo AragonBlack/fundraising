@@ -81,9 +81,9 @@ contract Presale is AragonApp {
     uint256 public percentSupplyOffered; // Represented in PPM, see below
 
     // Once the sale is closed, totalRaised is split according to
-    // percentFundingForBeneficiary, between beneficiaryAddress and reserve.
+    // percentFundingForBeneficiary, between beneficiary and reserve.
     address public reserve;
-    address public beneficiaryAddress;
+    address public beneficiary;
     uint256 public percentFundingForBeneficiary; // Represented in PPM, see below
 
     // Date when the sale is started and its state is Funding.
@@ -131,7 +131,7 @@ contract Presale is AragonApp {
      */
 
     /**
-    * @notice Initialize Presale app with `_contributionToken` to be used for purchasing `_projectToken`, controlled by `_projectTokenManager`. Project tokens are provided in vested form using `_vestingCliffPeriod` and `_vestingCompletePeriod`. The Presale accepts tokens until `_fundingGoal` is reached. `percentSupplyOffered` is used to calculate the contribution token to project token exchange rate. The presale allows project token purchases for `_presalePeriod` after the sale is started. If the funding goal is reached, part of the raised funds are sent to `_reserve`, associated with a Fundraising app. The raised funds that are not sent to the fundraising pool are sent to `_beneficiaryAddress` according to the ratio specified in `_percentFundingForBenefiriary`. Optionally, if a non-zero `_startDate` is provided, the sale will start at the specified date, without the need of the owner of the START_ROLE calling `start()`.
+    * @notice Initialize Presale app with `_contributionToken` to be used for purchasing `_projectToken`, controlled by `_projectTokenManager`. Project tokens are provided in vested form using `_vestingCliffPeriod` and `_vestingCompletePeriod`. The Presale accepts tokens until `_fundingGoal` is reached. `percentSupplyOffered` is used to calculate the contribution token to project token exchange rate. The presale allows project token purchases for `_presalePeriod` after the sale is started. If the funding goal is reached, part of the raised funds are sent to `_reserve`, associated with a Fundraising app. The raised funds that are not sent to the fundraising pool are sent to `_beneficiary` according to the ratio specified in `_percentFundingForBenefiriary`. Optionally, if a non-zero `_startDate` is provided, the sale will start at the specified date, without the need of the owner of the START_ROLE calling `start()`.
     * @param _contributionToken ERC20 Token accepted for purchasing project tokens.
     * @param _projectToken MiniMeToken project tokens being offered for sale in vested form.
     * @param _projectTokenManager TokenManager Token manager in control of the offered project tokens.
@@ -141,7 +141,7 @@ contract Presale is AragonApp {
     * @param _percentSupplyOffered uin256 Percent of the total supply of project tokens that will be offered in this sale and in further fundraising stages.
     * @param _presalePeriod uint64 The period within which this sale accepts project token purchases.
     * @param _reserve Pool The fundraising pool associated with the Fundraising app where part of the raised contribution tokens will be sent to, if this sale is succesful.
-    * @param _beneficiaryAddress address The address to which part of the raised contribution tokens will be sent to, if this sale is successful.
+    * @param _beneficiary address The address to which part of the raised contribution tokens will be sent to, if this sale is successful.
     * @param _percentFundingForBenefiriary uint256 The percentage of the raised contribution tokens that will be sent to the beneficiary address, instead of the fundraising pool, when this sale is closed.
     * @param _startDate uint64 Optional start date of the sale, ignored if 0.
     */
@@ -155,7 +155,7 @@ contract Presale is AragonApp {
         uint256 _percentSupplyOffered,
         uint64 _presalePeriod,
         address _reserve,
-        address _beneficiaryAddress,
+        address _beneficiary,
         uint256 _percentFundingForBenefiriary,
         uint64 _startDate
     )
@@ -170,7 +170,7 @@ contract Presale is AragonApp {
         require(_fundingGoal > 0, ERROR_INVALID_FUNDING_GOAL);
         require(_percentSupplyOffered > 0, ERROR_INVALID_PERCENT_VALUE);
         require(_percentSupplyOffered < PPM, ERROR_INVALID_PERCENT_VALUE);
-        require(_beneficiaryAddress != 0x0, ERROR_INVALID_BENEFIC_ADDRESS);
+        require(_beneficiary != 0x0, ERROR_INVALID_BENEFIC_ADDRESS);
         require(_percentFundingForBenefiriary > 0, ERROR_INVALID_PERCENT_VALUE);
         require(_percentFundingForBenefiriary < PPM, ERROR_INVALID_PERCENT_VALUE);
 
@@ -185,7 +185,7 @@ contract Presale is AragonApp {
         vestingCompletePeriod = _vestingCompletePeriod;
         presalePeriod = _presalePeriod;
 
-        beneficiaryAddress = _beneficiaryAddress;
+        beneficiary = _beneficiary;
         percentFundingForBeneficiary = _percentFundingForBenefiriary;
 
         fundingGoal = _fundingGoal;
@@ -283,7 +283,7 @@ contract Presale is AragonApp {
 
         // (presale) ~~~> contribution tokens ~~~> (beneficiary)
         uint256 tokensForBeneficiary = totalRaised.mul(percentFundingForBeneficiary).div(PPM);
-        require(contributionToken.transfer(beneficiaryAddress, tokensForBeneficiary), ERROR_TOKEN_TRANSFER_REVERTED);
+        require(contributionToken.transfer(beneficiary, tokensForBeneficiary), ERROR_TOKEN_TRANSFER_REVERTED);
 
         // (presale) ~~~> contribution tokens ~~~> (pool)
         uint256 tokensForPool = contributionToken.balanceOf(address(this));

@@ -201,13 +201,13 @@ const deploy = {
       params.percentSupplyOffered,
       params.presalePeriod,
       params.reserve,
-      params.beneficiaryAddress,
+      params.beneficiary,
       params.percentFundingForBeneficiary,
       params.startDate
     ]
     return test.presale.initialize(...paramsArr)
   },
-  defaultDeployParams: (test, beneficiaryAddress) => {
+  defaultDeployParams: (test, beneficiary) => {
     return {
       contributionToken: test.contributionToken.address,
       projectToken: test.projectToken.address,
@@ -218,7 +218,7 @@ const deploy = {
       percentSupplyOffered: PERCENT_SUPPLY_OFFERED,
       presalePeriod: PRESALE_PERIOD,
       reserve: test.reserve.address,
-      beneficiaryAddress,
+      beneficiary,
       percentFundingForBeneficiary: PERCENT_FUNDING_FOR_BENEFICIARY,
       startDate: 0
     }

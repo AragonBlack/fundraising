@@ -85,7 +85,7 @@ contract('Presale, setup', ([anyone, appManager, someEOA]) => {
       })
 
       it('Beneficiary address is set', async () => {
-        expect((await this.presale.beneficiaryAddress())).to.equal(appManager)
+        expect((await this.presale.beneficiary())).to.equal(appManager)
       })
 
       it('Percent funding for beneficiary is set', async () => {
@@ -186,7 +186,7 @@ contract('Presale, setup', ([anyone, appManager, someEOA]) => {
 
     it('Reverts when setting an invalid beneficiary address', async () => {
       initializePresale(this, { ...defaultParams,
-        beneficiaryAddresss: ZERO_ADDRESS
+        beneficiary: ZERO_ADDRESS
       }), 'PRESALE_INVALID_BENEFIC_ADDRESS'
     })
   })
