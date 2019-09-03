@@ -121,8 +121,8 @@ export const computeBondedToken = (bondedToken, { dai, ant }) => {
     toBeMinted,
     realSupply,
     overallSupply: {
-      dai: realSupply.plus(dai.virtualBalance),
-      ant: realSupply.plus(ant.virtualBalance),
+      dai: realSupply.plus(dai.virtualSupply),
+      ant: realSupply.plus(ant.virtualSupply),
     },
   }
 }
