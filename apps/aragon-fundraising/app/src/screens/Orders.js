@@ -222,7 +222,7 @@ export default () => {
           renderEntryActions={data => (
             <ContextMenu>
               <SafeLink href={'https://etherscan.io/tx/' + data.transactionHash} target="_blank">
-                <ContextMenuItem>View Tx on Etherscan</ContextMenuItem>
+                <ContextMenuItem>View tx on Etherscan</ContextMenuItem>
               </SafeLink>
             </ContextMenu>
           )}
