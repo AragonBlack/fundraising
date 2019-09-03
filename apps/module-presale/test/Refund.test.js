@@ -1,5 +1,5 @@
 const {
-  FUNDING_PERIOD,
+  PRESALE_PERIOD,
   SALE_STATE,
   FUNDING_GOAL
 } = require('./common/constants')
@@ -45,7 +45,7 @@ contract('Presale, refund() functionality', ([anyone, appManager, buyer1, buyer2
         await this.presale.buy(1, { from: buyer5 }) // Spends a miserable amount xD
         await this.presale.buy(1, { from: buyer5 }) // And again
 
-        await this.presale.mockSetTimestamp(startDate + FUNDING_PERIOD)
+        await this.presale.mockSetTimestamp(startDate + PRESALE_PERIOD)
       })
 
       it('Sale state is Refunding', async () => {

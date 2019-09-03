@@ -1,6 +1,6 @@
 const {
   SALE_STATE,
-  FUNDING_PERIOD,
+  PRESALE_PERIOD,
   FUNDING_GOAL
 } = require('./common/constants')
 const {
@@ -138,7 +138,7 @@ contract('Presale, buy() functionality', ([anyone, appManager, buyer1, buyer2]) 
           describe('When the sale is Refunding', () => {
 
             before(async () => {
-              await this.presale.mockSetTimestamp(startDate + FUNDING_PERIOD)
+              await this.presale.mockSetTimestamp(startDate + PRESALE_PERIOD)
             })
 
             it('Sale state is Refunding', async () => {
@@ -156,7 +156,7 @@ contract('Presale, buy() functionality', ([anyone, appManager, buyer1, buyer2]) 
           describe('When the sale state is GoalReached', () => {
 
             before(async () => {
-              await this.presale.mockSetTimestamp(startDate + FUNDING_PERIOD / 2)
+              await this.presale.mockSetTimestamp(startDate + PRESALE_PERIOD / 2)
             })
 
             it('A purchase cannot cause totalRaised to be greater than the fundingGoal', async () => {

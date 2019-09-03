@@ -1,5 +1,5 @@
 const {
-  FUNDING_PERIOD,
+  PRESALE_PERIOD,
   FUNDING_GOAL,
   SALE_STATE
 } = require('./common/constants')
@@ -45,7 +45,7 @@ contract('Presale, states validation', ([anyone, appManager, buyer]) => {
         describe('When the funding period is still running', () => {
 
           before(async () => {
-            await this.presale.mockSetTimestamp(startDate + FUNDING_PERIOD / 2)
+            await this.presale.mockSetTimestamp(startDate + PRESALE_PERIOD / 2)
           })
 
           it('The state is still Funding', async () => {
@@ -65,7 +65,7 @@ contract('Presale, states validation', ([anyone, appManager, buyer]) => {
             describe('When the funding period elapses without having reached the funding goal', () => {
 
               before(async () => {
-                await this.presale.mockSetTimestamp(startDate + FUNDING_PERIOD)
+                await this.presale.mockSetTimestamp(startDate + PRESALE_PERIOD)
               })
 
               it('The state is Refunding', async () => {
@@ -77,7 +77,7 @@ contract('Presale, states validation', ([anyone, appManager, buyer]) => {
           describe('When purchases are made, reaching the funding goal before the funding period elapsed', () => {
 
             before(async () => {
-              await this.presale.mockSetTimestamp(startDate + FUNDING_PERIOD / 2)
+              await this.presale.mockSetTimestamp(startDate + PRESALE_PERIOD / 2)
               await this.presale.buy(FUNDING_GOAL / 2, { from: buyer })
             })
 
@@ -88,7 +88,7 @@ contract('Presale, states validation', ([anyone, appManager, buyer]) => {
             describe('When the funding period elapses having reached the funding goal', () => {
 
               before(async () => {
-                await this.presale.mockSetTimestamp(startDate + FUNDING_PERIOD)
+                await this.presale.mockSetTimestamp(startDate + PRESALE_PERIOD)
               })
 
               it('The state is still GoalReached', async () => {

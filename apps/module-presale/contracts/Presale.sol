@@ -97,7 +97,7 @@ contract Presale is AragonApp {
     // Period after startDate, in which the sale is Funding and accepts contributions.
     // If the fundingGoal is not reached within it, the sale cannot be Closed
     // and the state switches to Refunding, allowing refunds.
-    uint64 public fundingPeriod;
+    uint64 public presalePeriod;
 
     // Number of project tokens that will be sold for each contribution token.
     // Calculated after initialization from the values CONNECTOR_WEIGHT_PPM and percentSupplyOffered.
@@ -121,7 +121,7 @@ contract Presale is AragonApp {
     enum SaleState {
         Pending,     // Sale is idle and pending to be started.
         Funding,     // Sale has started and contributors can purchase tokens.
-        Refunding,   // Sale did not reach fundingGoal within fundingPeriod and contributors may claim refunds.
+        Refunding,   // Sale did not reach fundingGoal within presalePeriod and contributors may claim refunds.
         GoalReached, // Sale reached fundingGoal and the Fundraising app is ready to be initialized.
         Closed       // After GoalReached, sale was closed and the Fundraising app was initialized.
     }
@@ -131,7 +131,7 @@ contract Presale is AragonApp {
      */
 
     /**
-    * @notice Initialize Presale app with `_contributionToken` to be used for purchasing `_projectToken`, controlled by `_projectTokenManager`. Project tokens are provided in vested form using `_vestingCliffPeriod` and `_vestingCompletePeriod`. The Presale accepts tokens until `_fundingGoal` is reached. `percentSupplyOffered` is used to calculate the contribution token to project token exchange rate. The presale allows project token purchases for `_fundingPeriod` after the sale is started. If the funding goal is reached, part of the raised funds are sent to `_reserve`, associated with a Fundraising app. The raised funds that are not sent to the fundraising pool are sent to `_beneficiaryAddress` according to the ratio specified in `_percentFundingForBenefiriary`. Optionally, if a non-zero `_startDate` is provided, the sale will start at the specified date, without the need of the owner of the START_ROLE calling `start()`.
+    * @notice Initialize Presale app with `_contributionToken` to be used for purchasing `_projectToken`, controlled by `_projectTokenManager`. Project tokens are provided in vested form using `_vestingCliffPeriod` and `_vestingCompletePeriod`. The Presale accepts tokens until `_fundingGoal` is reached. `percentSupplyOffered` is used to calculate the contribution token to project token exchange rate. The presale allows project token purchases for `_presalePeriod` after the sale is started. If the funding goal is reached, part of the raised funds are sent to `_reserve`, associated with a Fundraising app. The raised funds that are not sent to the fundraising pool are sent to `_beneficiaryAddress` according to the ratio specified in `_percentFundingForBenefiriary`. Optionally, if a non-zero `_startDate` is provided, the sale will start at the specified date, without the need of the owner of the START_ROLE calling `start()`.
     * @param _contributionToken ERC20 Token accepted for purchasing project tokens.
     * @param _projectToken MiniMeToken project tokens being offered for sale in vested form.
     * @param _projectTokenManager TokenManager Token manager in control of the offered project tokens.
@@ -139,7 +139,7 @@ contract Presale is AragonApp {
     * @param _vestingCompletePeriod uint64 Complete period used for vested project tokens.
     * @param _fundingGoal uint256 Target contribution token funding goal.
     * @param _percentSupplyOffered uin256 Percent of the total supply of project tokens that will be offered in this sale and in further fundraising stages.
-    * @param _fundingPeriod uint64 The period within which this sale accepts project token purchases.
+    * @param _presalePeriod uint64 The period within which this sale accepts project token purchases.
     * @param _reserve Pool The fundraising pool associated with the Fundraising app where part of the raised contribution tokens will be sent to, if this sale is succesful.
     * @param _beneficiaryAddress address The address to which part of the raised contribution tokens will be sent to, if this sale is successful.
     * @param _percentFundingForBenefiriary uint256 The percentage of the raised contribution tokens that will be sent to the beneficiary address, instead of the fundraising pool, when this sale is closed.
@@ -153,7 +153,7 @@ contract Presale is AragonApp {
         uint64 _vestingCompletePeriod,
         uint256 _fundingGoal,
         uint256 _percentSupplyOffered,
-        uint64 _fundingPeriod,
+        uint64 _presalePeriod,
         address _reserve,
         address _beneficiaryAddress,
         uint256 _percentFundingForBenefiriary,
@@ -164,8 +164,8 @@ contract Presale is AragonApp {
     {
         require(isContract(_contributionToken), ERROR_INVALID_CONTRIBUTE_TOKEN);
         require(isContract(_reserve), ERROR_INVALID_RESERVE);
-        require(_fundingPeriod > 0, ERROR_INVALID_TIME_PERIOD);
-        require(_vestingCliffPeriod > _fundingPeriod, ERROR_INVALID_TIME_PERIOD);
+        require(_presalePeriod > 0, ERROR_INVALID_TIME_PERIOD);
+        require(_vestingCliffPeriod > _presalePeriod, ERROR_INVALID_TIME_PERIOD);
         require(_vestingCompletePeriod > _vestingCliffPeriod, ERROR_INVALID_TIME_PERIOD);
         require(_fundingGoal > 0, ERROR_INVALID_FUNDING_GOAL);
         require(_percentSupplyOffered > 0, ERROR_INVALID_PERCENT_VALUE);
@@ -183,7 +183,7 @@ contract Presale is AragonApp {
 
         vestingCliffPeriod = _vestingCliffPeriod;
         vestingCompletePeriod = _vestingCompletePeriod;
-        fundingPeriod = _fundingPeriod;
+        presalePeriod = _presalePeriod;
 
         beneficiaryAddress = _beneficiaryAddress;
         percentFundingForBeneficiary = _percentFundingForBenefiriary;
@@ -265,7 +265,7 @@ contract Presale is AragonApp {
 
         // (buyer) ~~~> project tokens ~~~> (Token manager)
         // Note: this assumes that the buyer didn't transfer any of the vested tokens.
-        // The assumption can be made, considering the imposed restriction of fundingPeriod < vestingCliffPeriod < vestingCompletePeriod.
+        // The assumption can be made, considering the imposed restriction of presalePeriod < vestingCliffPeriod < vestingCompletePeriod.
         (uint256 tokensSold,,,,) = projectTokenManager.getVesting(_buyer, _vestedPurchaseId);
         projectTokenManager.revokeVesting(_buyer, _vestedPurchaseId);
 
@@ -323,7 +323,7 @@ contract Presale is AragonApp {
             }
         }
 
-        if (_timeSinceFundingStarted() < fundingPeriod) {
+        if (_timeSinceFundingStarted() < presalePeriod) {
             return SaleState.Funding;
         } else {
             return SaleState.Refunding;

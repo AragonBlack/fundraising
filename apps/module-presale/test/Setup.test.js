@@ -6,7 +6,7 @@ const {
   SALE_STATE,
   CONNECTOR_WEIGHT,
   TAP_RATE,
-  FUNDING_PERIOD,
+  PRESALE_PERIOD,
   ZERO_ADDRESS,
   PERCENT_FUNDING_FOR_BENEFICIARY
 } = require('./common/constants')
@@ -56,7 +56,7 @@ contract('Presale, setup', ([anyone, appManager, someEOA]) => {
       it('Dates and time periods are set', async () => {
         expect((await this.presale.vestingCliffPeriod()).toNumber()).to.equal(VESTING_CLIFF_PERIOD)
         expect((await this.presale.vestingCompletePeriod()).toNumber()).to.equal(VESTING_COMPLETE_PERIOD)
-        expect((await this.presale.fundingPeriod()).toNumber()).to.equal(FUNDING_PERIOD)
+        expect((await this.presale.presalePeriod()).toNumber()).to.equal(PRESALE_PERIOD)
       })
 
       it('Initial state is Pending', async () => {
@@ -135,12 +135,12 @@ contract('Presale, setup', ([anyone, appManager, someEOA]) => {
       )
       await assertRevert(
         initializePresale(this, { ...defaultParams,
-          fundingPeriod: 0
+          presalePeriod: 0
         }), 'PRESALE_INVALID_TIME_PERIOD'
       )
       await assertRevert(
         initializePresale(this, { ...defaultParams,
-          vestingCliffPeriod: defaultParams.fundingPeriod - 1
+          vestingCliffPeriod: defaultParams.presalePeriod - 1
         }), 'PRESALE_INVALID_TIME_PERIOD'
       )
       await assertRevert(
