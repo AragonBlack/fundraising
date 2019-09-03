@@ -6,6 +6,7 @@ import "@aragon/os/contracts/lib/math/SafeMath.sol";
 import "@aragon/os/contracts/lib/math/SafeMath64.sol";
 
 import "@aragon/os/contracts/lib/token/ERC20.sol";
+import "@aragon/os/contracts/common/SafeERC20.sol";
 import "@aragon/apps-shared-minime/contracts/MiniMeToken.sol";
 import "@aragon/apps-token-manager/contracts/TokenManager.sol";
 
@@ -13,6 +14,7 @@ import "@aragon/apps-token-manager/contracts/TokenManager.sol";
 contract Presale is AragonApp {
     using SafeMath for uint256;
     using SafeMath64 for uint64;
+    using SafeERC20 for ERC20;
 
     /*
      * Events
@@ -226,7 +228,7 @@ contract Presale is AragonApp {
         require(contributionToken.allowance(msg.sender, address(this)) >= tokensToUse, ERROR_INSUFFICIENT_ALLOWANCE);
 
         // (buyer) ~~~> contribution tokens ~~~> (presale)
-        require(contributionToken.transferFrom(msg.sender, address(this), tokensToUse), ERROR_TOKEN_TRANSFER_REVERTED);
+        require(contributionToken.safeTransferFrom(msg.sender, address(this), tokensToUse), ERROR_TOKEN_TRANSFER_REVERTED);
 
         // (mint ✨) ~~~> project tokens ~~~> (buyer)
         uint256 tokensToSell = contributionToProjectTokens(tokensToUse);
@@ -261,7 +263,7 @@ contract Presale is AragonApp {
         purchases[_buyer][_vestedPurchaseId] = 0;
 
         // (presale) ~~~> contribution tokens ~~~> (buyer)
-        require(contributionToken.transfer(_buyer, tokensToRefund), ERROR_TOKEN_TRANSFER_REVERTED);
+        require(contributionToken.safeTransfer(_buyer, tokensToRefund), ERROR_TOKEN_TRANSFER_REVERTED);
 
         // (buyer) ~~~> project tokens ~~~> (Token manager)
         // Note: this assumes that the buyer didn't transfer any of the vested tokens.
@@ -283,11 +285,11 @@ contract Presale is AragonApp {
 
         // (presale) ~~~> contribution tokens ~~~> (beneficiary)
         uint256 tokensForBeneficiary = totalRaised.mul(percentFundingForBeneficiary).div(PPM);
-        require(contributionToken.transfer(beneficiary, tokensForBeneficiary), ERROR_TOKEN_TRANSFER_REVERTED);
+        require(contributionToken.safeTransfer(beneficiary, tokensForBeneficiary), ERROR_TOKEN_TRANSFER_REVERTED);
 
         // (presale) ~~~> contribution tokens ~~~> (pool)
         uint256 tokensForPool = contributionToken.balanceOf(address(this));
-        require(contributionToken.transfer(reserve, tokensForPool), ERROR_TOKEN_TRANSFER_REVERTED);
+        require(contributionToken.safeTransfer(reserve, tokensForPool), ERROR_TOKEN_TRANSFER_REVERTED);
 
         saleClosed = true;
 
