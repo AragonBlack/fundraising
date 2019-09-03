@@ -2,7 +2,6 @@ import React, { useContext } from 'react'
 import styled from 'styled-components'
 import { useAppState } from '@aragon/api-react'
 import { Box, Info, Text } from '@aragon/ui'
-import BigNumber from 'bignumber.js'
 import Chart from '../components/Chart'
 import { formatBigNumber, toMonthlyAllocation } from '../utils/bn-utils'
 import { MainViewContext } from '../context'
@@ -43,7 +42,7 @@ export default () => {
     // keep amounts
     .map(o => o.amount)
     // sum them and tada, you got the trading volume
-    .reduce((acc, current) => acc.plus(current), new BigNumber(0))
+    .reduce((acc, current) => acc.plus(current), 0)
   const adjsutedTradingVolume = formatBigNumber(tradingVolume, daiDecimals)
 
   return (
