@@ -3,7 +3,7 @@ const FundraisingController = artifacts.require('AragonFundraisingController.sol
 const MiniMeToken = artifacts.require('@aragon/apps-shared-minime/contracts/MiniMeToken')
 const TokenManager = artifacts.require('TokenManager.sol')
 const Vault = artifacts.require('Vault.sol')
-const Pool = artifacts.require('Pool.sol')
+const Agent = artifacts.require('Agent.sol')
 const Tap = artifacts.require('Tap.sol')
 const MarketMaker = artifacts.require('BatchedBancorMarketMaker.sol')
 const MarketMakerController = artifacts.require('SimpleMarketMakerController')
@@ -30,12 +30,11 @@ const {
   SELL_FEE_PERCENT,
   BUY_FEE_PERCENT,
   PERCENT_FUNDING_FOR_BENEFICIARY,
-  MARKET_MAKER_CONTROLLER_BATCH_BLOCKS
+  MARKET_MAKER_CONTROLLER_BATCH_BLOCKS,
 } = require('./constants')
 
 const deploy = {
-
-  getProxyAddress: (receipt) => receipt.logs.filter(l => l.event === 'NewAppProxy')[0].args.proxy,
+  getProxyAddress: receipt => receipt.logs.filter(l => l.event === 'NewAppProxy')[0].args.proxy,
 
   /* DAO */
   deployDAO: async (test, daoManager) => {
@@ -54,9 +53,9 @@ const deploy = {
 
   /* RESERVE */
   deployReserve: async (test, appManager) => {
-    const appBase = await Pool.new()
+    const appBase = await Agent.new()
     const receipt = await test.dao.newAppInstance(hash('pool.aragonpm.eth'), appBase.address, '0x', false, { from: appManager })
-    test.reserve = Pool.at(deploy.getProxyAddress(receipt))
+    test.reserve = Agent.at(deploy.getProxyAddress(receipt))
     test.POOL_TRANSFER_ROLE = await appBase.TRANSFER_ROLE()
     test.POOL_ADD_PROTECTED_TOKEN_ROLE = await appBase.ADD_PROTECTED_TOKEN_ROLE()
   },
@@ -64,7 +63,7 @@ const deploy = {
     await test.acl.createPermission(ANY_ADDRESS, test.reserve.address, test.POOL_TRANSFER_ROLE, appManager, { from: appManager })
     await test.acl.createPermission(ANY_ADDRESS, test.reserve.address, test.POOL_ADD_PROTECTED_TOKEN_ROLE, appManager, { from: appManager })
   },
-  initializeReserve: async (test) => {
+  initializeReserve: async test => {
     await test.reserve.initialize()
   },
 
@@ -97,7 +96,7 @@ const deploy = {
   setMarketMakerControllerPermissions: async (test, appManager) => {
     // No permissions
   },
-  initializeMarketMakerController: async (test) => {
+  initializeMarketMakerController: async test => {
     await test.marketMakerController.initialize()
   },
 
@@ -113,7 +112,7 @@ const deploy = {
   },
   initializeMarketMaker: async (test, beneficiary) => {
     await test.marketMaker.initialize(
-			test.fundraising.address,
+      test.fundraising.address,
       test.tokenManager.address,
       test.vault.address,
       beneficiary,
@@ -121,7 +120,7 @@ const deploy = {
       BLOCKS_IN_BATCH,
       BUY_FEE_PERCENT,
       SELL_FEE_PERCENT
-		)
+    )
   },
 
   /* FUNDRAISING */
@@ -134,7 +133,7 @@ const deploy = {
   setFundraisingPermissions: async (test, appManager) => {
     await test.acl.createPermission(ANY_ADDRESS, test.fundraising.address, test.FUNDRAISING_ADD_COLLATERAL_TOKEN_ROLE, appManager, { from: appManager })
   },
-  initializeFundraising: async (test) => {
+  initializeFundraising: async test => {
     await test.fundraising.initialize(test.marketMaker.address, test.reserve.address, test.tap.address)
   },
 
@@ -147,7 +146,7 @@ const deploy = {
   setVaultPermissions: async (test, appManager) => {
     // No permissions
   },
-  initializeVault: async (test) => {
+  initializeVault: async test => {
     await test.vault.initialize()
   },
 
@@ -169,13 +168,9 @@ const deploy = {
     await test.acl.createPermission(ANY_ADDRESS, test.tokenManager.address, test.TOKEN_MANAGER_ISSUE_ROLE, appManager, { from: appManager })
     await test.acl.createPermission(ANY_ADDRESS, test.tokenManager.address, test.TOKEN_MANAGER_ASSIGN_ROLE, appManager, { from: appManager })
   },
-  initializeTokenManager: async (test) => {
+  initializeTokenManager: async test => {
     await test.projectToken.changeController(test.tokenManager.address)
-    await test.tokenManager.initialize(
-      test.projectToken.address,
-      true, /* transferable */
-      0 /* macAccountTokens (infinite if set to 0) */
-    )
+    await test.tokenManager.initialize(test.projectToken.address, true /* transferable */, 0 /* macAccountTokens (infinite if set to 0) */)
   },
 
   /* PRESALE */
@@ -203,7 +198,7 @@ const deploy = {
       params.reserve,
       params.beneficiary,
       params.percentFundingForBeneficiary,
-      params.startDate
+      params.startDate,
     ]
     return test.presale.initialize(...paramsArr)
   },
@@ -220,17 +215,17 @@ const deploy = {
       reserve: test.reserve.address,
       beneficiary,
       percentFundingForBeneficiary: PERCENT_FUNDING_FOR_BENEFICIARY,
-      startDate: 0
+      startDate: 0,
     }
   },
 
   /* BANCOR FORMULA */
-  deployBancorFormula: async (test) => {
+  deployBancorFormula: async test => {
     test.formula = await Formula.new()
   },
 
   /* TOKENS */
-  deployTokens: async (test) => {
+  deployTokens: async test => {
     test.contributionToken = await MiniMeToken.new(ZERO_ADDRESS, ZERO_ADDRESS, 0, 'DaiToken', 18, 'DAI', true)
     test.projectToken = await MiniMeToken.new(ZERO_ADDRESS, ZERO_ADDRESS, 0, 'ProjectToken', 18, 'PRO', true)
   },
@@ -243,7 +238,7 @@ const deploy = {
     await deploy.deployTokens(test)
     await deploy.deployTokenManager(test, appManager)
 
-		// await deploy.deployBancorFormula(test, appManager)
+    // await deploy.deployBancorFormula(test, appManager)
 
     // await deploy.deployVault(test, appManager)
     await deploy.deployReserve(test, appManager)
@@ -273,7 +268,7 @@ const deploy = {
   deployDefaultSetup: async (test, appManager) => {
     await deploy.prepareDefaultSetup(test, appManager)
     return await deploy.initializePresale(test, deploy.defaultDeployParams(test, appManager))
-  }
+  },
 }
 
 module.exports = deploy

@@ -1,8 +1,6 @@
 {
   "extends": "solium:all",
-  "plugins": [
-    "security"
-  ],
+  "plugins": ["security"],
   "rules": {
     "imports-on-top": ["error"],
     "variable-declarations": ["error"],

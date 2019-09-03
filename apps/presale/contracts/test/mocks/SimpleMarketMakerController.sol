@@ -7,7 +7,7 @@ pragma solidity 0.4.24;
 import "@aragon/os/contracts/apps/AragonApp.sol";
 import "@aragon/os/contracts/common/SafeERC20.sol";
 import "@aragon/os/contracts/lib/token/ERC20.sol";
-import "@ablack/fundraising-interface-core/contracts/IMarketMakerController.sol";
+import "@ablack/fundraising-shared-interfaces/contracts/IMarketMakerController.sol";
 
 
 contract SimpleMarketMakerController is IMarketMakerController, AragonApp {

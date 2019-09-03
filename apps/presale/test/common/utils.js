@@ -4,7 +4,6 @@ const {
   PERCENT_SUPPLY_OFFERED,
   PPM
 } = require('./constants')
-const sha3 = require('js-sha3').keccak_256
 
 const utils = {
 
