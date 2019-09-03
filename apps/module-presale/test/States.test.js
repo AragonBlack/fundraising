@@ -1,6 +1,6 @@
 const {
   PRESALE_PERIOD,
-  FUNDING_GOAL,
+  PRESALE_GOAL,
   SALE_STATE
 } = require('./common/constants')
 const { prepareDefaultSetup, defaultDeployParams, initializePresale } = require('./common/deploy')
@@ -20,8 +20,8 @@ contract('Presale, states validation', ([anyone, appManager, buyer]) => {
         await prepareDefaultSetup(this, appManager)
         await initializePresale(this, { ...defaultDeployParams(this, appManager), startDate })
 
-        await this.contributionToken.generateTokens(buyer, FUNDING_GOAL)
-        await this.contributionToken.approve(this.presale.address, FUNDING_GOAL, { from: buyer })
+        await this.contributionToken.generateTokens(buyer, PRESALE_GOAL)
+        await this.contributionToken.approve(this.presale.address, PRESALE_GOAL, { from: buyer })
       })
 
       it('Initial state is Pending', async () => {
@@ -55,7 +55,7 @@ contract('Presale, states validation', ([anyone, appManager, buyer]) => {
           describe('When purchases are made, not reaching the funding goal', () => {
 
             before(async () => {
-              await this.presale.buy(FUNDING_GOAL / 2, { from: buyer })
+              await this.presale.buy(PRESALE_GOAL / 2, { from: buyer })
             })
 
             it('The state is still Funding', async () => {
@@ -78,7 +78,7 @@ contract('Presale, states validation', ([anyone, appManager, buyer]) => {
 
             before(async () => {
               await this.presale.mockSetTimestamp(startDate + PRESALE_PERIOD / 2)
-              await this.presale.buy(FUNDING_GOAL / 2, { from: buyer })
+              await this.presale.buy(PRESALE_GOAL / 2, { from: buyer })
             })
 
             it('The state is GoalReached', async () => {

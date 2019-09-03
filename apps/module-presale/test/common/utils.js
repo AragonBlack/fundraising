@@ -1,5 +1,5 @@
 const {
-  FUNDING_GOAL,
+  PRESALE_GOAL,
   CONNECTOR_WEIGHT,
   PERCENT_SUPPLY_OFFERED,
   PPM
@@ -22,7 +22,7 @@ const utils = {
     const connectorWeightDec = CONNECTOR_WEIGHT / PPM;
     const supplyOfferedDec = PERCENT_SUPPLY_OFFERED / PPM;
     return Math.floor(
-      (FUNDING_GOAL / connectorWeightDec) * supplyOfferedDec
+      (PRESALE_GOAL / connectorWeightDec) * supplyOfferedDec
     )
   },
 

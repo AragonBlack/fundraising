@@ -34,7 +34,7 @@ contract Presale is AragonApp {
     string private constant ERROR_TOKEN_TRANSFER_REVERTED  = "PRESALE_TOKEN_TRANSFER_REVERTED";
     string private constant ERROR_INVALID_CONTRIBUTE_TOKEN = "PRESALE_INVALID_CONTRIBUTE_TOKEN";
     string private constant ERROR_INVALID_TIME_PERIOD      = "PRESALE_INVALID_TIME_PERIOD";
-    string private constant ERROR_INVALID_FUNDING_GOAL     = "PRESALE_INVALID_FUNDING_GOAL";
+    string private constant ERROR_INVALID_PRESALE_GOAL     = "PRESALE_INVALID_PRESALE_GOAL";
     string private constant ERROR_INVALID_PERCENT_VALUE    = "PRESALE_INVALID_PERCENT_VALUE";
     string private constant ERROR_INVALID_RESERVE          = "PRESALE_INVALID_RESERVE";
     string private constant ERROR_INVALID_BENEFIC_ADDRESS  = "PRESALE_INVALID_BENEFIC_ADDRESS";
@@ -72,8 +72,8 @@ contract Presale is AragonApp {
     TokenManager public projectTokenManager;
 
     // Funding goal and total tokens raised in the sale.
-    // Note: no further purchases will be allowed after fundingGoal is reached.
-    uint256 public fundingGoal;
+    // Note: no further purchases will be allowed after presaleGoal is reached.
+    uint256 public presaleGoal;
     uint256 public totalRaised;
 
     // Percentage of the total supply of project tokens that will be offered to contributors,
@@ -95,7 +95,7 @@ contract Presale is AragonApp {
     uint64 public vestingCompletePeriod;
 
     // Period after startDate, in which the sale is Funding and accepts contributions.
-    // If the fundingGoal is not reached within it, the sale cannot be Closed
+    // If the presaleGoal is not reached within it, the sale cannot be Closed
     // and the state switches to Refunding, allowing refunds.
     uint64 public presalePeriod;
 
@@ -121,8 +121,8 @@ contract Presale is AragonApp {
     enum SaleState {
         Pending,     // Sale is idle and pending to be started.
         Funding,     // Sale has started and contributors can purchase tokens.
-        Refunding,   // Sale did not reach fundingGoal within presalePeriod and contributors may claim refunds.
-        GoalReached, // Sale reached fundingGoal and the Fundraising app is ready to be initialized.
+        Refunding,   // Sale did not reach presaleGoal within presalePeriod and contributors may claim refunds.
+        GoalReached, // Sale reached presaleGoal and the Fundraising app is ready to be initialized.
         Closed       // After GoalReached, sale was closed and the Fundraising app was initialized.
     }
 
@@ -131,13 +131,13 @@ contract Presale is AragonApp {
      */
 
     /**
-    * @notice Initialize Presale app with `_contributionToken` to be used for purchasing `_projectToken`, controlled by `_projectTokenManager`. Project tokens are provided in vested form using `_vestingCliffPeriod` and `_vestingCompletePeriod`. The Presale accepts tokens until `_fundingGoal` is reached. `percentSupplyOffered` is used to calculate the contribution token to project token exchange rate. The presale allows project token purchases for `_presalePeriod` after the sale is started. If the funding goal is reached, part of the raised funds are sent to `_reserve`, associated with a Fundraising app. The raised funds that are not sent to the fundraising pool are sent to `_beneficiary` according to the ratio specified in `_percentFundingForBenefiriary`. Optionally, if a non-zero `_startDate` is provided, the sale will start at the specified date, without the need of the owner of the START_ROLE calling `start()`.
+    * @notice Initialize Presale app with `_contributionToken` to be used for purchasing `_projectToken`, controlled by `_projectTokenManager`. Project tokens are provided in vested form using `_vestingCliffPeriod` and `_vestingCompletePeriod`. The Presale accepts tokens until `_presaleGoal` is reached. `percentSupplyOffered` is used to calculate the contribution token to project token exchange rate. The presale allows project token purchases for `_presalePeriod` after the sale is started. If the funding goal is reached, part of the raised funds are sent to `_reserve`, associated with a Fundraising app. The raised funds that are not sent to the fundraising pool are sent to `_beneficiary` according to the ratio specified in `_percentFundingForBenefiriary`. Optionally, if a non-zero `_startDate` is provided, the sale will start at the specified date, without the need of the owner of the START_ROLE calling `start()`.
     * @param _contributionToken ERC20 Token accepted for purchasing project tokens.
     * @param _projectToken MiniMeToken project tokens being offered for sale in vested form.
     * @param _projectTokenManager TokenManager Token manager in control of the offered project tokens.
     * @param _vestingCliffPeriod uint64 Cliff period used for vested project tokens.
     * @param _vestingCompletePeriod uint64 Complete period used for vested project tokens.
-    * @param _fundingGoal uint256 Target contribution token funding goal.
+    * @param _presaleGoal uint256 Target contribution token funding goal.
     * @param _percentSupplyOffered uin256 Percent of the total supply of project tokens that will be offered in this sale and in further fundraising stages.
     * @param _presalePeriod uint64 The period within which this sale accepts project token purchases.
     * @param _reserve Pool The fundraising pool associated with the Fundraising app where part of the raised contribution tokens will be sent to, if this sale is succesful.
@@ -151,7 +151,7 @@ contract Presale is AragonApp {
         TokenManager _projectTokenManager,
         uint64 _vestingCliffPeriod,
         uint64 _vestingCompletePeriod,
-        uint256 _fundingGoal,
+        uint256 _presaleGoal,
         uint256 _percentSupplyOffered,
         uint64 _presalePeriod,
         address _reserve,
@@ -167,7 +167,7 @@ contract Presale is AragonApp {
         require(_presalePeriod > 0, ERROR_INVALID_TIME_PERIOD);
         require(_vestingCliffPeriod > _presalePeriod, ERROR_INVALID_TIME_PERIOD);
         require(_vestingCompletePeriod > _vestingCliffPeriod, ERROR_INVALID_TIME_PERIOD);
-        require(_fundingGoal > 0, ERROR_INVALID_FUNDING_GOAL);
+        require(_presaleGoal > 0, ERROR_INVALID_PRESALE_GOAL);
         require(_percentSupplyOffered > 0, ERROR_INVALID_PERCENT_VALUE);
         require(_percentSupplyOffered < PPM, ERROR_INVALID_PERCENT_VALUE);
         require(_beneficiary != 0x0, ERROR_INVALID_BENEFIC_ADDRESS);
@@ -188,7 +188,7 @@ contract Presale is AragonApp {
         beneficiary = _beneficiary;
         percentFundingForBeneficiary = _percentFundingForBenefiriary;
 
-        fundingGoal = _fundingGoal;
+        presaleGoal = _presaleGoal;
         percentSupplyOffered = _percentSupplyOffered;
 
         if (_startDate != 0) {
@@ -211,15 +211,15 @@ contract Presale is AragonApp {
     }
 
     /**
-    * @notice Buys project tokens using the provided `_tokensToSpend` contribution tokens. To calculate how many project tokens will be sold for the provided contribution tokens amount, use contributionToProjectTokens(). Each purchase generates a numeric vestedPurchaseId (0, 1, 2, etc) for the caller, which can be obtained in the TokensPurchased event emitted, and is required for later refunds. Note: If `_tokensToSpend` + `totalRaised` is larger than `fundingGoal`, only part of it will be used so that the funding goal is never exceeded.
+    * @notice Buys project tokens using the provided `_tokensToSpend` contribution tokens. To calculate how many project tokens will be sold for the provided contribution tokens amount, use contributionToProjectTokens(). Each purchase generates a numeric vestedPurchaseId (0, 1, 2, etc) for the caller, which can be obtained in the TokensPurchased event emitted, and is required for later refunds. Note: If `_tokensToSpend` + `totalRaised` is larger than `presaleGoal`, only part of it will be used so that the funding goal is never exceeded.
     * @param _tokensToSpend The amount of contribution tokens to spend to obtain project tokens.
     */
     function buy(uint256 _tokensToSpend) public auth(BUY_ROLE) {
         require(currentSaleState() == SaleState.Funding, ERROR_INVALID_STATE);
 
         uint256 tokensToUse = _tokensToSpend;
-        if (totalRaised.add(tokensToUse) > fundingGoal) {
-            tokensToUse = fundingGoal.sub(totalRaised);
+        if (totalRaised.add(tokensToUse) > presaleGoal) {
+            tokensToUse = presaleGoal.sub(totalRaised);
         }
 
         require(contributionToken.balanceOf(msg.sender) >= tokensToUse, ERROR_INSUFFICIENT_BALANCE);
@@ -315,7 +315,7 @@ contract Presale is AragonApp {
             return SaleState.Pending;
         }
 
-        if (totalRaised >= fundingGoal) {
+        if (totalRaised >= presaleGoal) {
             if (saleClosed) {
                 return SaleState.Closed;
             } else {
@@ -354,7 +354,7 @@ contract Presale is AragonApp {
     }
 
     function _calculateExchangeRate() private {
-        tokenExchangeRate = fundingGoal.mul(PPM).mul(percentSupplyOffered).div(CONNECTOR_WEIGHT_PPM).div(PPM);
+        tokenExchangeRate = presaleGoal.mul(PPM).mul(percentSupplyOffered).div(CONNECTOR_WEIGHT_PPM).div(PPM);
     }
 
     function _setProjectToken(MiniMeToken _projectToken, TokenManager _projectTokenManager) private {

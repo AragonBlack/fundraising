@@ -1,5 +1,5 @@
 const {
-  FUNDING_GOAL,
+  PRESALE_GOAL,
   PERCENT_SUPPLY_OFFERED,
   VESTING_CLIFF_PERIOD,
   VESTING_COMPLETE_PERIOD,
@@ -49,7 +49,7 @@ contract('Presale, setup', ([anyone, appManager, someEOA]) => {
       })
 
       it('Funding goal and percentage offered are set', async () => {
-        expect((await this.presale.fundingGoal()).toNumber()).to.equal(FUNDING_GOAL)
+        expect((await this.presale.presaleGoal()).toNumber()).to.equal(PRESALE_GOAL)
         expect((await this.presale.percentSupplyOffered()).toNumber()).to.equal(PERCENT_SUPPLY_OFFERED)
       })
 
@@ -153,8 +153,8 @@ contract('Presale, setup', ([anyone, appManager, someEOA]) => {
     it('Reverts when setting an invalid funding goal', async () => {
       await assertRevert(
         initializePresale(this, { ...defaultParams,
-          fundingGoal: 0
-        }), 'PRESALE_INVALID_FUNDING_GOAL'
+          presaleGoal: 0
+        }), 'PRESALE_INVALID_PRESALE_GOAL'
       )
     })
 

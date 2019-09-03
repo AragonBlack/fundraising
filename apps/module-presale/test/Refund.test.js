@@ -1,7 +1,7 @@
 const {
   PRESALE_PERIOD,
   SALE_STATE,
-  FUNDING_GOAL
+  PRESALE_GOAL
 } = require('./common/constants')
 const { contributionToProjectTokens, getEvent, now } = require('./common/utils')
 const { prepareDefaultSetup, defaultDeployParams, initializePresale } = require('./common/deploy')
@@ -129,11 +129,11 @@ contract('Presale, refund() functionality', ([anyone, appManager, buyer1, buyer2
 
       before(async () => {
         await this.presale.mockSetTimestamp(startDate)
-        await this.contributionToken.generateTokens(buyer4, FUNDING_GOAL)
-        await this.contributionToken.approve(this.presale.address, FUNDING_GOAL, { from: buyer4 })
+        await this.contributionToken.generateTokens(buyer4, PRESALE_GOAL)
+        await this.contributionToken.approve(this.presale.address, PRESALE_GOAL, { from: buyer4 })
 
         const totalRaised = (await this.presale.totalRaised()).toNumber()
-        await this.presale.buy(FUNDING_GOAL - totalRaised, {  from: buyer4 })
+        await this.presale.buy(PRESALE_GOAL - totalRaised, {  from: buyer4 })
       })
 
       it('Sale state is GoalReached', async () => {

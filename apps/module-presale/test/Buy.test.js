@@ -1,7 +1,7 @@
 const {
   SALE_STATE,
   PRESALE_PERIOD,
-  FUNDING_GOAL
+  PRESALE_GOAL
 } = require('./common/constants')
 const {
   sendTransaction,
@@ -159,11 +159,11 @@ contract('Presale, buy() functionality', ([anyone, appManager, buyer1, buyer2]) 
               await this.presale.mockSetTimestamp(startDate + PRESALE_PERIOD / 2)
             })
 
-            it('A purchase cannot cause totalRaised to be greater than the fundingGoal', async () => {
+            it('A purchase cannot cause totalRaised to be greater than the presaleGoal', async () => {
               const raised = (await this.presale.totalRaised()).toNumber()
-              const remainingToFundingGoal = FUNDING_GOAL - raised
+              const remainingToFundingGoal = PRESALE_GOAL - raised
               const userBalanceBeforePurchase = (await this.contributionToken.balanceOf(buyer2))
-              await this.presale.buy(FUNDING_GOAL * 2, { from: buyer2 })
+              await this.presale.buy(PRESALE_GOAL * 2, { from: buyer2 })
               const userBalanceAfterPurchase = (await this.contributionToken.balanceOf(buyer2))
               const tokensUsedInPurchase = userBalanceBeforePurchase - userBalanceAfterPurchase
               expect(tokensUsedInPurchase).to.equal(remainingToFundingGoal)
