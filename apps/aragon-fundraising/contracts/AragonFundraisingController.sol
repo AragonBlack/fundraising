@@ -20,6 +20,7 @@ contract AragonFundraisingController is EtherTokenConstant, IsContract, IMarketM
     using SafeERC20 for ERC20;
     using SafeMath for uint256;
 
+    bytes32 public constant START_CAMPAIGN_ROLE = keccak256("START_CAMPAIGN_ROLE");
     bytes32 public constant UPDATE_BENEFICIARY_ROLE = keccak256("UPDATE_BENEFICIARY_ROLE");
     bytes32 public constant UPDATE_FEES_ROLE = keccak256("UPDATE_FEES_ROLE");
     bytes32 public constant UPDATE_MAXIMUM_TAP_INCREASE_PCT_ROLE = keccak256("UPDATE_MAXIMUM_TAP_INCREASE_PCT_ROLE");
@@ -27,15 +28,22 @@ contract AragonFundraisingController is EtherTokenConstant, IsContract, IMarketM
     bytes32 public constant REMOVE_COLLATERAL_TOKEN_ROLE = keccak256("REMOVE_COLLATERAL_TOKEN_ROLE");
     bytes32 public constant UPDATE_COLLATERAL_TOKEN_ROLE = keccak256("UPDATE_COLLATERAL_TOKEN_ROLE");
     bytes32 public constant UPDATE_TOKEN_TAP_ROLE = keccak256("UPDATE_TOKEN_TAP_ROLE");
+    bytes32 public constant RESET_TOKEN_TAP_ROLE = keccak256("RESET_TOKEN_TAP_ROLE");
     bytes32 public constant OPEN_BUY_ORDER_ROLE = keccak256("OPEN_BUY_ORDER_ROLE");
     bytes32 public constant OPEN_SELL_ORDER_ROLE = keccak256("OPEN_SELL_ORDER_ROLE");
     bytes32 public constant WITHDRAW_ROLE = keccak256("WITHDRAW_ROLE");
 
     string private constant ERROR_CONTRACT_IS_EOA = "FUNDRAISING_CONTRACT_IS_EOA";
+    string private constant ERROR_ALREADY_STARTED = "FUNDRAISING_ALREADY_STARTED";
+    string private constant ERROR_NOT_STARTED = "FUNDRAISING_NOT_STARTED";
+
 
     BatchedBancorMarketMaker public marketMaker;
     Agent                    public reserve;
     Tap                      public tap;
+    bool                     public continuousCampaignIsStarted;
+
+    event StartContinuousCampaign();
 
     /***** external functions *****/
 
@@ -49,6 +57,17 @@ contract AragonFundraisingController is EtherTokenConstant, IsContract, IMarketM
         marketMaker = _marketMaker;
         reserve = _reserve;
         tap = _tap;
+    }
+
+    /**
+     * @notice Starts the continuous fundraising campaign [enabling users to open buy and sell orders]
+    */
+    function startContinuousCampaign() external auth(START_CAMPAIGN_ROLE) {
+        require(!continuousCampaignIsStarted, ERROR_ALREADY_STARTED);
+
+        continuousCampaignIsStarted = true;
+
+        emit StartContinuousCampaign();
     }
 
     /**
@@ -135,6 +154,14 @@ contract AragonFundraisingController is EtherTokenConstant, IsContract, IMarketM
     }
 
     /**
+     * @notice Reset tap-related timestamps for `_token.symbol(): string`
+     * @param _token The address of the token whose tap-related timestamps are to be reset
+    */
+    function resetTokenTap(address _token) external auth(RESET_TOKEN_TAP_ROLE) {
+        tap.resetTappedToken(_token);
+    }
+
+    /**
      * @notice Transfer about `@tokenAmount(_token, self.getMaximumWithdrawal(_token): uint256)` from the reserve to the beneficiary
      * @param _token The address of the token to be transfered from the reserve to the beneficiary
     */
@@ -148,6 +175,8 @@ contract AragonFundraisingController is EtherTokenConstant, IsContract, IMarketM
      * @param _value The amount of collateral token to be spent
     */
     function openBuyOrder(address _collateral, uint256 _value) external payable auth(OPEN_BUY_ORDER_ROLE) {
+        require(continuousCampaignIsStarted, ERROR_NOT_STARTED);
+
         marketMaker.openBuyOrder.value(msg.value)(msg.sender, _collateral, _value);
     }
 
@@ -157,6 +186,8 @@ contract AragonFundraisingController is EtherTokenConstant, IsContract, IMarketM
      * @param _amount The amount of bonded token to be spent
     */
     function openSellOrder(address _collateral, uint256 _amount) external auth(OPEN_SELL_ORDER_ROLE) {
+        require(continuousCampaignIsStarted, ERROR_NOT_STARTED);
+
         marketMaker.openSellOrder(msg.sender, _collateral, _amount);
     }
 
