@@ -1,11 +1,11 @@
 import React from 'react'
 import styled from 'styled-components'
-import { Badge, Box, CircleGraph, Countdown, SafeLink, Button, BREAKPOINTS } from '@aragon/ui'
+import { Badge, Box, Countdown, SafeLink, Button, BREAKPOINTS } from '@aragon/ui'
+import CircleGraph from '../components/CircleGraph'
 
-export default () => {
+export default ({ state }) => {
   const DAY_IN_MS = 1000 * 60 * 60 * 24
   const endDate = new Date(Date.now() + 5 * DAY_IN_MS)
-  const state = 'default'
   const circleColor = { default: '#21c1e7', success: '#2CC68F', failure: '#FF6969' }
 
   return (
