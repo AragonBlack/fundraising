@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { useApi, useAppState } from '@aragon/api-react'
-import { Layout, Tabs, Button } from '@aragon/ui'
+import { Layout, Tabs, Button, useLayout, ContextMenu, ContextMenuItem } from '@aragon/ui'
 import BigNumber from 'bignumber.js'
 import { useInterval } from '../hooks/use-interval'
 import AppHeader from '../components/AppHeader'
@@ -35,6 +35,11 @@ export default () => {
   // *****************************
   const api = useApi()
   const marketMakerContract = api.external(marketMakerAddress, marketMaker)
+
+  // *****************************
+  // layout name
+  // *****************************
+  const { name: layoutName } = useLayout()
 
   // *****************************
   // internal state, also shared through context
@@ -95,15 +100,22 @@ export default () => {
         <Disclaimer />
         <AppHeader
           heading="Fundraising"
-          action1={
-            <Button mode="strong" label="Withdraw" onClick={() => handleWithdraw()}>
-              Withdraw
-            </Button>
-          }
-          action2={
-            <Button mode="strong" label="New Order" css="margin-left: 20px;" onClick={() => setOrderPanel(true)}>
-              New Order
-            </Button>
+          renderActions={
+            layoutName === 'small' ? (
+              <ContextMenu>
+                <ContextMenuItem onClick={() => setOrderPanel(true)}>New Order</ContextMenuItem>
+                <ContextMenuItem onClick={() => handleWithdraw()}>Withdraw</ContextMenuItem>
+              </ContextMenu>
+            ) : (
+              <>
+                <Button mode="strong" label="Withdraw" onClick={() => handleWithdraw()}>
+                  Withdraw
+                </Button>
+                <Button mode="strong" label="New Order" css="margin-left: 20px;" onClick={() => setOrderPanel(true)}>
+                  New Order
+                </Button>
+              </>
+            )
           }
         />
         <Tabs selected={tabIndex} onChange={setTabindex} items={tabs} />
