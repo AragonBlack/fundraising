@@ -5,7 +5,7 @@ import { Area, AreaChart, Bar, BarChart, CartesianGrid, ReferenceDot, Responsive
 import styled from 'styled-components'
 import { startOfDay, endOfDay } from 'date-fns'
 import { filter } from './utils'
-import EmptyOrders from '../../assets/EmptyOrders.svg'
+import NoData from '../NoData'
 
 const bondingCurveData = [...Array(600).keys()].map(idx => ({
   tokens: idx + 1,
@@ -26,14 +26,8 @@ export default () => {
 
   return (
     <>
-      {!batches.length && (
-        <EmptyState>
-          <img src={EmptyOrders} />
-          <p css="font-size: 24px; margin-top: 1rem;">No data to show.</p>
-        </EmptyState>
-      )}
-
-      {!!batches.length && (
+      {batches.length === 0 && <NoData message="No data to show." />}
+      {batches.length > 0 && (
         <Chart>
           <div className="navbar">
             {activeItem === 1 ? (
@@ -204,18 +198,4 @@ const Chart = styled(Box)`
       }
     }
   }
-`
-
-const EmptyState = styled.div`
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  height: 500px;
-
-  border-radius: 4px;
-  border-style: solid;
-  border-color: #dde4e9;
-  border-width: 1px;
-  background: #ffffff;
 `
