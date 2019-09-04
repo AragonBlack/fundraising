@@ -9,6 +9,7 @@ export default () => {
   // internal state
   // *****************************
   const [orderPanel, setOrderPanel] = useState(false)
+  const state = 'default'
 
   return (
     <>
@@ -16,12 +17,12 @@ export default () => {
         <AppHeader
           heading="Fundraising Presale"
           action1={
-            <Button mode="strong" label="Buy Presale Tokens" onClick={() => setOrderPanel(true)}>
+            <Button disabled={state !== 'default'} mode="strong" label="Buy Presale Tokens" onClick={() => setOrderPanel(true)}>
               Buy Presale Tokens
             </Button>
           }
         />
-        <Presale />
+        <Presale state={state} />
       </Layout>
       <PresaleSidePanel price={300.0} opened={orderPanel} onClose={() => setOrderPanel(false)} />
     </>
