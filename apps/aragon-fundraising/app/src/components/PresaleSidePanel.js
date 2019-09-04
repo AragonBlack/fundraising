@@ -1,7 +1,7 @@
 import { Button, SidePanel, Text, TextInput } from '@aragon/ui'
 import React from 'react'
 import styled from 'styled-components'
-import transferArrows from '../assets/transferArrows.svg'
+import transferArrows from '../assets/TransferArrows.svg'
 
 const amount = 0
 
@@ -183,7 +183,7 @@ export default class NewOrderSidePanel extends React.Component {
               >
                 <StyledTextInput
                   adornment={<span css="padding-right: 14px;">DAI</span>}
-                  adornmentPosition={'end'}
+                  adornmentPosition="end"
                   type="number"
                   style={styles.selectionInputRight}
                   ref={amount => (this.amountInput = amount)}
@@ -225,7 +225,7 @@ export default class NewOrderSidePanel extends React.Component {
                   type="number"
                   style={styles.selectionInputRight}
                   adornment={<span style={{ paddingRight: '14px' }}>ATL</span>}
-                  adornmentPosition={'end'}
+                  adornmentPosition="end"
                   ref={amount => (this.amountInput = amount)}
                   value={amount}
                   onChange={() => {}}
