@@ -6,7 +6,7 @@ const Vault = artifacts.require('Vault.sol')
 const Agent = artifacts.require('Agent.sol')
 const Tap = artifacts.require('Tap.sol')
 const MarketMaker = artifacts.require('BatchedBancorMarketMaker.sol')
-const MarketMakerController = artifacts.require('SimpleMarketMakerController')
+// const MarketMakerController = artifacts.require('SimpleMarketMakerController')
 const Formula = artifacts.require('BancorFormula.sol')
 const DAOFactory = artifacts.require('@aragon/core/contracts/factory/DAOFactory')
 const EVMScriptRegistryFactory = artifacts.require('@aragon/core/contracts/factory/EVMScriptRegistryFactory')
@@ -31,6 +31,12 @@ const {
   BUY_FEE_PERCENT,
   PERCENT_FUNDING_FOR_BENEFICIARY,
   MARKET_MAKER_CONTROLLER_BATCH_BLOCKS,
+  VIRTUAL_SUPPLIES,
+  VIRTUAL_BALANCES,
+  RESERVE_RATIOS,
+  SLIPPAGES,
+  TAPS,
+  FLOORS,
 } = require('./constants')
 
 const deploy = {
@@ -73,32 +79,28 @@ const deploy = {
     const receipt = await test.dao.newAppInstance(hash('tap.aragonpm.eth'), appBase.address, '0x', false, { from: appManager })
     test.tap = Tap.at(deploy.getProxyAddress(receipt))
     test.TAP_ADD_TAPPED_TOKEN_ROLE = await appBase.ADD_TAPPED_TOKEN_ROLE()
+    test.TAP_RESET_TAPPED_TOKEN_ROLE = await appBase.RESET_TAPPED_TOKEN_ROLE()
   },
   setTapPermissions: async (test, appManager) => {
     await test.acl.createPermission(ANY_ADDRESS, test.tap.address, test.TAP_ADD_TAPPED_TOKEN_ROLE, appManager, { from: appManager })
+    await test.acl.createPermission(ANY_ADDRESS, test.tap.address, test.TAP_RESET_TAPPED_TOKEN_ROLE, appManager, { from: appManager })
   },
   initializeTap: async (test, beneficiary) => {
-    await test.tap.initialize(
-      test.marketMakerController.address,
-      test.vault.address,
-      beneficiary,
-      MARKET_MAKER_CONTROLLER_BATCH_BLOCKS,
-      MAX_MONTHLY_TAP_INCREASE_RATE
-    )
+    await test.tap.initialize(test.fundraising.address, test.vault.address, beneficiary, MARKET_MAKER_CONTROLLER_BATCH_BLOCKS, MAX_MONTHLY_TAP_INCREASE_RATE)
   },
 
   /* MARKET-MAKER-CONTROLLER */
-  deployMarketMakerController: async (test, appManager) => {
-    const appBase = await MarketMakerController.new()
-    const receipt = await test.dao.newAppInstance(hash('controller.aragonpm.eth'), appBase.address, '0x', false, { from: appManager })
-    test.marketMakerController = MarketMakerController.at(deploy.getProxyAddress(receipt))
-  },
-  setMarketMakerControllerPermissions: async (test, appManager) => {
-    // No permissions
-  },
-  initializeMarketMakerController: async test => {
-    await test.marketMakerController.initialize()
-  },
+  // deployMarketMakerController: async (test, appManager) => {
+  //   const appBase = await MarketMakerController.new()
+  //   const receipt = await test.dao.newAppInstance(hash('controller.aragonpm.eth'), appBase.address, '0x', false, { from: appManager })
+  //   test.marketMakerController = MarketMakerController.at(deploy.getProxyAddress(receipt))
+  // },
+  // setMarketMakerControllerPermissions: async (test, appManager) => {
+  //   // No permissions
+  // },
+  // initializeMarketMakerController: async test => {
+  //   await test.marketMakerController.initialize()
+  // },
 
   /* MARKET-MAKER */
   deployMarketMaker: async (test, appManager) => {
@@ -129,12 +131,30 @@ const deploy = {
     const receipt = await test.dao.newAppInstance(hash('fundraising-controller.aragonpm.eth'), appBase.address, '0x', false, { from: appManager })
     test.fundraising = FundraisingController.at(deploy.getProxyAddress(receipt))
     test.FUNDRAISING_ADD_COLLATERAL_TOKEN_ROLE = await appBase.ADD_COLLATERAL_TOKEN_ROLE()
+    test.FUNDRAISING_RESET_TOKEN_TAP_ROLE = await appBase.RESET_TOKEN_TAP_ROLE()
+    test.FUNDRAISING_START_CAMPAIGN_ROLE = await appBase.START_CAMPAIGN_ROLE()
   },
   setFundraisingPermissions: async (test, appManager) => {
     await test.acl.createPermission(ANY_ADDRESS, test.fundraising.address, test.FUNDRAISING_ADD_COLLATERAL_TOKEN_ROLE, appManager, { from: appManager })
+    await test.acl.createPermission(ANY_ADDRESS, test.fundraising.address, test.FUNDRAISING_RESET_TOKEN_TAP_ROLE, appManager, { from: appManager })
+    await test.acl.createPermission(ANY_ADDRESS, test.fundraising.address, test.FUNDRAISING_START_CAMPAIGN_ROLE, appManager, { from: appManager })
   },
   initializeFundraising: async test => {
     await test.fundraising.initialize(test.marketMaker.address, test.reserve.address, test.tap.address)
+  },
+
+  initializeCollateralTokens: async test => {
+    await test.fundraising.addCollateralToken(
+      test.contributionToken.address,
+      VIRTUAL_SUPPLIES[0],
+      VIRTUAL_BALANCES[0],
+      RESERVE_RATIOS[0],
+      SLIPPAGES[0],
+      TAPS[0],
+      FLOORS[0]
+    )
+
+    await test.fundraising.addCollateralToken(test.ant.address, VIRTUAL_SUPPLIES[1], VIRTUAL_BALANCES[1], RESERVE_RATIOS[1], SLIPPAGES[1], TAPS[1], FLOORS[1])
   },
 
   /* VAULT */
@@ -187,6 +207,7 @@ const deploy = {
   },
   initializePresale: async (test, params) => {
     const paramsArr = [
+      params.fundraising,
       params.contributionToken,
       params.projectToken,
       params.tokenManager,
@@ -199,11 +220,13 @@ const deploy = {
       params.beneficiary,
       params.percentFundingForBeneficiary,
       params.startDate,
+      params.collaterals,
     ]
     return test.presale.initialize(...paramsArr)
   },
   defaultDeployParams: (test, beneficiary) => {
     return {
+      fundraising: test.fundraising.address,
       contributionToken: test.contributionToken.address,
       projectToken: test.projectToken.address,
       tokenManager: test.tokenManager.address,
@@ -216,6 +239,7 @@ const deploy = {
       beneficiary,
       percentFundingForBeneficiary: PERCENT_FUNDING_FOR_BENEFICIARY,
       startDate: 0,
+      collaterals: [test.contributionToken.address, test.ant.address],
     }
   },
 
@@ -228,6 +252,7 @@ const deploy = {
   deployTokens: async test => {
     test.contributionToken = await MiniMeToken.new(ZERO_ADDRESS, ZERO_ADDRESS, 0, 'DaiToken', 18, 'DAI', true)
     test.projectToken = await MiniMeToken.new(ZERO_ADDRESS, ZERO_ADDRESS, 0, 'ProjectToken', 18, 'PRO', true)
+    test.ant = await MiniMeToken.new(ZERO_ADDRESS, ZERO_ADDRESS, 0, 'AntToken', 18, 'ANT', true)
   },
 
   /* ~EVERYTHING~ */
@@ -238,32 +263,33 @@ const deploy = {
     await deploy.deployTokens(test)
     await deploy.deployTokenManager(test, appManager)
 
-    // await deploy.deployBancorFormula(test, appManager)
-
-    // await deploy.deployVault(test, appManager)
+    await deploy.deployBancorFormula(test, appManager)
+    await deploy.deployVault(test, appManager)
     await deploy.deployReserve(test, appManager)
-    // await deploy.deployTap(test, appManager)
-    // await deploy.deployMarketMaker(test, appManager)
-    // await deploy.deployFundraising(test, appManager)
+    await deploy.deployTap(test, appManager)
+    await deploy.deployMarketMaker(test, appManager)
+    await deploy.deployFundraising(test, appManager)
     await deploy.deployPresale(test, appManager)
-    await deploy.deployMarketMakerController(test, appManager)
+    // await deploy.deployMarketMakerController(test, appManager)
 
-    // await deploy.setVaultPermissions(test, appManager)
+    await deploy.setVaultPermissions(test, appManager)
     await deploy.setReservePermissions(test, appManager)
-    // await deploy.setTapPermissions(test, appManager)
-    // await deploy.setFundraisingPermissions(test, appManager)
-    // await deploy.setMarketMakerPermissions(test, appManager)
+    await deploy.setTapPermissions(test, appManager)
+    await deploy.setFundraisingPermissions(test, appManager)
+    await deploy.setMarketMakerPermissions(test, appManager)
     await deploy.setPresalePermissions(test, appManager)
     await deploy.setTokenManagerPermissions(test, appManager)
     // await deploy.setMarketMakerControllerPermissions(test, appManager)
 
-    // await deploy.initializeVault(test)
+    await deploy.initializeVault(test)
     await deploy.initializeReserve(test)
     // await deploy.initializeMarketMakerController(test)
-    // await deploy.initializeTap(test, appManager)
-    // await deploy.initializeFundraising(test)
-    // await deploy.initializeMarketMaker(test, appManager)
+    await deploy.initializeTap(test, appManager)
+    await deploy.initializeFundraising(test)
+    await deploy.initializeMarketMaker(test, appManager)
     await deploy.initializeTokenManager(test)
+
+    await deploy.initializeCollateralTokens(test)
   },
   deployDefaultSetup: async (test, appManager) => {
     await deploy.prepareDefaultSetup(test, appManager)

@@ -9,6 +9,7 @@ import "@aragon/os/contracts/lib/token/ERC20.sol";
 import "@aragon/os/contracts/common/SafeERC20.sol";
 import "@aragon/apps-shared-minime/contracts/MiniMeToken.sol";
 import "@aragon/apps-token-manager/contracts/TokenManager.sol";
+import "@ablack/fundraising-shared-interfaces/contracts/IMarketMakerController.sol";
 
 
 contract Presale is AragonApp {
@@ -21,7 +22,9 @@ contract Presale is AragonApp {
 
     uint256 public constant PPM = 1000000; // 25% => 0.25 * 1e6 ; 50% => 0.50 * 1e6
     uint256 public constant CONNECTOR_WEIGHT_PPM = 100000; // 10%
+    uint256 public constant COLLATERAL_TOKENS_CAP = 10;
 
+    string private constant ERROR_INVALID_CONTROLLER       = "PRESALE_INVALID_CONTROLLER";
     string private constant ERROR_INVALID_STATE            = "PRESALE_INVALID_STATE";
     string private constant ERROR_INSUFFICIENT_ALLOWANCE   = "PRESALE_INSUFFICIENT_ALLOWANCE";
     string private constant ERROR_INSUFFICIENT_BALANCE     = "PRESALE_INSUFFICIENT_BALANCE";
@@ -34,6 +37,7 @@ contract Presale is AragonApp {
     string private constant ERROR_INVALID_PERCENT_VALUE    = "PRESALE_INVALID_PERCENT_VALUE";
     string private constant ERROR_INVALID_RESERVE          = "PRESALE_INVALID_RESERVE";
     string private constant ERROR_INVALID_BENEFIC_ADDRESS  = "PRESALE_INVALID_BENEFIC_ADDRESS";
+    string private constant ERROR_INVALID_COLLATERALS      = "PRESALE_INVALID_COLLATERALS";
     string private constant ERROR_EXCEEDS_FUNDING_GOAL     = "PRESALE_EXCEEDS_FUNDING_GOAL";
 
     enum PresaleState {
@@ -44,11 +48,12 @@ contract Presale is AragonApp {
         Closed       // after GoalReached, presale was closed and the continuous fundraising was initialized
     }
 
-    ERC20        public contributionToken;
-    MiniMeToken  public token;
-    TokenManager public tokenManager;
-    address      public reserve;
-    address      public beneficiary;
+    IMarketMakerController public controller;
+    ERC20                  public contributionToken;
+    MiniMeToken            public token;
+    TokenManager           public tokenManager;
+    address                public reserve;
+    address                public beneficiary;
 
     uint256 public presaleGoal;
     uint256 public totalRaised;
@@ -59,6 +64,7 @@ contract Presale is AragonApp {
     uint64  public presalePeriod;
     uint64  public vestingCliffPeriod;
     uint64  public vestingCompletePeriod;
+    address[] public collaterals;
 
     mapping(address => mapping(uint256 => uint256)) public purchases; // buyer => (vestedPurchaseId => tokensSpent)
 
@@ -90,9 +96,10 @@ contract Presale is AragonApp {
     * @param _startDate uint64 Optional start date of the sale, ignored if 0.
     */
     function initialize(
-        ERC20        _contributionToken,
-        MiniMeToken  _token,
-        TokenManager _tokenManager,
+        IMarketMakerController _controller,
+        ERC20                  _contributionToken,
+        MiniMeToken            _token,
+        TokenManager           _tokenManager,
         uint64  _vestingCliffPeriod,
         uint64  _vestingCompletePeriod,
         uint256 _presaleGoal,
@@ -101,11 +108,13 @@ contract Presale is AragonApp {
         address _reserve,
         address _beneficiary,
         uint256 _percentFundingForBeneficiary,
-        uint64  _startDate
+        uint64  _startDate,
+        address[] _collaterals
     )
         external
         onlyInit
     {
+        require(isContract(_controller), ERROR_INVALID_CONTROLLER);
         require(isContract(_contributionToken), ERROR_INVALID_CONTRIBUTE_TOKEN);
         require(isContract(_reserve), ERROR_INVALID_RESERVE);
         require(_presalePeriod > 0, ERROR_INVALID_TIME_PERIOD);
@@ -117,10 +126,13 @@ contract Presale is AragonApp {
         require(_beneficiary != 0x0, ERROR_INVALID_BENEFIC_ADDRESS);
         require(_percentFundingForBeneficiary > 0, ERROR_INVALID_PERCENT_VALUE);
         require(_percentFundingForBeneficiary < PPM, ERROR_INVALID_PERCENT_VALUE);
+        require(_collaterals.length > 0 && _collaterals.length < COLLATERAL_TOKENS_CAP, ERROR_INVALID_COLLATERALS);
 
         initialized();
 
+        controller = _controller;
         contributionToken = _contributionToken;
+        _setCollaterals(_collaterals);
         _setProjectToken(_token, _tokenManager);
 
         reserve = _reserve;
@@ -233,8 +245,10 @@ contract Presale is AragonApp {
 
         presaleClosed = true;
 
-        // switch token controller from presale to market maker ?
-        // add collateral token ?
+        for (uint256 i = 0; i < collaterals.length; i++) {
+            controller.resetTokenTap(collaterals[i]);
+        }
+        controller.startContinuousCampaign();
 
         emit PresaleClosed();
     }
@@ -299,6 +313,14 @@ contract Presale is AragonApp {
 
     function _calculateExchangeRate() internal {
         tokenExchangeRate = presaleGoal.mul(PPM).mul(percentSupplyOffered).div(CONNECTOR_WEIGHT_PPM).div(PPM);
+    }
+
+    function _setCollaterals(address[] _collaterals) internal {
+        for (uint256 i = 0; i < _collaterals.length; i++) {
+            require(isContract(_collaterals[i]), ERROR_INVALID_COLLATERALS);
+            collaterals.push(_collaterals[i]);
+        }
+
     }
 
     function _setProjectToken(MiniMeToken _projectToken, TokenManager _projectTokenManager) internal {

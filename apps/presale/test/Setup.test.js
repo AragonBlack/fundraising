@@ -37,6 +37,15 @@ contract('Presale, setup', ([anyone, appManager, someEOA]) => {
         expect(web3.isAddress(this.reserve.address)).to.equal(true)
       })
 
+      it('Controller is set', async () => {
+        expect(await this.presale.controller()).to.equal(this.fundraising.address)
+      })
+
+      it('Collaterals are set', async () => {
+        expect(await this.presale.collaterals(0)).to.equal(this.contributionToken.address)
+        expect(await this.presale.collaterals(1)).to.equal(this.ant.address)
+      })
+
       it('startDate is set correctly', async () => {
         expect((await this.presale.startDate()).toNumber()).to.equal(startDate)
       })
