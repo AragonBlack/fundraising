@@ -1,45 +1,24 @@
-const {
-  SALE_STATE,
-  PRESALE_PERIOD,
-  PRESALE_GOAL
-} = require('./common/constants')
-const {
-  sendTransaction,
-  contributionToProjectTokens,
-  getEvent,
-  now
-} = require('./common/utils')
-const {
-  prepareDefaultSetup,
-  defaultDeployParams,
-  initializePresale,
-  deployDefaultSetup
-} = require('./common/deploy')
+const { SALE_STATE, PRESALE_PERIOD, PRESALE_GOAL } = require('./common/constants')
+const { sendTransaction, contributionToProjectTokens, getEvent, now } = require('./common/utils')
+const { prepareDefaultSetup, defaultDeployParams, initializePresale, deployDefaultSetup } = require('./common/deploy')
 const { assertRevert } = require('@aragon/test-helpers/assertThrow')
 
 const BUYER_1_BALANCE = 100
 const BUYER_2_BALANCE = 100000
 
 contract('Presale, buy() functionality', ([anyone, appManager, buyer1, buyer2]) => {
-
   describe('When using other tokens', () => {
-
     before(async () => {
       await deployDefaultSetup(this, appManager)
     })
 
     it('Does not accept ETH', async () => {
-      await assertRevert(
-        sendTransaction({ from: anyone, to: this.presale.address, value: web3.toWei(1, 'ether') })
-      )
+      await assertRevert(sendTransaction({ from: anyone, to: this.presale.address, value: web3.toWei(1, 'ether') }))
     })
-
   })
 
   describe('When using contribution tokens', () => {
-
-    const itAllowsUsersToBuyTokens = (startDate) => {
-
+    const itAllowsUsersToBuyTokens = startDate => {
       before(async () => {
         await prepareDefaultSetup(this, appManager)
         await initializePresale(this, { ...defaultDeployParams(this, appManager), startDate })
@@ -51,14 +30,10 @@ contract('Presale, buy() functionality', ([anyone, appManager, buyer1, buyer2]) 
       })
 
       it('Reverts if the user attempts to buy tokens before the sale has started', async () => {
-        await assertRevert(
-          this.presale.buy(BUYER_1_BALANCE, { from: buyer1 }),
-          'PRESALE_INVALID_STATE'
-        )
+        await assertRevert(this.presale.buy(BUYER_1_BALANCE, { from: buyer1 }), 'PRESALE_INVALID_STATE')
       })
 
       describe('When the sale has started', () => {
-
         before(async () => {
           if (startDate == 0) {
             startDate = now()
@@ -68,18 +43,17 @@ contract('Presale, buy() functionality', ([anyone, appManager, buyer1, buyer2]) 
         })
 
         it('App state should be Funding', async () => {
-          expect((await this.presale.currentSaleState()).toNumber()).to.equal(SALE_STATE.FUNDING)
+          expect((await this.presale.currentPresaleState()).toNumber()).to.equal(SALE_STATE.FUNDING)
         })
 
         it('A user can query how many project tokens would be obtained for a given amount of contribution tokens', async () => {
-          const amount = (await this.presale.contributionToProjectTokens(BUYER_1_BALANCE)).toNumber()
+          const amount = (await this.presale.contributionToTokens(BUYER_1_BALANCE)).toNumber()
           const expectedAmount = contributionToProjectTokens(BUYER_1_BALANCE)
           expect(amount).to.equal(expectedAmount)
         })
 
         describe('When a user buys project tokens', () => {
-
-          let purchaseTx;
+          let purchaseTx
           let initialProjectTokenSupply
 
           before(async () => {
@@ -136,25 +110,20 @@ contract('Presale, buy() functionality', ([anyone, appManager, buyer1, buyer2]) 
           })
 
           describe('When the sale is Refunding', () => {
-
             before(async () => {
               await this.presale.mockSetTimestamp(startDate + PRESALE_PERIOD)
             })
 
             it('Sale state is Refunding', async () => {
-              expect((await this.presale.currentSaleState()).toNumber()).to.equal(SALE_STATE.REFUNDING)
+              expect((await this.presale.currentPresaleState()).toNumber()).to.equal(SALE_STATE.REFUNDING)
             })
 
             it('Reverts if a user attempts to buy tokens', async () => {
-              await assertRevert(
-                this.presale.buy(1, { from: buyer2 }),
-                'PRESALE_INVALID_STATE'
-              )
+              await assertRevert(this.presale.buy(1, { from: buyer2 }), 'PRESALE_INVALID_STATE')
             })
           })
 
           describe('When the sale state is GoalReached', () => {
-
             before(async () => {
               await this.presale.mockSetTimestamp(startDate + PRESALE_PERIOD / 2)
             })
@@ -162,22 +131,19 @@ contract('Presale, buy() functionality', ([anyone, appManager, buyer1, buyer2]) 
             it('A purchase cannot cause totalRaised to be greater than the presaleGoal', async () => {
               const raised = (await this.presale.totalRaised()).toNumber()
               const remainingToFundingGoal = PRESALE_GOAL - raised
-              const userBalanceBeforePurchase = (await this.contributionToken.balanceOf(buyer2))
+              const userBalanceBeforePurchase = await this.contributionToken.balanceOf(buyer2)
               await this.presale.buy(PRESALE_GOAL * 2, { from: buyer2 })
-              const userBalanceAfterPurchase = (await this.contributionToken.balanceOf(buyer2))
+              const userBalanceAfterPurchase = await this.contributionToken.balanceOf(buyer2)
               const tokensUsedInPurchase = userBalanceBeforePurchase - userBalanceAfterPurchase
               expect(tokensUsedInPurchase).to.equal(remainingToFundingGoal)
             })
 
             it('Sale state is GoalReached', async () => {
-              expect((await this.presale.currentSaleState()).toNumber()).to.equal(SALE_STATE.GOAL_REACHED)
+              expect((await this.presale.currentPresaleState()).toNumber()).to.equal(SALE_STATE.GOAL_REACHED)
             })
 
             it('Reverts if a user attempts to buy tokens', async () => {
-              await assertRevert(
-                this.presale.buy(1, { from: buyer2 }),
-                'PRESALE_INVALID_STATE'
-              )
+              await assertRevert(this.presale.buy(1, { from: buyer2 }), 'PRESALE_INVALID_STATE')
             })
           })
         })

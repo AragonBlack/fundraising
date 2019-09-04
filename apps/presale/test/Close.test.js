@@ -1,11 +1,4 @@
-const {
-  PRESALE_PERIOD,
-  SALE_STATE,
-  CONNECTOR_WEIGHT,
-  TAP_RATE,
-  PERCENT_FUNDING_FOR_BENEFICIARY,
-  PPM
-} = require('./common/constants')
+const { PRESALE_PERIOD, SALE_STATE, CONNECTOR_WEIGHT, TAP_RATE, PERCENT_FUNDING_FOR_BENEFICIARY, PPM } = require('./common/constants')
 const { prepareDefaultSetup, defaultDeployParams, initializePresale } = require('./common/deploy')
 const { getEvent, now } = require('./common/utils')
 const { assertRevert } = require('@aragon/test-helpers/assertThrow')
@@ -13,11 +6,8 @@ const { assertRevert } = require('@aragon/test-helpers/assertThrow')
 const BUYER_BALANCE = 20000
 
 contract('Presale, close() functionality', ([anyone, appManager, buyer1]) => {
-
-  const itAllowsTheSaleToBeClosed = (startDate) => {
-
+  const itAllowsTheSaleToBeClosed = startDate => {
     describe('When enough purchases have been made to close the sale', () => {
-
       before(async () => {
         await prepareDefaultSetup(this, appManager)
         await initializePresale(this, { ...defaultDeployParams(this, appManager), startDate })
@@ -36,11 +26,10 @@ contract('Presale, close() functionality', ([anyone, appManager, buyer1]) => {
       })
 
       it('Sale state is GoalReached', async () => {
-        expect((await this.presale.currentSaleState()).toNumber()).to.equal(SALE_STATE.GOAL_REACHED)
+        expect((await this.presale.currentPresaleState()).toNumber()).to.equal(SALE_STATE.GOAL_REACHED)
       })
 
       describe('When the sale is closed', () => {
-
         let closeReceipt
 
         before(async () => {
@@ -48,14 +37,14 @@ contract('Presale, close() functionality', ([anyone, appManager, buyer1]) => {
         })
 
         it('Sale state is Closed', async () => {
-          expect((await this.presale.currentSaleState()).toNumber()).to.equal(SALE_STATE.CLOSED)
+          expect((await this.presale.currentPresaleState()).toNumber()).to.equal(SALE_STATE.CLOSED)
         })
 
         it('Raised funds are transferred to the fundraising reserve and the beneficiary address', async () => {
           expect((await this.contributionToken.balanceOf(this.presale.address)).toNumber()).to.equal(0)
 
           const totalRaised = (await this.presale.totalRaised()).toNumber()
-          const tokensForBeneficiary = Math.floor(totalRaised * PERCENT_FUNDING_FOR_BENEFICIARY / PPM)
+          const tokensForBeneficiary = Math.floor((totalRaised * PERCENT_FUNDING_FOR_BENEFICIARY) / PPM)
           const tokensForReserve = totalRaised - tokensForBeneficiary
           const reserve = await this.presale.reserve()
           expect((await this.contributionToken.balanceOf(appManager)).toNumber()).to.equal(tokensForBeneficiary)
@@ -63,14 +52,11 @@ contract('Presale, close() functionality', ([anyone, appManager, buyer1]) => {
         })
 
         it('Sale cannot be closed again', async () => {
-          await assertRevert(
-            this.presale.close(),
-            'PRESALE_INVALID_STATE'
-          )
+          await assertRevert(this.presale.close(), 'PRESALE_INVALID_STATE')
         })
 
         it('Emitted a SaleClosed event', async () => {
-          expect(getEvent(closeReceipt, 'SaleClosed')).to.exist
+          expect(getEvent(closeReceipt, 'PresaleClosed')).to.exist
         })
       })
     })

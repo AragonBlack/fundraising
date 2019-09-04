@@ -8,22 +8,15 @@ const {
   TAP_RATE,
   PRESALE_PERIOD,
   ZERO_ADDRESS,
-  PERCENT_FUNDING_FOR_BENEFICIARY
+  PERCENT_FUNDING_FOR_BENEFICIARY,
 } = require('./common/constants')
-const {
-  prepareDefaultSetup,
-  initializePresale,
-  defaultDeployParams
-} = require('./common/deploy')
+const { prepareDefaultSetup, initializePresale, defaultDeployParams } = require('./common/deploy')
 const { tokenExchangeRate, now } = require('./common/utils')
 const { assertRevert } = require('@aragon/test-helpers/assertThrow')
 
 contract('Presale, setup', ([anyone, appManager, someEOA]) => {
-
   describe('When deploying the app with valid parameters', () => {
-
-    const itSetupsTheAppCorrectly = (startDate) => {
-
+    const itSetupsTheAppCorrectly = startDate => {
       let presaleInitializationTx
 
       before(async () => {
@@ -60,22 +53,22 @@ contract('Presale, setup', ([anyone, appManager, someEOA]) => {
       })
 
       it('Initial state is Pending', async () => {
-        expect((await this.presale.currentSaleState()).toNumber()).to.equal(SALE_STATE.PENDING)
+        expect((await this.presale.currentPresaleState()).toNumber()).to.equal(SALE_STATE.PENDING)
       })
 
       it('Project token is deployed and set in the app', async () => {
         expect(web3.isAddress(this.projectToken.address)).to.equal(true)
-        expect((await this.presale.projectToken())).to.equal(this.projectToken.address)
+        expect(await this.presale.token()).to.equal(this.projectToken.address)
       })
 
       it('Contribution token is deployed and set in the app', async () => {
         expect(web3.isAddress(this.contributionToken.address)).to.equal(true)
-        expect((await this.presale.contributionToken())).to.equal(this.contributionToken.address)
+        expect(await this.presale.contributionToken()).to.equal(this.contributionToken.address)
       })
 
       it('TokenManager is deployed, set in the app, and controls the project token', async () => {
         expect(web3.isAddress(this.tokenManager.address)).to.equal(true)
-        expect((await this.presale.projectTokenManager())).to.equal(this.tokenManager.address)
+        expect(await this.presale.tokenManager()).to.equal(this.tokenManager.address)
       })
 
       it('Exchange rate is calculated to the expected value', async () => {
@@ -85,7 +78,7 @@ contract('Presale, setup', ([anyone, appManager, someEOA]) => {
       })
 
       it('Beneficiary address is set', async () => {
-        expect((await this.presale.beneficiary())).to.equal(appManager)
+        expect(await this.presale.beneficiary()).to.equal(appManager)
       })
 
       it('Percent funding for beneficiary is set', async () => {
@@ -103,8 +96,7 @@ contract('Presale, setup', ([anyone, appManager, someEOA]) => {
   })
 
   describe('When deploying the app with invalid parameters', () => {
-
-    let defaultParams;
+    let defaultParams
 
     before(async () => {
       await prepareDefaultSetup(this, appManager)
@@ -112,82 +104,39 @@ contract('Presale, setup', ([anyone, appManager, someEOA]) => {
     })
 
     it('Reverts when setting an invalid contribution token', async () => {
-      await assertRevert(
-        initializePresale(this, { ...defaultParams,
-          contributionToken: someEOA
-        }), 'PRESALE_INVALID_CONTRIBUTE_TOKEN'
-      )
+      await assertRevert(initializePresale(this, { ...defaultParams, contributionToken: someEOA }), 'PRESALE_INVALID_CONTRIBUTE_TOKEN')
     })
 
     it('Reverts when setting an invalid reserve', async () => {
-      await assertRevert(
-        initializePresale(this, { ...defaultParams,
-          reserve: someEOA
-        }), 'PRESALE_INVALID_RESERVE'
-      )
+      await assertRevert(initializePresale(this, { ...defaultParams, reserve: someEOA }), 'PRESALE_INVALID_RESERVE')
     })
 
     it('Reverts when setting invalid dates', async () => {
+      await assertRevert(initializePresale(this, { ...defaultParams, startDate: Math.floor(new Date().getTime() / 1000) - 1 }), 'PRESALE_INVALID_TIME_PERIOD')
+      await assertRevert(initializePresale(this, { ...defaultParams, presalePeriod: 0 }), 'PRESALE_INVALID_TIME_PERIOD')
+      await assertRevert(initializePresale(this, { ...defaultParams, vestingCliffPeriod: defaultParams.presalePeriod - 1 }), 'PRESALE_INVALID_TIME_PERIOD')
       await assertRevert(
-        initializePresale(this, { ...defaultParams,
-          startDate: Math.floor(new Date().getTime() / 1000) - 1
-        }), 'PRESALE_INVALID_TIME_PERIOD'
-      )
-      await assertRevert(
-        initializePresale(this, { ...defaultParams,
-          presalePeriod: 0
-        }), 'PRESALE_INVALID_TIME_PERIOD'
-      )
-      await assertRevert(
-        initializePresale(this, { ...defaultParams,
-          vestingCliffPeriod: defaultParams.presalePeriod - 1
-        }), 'PRESALE_INVALID_TIME_PERIOD'
-      )
-      await assertRevert(
-        initializePresale(this, { ...defaultParams,
-          vestingCompletePeriod: defaultParams.vestingCliffPeriod - 1
-        }), 'PRESALE_INVALID_TIME_PERIOD'
+        initializePresale(this, { ...defaultParams, vestingCompletePeriod: defaultParams.vestingCliffPeriod - 1 }),
+        'PRESALE_INVALID_TIME_PERIOD'
       )
     })
 
     it('Reverts when setting an invalid funding goal', async () => {
-      await assertRevert(
-        initializePresale(this, { ...defaultParams,
-          presaleGoal: 0
-        }), 'PRESALE_INVALID_PRESALE_GOAL'
-      )
+      await assertRevert(initializePresale(this, { ...defaultParams, presaleGoal: 0 }), 'PRESALE_INVALID_PRESALE_GOAL')
     })
 
     it('Reverts when setting an invalid percent supply offered', async () => {
-      await assertRevert(
-        initializePresale(this, { ...defaultParams,
-          percentSupplyOffered: 0
-        }), 'PRESALE_INVALID_PERCENT_VALUE'
-      )
-      await assertRevert(
-        initializePresale(this, { ...defaultParams,
-          percentSupplyOffered: 1e6 + 1
-        }), 'PRESALE_INVALID_PERCENT_VALUE'
-      )
+      await assertRevert(initializePresale(this, { ...defaultParams, percentSupplyOffered: 0 }), 'PRESALE_INVALID_PERCENT_VALUE')
+      await assertRevert(initializePresale(this, { ...defaultParams, percentSupplyOffered: 1e6 + 1 }), 'PRESALE_INVALID_PERCENT_VALUE')
     })
 
     it('Reverts when setting an invalid percent funding for beneficiary', async () => {
-      await assertRevert(
-        initializePresale(this, { ...defaultParams,
-          percentFundingForBeneficiary: 0
-        }), 'PRESALE_INVALID_PERCENT_VALUE'
-      )
-      await assertRevert(
-        initializePresale(this, { ...defaultParams,
-          percentFundingForBeneficiary: 1e6 + 1
-        }), 'PRESALE_INVALID_PERCENT_VALUE'
-      )
+      await assertRevert(initializePresale(this, { ...defaultParams, percentFundingForBeneficiary: 0 }), 'PRESALE_INVALID_PERCENT_VALUE')
+      await assertRevert(initializePresale(this, { ...defaultParams, percentFundingForBeneficiary: 1e6 + 1 }), 'PRESALE_INVALID_PERCENT_VALUE')
     })
 
     it('Reverts when setting an invalid beneficiary address', async () => {
-      initializePresale(this, { ...defaultParams,
-        beneficiary: ZERO_ADDRESS
-      }), 'PRESALE_INVALID_BENEFIC_ADDRESS'
+      initializePresale(this, { ...defaultParams, beneficiary: ZERO_ADDRESS }), 'PRESALE_INVALID_BENEFIC_ADDRESS'
     })
   })
 })

@@ -380,7 +380,7 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
              * the pool's balance in another collateral and tap is a step-function of the meta-batch duration
             */
 
-            /*
+            /**
              * NOTE: realSupply(metaBatch) = totalSupply(metaBatchInitialization) + tokensToBeMinted(metaBatchInitialization)
              * 1. buy and sell orders incoming during the current meta-batch and affecting totalSupply or tokensToBeMinted
              * should not be taken into account in the price computation [they are already a part of the batched pricing computation]

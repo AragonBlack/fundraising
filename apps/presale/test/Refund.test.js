@@ -1,8 +1,4 @@
-const {
-  PRESALE_PERIOD,
-  SALE_STATE,
-  PRESALE_GOAL
-} = require('./common/constants')
+const { PRESALE_PERIOD, SALE_STATE, PRESALE_GOAL } = require('./common/constants')
 const { contributionToProjectTokens, getEvent, now } = require('./common/utils')
 const { prepareDefaultSetup, defaultDeployParams, initializePresale } = require('./common/deploy')
 const { assertRevert } = require('@aragon/test-helpers/assertThrow')
@@ -10,9 +6,7 @@ const { assertRevert } = require('@aragon/test-helpers/assertThrow')
 const BUYER_BALANCE = 1000
 
 contract('Presale, refund() functionality', ([anyone, appManager, buyer1, buyer2, buyer3, buyer4, buyer5]) => {
-
-  const itAllowsBuyersToGetRefunded = (startDate) => {
-
+  const itAllowsBuyersToGetRefunded = startDate => {
     before(async () => {
       await prepareDefaultSetup(this, appManager)
       await initializePresale(this, { ...defaultDeployParams(this, appManager), startDate })
@@ -35,7 +29,6 @@ contract('Presale, refund() functionality', ([anyone, appManager, buyer1, buyer2
     })
 
     describe('When purchases have been made and the sale is Refunding', () => {
-
       before(async () => {
         // Make a few purchases, careful not to reach the funding goal.
         await this.presale.buy(BUYER_BALANCE, { from: buyer1 }) // Spends everything in one purchase
@@ -49,7 +42,7 @@ contract('Presale, refund() functionality', ([anyone, appManager, buyer1, buyer2
       })
 
       it('Sale state is Refunding', async () => {
-        expect((await this.presale.currentSaleState()).toNumber()).to.equal(SALE_STATE.REFUNDING)
+        expect((await this.presale.currentPresaleState()).toNumber()).to.equal(SALE_STATE.REFUNDING)
       })
 
       it('Buyers obtained project tokens for their contribution tokens', async () => {
@@ -92,59 +85,45 @@ contract('Presale, refund() functionality', ([anyone, appManager, buyer1, buyer2
         expect((await this.projectToken.totalSupply()).toNumber()).to.equal(initialProjectTokenSupply - expectedAmount)
       })
 
-      it('Should deny anyone to get a refund for a purchase that wasn\'t made', async () => {
-        await assertRevert(
-          this.presale.refund(anyone, 0),
-          'PRESALE_NOTHING_TO_REFUND'
-        )
+      it("Should deny anyone to get a refund for a purchase that wasn't made", async () => {
+        await assertRevert(this.presale.refund(anyone, 0), 'PRESALE_NOTHING_TO_REFUND')
       })
 
-      it('Should deny a buyer to get a refund for a purchase that wasn\'t made', async () => {
-        await assertRevert(
-          this.presale.refund(buyer2, 2),
-          'PRESALE_NOTHING_TO_REFUND'
-        )
+      it("Should deny a buyer to get a refund for a purchase that wasn't made", async () => {
+        await assertRevert(this.presale.refund(buyer2, 2), 'PRESALE_NOTHING_TO_REFUND')
       })
     })
 
     describe('When purchases have been made and the sale is Funding', () => {
-
       before(async () => {
         await this.presale.mockSetTimestamp(startDate)
       })
 
       it('Sale state is Funding', async () => {
-        expect((await this.presale.currentSaleState()).toNumber()).to.equal(SALE_STATE.FUNDING)
+        expect((await this.presale.currentPresaleState()).toNumber()).to.equal(SALE_STATE.FUNDING)
       })
 
       it('Should revert if a buyer attempts to get a refund', async () => {
-        await assertRevert(
-          this.presale.refund(buyer1, 0),
-          'PRESALE_INVALID_STATE'
-        )
+        await assertRevert(this.presale.refund(buyer1, 0), 'PRESALE_INVALID_STATE')
       })
     })
 
     describe('When purchases have been made and the sale is ready to be closed', () => {
-
       before(async () => {
         await this.presale.mockSetTimestamp(startDate)
         await this.contributionToken.generateTokens(buyer4, PRESALE_GOAL)
         await this.contributionToken.approve(this.presale.address, PRESALE_GOAL, { from: buyer4 })
 
         const totalRaised = (await this.presale.totalRaised()).toNumber()
-        await this.presale.buy(PRESALE_GOAL - totalRaised, {  from: buyer4 })
+        await this.presale.buy(PRESALE_GOAL - totalRaised, { from: buyer4 })
       })
 
       it('Sale state is GoalReached', async () => {
-        expect((await this.presale.currentSaleState()).toNumber()).to.equal(SALE_STATE.GOAL_REACHED)
+        expect((await this.presale.currentPresaleState()).toNumber()).to.equal(SALE_STATE.GOAL_REACHED)
       })
 
       it('Should revert if a buyer attempts to get a refund', async () => {
-        await assertRevert(
-          this.presale.refund(buyer4, 0),
-          'PRESALE_INVALID_STATE'
-        )
+        await assertRevert(this.presale.refund(buyer4, 0), 'PRESALE_INVALID_STATE')
       })
     })
   }
