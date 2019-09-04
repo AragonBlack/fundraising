@@ -1,6 +1,6 @@
 import React from 'react'
 import { IconCheck, IconClock, IconEllipsis } from '@aragon/ui'
-import { Order } from '../constants'
+import { Order } from '../../constants'
 
 export default ({ state }) => {
   let icon

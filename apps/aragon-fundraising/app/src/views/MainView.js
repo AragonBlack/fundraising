@@ -8,7 +8,6 @@ import NewOrder from '../components/NewOrder'
 import Disclaimer from '../components/Disclaimer'
 import Reserves from '../screens/Reserves'
 import Orders from '../screens/Orders'
-import MyOrders from '../screens/MyOrders'
 import Overview from '../screens/Overview'
 import marketMaker from '../abi/BatchedBancorMarketMaker.json'
 import { MainViewContext } from '../context'
@@ -110,7 +109,7 @@ export default () => {
         <Tabs selected={tabIndex} onChange={setTabindex} items={tabs} />
         {tabIndex === 0 && <Overview />}
         {tabIndex === 1 && <Orders />}
-        {tabIndex === 2 && <MyOrders />}
+        {tabIndex === 2 && <Orders myOrders />}
         {tabIndex === 3 && <Reserves />}
       </Layout>
       <NewOrder />

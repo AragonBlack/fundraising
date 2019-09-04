@@ -1,5 +1,5 @@
 import React from 'react'
-import { Order } from '../constants'
+import { Order } from '../../constants'
 
 export default ({ type }) => {
   const bgColor = type === Order.type.BUY ? 'rgba(204, 189, 244, 0.3)' : 'rgb(255, 212, 140, 0.3)'
