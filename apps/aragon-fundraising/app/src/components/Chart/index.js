@@ -197,7 +197,6 @@ const Chart = styled(Box)`
 
       & > div:nth-child(1) {
         margin-top: 2rem;
-        justify-content: flex-end;
       }
       .item:last-child {
         margin-right: 0;
