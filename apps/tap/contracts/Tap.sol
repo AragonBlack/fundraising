@@ -26,6 +26,7 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
     bytes32 public constant ADD_TAPPED_TOKEN_ROLE = keccak256("ADD_TAPPED_TOKEN_ROLE");
     bytes32 public constant REMOVE_TAPPED_TOKEN_ROLE = keccak256("REMOVE_TAPPED_TOKEN_ROLE");
     bytes32 public constant UPDATE_TAPPED_TOKEN_ROLE = keccak256("UPDATE_TAPPED_TOKEN_ROLE");
+    bytes32 public constant RESET_TAPPED_TOKEN_ROLE = keccak256("RESET_TAPPED_TOKEN_ROLE");
     bytes32 public constant WITHDRAW_ROLE = keccak256("WITHDRAW_ROLE");
     */
     bytes32 public constant UPDATE_CONTROLLER_ROLE = 0x454b5d0dbb74f012faf1d3722ea441689f97dc957dd3ca5335b4969586e5dc30;
@@ -35,6 +36,7 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
     bytes32 public constant ADD_TAPPED_TOKEN_ROLE = 0x5bc3b608e6be93b75a1c472a4a5bea3d31eabae46bf968e4bc4c7701562114dc;
     bytes32 public constant REMOVE_TAPPED_TOKEN_ROLE = 0xd76960be78bfedc5b40ce4fa64a2f8308f39dd2cbb1f9676dbc4ce87b817befd;
     bytes32 public constant UPDATE_TAPPED_TOKEN_ROLE = 0x83201394534c53ae0b4696fd49a933082d3e0525aa5a3d0a14a2f51e12213288;
+    bytes32 public constant RESET_TAPPED_TOKEN_ROLE = 0x294bf52c518669359157a9fe826e510dfc3dbd200d44bf77ec9536bff34bc29e;
     bytes32 public constant WITHDRAW_ROLE = 0x5d8e12c39142ff96d79d04d15d1ba1269e4fe57bb9d26f43523628b34ba108ec;
 
     uint256 public constant PCT_BASE = 10 ** 18; // 0% = 0; 1% = 10^16; 100% = 10^18
@@ -67,6 +69,7 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
     event AddTappedToken(address indexed token, uint256 tap, uint256 floor);
     event RemoveTappedToken(address indexed token);
     event UpdateTappedToken(address indexed token, uint256 tap, uint256 floor);
+    event ResetTappedToken(address indexed token);
     event Withdraw(address indexed token, uint256 amount);
 
 
@@ -169,6 +172,12 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
         require(_tapUpdateIsValid(_token, _tap), ERROR_INVALID_TAP_UPDATE);
 
         _updateTappedToken(_token, _tap, _floor);
+    }
+
+    function resetTappedToken(address _token) external auth(RESET_TAPPED_TOKEN_ROLE) {
+        require(_tokenIsTapped(_token), ERROR_TOKEN_NOT_TAPPED);
+
+        _resetTappedToken(_token);
     }
 
     /**
@@ -306,6 +315,13 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
         lastTapUpdates[_token] = getTimestamp();
 
         emit UpdateTappedToken(_token, _tap, _floor);
+    }
+
+    function _resetTappedToken(address _token) internal {
+        lastWithdrawals[_token] = _currentBatchId();
+        lastTapUpdates[_token] = getTimestamp();
+
+        emit ResetTappedToken(_token);
     }
 
     function _withdraw(address _token, uint256 _amount) internal {
