@@ -1,5 +1,3 @@
-/* eslint-disable no-undef */
-/* eslint-disable no-use-before-define */
 const Kernel = artifacts.require('Kernel')
 const ACL = artifacts.require('ACL')
 const EVMScriptRegistryFactory = artifacts.require('EVMScriptRegistryFactory')
