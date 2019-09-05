@@ -331,6 +331,18 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
     }
 
     function _updateTappedToken(address _token, uint256 _rate, uint256 _floor) internal {
+        /**
+         * NOTE
+         * withdraw before updating to keep the reserve
+         * actual balance [balance - virtual withdrawal]
+         * continuous in time [though a floor update can
+         * still break this continuity]
+        */
+        uint256 amount = _maximumWithdrawal(_token);
+        if (amount > 0) {
+            _withdraw(_token, amount);
+        }
+
         rates[_token] = _rate;
         floors[_token] = _floor;
         lastTapUpdates[_token] = getTimestamp();
