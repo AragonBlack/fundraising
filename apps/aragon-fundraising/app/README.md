@@ -235,7 +235,10 @@ All values coming from the event, except `ppm` which can be found on the backgro
       "timestamp": Date,
       "collateral": address || String,
       "supply": BigNumber,
+      "realSupply": BigNumber, // "=metabatch.supply where metabatch.id == batch.id"
       "balance": BigNumber,
+      "virtualBalance": BigNumber, // keep the value of the collateral virtual balance when the batch was created
+      "realBalance": BigNumber, // "=balance-virtualBalance" real balance when the batch starts
       "reserveRatio": BigNumber,
       "totalBuySpend": BigNumber,
       "totalBuyReturn": BigNumber,
