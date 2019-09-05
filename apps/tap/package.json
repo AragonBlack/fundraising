@@ -30,9 +30,9 @@
     "/test"
   ],
   "dependencies": {
+    "@ablack/fundraising-shared-interfaces": "^0.1.0",
     "@aragon/apps-vault": "^4.1.0",
-    "@aragon/os": "4.2.1",
-    "@ablack/fundraising-shared-interfaces": "^0.1.0"
+    "@aragon/os": "4.2.1"
   },
   "devDependencies": {
     "@ablack/fundraising-test-helpers": "^0.1.0",
@@ -43,7 +43,7 @@
     "eth-gas-reporter": "^0.2.0",
     "ethereumjs-testrpc-sc": "^6.5.1-sc.0",
     "ganache-cli": "^6.4.3",
-    "solidity-coverage": "^0.6.2",
+    "solidity-coverage": "0.6.2",
     "solium": "^1.2.3",
     "truffle": "4.1.14",
     "truffle-extract": "^1.2.1"
