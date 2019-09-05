@@ -205,10 +205,6 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
 
     /***** public functions *****/
 
-    function getCurrentBatchId() public view isInitialized returns (uint256) {
-        return _currentBatchId();
-    }
-
     function getMaximumWithdrawal(address _token) public view isInitialized returns (uint256) {
         return _maximumWithdrawal(_token);
     }
