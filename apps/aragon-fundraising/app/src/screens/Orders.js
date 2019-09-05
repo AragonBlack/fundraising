@@ -198,6 +198,7 @@ export default ({ myOrders }) => {
           }
           renderEntry={data => {
             const entry = []
+            const sign = data.type === Order.type.BUY ? '+' : '-'
             // timestamp
             entry.push(<StyledText key="date">{format(data.timestamp, 'MM/dd/yyyy - HH:mm:ss', { awareOfUnicodeTokens: true })}</StyledText>)
             // user if not myOrders
@@ -211,13 +212,13 @@ export default ({ myOrders }) => {
             // value
             entry.push(
               <p key="orderAmount" css={data.type === Order.type.BUY ? 'font-weight: 600; color: #2CC68F;' : 'font-weight: 600;'}>
-                {formatBigNumber(data.value, data.symbol === 'DAI' ? daiDecimals : antDecimals)} {data.symbol}
+                {formatBigNumber(data.value, data.symbol === 'DAI' ? daiDecimals : antDecimals, { numberPrefix: sign })} {data.symbol}
               </p>
             )
             // price
             entry.push(
               <p key="tokenPrice" css="font-weight: 600;">
-                ${formatBigNumber(data.price, 0)}
+                {formatBigNumber(data.price, 0, { numberPrefix: '$' })}
               </p>
             )
             // type
@@ -225,7 +226,7 @@ export default ({ myOrders }) => {
             // amount
             entry.push(
               <p key="tokens" css="font-weight: 600;">
-                {formatBigNumber(data.amount, tokenDecimals)}
+                {formatBigNumber(data.amount, tokenDecimals, { numberPrefix: sign })}
               </p>
             )
             // claim button if myOrders
