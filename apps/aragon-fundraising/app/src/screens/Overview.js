@@ -70,7 +70,7 @@ export default () => {
     .map(o => o.value)
     // sum them and tada, you got the trading volume
     .reduce((acc, current) => acc.plus(current), new BigNumber(0))
-  const adjsutedTradingVolume = formatBigNumber(tradingVolume, daiDecimals, { numberPrefix: '$' })
+  const adjustedTradingVolume = formatBigNumber(tradingVolume, daiDecimals, { numberPrefix: '$' })
   const adjustedTokenSupply = formatBigNumber(realSupply, tokenDecimals)
   const realReserve = reserveBalance ? reserveBalance.minus(toBeClaimed) : null
   const adjustedReserves = realReserve ? formatBigNumber(realReserve, daiDecimals, { numberPrefix: '$' }) : '...'
@@ -92,7 +92,7 @@ export default () => {
         // sum them and tada, you got the trading volume between now and the beginning of the trendBatch
         .reduce((acc, current) => acc.plus(current), new BigNumber(0))
     : null
-  const adjsutedTradingVolumeTrend = tradingTrendVolume ? formatBigNumber(tradingTrendVolume, daiDecimals, { keepSign: true, numberPrefix: '$' }) : null
+  const adjustedTradingVolumeTrend = tradingTrendVolume ? formatBigNumber(tradingTrendVolume, daiDecimals, { keepSign: true, numberPrefix: '$' }) : null
   const adjustedTokenSupplyTrend = trendBatch?.realSupply ? formatBigNumber(realSupply.minus(trendBatch.realSupply), tokenDecimals, { keepSign: true }) : null
   const adjustedReservesTrend =
     reserveBalance && trendBatch?.realBalance
@@ -125,9 +125,9 @@ export default () => {
           <li>
             <div>
               <p className="title">Trading Volume</p>
-              <p className="number">{adjsutedTradingVolume}</p>
+              <p className="number">{adjustedTradingVolume}</p>
             </div>
-            <p className={`sub-number ${getTrendColor(adjsutedTradingVolumeTrend)}`}>{adjsutedTradingVolumeTrend} (M)</p>
+            <p className={`sub-number ${getTrendColor(adjustedTradingVolumeTrend)}`}>{adjustedTradingVolumeTrend} (M)</p>
           </li>
           <li>
             <div>
