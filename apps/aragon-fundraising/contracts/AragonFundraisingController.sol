@@ -23,7 +23,7 @@ contract AragonFundraisingController is EtherTokenConstant, IsContract, IMarketM
     bytes32 public constant START_CAMPAIGN_ROLE = keccak256("START_CAMPAIGN_ROLE");
     bytes32 public constant UPDATE_BENEFICIARY_ROLE = keccak256("UPDATE_BENEFICIARY_ROLE");
     bytes32 public constant UPDATE_FEES_ROLE = keccak256("UPDATE_FEES_ROLE");
-    bytes32 public constant UPDATE_MAXIMUM_TAP_INCREASE_PCT_ROLE = keccak256("UPDATE_MAXIMUM_TAP_INCREASE_PCT_ROLE");
+    bytes32 public constant UPDATE_MAXIMUM_TAP_RATE_INCREASE_PCT_ROLE = keccak256("UPDATE_MAXIMUM_TAP_RATE_INCREASE_PCT_ROLE");
     bytes32 public constant ADD_COLLATERAL_TOKEN_ROLE = keccak256("ADD_COLLATERAL_TOKEN_ROLE");
     bytes32 public constant REMOVE_COLLATERAL_TOKEN_ROLE = keccak256("REMOVE_COLLATERAL_TOKEN_ROLE");
     bytes32 public constant UPDATE_COLLATERAL_TOKEN_ROLE = keccak256("UPDATE_COLLATERAL_TOKEN_ROLE");
@@ -89,11 +89,11 @@ contract AragonFundraisingController is EtherTokenConstant, IsContract, IMarketM
     }
 
     /**
-     * @notice Update maximum tap increase percentage to `@formatPct(_maximumTapIncreasePct)`%
-     * @param _maximumTapIncreasePct The new maximum tap increase percentage to be used
+     * @notice Update maximum tap increase percentage to `@formatPct(_maximumTapRateIncreasePct)`%
+     * @param _maximumTapRateIncreasePct The new maximum tap increase percentage to be used
     */
-    function updateMaximumTapIncreasePct(uint256 _maximumTapIncreasePct) external auth(UPDATE_MAXIMUM_TAP_INCREASE_PCT_ROLE) {
-        tap.updateMaximumTapIncreasePct(_maximumTapIncreasePct);
+    function updateMaximumTapRateIncreasePct(uint256 _maximumTapRateIncreasePct) external auth(UPDATE_MAXIMUM_TAP_RATE_INCREASE_PCT_ROLE) {
+        tap.updateMaximumTapRateIncreasePct(_maximumTapRateIncreasePct);
     }
 
     /**
