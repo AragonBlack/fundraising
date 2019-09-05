@@ -73,7 +73,7 @@ export default () => {
   const adjsutedTradingVolume = formatBigNumber(tradingVolume, daiDecimals, { numberPrefix: '$' })
   const adjustedTokenSupply = formatBigNumber(realSupply, tokenDecimals)
   const adjustedReserves = reserveBalance ? formatBigNumber(reserveBalance.minus(toBeClaimed), daiDecimals, { numberPrefix: '$' }) : '...'
-  const adjustedMonthlyAllowance = formatBigNumber(toMonthlyAllocation(rate, daiDecimals), daiDecimals)
+  const adjustedMonthlyAllowance = formatBigNumber(toMonthlyAllocation(rate, daiDecimals), daiDecimals, { numberPrefix: '$' })
   const adjustedYearlyAllowance = formatBigNumber(toMonthlyAllocation(rate, daiDecimals).times(12), daiDecimals, { numberPrefix: '$' })
   //
   // trends
@@ -145,7 +145,7 @@ export default () => {
           <li>
             <div>
               <p className="title">Monthly Allowance</p>
-              <p className="number">${adjustedMonthlyAllowance}</p>
+              <p className="number">{adjustedMonthlyAllowance}</p>
             </div>
             <p className="sub-number green">{adjustedYearlyAllowance} (Y)</p>
           </li>
