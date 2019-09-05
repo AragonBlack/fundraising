@@ -72,7 +72,8 @@ export default () => {
     .reduce((acc, current) => acc.plus(current), new BigNumber(0))
   const adjsutedTradingVolume = formatBigNumber(tradingVolume, daiDecimals, { numberPrefix: '$' })
   const adjustedTokenSupply = formatBigNumber(realSupply, tokenDecimals)
-  const adjustedReserves = reserveBalance ? formatBigNumber(reserveBalance.minus(toBeClaimed), daiDecimals, { numberPrefix: '$' }) : '...'
+  const realReserve = reserveBalance ? reserveBalance.minus(toBeClaimed) : null
+  const adjustedReserves = realReserve ? formatBigNumber(realReserve, daiDecimals, { numberPrefix: '$' }) : '...'
   const adjustedMonthlyAllowance = formatBigNumber(toMonthlyAllocation(rate, daiDecimals), daiDecimals, { numberPrefix: '$' })
   const adjustedYearlyAllowance = formatBigNumber(toMonthlyAllocation(rate, daiDecimals).times(12), daiDecimals, { numberPrefix: '$' })
   //
@@ -95,7 +96,7 @@ export default () => {
   const adjustedTokenSupplyTrend = trendBatch?.realSupply ? formatBigNumber(realSupply.minus(trendBatch.realSupply), tokenDecimals, { keepSign: true }) : null
   const adjustedReservesTrend =
     reserveBalance && trendBatch?.realBalance
-      ? formatBigNumber(reserveBalance.minus(trendBatch.realBalance), tokenDecimals, { keepSign: true, numberPrefix: '$' })
+      ? formatBigNumber(realReserve.minus(trendBatch.realBalance), tokenDecimals, { keepSign: true, numberPrefix: '$' })
       : null
   // helper to compute the trend color (green if positive, red if negative)
   const getTrendColor = value => (value ? (value.startsWith('+') ? 'green' : 'red') : 'none')
