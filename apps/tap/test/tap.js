@@ -414,6 +414,29 @@ contract('Tap app', accounts => {
       context('> and token is tapped', () => {
         context('> and new tap rate is above zero', () => {
           context('> and new tap is lower than old tap', () => {
+            it('it should withdraw funds', async () => {
+              await tap.addTappedToken(ETH, 10, 5, { from: authorized })
+              await tap.addTappedToken(token1.address, 5000, 5, { from: authorized })
+
+              await progressToNextBatch()
+
+              const withdrawalETH = await tap.getMaximumWithdrawal(ETH)
+              const withdrawalERC20 = await tap.getMaximumWithdrawal(token1.address)
+
+              const receipt1 = await tap.updateTappedToken(ETH, 1, 10, { from: authorized })
+              const receipt2 = await tap.updateTappedToken(token1.address, 2, 7, { from: authorized })
+
+              assertEvent(receipt1, 'Withdraw')
+              assert.equal(await tap.lastWithdrawals(ETH), getBatchId(receipt1))
+              assert.equal((await getBalance(reserve.address)).toNumber(), INITIAL_ETH_BALANCE - withdrawalETH)
+              assert.equal((await getBalance(beneficiary.address)).toNumber(), withdrawalETH)
+
+              assertEvent(receipt2, 'Withdraw')
+              assert.equal(await tap.lastWithdrawals(token1.address), getBatchId(receipt2))
+              assert.equal((await token1.balanceOf(reserve.address)).toNumber(), INITIAL_TOKEN_BALANCE - withdrawalERC20)
+              assert.equal((await token1.balanceOf(beneficiary.address)).toNumber(), withdrawalERC20)
+            })
+
             it('it should update tapped token', async () => {
               await tap.addTappedToken(ETH, 10, 5, { from: authorized })
               await tap.addTappedToken(token1.address, 5000, 5, { from: authorized })
@@ -438,6 +461,31 @@ contract('Tap app', accounts => {
           context('> and new tap is higher than old tap', () => {
             context('> and tap has not been updated in the last 30 days', () => {
               context('> and tap increase is below the allowed limit', () => {
+                it('it should withdraw funds', async () => {
+                  await tap.addTappedToken(ETH, 10, 5, { from: authorized })
+                  await tap.addTappedToken(token1.address, 5000, 5, { from: authorized })
+
+                  // move forward of one month + 1 second [to avoid timeTravel inconsistency]
+                  await timeTravel(2592001)
+                  await progressToNextBatch()
+
+                  const withdrawalETH = await tap.getMaximumWithdrawal(ETH)
+                  const withdrawalERC20 = await tap.getMaximumWithdrawal(token1.address)
+
+                  const receipt1 = await tap.updateTappedToken(ETH, 14, 10, { from: authorized })
+                  const receipt2 = await tap.updateTappedToken(token1.address, 7500, 7, { from: authorized })
+
+                  assertEvent(receipt1, 'Withdraw')
+                  assert.equal(await tap.lastWithdrawals(ETH), getBatchId(receipt1))
+                  assert.equal((await getBalance(reserve.address)).toNumber(), INITIAL_ETH_BALANCE - withdrawalETH)
+                  assert.equal((await getBalance(beneficiary.address)).toNumber(), withdrawalETH)
+
+                  assertEvent(receipt2, 'Withdraw')
+                  assert.equal(await tap.lastWithdrawals(token1.address), getBatchId(receipt2))
+                  assert.equal((await token1.balanceOf(reserve.address)).toNumber(), INITIAL_TOKEN_BALANCE - withdrawalERC20)
+                  assert.equal((await token1.balanceOf(beneficiary.address)).toNumber(), withdrawalERC20)
+                })
+
                 it('it should update tapped token', async () => {
                   await tap.addTappedToken(ETH, 10, 5, { from: authorized })
                   await tap.addTappedToken(token1.address, 5000, 5, { from: authorized })
