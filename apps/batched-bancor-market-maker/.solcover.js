@@ -10,6 +10,7 @@ module.exports = {
     '@aragon/apps-vault',
     '@ablack/fundraising-bancor-formula',
     '@ablack/fundraising-shared-interfaces',
+    '@ablack/fundraising-test-helpers',
   ],
   skipFiles: [
     'test',
@@ -22,5 +23,6 @@ module.exports = {
     '@aragon/apps-vault',
     '@ablack/fundraising-bancor-formula',
     '@ablack/fundraising-shared-interfaces',
+    '@ablack/fundraising-test-helpers',
   ],
 }
