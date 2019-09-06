@@ -54,6 +54,11 @@
       "params": []
     },
     {
+      "name": "Reset tapped tokens",
+      "id": "RESET_TAPPED_TOKEN_ROLE",
+      "params": []
+    },
+    {
       "name": "Update tapped tokens settings",
       "id": "UPDATE_TAPPED_TOKEN_ROLE",
       "params": []
