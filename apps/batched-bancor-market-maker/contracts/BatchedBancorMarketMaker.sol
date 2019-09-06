@@ -613,6 +613,20 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
         emit UpdateFees(_buyFeePct, _sellFeePct);
     }
 
+    function _cancelCurrentBatch(address _collateral) internal {
+        (uint256 batchId, Batch storage batch) = _currentBatch(_collateral);
+        if (!batch.cancelled) {
+            batch.cancelled = true;
+
+            // bought bonds are cancelled but sold bonds are due back
+            // bought collaterals are cancelled but sold collaterals are due back
+            tokensToBeMinted = tokensToBeMinted.sub(batch.totalBuyReturn).add(batch.totalSellSpend);
+            collateralsToBeClaimed[_collateral] = collateralsToBeClaimed[_collateral].add(batch.totalBuySpend).sub(batch.totalSellReturn);
+
+            emit CancelBatch(batchId, _collateral);
+        }
+    }
+
     function _addCollateralToken(address _collateral, uint256 _virtualSupply, uint256 _virtualBalance, uint32 _reserveRatio, uint256 _slippage)
         internal
     {
@@ -653,18 +667,6 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
         collaterals[_collateral].slippage = _slippage;
 
         emit UpdateCollateralToken(_collateral, _virtualSupply, _virtualBalance, _reserveRatio, _slippage);
-    }
-
-    function _cancelCurrentBatch(address _collateral) internal {
-        (uint256 batchId, Batch storage batch) = _currentBatch(_collateral);
-        batch.cancelled = true;
-
-        // bought bonds are cancelled but sold bonds are due back
-        // bought collaterals are cancelled but sold collaterals are due back
-        tokensToBeMinted = tokensToBeMinted.sub(batch.totalBuyReturn).add(batch.totalSellSpend);
-        collateralsToBeClaimed[_collateral] = collateralsToBeClaimed[_collateral].add(batch.totalBuySpend).sub(batch.totalSellReturn);
-
-        emit CancelBatch(batchId, _collateral);
     }
 
     function _openBuyOrder(address _buyer, address _collateral, uint256 _value) internal {
