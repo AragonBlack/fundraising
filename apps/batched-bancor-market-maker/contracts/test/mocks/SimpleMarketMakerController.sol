@@ -17,6 +17,14 @@ contract SimpleMarketMakerController is IMarketMakerController, AragonApp {
         initialized();
     }
 
+    function openCampaign() external {
+        // do nothing
+    }
+
+    function resetTokenTap(address _token) external {
+        // do nothing
+    }
+
     function tokensToHold(address _token) public view returns (uint256) {
          if (_token == ETH) {
             return uint256(5);
