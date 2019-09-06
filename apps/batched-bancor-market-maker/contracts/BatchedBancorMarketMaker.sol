@@ -86,17 +86,18 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
         mapping(address => uint256) sellers;
     }
 
-    IMarketMakerController public controller;
-    TokenManager           public tokenManager;
-    ERC20                  public token;
-    Vault                  public reserve;
-    address                public beneficiary;
-    IBancorFormula         public formula;
+    IMarketMakerController         public controller;
+    TokenManager                   public tokenManager;
+    ERC20                          public token;
+    Vault                          public reserve;
+    address                        public beneficiary;
+    IBancorFormula                 public formula;
 
-    uint256 public batchBlocks;
-    uint256 public buyFeePct;
-    uint256 public sellFeePct;
-    uint256 public tokensToBeMinted;
+    uint256                        public batchBlocks;
+    uint256                        public buyFeePct;
+    uint256                        public sellFeePct;
+
+    uint256                        public tokensToBeMinted;
     mapping(address => uint256)    public collateralsToBeClaimed;
     mapping(address => Collateral) public collaterals;
     mapping(uint256 => MetaBatch)  public metaBatches;
