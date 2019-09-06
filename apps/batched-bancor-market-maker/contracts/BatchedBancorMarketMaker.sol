@@ -122,8 +122,8 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
         uint32  reserveRatio,
         uint256 slippage
     );
-    event OpenBuyOrder            (address indexed buyer, uint256 indexed batchId, address indexed collateral, uint256 fee, uint256 value);
-    event OpenSellOrder           (address indexed seller, uint256 indexed batchId, address indexed collateral, uint256 amount);
+    event OpenBuyOrder           (address indexed buyer, uint256 indexed batchId, address indexed collateral, uint256 fee, uint256 value);
+    event OpenSellOrder          (address indexed seller, uint256 indexed batchId, address indexed collateral, uint256 amount);
     event ClaimBuyOrder          (address indexed buyer, uint256 indexed batchId, address indexed collateral, uint256 amount);
     event ClaimSellOrder         (address indexed seller, uint256 indexed batchId, address indexed collateral, uint256 fee, uint256 value);
     event ClaimCancelledBuyOrder (address indexed buyer, uint256 indexed batchId, address indexed collateral, uint256 value);
