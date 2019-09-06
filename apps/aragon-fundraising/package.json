@@ -40,6 +40,7 @@
   ],
   "dependencies": {
     "@ablack/fundraising-batched-bancor-market-maker": "^0.1.0",
+    "@ablack/fundraising-presale": "^0.1.0",
     "@ablack/fundraising-shared-interfaces": "^0.1.0",
     "@ablack/fundraising-tap": "^0.1.0",
     "@aragon/apps-agent": "^2.0.0-rc.1",
