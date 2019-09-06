@@ -48,6 +48,7 @@
   },
   "devDependencies": {
     "@ablack/fundraising-bancor-formula": "^0.1.0",
+    "@ablack/fundraising-shared-test-helpers": "^0.1.0",
     "@aragon/apps-shared-migrations": "^1.0.0",
     "@aragon/apps-shared-minime": "^1.0.0",
     "@aragon/apps-token-manager": "^2.1.0",
