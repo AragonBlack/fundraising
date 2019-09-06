@@ -18,6 +18,7 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
 
     /**
     Hardcoded constants to save gas
+    bytes32 public constant OPEN_ROLE                    = keccak256("OPEN_ROLE");
     bytes32 public constant UPDATE_BENEFICIARY_ROLE      = keccak256("UPDATE_BENEFICIARY_ROLE");
     bytes32 public constant UPDATE_FORMULA_ROLE          = keccak256("UPDATE_FORMULA_ROLE");
     bytes32 public constant UPDATE_FEES_ROLE             = keccak256("UPDATE_FEES_ROLE");
@@ -27,6 +28,7 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
     bytes32 public constant OPEN_BUY_ORDER_ROLE          = keccak256("OPEN_BUY_ORDER_ROLE");
     bytes32 public constant OPEN_SELL_ORDER_ROLE         = keccak256("OPEN_SELL_ORDER_ROLE");
     */
+    bytes32 public constant OPEN_ROLE                    = 0xefa06053e2ca99a43c97c4a4f3d8a394ee3323a8ff237e625fba09fe30ceb0a4;
     bytes32 public constant UPDATE_BENEFICIARY_ROLE      = 0xf7ea2b80c7b6a2cab2c11d2290cb005c3748397358a25e17113658c83b732593;
     bytes32 public constant UPDATE_FORMULA_ROLE          = 0xbfb76d8d43f55efe58544ea32af187792a7bdb983850d8fed33478266eec3cbb;
     bytes32 public constant UPDATE_FEES_ROLE             = 0x5f9be2932ed3a723f295a763be1804c7ebfd1a41c1348fb8bdf5be1c5cdca822;
@@ -48,6 +50,8 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
     string private constant ERROR_INVALID_COLLATERAL             = "MM_INVALID_COLLATERAL";
     string private constant ERROR_INVALID_COLLATERAL_VALUE       = "MM_INVALID_COLLATERAL_VALUE";
     string private constant ERROR_INVALID_BOND_AMOUNT            = "MM_INVALID_BOND_AMOUNT";
+    string private constant ERROR_ALREADY_OPEN                   = "MM_ALREADY_OPEN";
+    string private constant ERROR_NOT_OPEN                       = "MM_NOT_OPEN";
     string private constant ERROR_COLLATERAL_ALREADY_WHITELISTED = "MM_COLLATERAL_ALREADY_WHITELISTED";
     string private constant ERROR_COLLATERAL_NOT_WHITELISTED     = "MM_COLLATERAL_NOT_WHITELISTED";
     string private constant ERROR_NOTHING_TO_CLAIM               = "MM_NOTHING_TO_CLAIM";
@@ -97,6 +101,7 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
     uint256                        public buyFeePct;
     uint256                        public sellFeePct;
 
+    bool                           public isOpen;
     uint256                        public tokensToBeMinted;
     mapping(address => uint256)    public collateralsToBeClaimed;
     mapping(address => Collateral) public collaterals;
@@ -123,6 +128,7 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
         uint32  reserveRatio,
         uint256 slippage
     );
+    event Open                   ();
     event OpenBuyOrder           (address indexed buyer, uint256 indexed batchId, address indexed collateral, uint256 fee, uint256 value);
     event OpenSellOrder          (address indexed seller, uint256 indexed batchId, address indexed collateral, uint256 amount);
     event ClaimBuyOrder          (address indexed buyer, uint256 indexed batchId, address indexed collateral, uint256 amount);
@@ -189,6 +195,15 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
     }
 
     /* generic settings related function */
+
+    /**
+     * @notice Open market making [enabling users to open buy and sell orders]
+    */
+    function open() external auth(OPEN_ROLE) {
+        require(!isOpen, ERROR_ALREADY_OPEN);
+
+        _open();
+    }
 
     /**
      * @notice Update beneficiary to `_beneficiary`
@@ -279,6 +294,7 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
      * @param _value      The amount of collateral token to be spent
     */
     function openBuyOrder(address _buyer, address _collateral, uint256 _value) external payable auth(OPEN_BUY_ORDER_ROLE) {
+        require(isOpen,                                                          ERROR_NOT_OPEN);
         require(_collateralIsWhitelisted(_collateral),                           ERROR_COLLATERAL_NOT_WHITELISTED);
         require(!_batchIsCancelled(_currentBatchId(), _collateral),              ERROR_BATCH_CANCELLED);
         require(_collateralValueIsValid(_buyer, _collateral, _value, msg.value), ERROR_INVALID_COLLATERAL_VALUE);
@@ -293,6 +309,7 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
      * @param _amount     The amount of bonded token to be spent
     */
     function openSellOrder(address _seller, address _collateral, uint256 _amount) external auth(OPEN_SELL_ORDER_ROLE) {
+        require(isOpen,                                             ERROR_NOT_OPEN);
         require(_collateralIsWhitelisted(_collateral),              ERROR_COLLATERAL_NOT_WHITELISTED);
         require(!_batchIsCancelled(_currentBatchId(), _collateral), ERROR_BATCH_CANCELLED);
         require(_bondAmountIsValid(_seller, _amount),               ERROR_INVALID_BOND_AMOUNT);
@@ -600,6 +617,12 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
     }
 
     /* state modifiying functions */
+
+    function _open() internal {
+        isOpen = true;
+
+        emit Open();
+    }
 
     function _updateBeneficiary(address _beneficiary) internal {
         beneficiary = _beneficiary;
