@@ -18,7 +18,7 @@ contract Presale is AragonApp {
     using SafeERC20  for ERC20;
 
     bytes32 public constant START_ROLE = keccak256("START_ROLE");
-    bytes32 public constant BUY_ROLE   = keccak256("BUY_ROLE");
+    bytes32 public constant CONTRIBUTE_ROLE   = keccak256("CONTRIBUTE_ROLE");
 
     uint256 public constant PPM = 1000000; // 25% => 0.25 * 1e6 ; 50% => 0.50 * 1e6
     uint256 public constant CONNECTOR_WEIGHT_PPM = 100000; // 10%
@@ -161,7 +161,7 @@ contract Presale is AragonApp {
     /**
     * @notice Starts the presale, changing its state to Funding. After the presale is started contributors will be able to purchase project tokens.
     */
-    function start() external auth(START_ROLE) {
+    function open() external auth(START_ROLE) {
         require(currentPresaleState() == PresaleState.Pending, ERROR_INVALID_STATE);
         _setStartDate(getTimestamp64());
     }
@@ -170,7 +170,7 @@ contract Presale is AragonApp {
     * @notice Buys tokens using the provided `_value` contribution tokens. To calculate how many project tokens will be sold for the provided contribution tokens amount, use contributionToTokens(). Each purchase generates a numeric vestedPurchaseId (0, 1, 2, etc) for the caller, which can be obtained in the TokensPurchased event emitted, and is required for later refunds. Note: If `_tokensToSpend` + `totalRaised` is larger than `presaleGoal`, only part of it will be used so that the funding goal is never exceeded.
     * @param _value The amount of contribution tokens to spend to obtain project tokens.
     */
-    function buy(uint256 _value) external auth(BUY_ROLE) {
+    function contribute(uint256 _value) external auth(CONTRIBUTE_ROLE) {
         require(currentPresaleState() == PresaleState.Funding, ERROR_INVALID_STATE);
 
         uint256 value = totalRaised.add(_value) > presaleGoal ? presaleGoal.sub(totalRaised) : _value;
@@ -248,7 +248,7 @@ contract Presale is AragonApp {
         for (uint256 i = 0; i < collaterals.length; i++) {
             controller.resetTokenTap(collaterals[i]);
         }
-        controller.startContinuousCampaign();
+        controller.openCampaign();
 
         emit PresaleClosed();
     }
