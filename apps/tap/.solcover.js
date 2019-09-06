@@ -2,8 +2,8 @@ module.exports = {
   norpc: true,
   copyPackages: [
     '@aragon/os',
-    '@aragon/apps-shared-migrations',
     '@aragon/test-helpers',
+    '@aragon/apps-shared-migrations',
     '@aragon/apps-vault',
     '@ablack/fundraising-shared-interfaces',
     '@ablack/fundraising-shared-test-helpers',
@@ -11,8 +11,8 @@ module.exports = {
   skipFiles: [
     'test',
     '@aragon/os',
-    '@aragon/apps-shared-migrations',
     '@aragon/test-helpers',
+    '@aragon/apps-shared-migrations',
     '@aragon/apps-vault',
     '@ablack/fundraising-shared-interfaces',
     '@ablack/fundraising-shared-test-helpers',
