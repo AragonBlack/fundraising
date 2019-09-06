@@ -24,6 +24,11 @@
   },
   "roles": [
     {
+      "name": "Open market making",
+      "id": "OPEN_ROLE",
+      "params": []
+    },
+    {
       "name": "Add tokens as whitelisted collaterals",
       "id": "ADD_COLLATERAL_TOKEN_ROLE",
       "params": []
