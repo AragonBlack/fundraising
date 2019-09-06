@@ -44,6 +44,7 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
     string private constant ERROR_INVALID_BATCH_BLOCKS           = "MM_INVALID_BATCH_BLOCKS";
     string private constant ERROR_INVALID_PERCENTAGE             = "MM_INVALID_PERCENTAGE";
     string private constant ERROR_INVALID_RESERVE_RATIO          = "MM_INVALID_RESERVE_RATIO";
+    string private constant ERROR_INVALID_TM_SETTING             = "MM_INVALID_TM_SETTING";
     string private constant ERROR_INVALID_COLLATERAL             = "MM_INVALID_COLLATERAL";
     string private constant ERROR_INVALID_COLLATERAL_VALUE       = "MM_INVALID_COLLATERAL_VALUE";
     string private constant ERROR_INVALID_BOND_AMOUNT            = "MM_INVALID_BOND_AMOUNT";
@@ -173,6 +174,7 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
         require(_beneficiaryIsValid(_beneficiary),                   ERROR_INVALID_BENEFICIARY);
         require(_batchBlocks > 0,                                    ERROR_INVALID_BATCH_BLOCKS);
         require(_feeIsValid(_buyFeePct) && _feeIsValid(_sellFeePct), ERROR_INVALID_PERCENTAGE);
+        require(_tokenManagerSettingIsValid(_tokenManager),          ERROR_INVALID_TM_SETTING);
 
         controller = _controller;
         tokenManager = _tokenManager;
@@ -412,6 +414,10 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
 
     function _reserveRatioIsValid(uint32 _reserveRatio) internal pure returns (bool) {
         return _reserveRatio <= PPM;
+    }
+
+    function _tokenManagerSettingIsValid(TokenManager _tokenManager) internal view returns (bool) {
+        return _tokenManager.maxAccountTokens() == uint256(-1);
     }
 
     function _collateralValueIsValid(address _buyer, address _collateral, uint256 _value, uint256 _msgValue) internal view returns (bool) {

@@ -324,6 +324,32 @@ contract('BatchedBancorMarketMaker app', accounts => {
         )
       })
 
+      it('it should revert [token manager setting is invalid]', async () => {
+        const bReceipt = await dao.newAppInstance(MARKET_MAKER_ID, mBase.address, '0x', false)
+        const uninitialized = await BancorMarketMaker.at(getEvent(bReceipt, 'NewAppProxy', 'proxy'))
+        
+        const token_ = await MiniMeToken.new(NULL_ADDRESS, NULL_ADDRESS, 0, 'Bond', 18, 'BON', false)
+        const tReceipt_ = await dao.newAppInstance(TOKEN_MANAGER_ID, tBase.address, '0x', false)
+        const tokenManager_ = await TokenManager.at(getEvent(tReceipt_, 'NewAppProxy', 'proxy'))
+        
+        await token_.changeController(tokenManager_.address)
+        await tokenManager_.initialize(token_.address, true, 1)
+
+        assertRevert(() =>
+          uninitialized.initialize(
+            controller.address,
+            tokenManager_.address,
+            reserve.address,
+            beneficiary,
+            formula.address,
+            BLOCKS_IN_BATCH,
+            BUY_FEE_PERCENT,
+            SELL_FEE_PERCENT,
+            { from: root }
+          )
+        )
+      })
+
       it('it should revert [reserve is not a contract]', async () => {
         const bReceipt = await dao.newAppInstance(MARKET_MAKER_ID, mBase.address, '0x', false)
         const uninitialized = await BancorMarketMaker.at(getEvent(bReceipt, 'NewAppProxy', 'proxy'))
