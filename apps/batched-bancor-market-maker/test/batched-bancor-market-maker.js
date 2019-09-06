@@ -806,7 +806,7 @@ contract('BatchedBancorMarketMaker app', accounts => {
                     it('it should register buy order', async () => {
                       const receipt = await openBuyOrder(authorized, collaterals[index], randomAmount(), { from: authorized })
 
-                      assertEvent(receipt, 'NewBuyOrder')
+                      assertEvent(receipt, 'OpenBuyOrder')
                     })
 
                     it('it should deduct fee', async () => {
@@ -996,7 +996,7 @@ contract('BatchedBancorMarketMaker app', accounts => {
                       it('it should register sell order', async () => {
                         const balance = await openAndClaimBuyOrder(authorized, collaterals[index], randomAmount(), { from: authorized })
                         const receipt = await openSellOrder(authorized, collaterals[index], balance, { from: authorized })
-                        assertEvent(receipt, 'NewSellOrder')
+                        assertEvent(receipt, 'OpenSellOrder')
                       })
 
                       it('it should collect bonds', async () => {
@@ -1054,10 +1054,10 @@ contract('BatchedBancorMarketMaker app', accounts => {
                         const receipt3 = await openBuyOrder(authorized, collateral.address, amountToken21)
                         const receipt4 = await openSellOrder(authorized2, ETH, balance2)
                         // assert that the orders have all been registered
-                        assertEvent(receipt1, 'NewSellOrder')
-                        assertEvent(receipt2, 'NewSellOrder')
-                        assertEvent(receipt3, 'NewBuyOrder')
-                        assertEvent(receipt4, 'NewSellOrder')
+                        assertEvent(receipt1, 'OpenSellOrder')
+                        assertEvent(receipt2, 'OpenSellOrder')
+                        assertEvent(receipt3, 'OpenBuyOrder')
+                        assertEvent(receipt4, 'OpenSellOrder')
                         // assert that the orders are all in the same batch
                         const batchId1 = getSellOrderBatchId(receipt1)
                         const batchId2 = getSellOrderBatchId(receipt2)
@@ -1228,7 +1228,7 @@ contract('BatchedBancorMarketMaker app', accounts => {
                 await progressToNextBatch()
                 const receipt2 = await marketMaker.claimBuyOrder(authorized, batchId, collaterals[index])
 
-                assertEvent(receipt2, 'ReturnBuyOrder')
+                assertEvent(receipt2, 'ClaimBuyOrder')
               })
 
               it('it should return bonds', async () => {
@@ -1375,7 +1375,7 @@ contract('BatchedBancorMarketMaker app', accounts => {
                 await progressToNextBatch()
                 const receipt2 = await marketMaker.claimSellOrder(authorized, batchId, collaterals[index])
 
-                assertEvent(receipt2, 'ReturnSellOrder')
+                assertEvent(receipt2, 'ClaimSellOrder')
               })
 
               it('it should return collateral', async () => {
@@ -1553,7 +1553,7 @@ contract('BatchedBancorMarketMaker app', accounts => {
             await marketMaker.removeCollateralToken(collaterals[index], { from: authorized })
             const receipt2 = await marketMaker.claimCancelledBuyOrder(authorized, batchId, collaterals[index])
 
-            assertEvent(receipt2, 'ReturnCancelledBuyOrder')
+            assertEvent(receipt2, 'ClaimCancelledBuyOrder')
           })
 
           it('it should return collateral', async () => {
@@ -1645,7 +1645,7 @@ contract('BatchedBancorMarketMaker app', accounts => {
             await marketMaker.removeCollateralToken(collaterals[index], { from: authorized })
             const receipt2 = await marketMaker.claimCancelledSellOrder(authorized, batchId, collaterals[index])
 
-            assertEvent(receipt2, 'ReturnCancelledSellOrder')
+            assertEvent(receipt2, 'ClaimCancelledSellOrder')
           })
 
           it('it should return bonds', async () => {
