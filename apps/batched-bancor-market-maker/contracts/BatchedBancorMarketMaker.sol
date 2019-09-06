@@ -244,7 +244,7 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
      * @param _virtualSupply  The virtual supply to be used for that collateral token [in wei]
      * @param _virtualBalance The virtual balance to be used for that collateral token [in wei]
      * @param _reserveRatio   The reserve ratio to be used for that collateral token [in PPM]
-     * @param _slippage       The price slippage below which each batch is to be kept [in PCT_BASE]
+     * @param _slippage       The price slippage below which each batch is to be kept for that collateral token [in PCT_BASE]
     */
     function addCollateralToken(address _collateral, uint256 _virtualSupply, uint256 _virtualBalance, uint32 _reserveRatio, uint256 _slippage)
         external
@@ -273,7 +273,7 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
      * @param _virtualSupply  The new virtual supply to be used for that collateral token [in wei]
      * @param _virtualBalance The new virtual balance to be used for that collateral token [in wei]
      * @param _reserveRatio   The new reserve ratio to be used for that collateral token [in PPM]
-     * @param _slippage       The new price slippage below which each batch is to be kept [in PCT_BASE]
+     * @param _slippage       The new price slippage below which each batch is to be kept for that collateral token [in PCT_BASE]
     */
     function updateCollateralToken(address _collateral, uint256 _virtualSupply, uint256 _virtualBalance, uint32 _reserveRatio, uint256 _slippage)
         external

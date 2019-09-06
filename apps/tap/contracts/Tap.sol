@@ -137,7 +137,7 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
 
     /**
      * @notice Update maximum tap rate increase percentage to `@formatPct(_maximumTapRateIncreasePct)`%
-     * @param _maximumTapRateIncreasePct The new maximum tap rate increase percentage allowed
+     * @param _maximumTapRateIncreasePct The new maximum tap rate increase percentage allowed [in PCT_BASE]
     */
     function updateMaximumTapRateIncreasePct(uint256 _maximumTapRateIncreasePct) external auth(UPDATE_MAXIMUM_TAP_RATE_INCREASE_PCT_ROLE) {
         _updateMaximumTapRateIncreasePct(_maximumTapRateIncreasePct);
