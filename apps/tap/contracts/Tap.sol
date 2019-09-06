@@ -71,14 +71,14 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
     event Withdraw                       (address indexed token, uint256 amount);
 
 
-    /***** external function *****/
+    /***** external functions *****/
 
     /**
      * @notice Initialize tap
-     * @param _controller                The address of the controller
-     * @param _reserve                   The address of the reserve [pool]
+     * @param _controller                The address of the controller contract
+     * @param _reserve                   The address of the reserve [pool] contract
      * @param _beneficiary               The address of the beneficiary [to whom funds are to be withdrawn]
-     * @param _batchBlocks               The number of blocks a batch lasts
+     * @param _batchBlocks               The number of blocks batches are to last
      * @param _maximumTapRateIncreasePct The maximum tap rate increase percentage allowed [in PCT_BASE]
     */
     function initialize(
@@ -107,7 +107,7 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
 
     /**
      * @notice Update controller to `_controller`
-     * @param _controller The address of the new controller
+     * @param _controller The address of the new controller contract
     */
     function updateController(IMarketMakerController _controller) external auth(UPDATE_CONTROLLER_ROLE) {
         require(isContract(_controller), ERROR_CONTRACT_IS_EOA);
@@ -117,7 +117,7 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
 
     /**
      * @notice Update reserve to `_reserve`
-     * @param _reserve The address of the new reserve [pool]
+     * @param _reserve The address of the new reserve [pool] contract
     */
     function updateReserve(Vault _reserve) external auth(UPDATE_RESERVE_ROLE) {
         require(isContract(_reserve), ERROR_CONTRACT_IS_EOA);
@@ -203,7 +203,7 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
         _withdraw(_token, amount);
     }
 
-    /***** public functions *****/
+    /***** public view functions *****/
 
     function getMaximumWithdrawal(address _token) public view isInitialized returns (uint256) {
         return _maximumWithdrawal(_token);
