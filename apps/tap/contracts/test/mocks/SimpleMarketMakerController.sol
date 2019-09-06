@@ -17,7 +17,7 @@ contract SimpleMarketMakerController is IMarketMakerController, AragonApp {
         initialized();
     }
 
-    function startContinuousCampaign() external {
+    function openCampaign() external {
         // mock
     }
 
