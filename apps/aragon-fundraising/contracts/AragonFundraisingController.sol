@@ -1,78 +1,73 @@
-/*
- * SPDX-License-Identitifer:    GPL-3.0-or-later
- */
-
 pragma solidity 0.4.24;
 
 import "@aragon/os/contracts/apps/AragonApp.sol";
 import "@aragon/os/contracts/common/EtherTokenConstant.sol";
 import "@aragon/os/contracts/common/IsContract.sol";
 import "@aragon/os/contracts/common/SafeERC20.sol";
-import "@aragon/os/contracts/lib/token/ERC20.sol";
 import "@aragon/os/contracts/lib/math/SafeMath.sol";
-import "@ablack/fundraising-shared-interfaces/contracts/IMarketMakerController.sol";
-import "@ablack/fundraising-batched-bancor-market-maker/contracts/BatchedBancorMarketMaker.sol";
+import "@aragon/os/contracts/lib/token/ERC20.sol";
 import "@aragon/apps-agent/contracts/Agent.sol";
+import "@ablack/fundraising-batched-bancor-market-maker/contracts/BatchedBancorMarketMaker.sol";
+import "@ablack/fundraising-presale/contracts/Presale.sol";
 import "@ablack/fundraising-tap/contracts/Tap.sol";
+import "@ablack/fundraising-shared-interfaces/contracts/IMarketMakerController.sol";
 
 
 contract AragonFundraisingController is EtherTokenConstant, IsContract, IMarketMakerController, AragonApp {
     using SafeERC20 for ERC20;
-    using SafeMath for uint256;
+    using SafeMath  for uint256;
 
-    bytes32 public constant START_CAMPAIGN_ROLE = keccak256("START_CAMPAIGN_ROLE");
-    bytes32 public constant UPDATE_BENEFICIARY_ROLE = keccak256("UPDATE_BENEFICIARY_ROLE");
-    bytes32 public constant UPDATE_FEES_ROLE = keccak256("UPDATE_FEES_ROLE");
+    bytes32 public constant UPDATE_BENEFICIARY_ROLE                   = keccak256("UPDATE_BENEFICIARY_ROLE");
+    bytes32 public constant UPDATE_FEES_ROLE                          = keccak256("UPDATE_FEES_ROLE");
+    bytes32 public constant ADD_COLLATERAL_TOKEN_ROLE                 = keccak256("ADD_COLLATERAL_TOKEN_ROLE");
+    bytes32 public constant REMOVE_COLLATERAL_TOKEN_ROLE              = keccak256("REMOVE_COLLATERAL_TOKEN_ROLE");
+    bytes32 public constant UPDATE_COLLATERAL_TOKEN_ROLE              = keccak256("UPDATE_COLLATERAL_TOKEN_ROLE");
     bytes32 public constant UPDATE_MAXIMUM_TAP_RATE_INCREASE_PCT_ROLE = keccak256("UPDATE_MAXIMUM_TAP_RATE_INCREASE_PCT_ROLE");
-    bytes32 public constant ADD_COLLATERAL_TOKEN_ROLE = keccak256("ADD_COLLATERAL_TOKEN_ROLE");
-    bytes32 public constant REMOVE_COLLATERAL_TOKEN_ROLE = keccak256("REMOVE_COLLATERAL_TOKEN_ROLE");
-    bytes32 public constant UPDATE_COLLATERAL_TOKEN_ROLE = keccak256("UPDATE_COLLATERAL_TOKEN_ROLE");
-    bytes32 public constant UPDATE_TOKEN_TAP_ROLE = keccak256("UPDATE_TOKEN_TAP_ROLE");
-    bytes32 public constant RESET_TOKEN_TAP_ROLE = keccak256("RESET_TOKEN_TAP_ROLE");
-    bytes32 public constant OPEN_BUY_ORDER_ROLE = keccak256("OPEN_BUY_ORDER_ROLE");
-    bytes32 public constant OPEN_SELL_ORDER_ROLE = keccak256("OPEN_SELL_ORDER_ROLE");
-    bytes32 public constant WITHDRAW_ROLE = keccak256("WITHDRAW_ROLE");
+    bytes32 public constant UPDATE_TOKEN_TAP_ROLE                     = keccak256("UPDATE_TOKEN_TAP_ROLE");
+    bytes32 public constant RESET_TOKEN_TAP_ROLE                      = keccak256("RESET_TOKEN_TAP_ROLE");
+    bytes32 public constant OPEN_PRESALE_ROLE                         = keccak256("OPEN_PRESALE_ROLE");
+    bytes32 public constant OPEN_CAMPAIGN_ROLE                        = keccak256("OPEN_CAMPAIGN_ROLE");
+    bytes32 public constant CONTRIBUTE_ROLE                           = keccak256("CONTRIBUTE_ROLE");
+    bytes32 public constant OPEN_BUY_ORDER_ROLE                       = keccak256("OPEN_BUY_ORDER_ROLE");
+    bytes32 public constant OPEN_SELL_ORDER_ROLE                      = keccak256("OPEN_SELL_ORDER_ROLE");
+    bytes32 public constant WITHDRAW_ROLE                             = keccak256("WITHDRAW_ROLE");
 
-    string private constant ERROR_CONTRACT_IS_EOA = "FUNDRAISING_CONTRACT_IS_EOA";
-    string private constant ERROR_ALREADY_STARTED = "FUNDRAISING_ALREADY_STARTED";
-    string private constant ERROR_NOT_STARTED = "FUNDRAISING_NOT_STARTED";
+    string private constant ERROR_CONTRACT_IS_EOA       = "FUNDRAISING_CONTRACT_IS_EOA";
 
-
+    Presale                  public presale;
     BatchedBancorMarketMaker public marketMaker;
     Agent                    public reserve;
     Tap                      public tap;
-    bool                     public continuousCampaignIsStarted;
 
-    event StartContinuousCampaign();
 
     /***** external functions *****/
 
-    function initialize(BatchedBancorMarketMaker _marketMaker, Agent _reserve, Tap _tap) external onlyInit {
+    /**
+     * @notice Initialize Aragon Fundraising controller
+     * @param _presale     The address of the presale contract
+     * @param _marketMaker The address of the market maker contract
+     * @param _reserve     The address of the reserve [pool] contract
+     * @param _tap         The address of the tap contract
+    */
+    function initialize(Presale _presale, BatchedBancorMarketMaker _marketMaker, Agent _reserve, Tap _tap) external onlyInit {
+        require(isContract(_presale),     ERROR_CONTRACT_IS_EOA);
+        require(isContract(_marketMaker), ERROR_CONTRACT_IS_EOA);
+        require(isContract(_reserve),     ERROR_CONTRACT_IS_EOA);
+        require(isContract(_tap),         ERROR_CONTRACT_IS_EOA);
+
         initialized();
 
-        require(isContract(_marketMaker), ERROR_CONTRACT_IS_EOA);
-        require(isContract(_reserve), ERROR_CONTRACT_IS_EOA);
-        require(isContract(_tap), ERROR_CONTRACT_IS_EOA);
-
+        presale = _presale;
         marketMaker = _marketMaker;
         reserve = _reserve;
         tap = _tap;
     }
 
-    /**
-     * @notice Starts the continuous fundraising campaign [enabling users to open buy and sell orders]
-    */
-    function startContinuousCampaign() external auth(START_CAMPAIGN_ROLE) {
-        require(!continuousCampaignIsStarted, ERROR_ALREADY_STARTED);
-
-        continuousCampaignIsStarted = true;
-
-        emit StartContinuousCampaign();
-    }
+    /* generic settings related function */
 
     /**
      * @notice Update beneficiary to `_beneficiary`
-     * @param _beneficiary The address of the new beneficiary to be used
+     * @param _beneficiary The address of the new beneficiary
     */
     function updateBeneficiary(address _beneficiary) external auth(UPDATE_BENEFICIARY_ROLE) {
         marketMaker.updateBeneficiary(_beneficiary);
@@ -80,82 +75,178 @@ contract AragonFundraisingController is EtherTokenConstant, IsContract, IMarketM
     }
 
     /**
-     * @notice Update the fee percentage deducted from all buy and sell orders to respectively `@formatPct(_buyFee)` % and `@formatPct(_sellFee)` %
-     * @param _buyFee The new buy fee to be used
-     * @param _sellFee The new sell fee to be used
+     * @notice Update fees deducted from buy and sell orders to respectively `@formatPct(_buyFee)`% and `@formatPct(_sellFee)`%
+     * @param _buyFee  The new fee to be deducted from buy orders [in PCT_BASE]
+     * @param _sellFee The new fee to be deducted from sell orders [in PCT_BASE]
     */
     function updateFees(uint256 _buyFee, uint256 _sellFee) external auth(UPDATE_FEES_ROLE) {
         marketMaker.updateFees(_buyFee, _sellFee);
     }
 
+    /* presale related functions */
+
     /**
-     * @notice Update maximum tap increase percentage to `@formatPct(_maximumTapRateIncreasePct)`%
-     * @param _maximumTapRateIncreasePct The new maximum tap increase percentage to be used
+     * @notice Open presale
     */
-    function updateMaximumTapRateIncreasePct(uint256 _maximumTapRateIncreasePct) external auth(UPDATE_MAXIMUM_TAP_RATE_INCREASE_PCT_ROLE) {
-        tap.updateMaximumTapRateIncreasePct(_maximumTapRateIncreasePct);
+    function openPresale() external auth(OPEN_PRESALE_ROLE) {
+        presale.open();
     }
 
     /**
-     * @notice Add `_token.symbol(): string` as a whitelisted collateral token
-     * @param _token The address of the collateral token to be added
-     * @param _virtualSupply The virtual supply to be used for that collateral token
-     * @param _virtualBalance The virtual balance to be used for that collateral token
-     * @param _reserveRatio The reserve ratio to be used for that collateral token [in PPM]
-     * @param _tap The tap to be applied applied to that token [in wei / second]
+     * @notice Close presale and open fundraising campaign
     */
-    function addCollateralToken
-    (
-        address _token,
+    function closePresale() external {
+        presale.close();
+    }
+
+    /**
+     * @notice Contribute to the presale up to `@tokenAmount(self.contributionToken(): address, _value)`
+     * @param _value The amount of contribution token to be spent
+    */
+    function contribute(uint256 _value) external auth(CONTRIBUTE_ROLE) {
+        presale.contribute(_value);
+    }
+
+    /**
+     * @notice Refund `_buyer`'s presale contribution #`_vestedPurchaseId`
+     * @param _buyer            The address of the user whose presale contribution is to be refunded
+     * @param _vestedPurchaseId The id of the contribution to be refunded
+
+    */
+    function refund(address _buyer, uint256 _vestedPurchaseId) external {
+        presale.refund(_buyer, _vestedPurchaseId);
+    }
+
+    /* continuous fundraising campaign related functions */
+
+    /**
+     * @notice Open fundraising campaign [enabling users to open buy and sell orders]
+    */
+    function openCampaign() external auth(OPEN_CAMPAIGN_ROLE) {
+        marketMaker.open();
+    }
+
+    /**
+     * @notice Open a buy order worth `@tokenAmount(_collateral, _value)`
+     * @param _collateral The address of the collateral token to be spent
+     * @param _value      The amount of collateral token to be spent
+    */
+    function openBuyOrder(address _collateral, uint256 _value) external payable auth(OPEN_BUY_ORDER_ROLE) {
+        marketMaker.openBuyOrder.value(msg.value)(msg.sender, _collateral, _value);
+    }
+
+    /**
+     * @notice Open a sell order worth `@tokenAmount(self.token(): address, _amount)` against `_collateral.symbol(): string`
+     * @param _collateral The address of the collateral token to be returned
+     * @param _amount     The amount of bonded token to be spent
+    */
+    function openSellOrder(address _collateral, uint256 _amount) external auth(OPEN_SELL_ORDER_ROLE) {
+        marketMaker.openSellOrder(msg.sender, _collateral, _amount);
+    }
+
+    /**
+     * @notice Claim the results of `_collateral.symbol(): string` buy orders from batch #`_batchId`
+     * @param _batchId    The id of the batch in which buy orders are to be claimed
+     * @param _collateral The address of the collateral token against which buy orders are to be claimed
+    */
+    function claimBuyOrder(uint256 _batchId, address _collateral) external isInitialized {
+        marketMaker.claimBuyOrder(msg.sender, _batchId, _collateral);
+    }
+
+    /**
+     * @notice Claim the results of `_collateral.symbol(): string` sell orders from batch #`_batchId`
+     * @param _batchId    The id of the batch in which sell orders are to be claimed
+     * @param _collateral The address of the collateral token against which sell orders are to be claimed
+    */
+    function claimSellOrder(uint256 _batchId, address _collateral) external isInitialized {
+        marketMaker.claimSellOrder(msg.sender, _batchId, _collateral);
+    }
+
+    /* collateral tokens related functions */
+
+    /**
+     * @notice Add `_collateral.symbol(): string` as a whitelisted collateral token
+     * @param _collateral     The address of the collateral token to be whitelisted
+     * @param _virtualSupply  The virtual supply to be used for that collateral token [in wei]
+     * @param _virtualBalance The virtual balance to be used for that collateral token [in wei]
+     * @param _reserveRatio   The reserve ratio to be used for that collateral token [in PPM]
+     * @param _slippage       The price slippage below which each market making batch is to be kept for that collateral token [in PCT_BASE]
+     * @param _rate           The rate at which that token is to be tapped [in wei / block]
+     * @param _floor          The floor above which the reserve [pool] balance for that token is to be kept [in wei]
+    */
+    function addCollateralToken(
+        address _collateral,
         uint256 _virtualSupply,
         uint256 _virtualBalance,
-        uint32 _reserveRatio,
+        uint32  _reserveRatio,
         uint256 _slippage,
-        uint256 _tap,
+        uint256 _rate,
         uint256 _floor
     )
-    	external auth(ADD_COLLATERAL_TOKEN_ROLE)
+    	external
+        auth(ADD_COLLATERAL_TOKEN_ROLE)
     {
-        marketMaker.addCollateralToken(_token, _virtualSupply, _virtualBalance, _reserveRatio, _slippage);
-        tap.addTappedToken(_token, _tap, _floor);
-        if (_token != ETH) {
-            reserve.addProtectedToken(_token);
+        marketMaker.addCollateralToken(_collateral, _virtualSupply, _virtualBalance, _reserveRatio, _slippage);
+        tap.addTappedToken(_collateral, _rate, _floor);
+        if (_collateral != ETH) {
+            reserve.addProtectedToken(_collateral);
         }
     }
 
-    function removeCollateralToken(address _token) external auth(REMOVE_COLLATERAL_TOKEN_ROLE) {
-        marketMaker.removeCollateralToken(_token);
+    /**
+      * @notice Remove `_collateral.symbol(): string` as a whitelisted collateral token
+      * @param _collateral The address of the collateral token to be un-whitelisted
+    */
+    function removeCollateralToken(address _collateral) external auth(REMOVE_COLLATERAL_TOKEN_ROLE) {
+        marketMaker.removeCollateralToken(_collateral);
         // the token should still be tapped to avoid being locked
         // the token should still be protected to avoid being spent
     }
 
     /**
      * @notice Update `_collateral.symbol(): string` collateralization settings
-     * @param _collateral The address of the collateral token whose collateralization settings are to be updated
-     * @param _virtualSupply The new virtual supply to be used for that collateral token
-     * @param _virtualBalance The new virtual balance to be used for that collateral token
-     * @param _reserveRatio The new reserve ratio to be used for that collateral token [in PPM]
-     * @param _slippage The new maximum price slippage per batch to be allowed for that collateral token [in PCT_BASE]
+     * @param _collateral     The address of the collateral token whose collateralization settings are to be updated
+     * @param _virtualSupply  The new virtual supply to be used for that collateral token [in wei]
+     * @param _virtualBalance The new virtual balance to be used for that collateral token [in wei]
+     * @param _reserveRatio   The new reserve ratio to be used for that collateral token [in PPM]
+     * @param _slippage       The new price slippage below which each market making batch is to be kept for that collateral token [in PCT_BASE]
     */
-    function updateCollateralToken(address _collateral, uint256 _virtualSupply, uint256 _virtualBalance, uint32 _reserveRatio, uint256 _slippage)
-        external auth(UPDATE_COLLATERAL_TOKEN_ROLE)
+    function updateCollateralToken(
+        address _collateral,
+        uint256 _virtualSupply,
+        uint256 _virtualBalance,
+        uint32  _reserveRatio,
+        uint256 _slippage
+    )
+        external
+        auth(UPDATE_COLLATERAL_TOKEN_ROLE)
     {
         marketMaker.updateCollateralToken(_collateral, _virtualSupply, _virtualBalance, _reserveRatio, _slippage);
     }
 
+    /* tap related functions */
+
     /**
-     * @notice Update tap for `_token.symbol(): string` with a pace of about `@tokenAmount(_token, 4 * 60 * 24 * 30 * _tap)` per month and a floor of `@tokenAmount(_token, _floor)`
-     * @param _token The address of the token whose tap and floor are to be updated
-     * @param _tap The new tap to be applied to that token [in wei / block]
-     * @param _floor The new floor to be applied to that token
+     * @notice Update maximum tap rate increase percentage to `@formatPct(_maximumTapRateIncreasePct)`%
+     * @param _maximumTapRateIncreasePct The new maximum tap rate increase percentage allowed [in PCT_BASE]
     */
-    function updateTokenTap(address _token, uint256 _tap, uint256 _floor) external auth(UPDATE_TOKEN_TAP_ROLE) {
-        tap.updateTappedToken(_token, _tap, _floor);
+    function updateMaximumTapRateIncreasePct(uint256 _maximumTapRateIncreasePct) external auth(UPDATE_MAXIMUM_TAP_RATE_INCREASE_PCT_ROLE) {
+        tap.updateMaximumTapRateIncreasePct(_maximumTapRateIncreasePct);
     }
 
     /**
-     * @notice Reset tap-related timestamps for `_token.symbol(): string`
-     * @param _token The address of the token whose tap-related timestamps are to be reset
+     * @notice Update tap for `_token.symbol(): string` with a rate of `@tokenAmount(_token, _rate)` per block and a floor of `@tokenAmount(_token, _floor)`
+     * @param _token The address of the token whose tap is to be updated
+     * @param _rate  The new rate at which that token is to be tapped [in wei / block]
+     * @param _floor The new floor above which the reserve [pool] balance for that token is to be kept [in wei]
+    */
+    function updateTokenTap(address _token, uint256 _rate, uint256 _floor) external auth(UPDATE_TOKEN_TAP_ROLE) {
+        tap.updateTappedToken(_token, _rate, _floor);
+    }
+
+    /**
+     * @notice Reset tap timestamps for `_token.symbol(): string`
+     * @param _token The address of the token whose tap timestamps are to be reset
     */
     function resetTokenTap(address _token) external auth(RESET_TOKEN_TAP_ROLE) {
         tap.resetTappedToken(_token);
@@ -169,50 +260,14 @@ contract AragonFundraisingController is EtherTokenConstant, IsContract, IMarketM
         tap.withdraw(_token);
     }
 
-    /**
-     * @notice Open a buy order worth `@tokenAmount(_collateral, _value)`
-     * @param _collateral The address of the collateral token to be spent
-     * @param _value The amount of collateral token to be spent
-    */
-    function openBuyOrder(address _collateral, uint256 _value) external payable auth(OPEN_BUY_ORDER_ROLE) {
-        require(continuousCampaignIsStarted, ERROR_NOT_STARTED);
-
-        marketMaker.openBuyOrder.value(msg.value)(msg.sender, _collateral, _value);
-    }
-
-    /**
-     * @notice Open a sell order worth `@tokenAmount(self.token(): address, _amount)` against `_collateral.symbol(): string`
-     * @param _collateral The address of the collateral token to be returned
-     * @param _amount The amount of bonded token to be spent
-    */
-    function openSellOrder(address _collateral, uint256 _amount) external auth(OPEN_SELL_ORDER_ROLE) {
-        require(continuousCampaignIsStarted, ERROR_NOT_STARTED);
-
-        marketMaker.openSellOrder(msg.sender, _collateral, _amount);
-    }
-
-    /**
-     * @notice Return the results of `_collateral.symbol(): string` buy orders from batch #`_batchId`
-     * @param _batchId The id of the batch whose buy orders are to be claimed
-     * @param _collateral The address of the collateral token whose buy orders are to be claimed
-    */
-    function claimBuyOrder(uint256 _batchId, address _collateral) external isInitialized {
-        marketMaker.claimBuyOrder(msg.sender, _batchId, _collateral);
-    }
-
-    /**
-     * @notice Return the results of `_collateral.symbol(): string` sell orders from batch #`_batchId`
-     * @param _batchId The id of the batch whose sell orders are to be claimed
-     * @param _collateral The address of the collateral token whose sell orders are to be claimed
-    */
-    function claimSellOrder(uint256 _batchId, address _collateral) external isInitialized {
-        marketMaker.claimSellOrder(msg.sender, _batchId, _collateral);
-    }
-
     /***** public view functions *****/
 
     function token() public view isInitialized returns (address) {
         return marketMaker.token();
+    }
+
+    function contributionToken() public view isInitialized returns (address) {
+        return presale.contributionToken();
     }
 
     function getMaximumWithdrawal(address _token) public view isInitialized returns (uint256) {
