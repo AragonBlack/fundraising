@@ -15,9 +15,9 @@ const getBalance = require('@aragon/test-helpers/balance')(web3)
 const assertEvent = require('@aragon/test-helpers/assertEvent')
 const timeTravel = require('@aragon/test-helpers/timeTravel')(web3)
 const { hash } = require('eth-ens-namehash')
-const { getEvent } = require('@ablack/fundraising-test-helpers/events')
-const { NULL_ADDRESS } = require('@ablack/fundraising-test-helpers/addresses')
-const increaseBlocks = require('@ablack/fundraising-test-helpers/increaseBlocks')(web3)
+const { getEvent } = require('@ablack/fundraising-shared-test-helpers/events')
+const { NULL_ADDRESS } = require('@ablack/fundraising-shared-test-helpers/addresses')
+const increaseBlocks = require('@ablack/fundraising-shared-test-helpers/increaseBlocks')(web3)
 
 const getTimestamp = receipt => {
   return web3.eth.getBlock(receipt.receipt.blockNumber).timestamp
@@ -37,7 +37,7 @@ const INITIAL_ETH_BALANCE = 100000000
 const INITIAL_TOKEN_BALANCE = 100000000
 const MAX_TAP_RATE_INCREASE_PCT = 50 * Math.pow(10, 16)
 
-const progressToNextBatch = require('@ablack/fundraising-test-helpers/progressToNextBatch')(web3, BATCH_BLOCKS)
+const progressToNextBatch = require('@ablack/fundraising-shared-test-helpers/progressToNextBatch')(web3, BATCH_BLOCKS)
 
 contract('Tap app', accounts => {
   let factory, dao, acl, vBase, tBase, controller, reserve, beneficiary, tap, token1, token2

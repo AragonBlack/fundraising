@@ -6,7 +6,7 @@ module.exports = {
     '@aragon/test-helpers',
     '@aragon/apps-vault',
     '@ablack/fundraising-shared-interfaces',
-    '@ablack/fundraising-test-helpers',
+    '@ablack/fundraising-shared-test-helpers',
   ],
   skipFiles: [
     'test',
@@ -15,6 +15,6 @@ module.exports = {
     '@aragon/test-helpers',
     '@aragon/apps-vault',
     '@ablack/fundraising-shared-interfaces',
-    '@ablack/fundraising-test-helpers',
+    '@ablack/fundraising-shared-test-helpers',
   ],
 }

@@ -37,7 +37,7 @@
     "@aragon/os": "4.2.1"
   },
   "devDependencies": {
-    "@ablack/fundraising-test-helpers": "^0.1.0",
+    "@ablack/fundraising-shared-test-helpers": "^0.1.0",
     "@aragon/apps-agent": "^2.0.0-rc.1",
     "@aragon/apps-shared-migrations": "^1.0.0",
     "@aragon/apps-shared-minime": "^1.0.0",

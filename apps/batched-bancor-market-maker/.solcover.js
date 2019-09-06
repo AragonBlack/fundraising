@@ -10,7 +10,7 @@ module.exports = {
     '@aragon/apps-vault',
     '@ablack/fundraising-bancor-formula',
     '@ablack/fundraising-shared-interfaces',
-    '@ablack/fundraising-test-helpers',
+    '@ablack/fundraising-shared-test-helpers',
   ],
   skipFiles: [
     'test',

@@ -13,10 +13,16 @@ const TokenMock = artifacts.require('TokenMock')
 
 const assertEvent = require('@aragon/test-helpers/assertEvent')
 const { assertRevert } = require('@aragon/test-helpers/assertThrow')
-const getBalance = require('@ablack/fundraising-test-helpers/getBalance')(web3, TokenMock)
-const { NULL_ADDRESS } = require('@ablack/fundraising-test-helpers/addresses')
-const { getEvent, getNewMetaBatchEvent, getNewBatchEvent, getBuyOrderBatchId, getSellOrderBatchId } = require('@ablack/fundraising-test-helpers/events')
-const { randomAmount, randomVirtualSupply, randomVirtualBalance, randomReserveRatio, randomSlippage } = require('@ablack/fundraising-test-helpers/randomness')
+const getBalance = require('@ablack/fundraising-shared-test-helpers/getBalance')(web3, TokenMock)
+const { NULL_ADDRESS } = require('@ablack/fundraising-shared-test-helpers/addresses')
+const { getEvent, getNewMetaBatchEvent, getNewBatchEvent, getBuyOrderBatchId, getSellOrderBatchId } = require('@ablack/fundraising-shared-test-helpers/events')
+const {
+  randomAmount,
+  randomVirtualSupply,
+  randomVirtualBalance,
+  randomReserveRatio,
+  randomSlippage,
+} = require('@ablack/fundraising-shared-test-helpers/randomness')
 
 const { hash } = require('eth-ens-namehash')
 const forEach = require('mocha-each')
@@ -39,7 +45,7 @@ const VIRTUAL_SUPPLIES = [new web3.BigNumber(Math.pow(10, 23)), new web3.BigNumb
 const VIRTUAL_BALANCES = [new web3.BigNumber(Math.pow(10, 22)), new web3.BigNumber(Math.pow(10, 20))]
 const RESERVE_RATIOS = [(PPM * 10) / 100, (PPM * 1) / 100]
 
-const progressToNextBatch = require('@ablack/fundraising-test-helpers/progressToNextBatch')(web3, BLOCKS_IN_BATCH)
+const progressToNextBatch = require('@ablack/fundraising-shared-test-helpers/progressToNextBatch')(web3, BLOCKS_IN_BATCH)
 
 contract('BatchedBancorMarketMaker app', accounts => {
   let factory, dao, acl, cBase, tBase, rBase, mBase, token, tokenManager, controller, reserve, formula, marketMaker, collateral, collaterals
