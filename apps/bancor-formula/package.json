@@ -10,8 +10,8 @@
   "homepage": "https://github.com/AragonBlack/fundraising",
   "scripts": {
     "compile": "truffle compile",
-    "abi:extract": "truffle-extract --output abi/ --keys abi",
     "prepublishOnly": "truffle compile --all && npm run abi:extract -- --no-compile",
+    "abi:extract": "truffle-extract --output abi/ --keys abi",
     "apm:prepublish": "npm run compile",
     "apm:publish:rpc": "aragon apm publish major --environment default --skip-confirmation true --propagate-content false",
     "apm:publish:hatch:major": "aragon apm publish major --use-frame --environment hatch",
