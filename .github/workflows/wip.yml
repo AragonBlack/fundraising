@@ -1,7 +1,0 @@
-name: WIP_action
-on: [pull_request]
-jobs:
-  wip:
-    name: WIP
-    steps:
-    - uses: wip/action@v1.0.0
