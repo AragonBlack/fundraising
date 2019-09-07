@@ -10,7 +10,7 @@ jobs:
         if: github.event_name == 'issues' && github.event.action == 'opened'
         uses: alex-page/github-project-automation-plus@master
         with:
-          project: fundraising
+          project: Fundraising
           column: Triage
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
@@ -18,6 +18,6 @@ jobs:
         if: github.event_name == 'pull_request' && github.event.action == 'assigned'
         uses: alex-page/github-project-automation-plus@master
         with:
-          project: fundraising
+          project: Fundraising
           column: Triage
           repo-token: ${{ secrets.GITHUB_TOKEN }}
