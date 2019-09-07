@@ -12,7 +12,7 @@ jobs:
         with:
           project: Fundraising
           column: Triage
-          repo-token: ${{ secrets.GITHUB_TOKEN}}
+          repo-token: ${{ secrets.GITHUB_PROJECT_AUTOMATION}}
 
       - name: Move new PR into Triage
         if: github.event_name == 'pull_request' && github.event.action == 'assigned'
@@ -20,4 +20,4 @@ jobs:
         with:
           project: Fundraising
           column: Triage
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          repo-token: ${{ secrets.GITHUB_PROJECT_AUTOMATION }}
