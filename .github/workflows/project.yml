@@ -14,7 +14,7 @@ jobs:
           column: Triage
           repo-token: ${{ secrets.GITHUB_TOKEN}}
 
-      - name: Move assinged pull requests into To do
+      - name: Move new PR into Triage
         if: github.event_name == 'pull_request' && github.event.action == 'assigned'
         uses: alex-page/github-project-automation-plus@master
         with:
