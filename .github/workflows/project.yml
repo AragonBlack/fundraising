@@ -3,10 +3,10 @@ name: GitHub Project Automation
 on: [issues, pull_request]
 
 jobs:
-  automate-project-columns:
+  dispatch-new-issues-and-pull-requests:
     runs-on: ubuntu-latest
     steps:
-      - name: Move new issues into Triage
+      - name: Move new issues into Triage column
         if: github.event_name == 'issues' && github.event.action == 'opened'
         uses: alex-page/github-project-automation-plus@master
         with:
@@ -14,10 +14,10 @@ jobs:
           column: Triage
           repo-token: ${{ secrets.GITHUB_PROJECT_AUTOMATION}}
 
-      - name: Move new PR into Triage
+      - name: Move new PR into To Review column
         if: github.event_name == 'pull_request' && github.event.action == 'assigned'
         uses: alex-page/github-project-automation-plus@master
         with:
           project: Fundraising
-          column: Triage
+          column: To Review
           repo-token: ${{ secrets.GITHUB_PROJECT_AUTOMATION }}
