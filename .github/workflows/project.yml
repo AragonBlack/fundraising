@@ -12,7 +12,7 @@ jobs:
         with:
           project: Fundraising
           column: Triage
-          repo-token: ${{ secrets.PROJECT}}
+          repo-token: ${{ secrets.GITHUB_TOKEN}}
 
       - name: Move assinged pull requests into To do
         if: github.event_name == 'pull_request' && github.event.action == 'assigned'
@@ -20,4 +20,4 @@ jobs:
         with:
           project: Fundraising
           column: Triage
-          repo-token: ${{ secrets.PROJECT }}
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
