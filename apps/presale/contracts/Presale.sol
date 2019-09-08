@@ -170,7 +170,7 @@ contract Presale is AragonApp {
     * @notice Buys tokens using the provided `_value` contribution tokens. To calculate how many project tokens will be sold for the provided contribution tokens amount, use contributionToTokens(). Each purchase generates a numeric vestedPurchaseId (0, 1, 2, etc) for the caller, which can be obtained in the TokensPurchased event emitted, and is required for later refunds. Note: If `_tokensToSpend` + `totalRaised` is larger than `presaleGoal`, only part of it will be used so that the funding goal is never exceeded.
     * @param _value The amount of contribution tokens to spend to obtain project tokens.
     */
-    function contribute(address _contributor, uint256 _value) external auth(CONTRIBUTE_ROLE) {
+    function contribute(address _contributor, uint256 _value) external payable auth(CONTRIBUTE_ROLE) {
         require(currentPresaleState() == PresaleState.Funding, ERROR_INVALID_STATE);
 
         uint256 value = totalRaised.add(_value) > presaleGoal ? presaleGoal.sub(totalRaised) : _value;
