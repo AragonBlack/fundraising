@@ -20,10 +20,25 @@ const randomSlippage = () => {
   return Math.floor(Math.random() * PCT_BASE) + 1
 }
 
+const randomTapRate = () => {
+  return Math.floor(Math.random() * 999) + 1
+}
+
+const randomTapFloor = () => {
+  return Math.floor(Math.random() * 999999) + 1
+}
+
+const randomFee = () => {
+  return Math.floor(Math.random() * Math.pow(10, 17)) + 1
+}
+
 module.exports = {
   randomAmount,
   randomVirtualSupply,
   randomVirtualBalance,
   randomReserveRatio,
   randomSlippage,
+  randomTapRate,
+  randomTapFloor,
+  randomFee,
 }

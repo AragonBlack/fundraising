@@ -4,6 +4,8 @@ const DAYS = 24 * 3600
 const PPM = 1e6 /* "Parts per million", used to represent percentages; 100% = 1e6, 50% = 0.5 * 1e6, etc... */
 const ANY_ADDRESS = '0xffffffffffffffffffffffffffffffffffffffff'
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
+const ETH = '0x0000000000000000000000000000000000000000'
+
 const SALE_STATE = {
   PENDING: 0,
   FUNDING: 1,
@@ -11,6 +13,8 @@ const SALE_STATE = {
   GOAL_REACHED: 3,
   CLOSED: 4,
 }
+
+const INITIAL_DAI_BALANCE = Math.pow(10, 21)
 
 // Presale parameters
 const VESTING_CLIFF_PERIOD = 90 * DAYS
@@ -23,7 +27,7 @@ const TAP_RATE = 5000
 const PERCENT_FUNDING_FOR_BENEFICIARY = 0.25 * PPM // 25%
 
 // Funding paramenters
-const MAXIMUM_TAP_RATE_INCREASE = 50e16
+const MAXIMUM_TAP_RATE_INCREASE_PCT = 50e16
 const BLOCKS_IN_BATCH = 10
 const BUY_FEE_PERCENT = 100000000000000000 // 1%
 const SELL_FEE_PERCENT = 100000000000000000
@@ -37,6 +41,8 @@ const RATES = [10, 15]
 const FLOORS = [1000, 5000]
 
 module.exports = {
+  ETH,
+  INITIAL_DAI_BALANCE,
   NOW,
   DAYS,
   PPM,
@@ -50,7 +56,7 @@ module.exports = {
   PRESALE_PERIOD,
   TAP_RATE,
   SALE_STATE,
-  MAXIMUM_TAP_RATE_INCREASE,
+  MAXIMUM_TAP_RATE_INCREASE_PCT,
   BLOCKS_IN_BATCH,
   SELL_FEE_PERCENT,
   BUY_FEE_PERCENT,

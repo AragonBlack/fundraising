@@ -75,12 +75,12 @@ contract AragonFundraisingController is EtherTokenConstant, IsContract, IMarketM
     }
 
     /**
-     * @notice Update fees deducted from buy and sell orders to respectively `@formatPct(_buyFee)`% and `@formatPct(_sellFee)`%
-     * @param _buyFee  The new fee to be deducted from buy orders [in PCT_BASE]
-     * @param _sellFee The new fee to be deducted from sell orders [in PCT_BASE]
+     * @notice Update fees deducted from buy and sell orders to respectively `@formatPct(_buyFeePct)`% and `@formatPct(_sellFeePct)`%
+     * @param _buyFeePct  The new fee to be deducted from buy orders [in PCT_BASE]
+     * @param _sellFeePct The new fee to be deducted from sell orders [in PCT_BASE]
     */
-    function updateFees(uint256 _buyFee, uint256 _sellFee) external auth(UPDATE_FEES_ROLE) {
-        marketMaker.updateFees(_buyFee, _sellFee);
+    function updateFees(uint256 _buyFeePct, uint256 _sellFeePct) external auth(UPDATE_FEES_ROLE) {
+        marketMaker.updateFees(_buyFeePct, _sellFeePct);
     }
 
     /* presale related functions */
@@ -103,8 +103,8 @@ contract AragonFundraisingController is EtherTokenConstant, IsContract, IMarketM
      * @notice Contribute to the presale up to `@tokenAmount(self.contributionToken(): address, _value)`
      * @param _value The amount of contribution token to be spent
     */
-    function contribute(uint256 _value) external auth(CONTRIBUTE_ROLE) {
-        presale.contribute(_value);
+    function contribute(uint256 _value) external payable auth(CONTRIBUTE_ROLE) {
+        presale.contribute.value(msg.value)(msg.sender, _value);
     }
 
     /**
@@ -143,6 +143,8 @@ contract AragonFundraisingController is EtherTokenConstant, IsContract, IMarketM
     function openSellOrder(address _collateral, uint256 _amount) external auth(OPEN_SELL_ORDER_ROLE) {
         marketMaker.openSellOrder(msg.sender, _collateral, _amount);
     }
+
+    // ADD THE ADDRESS WHOSE ORDER IS TO BE CLAIMED IN CASE WE WANT AN ALGORITHM
 
     /**
      * @notice Claim the results of `_collateral.symbol(): string` buy orders from batch #`_batchId`

@@ -17,7 +17,7 @@ contract Presale is AragonApp {
     using SafeMath64 for uint64;
     using SafeERC20  for ERC20;
 
-    bytes32 public constant START_ROLE = keccak256("START_ROLE");
+    bytes32 public constant OPEN_ROLE = keccak256("OPEN_ROLE");
     bytes32 public constant CONTRIBUTE_ROLE   = keccak256("CONTRIBUTE_ROLE");
 
     uint256 public constant PPM = 1000000; // 25% => 0.25 * 1e6 ; 50% => 0.50 * 1e6
@@ -73,8 +73,8 @@ contract Presale is AragonApp {
     uint64 private vestingCompleteDate;
 
     event PresaleClosed();
-    event TokensPurchased(address indexed buyer, uint256 tokensSpent, uint256 tokensPurchased, uint256 vestedPurchaseId);
-    event TokensRefunded(address indexed buyer, uint256 tokensRefunded, uint256 tokensBurned, uint256 vestedPurchaseId);
+    event Contribute(address indexed buyer, uint256 tokensSpent, uint256 tokensPurchased, uint256 vestedPurchaseId);
+    event Refund(address indexed buyer, uint256 tokensRefunded, uint256 tokensBurned, uint256 vestedPurchaseId);
 
     /*
      * Initialization
@@ -161,7 +161,7 @@ contract Presale is AragonApp {
     /**
     * @notice Starts the presale, changing its state to Funding. After the presale is started contributors will be able to purchase project tokens.
     */
-    function open() external auth(START_ROLE) {
+    function open() external auth(OPEN_ROLE) {
         require(currentPresaleState() == PresaleState.Pending, ERROR_INVALID_STATE);
         _setStartDate(getTimestamp64());
     }
@@ -170,21 +170,21 @@ contract Presale is AragonApp {
     * @notice Buys tokens using the provided `_value` contribution tokens. To calculate how many project tokens will be sold for the provided contribution tokens amount, use contributionToTokens(). Each purchase generates a numeric vestedPurchaseId (0, 1, 2, etc) for the caller, which can be obtained in the TokensPurchased event emitted, and is required for later refunds. Note: If `_tokensToSpend` + `totalRaised` is larger than `presaleGoal`, only part of it will be used so that the funding goal is never exceeded.
     * @param _value The amount of contribution tokens to spend to obtain project tokens.
     */
-    function contribute(uint256 _value) external auth(CONTRIBUTE_ROLE) {
+    function contribute(address _contributor, uint256 _value) external auth(CONTRIBUTE_ROLE) {
         require(currentPresaleState() == PresaleState.Funding, ERROR_INVALID_STATE);
 
         uint256 value = totalRaised.add(_value) > presaleGoal ? presaleGoal.sub(totalRaised) : _value;
 
-        require(contributionToken.balanceOf(msg.sender) >= value, ERROR_INSUFFICIENT_BALANCE);
-        require(contributionToken.allowance(msg.sender, address(this)) >= value, ERROR_INSUFFICIENT_ALLOWANCE);
+        require(contributionToken.balanceOf(_contributor) >= value, ERROR_INSUFFICIENT_BALANCE);
+        require(contributionToken.allowance(_contributor, address(this)) >= value, ERROR_INSUFFICIENT_ALLOWANCE);
         // (buyer) ~~~> contribution tokens ~~~> (presale)
-        require(contributionToken.safeTransferFrom(msg.sender, address(this), value), ERROR_TOKEN_TRANSFER_REVERTED);
+        require(contributionToken.safeTransferFrom(_contributor, address(this), value), ERROR_TOKEN_TRANSFER_REVERTED);
 
         // (mint ✨) ~~~> project tokens ~~~> (buyer)
         uint256 tokensToSell = contributionToTokens(value);
         tokenManager.issue(tokensToSell);
         uint256 vestedPurchaseId = tokenManager.assignVested(
-            msg.sender,
+            _contributor,
             tokensToSell,
             startDate,
             vestingCliffDate,
@@ -194,15 +194,15 @@ contract Presale is AragonApp {
         totalRaised = totalRaised.add(value);
 
         // keep track of contribution tokens spent in this purchase for later refunding.
-        purchases[msg.sender][vestedPurchaseId] = value;
+        purchases[_contributor][vestedPurchaseId] = value;
 
-        emit TokensPurchased(msg.sender, value, tokensToSell, vestedPurchaseId);
+        emit Contribute(_contributor, value, tokensToSell, vestedPurchaseId);
     }
 
     /**
-    * @notice Refunds a purchase made by `_buyer`, with id `_vestedPurchaseId`. Each purchase has a purchase id, and needs to be refunded separately.
-    * @param _buyer address The buyer address to refund.
-    * @param _vestedPurchaseId uint256 The purchase id to refund.
+     * @notice Refunds a purchase made by `_buyer`, with id `_vestedPurchaseId`. Each purchase has a purchase id, and needs to be refunded separately.
+     * @param _buyer address The buyer address to refund.
+     * @param _vestedPurchaseId uint256 The purchase id to refund.
     */
     function refund(address _buyer, uint256 _vestedPurchaseId) external {
         require(currentPresaleState() == PresaleState.Refunding, ERROR_INVALID_STATE);
@@ -226,7 +226,7 @@ contract Presale is AragonApp {
         // (token manager) ~~~> project tokens ~~~> (burn 💥)
         tokenManager.burn(address(tokenManager), tokensSold);
 
-        emit TokensRefunded(_buyer, tokensToRefund, tokensSold, _vestedPurchaseId);
+        emit Refund(_buyer, tokensToRefund, tokensSold, _vestedPurchaseId);
     }
 
     /**
@@ -258,15 +258,15 @@ contract Presale is AragonApp {
      */
 
     /**
-    * @notice Calculates the number of project tokens that would be obtained for `_value` contribution tokens.
-    * @param _value uint256 The amount of contribution tokens to be converted into project tokens.
+     * @notice Calculates the number of project tokens that would be obtained for `_value` contribution tokens.
+     * @param _value uint256 The amount of contribution tokens to be converted into project tokens.
     */
     function contributionToTokens(uint256 _value) public view returns (uint256) {
         return _value.mul(tokenExchangeRate);
     }
 
     /**
-    * @notice Calculates the current state of the sale.
+     * @notice Calculates the current state of the sale.
     */
     function currentPresaleState() public view returns (PresaleState) {
         if (startDate == 0 || startDate > getTimestamp64()) {
