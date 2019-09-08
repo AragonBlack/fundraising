@@ -256,7 +256,7 @@ contract('AragonFundraisingController app', ([root, authorized, unauthorized]) =
       await this.presale.mockSetTimestamp(now() + PRESALE_PERIOD)
     })
 
-    it('it should refund user', async () => {
+    it('it should refund buyer', async () => {
       const receipt = await this.controller.refund(authorized, 0, { from: authorized })
 
       assertExternalEvent(receipt, 'Refund(address,uint256,uint256,uint256)')
