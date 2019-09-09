@@ -8,7 +8,7 @@ import "@aragon/os/contracts/common/SafeERC20.sol";
 import "@aragon/os/contracts/lib/math/SafeMath.sol";
 import "@aragon/os/contracts/lib/token/ERC20.sol";
 import "@aragon/apps-vault/contracts/Vault.sol";
-import "@ablack/fundraising-shared-interfaces/contracts/IMarketMakerController.sol";
+import "@ablack/fundraising-shared-interfaces/contracts/IAragonFundraisingController.sol";
 
 
 contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
@@ -49,11 +49,11 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
     string private constant ERROR_TOKEN_NOT_TAPPED       = "TAP_TOKEN_NOT_TAPPED";
     string private constant ERROR_WITHDRAWAL_AMOUNT_ZERO = "TAP_WITHDRAWAL_AMOUNT_ZERO";
 
-    IMarketMakerController public controller;
-    Vault                  public reserve;
-    address                public beneficiary;
-    uint256                public batchBlocks;
-    uint256                public maximumTapRateIncreasePct;
+    IAragonFundraisingController public controller;
+    Vault                        public reserve;
+    address                      public beneficiary;
+    uint256                      public batchBlocks;
+    uint256                      public maximumTapRateIncreasePct;
 
     mapping (address => uint256) public rates;
     mapping (address => uint256) public floors;
@@ -82,11 +82,11 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
      * @param _maximumTapRateIncreasePct The maximum tap rate increase percentage allowed [in PCT_BASE]
     */
     function initialize(
-        IMarketMakerController _controller,
-        Vault                  _reserve,
-        address                _beneficiary,
-        uint256                _batchBlocks,
-        uint256                _maximumTapRateIncreasePct
+        IAragonFundraisingController _controller,
+        Vault                        _reserve,
+        address                      _beneficiary,
+        uint256                      _batchBlocks,
+        uint256                      _maximumTapRateIncreasePct
     )
         external
         onlyInit
@@ -109,7 +109,7 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
      * @notice Update controller to `_controller`
      * @param _controller The address of the new controller contract
     */
-    function updateController(IMarketMakerController _controller) external auth(UPDATE_CONTROLLER_ROLE) {
+    function updateController(IAragonFundraisingController _controller) external auth(UPDATE_CONTROLLER_ROLE) {
         require(isContract(_controller), ERROR_CONTRACT_IS_EOA);
 
         _updateController(_controller);
@@ -218,7 +218,7 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
     }
 
     function _maximumWithdrawal(address _token) internal view returns (uint256) {
-        uint256 hold = controller.tokensToHold(_token);
+        uint256 hold = controller.collateralsToBeClaimed(_token);
         uint256 floor = floors[_token];
         uint256 minimum = hold.add(floor);
         uint256 balance = _token == ETH ? address(reserve).balance : ERC20(_token).staticBalanceOf(reserve);
@@ -273,7 +273,7 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
 
     /* state modifying functions */
 
-    function _updateController(IMarketMakerController _controller) internal {
+    function _updateController(IAragonFundraisingController _controller) internal {
         controller = _controller;
 
         emit UpdateController(address(_controller));

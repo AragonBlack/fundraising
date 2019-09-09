@@ -3,17 +3,17 @@ pragma solidity 0.4.24;
 import "@aragon/os/contracts/apps/AragonApp.sol";
 import "@aragon/os/contracts/common/SafeERC20.sol";
 import "@aragon/os/contracts/lib/token/ERC20.sol";
-import "@ablack/fundraising-shared-interfaces/contracts/IMarketMakerController.sol";
+import "@ablack/fundraising-shared-interfaces/contracts/IAragonFundraisingController.sol";
 
 
-contract SimpleMarketMakerController is IMarketMakerController, AragonApp {
+contract AragonFundraisingControllerMock is IAragonFundraisingController, AragonApp {
     using SafeERC20 for ERC20;
 
     function initialize() external onlyInit {
         initialized();
     }
 
-    function openCampaign() external {
+    function openTrading() external {
         // mock
     }
 
@@ -21,8 +21,8 @@ contract SimpleMarketMakerController is IMarketMakerController, AragonApp {
         // mock
     }
 
-    function tokensToHold(address _token) public view returns (uint256) {
-         if (_token == ETH) {
+    function collateralsToBeClaimed(address _collateral) public view returns (uint256) {
+        if (_collateral == ETH) {
             return uint256(5);
         } else {
             return uint256(10);

@@ -10,10 +10,10 @@ import "@aragon/apps-agent/contracts/Agent.sol";
 import "@ablack/fundraising-batched-bancor-market-maker/contracts/BatchedBancorMarketMaker.sol";
 import "@ablack/fundraising-presale/contracts/Presale.sol";
 import "@ablack/fundraising-tap/contracts/Tap.sol";
-import "@ablack/fundraising-shared-interfaces/contracts/IMarketMakerController.sol";
+import "@ablack/fundraising-shared-interfaces/contracts/IAragonFundraisingController.sol";
 
 
-contract AragonFundraisingController is EtherTokenConstant, IsContract, IMarketMakerController, AragonApp {
+contract AragonFundraisingController is EtherTokenConstant, IsContract, IAragonFundraisingController, AragonApp {
     using SafeERC20 for ERC20;
     using SafeMath  for uint256;
 
@@ -26,13 +26,13 @@ contract AragonFundraisingController is EtherTokenConstant, IsContract, IMarketM
     bytes32 public constant UPDATE_TOKEN_TAP_ROLE                     = keccak256("UPDATE_TOKEN_TAP_ROLE");
     bytes32 public constant RESET_TOKEN_TAP_ROLE                      = keccak256("RESET_TOKEN_TAP_ROLE");
     bytes32 public constant OPEN_PRESALE_ROLE                         = keccak256("OPEN_PRESALE_ROLE");
-    bytes32 public constant OPEN_CAMPAIGN_ROLE                        = keccak256("OPEN_CAMPAIGN_ROLE");
+    bytes32 public constant OPEN_TRADING_ROLE                         = keccak256("OPEN_TRADING_ROLE");
     bytes32 public constant CONTRIBUTE_ROLE                           = keccak256("CONTRIBUTE_ROLE");
     bytes32 public constant OPEN_BUY_ORDER_ROLE                       = keccak256("OPEN_BUY_ORDER_ROLE");
     bytes32 public constant OPEN_SELL_ORDER_ROLE                      = keccak256("OPEN_SELL_ORDER_ROLE");
     bytes32 public constant WITHDRAW_ROLE                             = keccak256("WITHDRAW_ROLE");
 
-    string private constant ERROR_CONTRACT_IS_EOA       = "FUNDRAISING_CONTRACT_IS_EOA";
+    string private constant ERROR_CONTRACT_IS_EOA = "FUNDRAISING_CONTRACT_IS_EOA";
 
     Presale                  public presale;
     BatchedBancorMarketMaker public marketMaker;
@@ -117,12 +117,12 @@ contract AragonFundraisingController is EtherTokenConstant, IsContract, IMarketM
         presale.refund(_buyer, _vestedPurchaseId);
     }
 
-    /* continuous fundraising campaign related functions */
+    /* market making related functions */
 
     /**
-     * @notice Open fundraising campaign [enabling users to open buy and sell orders]
+     * @notice Open trading [enabling users to open buy and sell orders]
     */
-    function openCampaign() external auth(OPEN_CAMPAIGN_ROLE) {
+    function openTrading() external auth(OPEN_TRADING_ROLE) {
         marketMaker.open();
     }
 
@@ -276,8 +276,8 @@ contract AragonFundraisingController is EtherTokenConstant, IsContract, IMarketM
         return tap.getMaximumWithdrawal(_token);
     }
 
-    function tokensToHold(address _token) public view isInitialized returns (uint256) {
-        return marketMaker.collateralsToBeClaimed(_token);
+    function collateralsToBeClaimed(address _collateral) public view isInitialized returns (uint256) {
+        return marketMaker.collateralsToBeClaimed(_collateral);
     }
 
     function balanceOf(address _who, address _token) public view isInitialized returns (uint256) {

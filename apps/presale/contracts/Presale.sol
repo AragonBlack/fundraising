@@ -9,7 +9,7 @@ import "@aragon/os/contracts/lib/token/ERC20.sol";
 import "@aragon/os/contracts/common/SafeERC20.sol";
 import "@aragon/apps-shared-minime/contracts/MiniMeToken.sol";
 import "@aragon/apps-token-manager/contracts/TokenManager.sol";
-import "@ablack/fundraising-shared-interfaces/contracts/IMarketMakerController.sol";
+import "@ablack/fundraising-shared-interfaces/contracts/IAragonFundraisingController.sol";
 
 
 contract Presale is AragonApp {
@@ -48,12 +48,12 @@ contract Presale is AragonApp {
         Closed       // after GoalReached, presale was closed and the continuous fundraising was initialized
     }
 
-    IMarketMakerController public controller;
-    ERC20                  public contributionToken;
-    MiniMeToken            public token;
-    TokenManager           public tokenManager;
-    address                public reserve;
-    address                public beneficiary;
+    IAragonFundraisingController public controller;
+    ERC20                        public contributionToken;
+    MiniMeToken                  public token;
+    TokenManager                 public tokenManager;
+    address                      public reserve;
+    address                      public beneficiary;
 
     uint256 public presaleGoal;
     uint256 public totalRaised;
@@ -96,10 +96,10 @@ contract Presale is AragonApp {
     * @param _startDate uint64 Optional start date of the sale, ignored if 0.
     */
     function initialize(
-        IMarketMakerController _controller,
-        ERC20                  _contributionToken,
-        MiniMeToken            _token,
-        TokenManager           _tokenManager,
+        IAragonFundraisingController _controller,
+        ERC20                        _contributionToken,
+        MiniMeToken                  _token,
+        TokenManager                 _tokenManager,
         uint64  _vestingCliffPeriod,
         uint64  _vestingCompletePeriod,
         uint256 _presaleGoal,
@@ -248,7 +248,7 @@ contract Presale is AragonApp {
         for (uint256 i = 0; i < collaterals.length; i++) {
             controller.resetTokenTap(collaterals[i]);
         }
-        controller.openCampaign();
+        controller.openTrading();
 
         emit PresaleClosed();
     }

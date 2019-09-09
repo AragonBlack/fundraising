@@ -9,7 +9,7 @@ import "@aragon/os/contracts/lib/token/ERC20.sol";
 import "@aragon/apps-token-manager/contracts/TokenManager.sol";
 import "@aragon/apps-vault/contracts/Vault.sol";
 import "@ablack/fundraising-bancor-formula/contracts/BancorFormula.sol";
-import "@ablack/fundraising-shared-interfaces/contracts/IMarketMakerController.sol";
+import "@ablack/fundraising-shared-interfaces/contracts/IAragonFundraisingController.sol";
 
 
 contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
@@ -19,8 +19,8 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
     /**
     Hardcoded constants to save gas
     bytes32 public constant OPEN_ROLE                    = keccak256("OPEN_ROLE");
-    bytes32 public constant UPDATE_BENEFICIARY_ROLE      = keccak256("UPDATE_BENEFICIARY_ROLE");
     bytes32 public constant UPDATE_FORMULA_ROLE          = keccak256("UPDATE_FORMULA_ROLE");
+    bytes32 public constant UPDATE_BENEFICIARY_ROLE      = keccak256("UPDATE_BENEFICIARY_ROLE");
     bytes32 public constant UPDATE_FEES_ROLE             = keccak256("UPDATE_FEES_ROLE");
     bytes32 public constant ADD_COLLATERAL_TOKEN_ROLE    = keccak256("ADD_COLLATERAL_TOKEN_ROLE");
     bytes32 public constant REMOVE_COLLATERAL_TOKEN_ROLE = keccak256("REMOVE_COLLATERAL_TOKEN_ROLE");
@@ -29,8 +29,8 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
     bytes32 public constant OPEN_SELL_ORDER_ROLE         = keccak256("OPEN_SELL_ORDER_ROLE");
     */
     bytes32 public constant OPEN_ROLE                    = 0xefa06053e2ca99a43c97c4a4f3d8a394ee3323a8ff237e625fba09fe30ceb0a4;
-    bytes32 public constant UPDATE_BENEFICIARY_ROLE      = 0xf7ea2b80c7b6a2cab2c11d2290cb005c3748397358a25e17113658c83b732593;
     bytes32 public constant UPDATE_FORMULA_ROLE          = 0xbfb76d8d43f55efe58544ea32af187792a7bdb983850d8fed33478266eec3cbb;
+    bytes32 public constant UPDATE_BENEFICIARY_ROLE      = 0xf7ea2b80c7b6a2cab2c11d2290cb005c3748397358a25e17113658c83b732593;
     bytes32 public constant UPDATE_FEES_ROLE             = 0x5f9be2932ed3a723f295a763be1804c7ebfd1a41c1348fb8bdf5be1c5cdca822;
     bytes32 public constant ADD_COLLATERAL_TOKEN_ROLE    = 0x217b79cb2bc7760defc88529853ef81ab33ae5bb315408ce9f5af09c8776662d;
     bytes32 public constant REMOVE_COLLATERAL_TOKEN_ROLE = 0x2044e56de223845e4be7d0a6f4e9a29b635547f16413a6d1327c58d9db438ee2;
@@ -90,7 +90,7 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
         mapping(address => uint256) sellers;
     }
 
-    IMarketMakerController         public controller;
+    IAragonFundraisingController   public controller;
     TokenManager                   public tokenManager;
     ERC20                          public token;
     Vault                          public reserve;
@@ -160,14 +160,14 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
 
     */
     function initialize(
-        IMarketMakerController _controller,
-        TokenManager           _tokenManager,
-        Vault                  _reserve,
-        address                _beneficiary,
-        IBancorFormula         _formula,
-        uint256                _batchBlocks,
-        uint256                _buyFeePct,
-        uint256                _sellFeePct
+        IAragonFundraisingController _controller,
+        TokenManager                 _tokenManager,
+        IBancorFormula               _formula,
+        Vault                        _reserve,
+        address                      _beneficiary,
+        uint256                      _batchBlocks,
+        uint256                      _buyFeePct,
+        uint256                      _sellFeePct
     )
         external
         onlyInit
@@ -176,8 +176,8 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
 
         require(isContract(_controller),                             ERROR_CONTRACT_IS_EOA);
         require(isContract(_tokenManager),                           ERROR_CONTRACT_IS_EOA);
-        require(isContract(_reserve),                                ERROR_CONTRACT_IS_EOA);
         require(isContract(_formula),                                ERROR_CONTRACT_IS_EOA);
+        require(isContract(_reserve),                                ERROR_CONTRACT_IS_EOA);
         require(_beneficiaryIsValid(_beneficiary),                   ERROR_INVALID_BENEFICIARY);
         require(_batchBlocks > 0,                                    ERROR_INVALID_BATCH_BLOCKS);
         require(_feeIsValid(_buyFeePct) && _feeIsValid(_sellFeePct), ERROR_INVALID_PERCENTAGE);
@@ -186,9 +186,9 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
         controller = _controller;
         tokenManager = _tokenManager;
         token = ERC20(tokenManager.token());
+        formula = _formula;
         reserve = _reserve;
         beneficiary = _beneficiary;
-        formula = _formula;
         batchBlocks = _batchBlocks;
         buyFeePct = _buyFeePct;
         sellFeePct = _sellFeePct;
@@ -206,16 +206,6 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
     }
 
     /**
-     * @notice Update beneficiary to `_beneficiary`
-     * @param _beneficiary The address of the new beneficiary [to whom fees are to be sent]
-    */
-    function updateBeneficiary(address _beneficiary) external auth(UPDATE_BENEFICIARY_ROLE) {
-        require(_beneficiaryIsValid(_beneficiary), ERROR_INVALID_BENEFICIARY);
-
-        _updateBeneficiary(_beneficiary);
-    }
-
-    /**
      * @notice Update formula to `_formula`
      * @param _formula The address of the new BancorFormula [computation] contract
     */
@@ -223,6 +213,16 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
         require(isContract(_formula), ERROR_CONTRACT_IS_EOA);
 
         _updateFormula(_formula);
+    }
+
+    /**
+     * @notice Update beneficiary to `_beneficiary`
+     * @param _beneficiary The address of the new beneficiary [to whom fees are to be sent]
+    */
+    function updateBeneficiary(address _beneficiary) external auth(UPDATE_BENEFICIARY_ROLE) {
+        require(_beneficiaryIsValid(_beneficiary), ERROR_INVALID_BENEFICIARY);
+
+        _updateBeneficiary(_beneficiary);
     }
 
     /**
