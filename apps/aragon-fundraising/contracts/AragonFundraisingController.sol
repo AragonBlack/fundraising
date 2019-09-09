@@ -95,7 +95,7 @@ contract AragonFundraisingController is EtherTokenConstant, IsContract, IMarketM
     /**
      * @notice Close presale and open fundraising campaign
     */
-    function closePresale() external {
+    function closePresale() external isInitialized {
         presale.close();
     }
 
@@ -113,7 +113,7 @@ contract AragonFundraisingController is EtherTokenConstant, IsContract, IMarketM
      * @param _vestedPurchaseId The id of the contribution to be refunded
 
     */
-    function refund(address _buyer, uint256 _vestedPurchaseId) external {
+    function refund(address _buyer, uint256 _vestedPurchaseId) external isInitialized {
         presale.refund(_buyer, _vestedPurchaseId);
     }
 
@@ -144,24 +144,24 @@ contract AragonFundraisingController is EtherTokenConstant, IsContract, IMarketM
         marketMaker.openSellOrder(msg.sender, _collateral, _amount);
     }
 
-    // ADD THE ADDRESS WHOSE ORDER IS TO BE CLAIMED IN CASE WE WANT AN ALGORITHM
-
     /**
      * @notice Claim the results of `_collateral.symbol(): string` buy orders from batch #`_batchId`
+     * @param _buyer      The address of the user whose buy orders are to be claimed
      * @param _batchId    The id of the batch in which buy orders are to be claimed
      * @param _collateral The address of the collateral token against which buy orders are to be claimed
     */
-    function claimBuyOrder(uint256 _batchId, address _collateral) external isInitialized {
-        marketMaker.claimBuyOrder(msg.sender, _batchId, _collateral);
+    function claimBuyOrder(address _buyer, uint256 _batchId, address _collateral) external isInitialized {
+        marketMaker.claimBuyOrder(_buyer, _batchId, _collateral);
     }
 
     /**
      * @notice Claim the results of `_collateral.symbol(): string` sell orders from batch #`_batchId`
+     * @param _seller     The address of the user whose sell orders are to be claimed
      * @param _batchId    The id of the batch in which sell orders are to be claimed
      * @param _collateral The address of the collateral token against which sell orders are to be claimed
     */
-    function claimSellOrder(uint256 _batchId, address _collateral) external isInitialized {
-        marketMaker.claimSellOrder(msg.sender, _batchId, _collateral);
+    function claimSellOrder(address _seller, uint256 _batchId, address _collateral) external isInitialized {
+        marketMaker.claimSellOrder(_seller, _batchId, _collateral);
     }
 
     /* collateral tokens related functions */
