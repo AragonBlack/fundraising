@@ -39,8 +39,8 @@
       "params": []
     },
     {
-      "name": "Update maximum tap increase percentage",
-      "id": "UPDATE_MAXIMUM_TAP_INCREASE_PCT_ROLE",
+      "name": "Update maximum tap rate increase percentage",
+      "id": "UPDATE_MAXIMUM_TAP_RATE_INCREASE_PCT_ROLE",
       "params": []
     },
     {
@@ -54,13 +54,13 @@
       "params": []
     },
     {
-      "name": "Reset tapped tokens",
-      "id": "RESET_TAPPED_TOKEN_ROLE",
+      "name": "Update tapped tokens settings",
+      "id": "UPDATE_TAPPED_TOKEN_ROLE",
       "params": []
     },
     {
-      "name": "Update tapped tokens settings",
-      "id": "UPDATE_TAPPED_TOKEN_ROLE",
+      "name": "Reset tapped tokens timestamps",
+      "id": "RESET_TAPPED_TOKEN_ROLE",
       "params": []
     },
     {
