@@ -6,7 +6,6 @@ import "@aragon/os/contracts/kernel/Kernel.sol";
 import "@aragon/apps-shared-migrations/contracts/Migrations.sol";
 import "@aragon/apps-shared-minime/contracts/MiniMeToken.sol";
 import "@aragon/apps-token-manager/contracts/TokenManager.sol";
-import "@aragon/test-helpers/contracts/EtherTokenConstantMock.sol";
 import "@aragon/test-helpers/contracts/TokenMock.sol";
 import "@ablack/fundraising-bancor-formula/contracts/BancorFormula.sol";
 import "@ablack/fundraising-shared-test-helpers/contracts/ForceSendETH.sol";
