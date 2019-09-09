@@ -2,10 +2,9 @@ const Kernel = artifacts.require('Kernel')
 const ACL = artifacts.require('ACL')
 const EVMScriptRegistryFactory = artifacts.require('EVMScriptRegistryFactory')
 const DAOFactory = artifacts.require('DAOFactory')
-const Controller = artifacts.require('SimpleMarketMakerController')
+const Controller = artifacts.require('AragonFundraisingControllerMock')
 const Vault = artifacts.require('Vault')
 const Tap = artifacts.require('Tap')
-const EtherTokenConstantMock = artifacts.require('EtherTokenConstantMock')
 const TokenMock = artifacts.require('TokenMock')
 const ForceSendETH = artifacts.require('ForceSendETH')
 
@@ -32,6 +31,8 @@ const getBatchId = receipt => {
 const VAULT_ID = hash('vault.aragonpm.eth')
 const TAP_ID = hash('tap.aragonpm.eth')
 
+const { ETH } = require('@ablack/fundraising-shared-test-helpers/constants')
+
 const BATCH_BLOCKS = 10
 const INITIAL_ETH_BALANCE = 100000000
 const INITIAL_TOKEN_BALANCE = 100000000
@@ -41,8 +42,7 @@ const progressToNextBatch = require('@ablack/fundraising-shared-test-helpers/pro
 
 contract('Tap app', accounts => {
   let factory, dao, acl, vBase, tBase, controller, reserve, beneficiary, tap, token1, token2
-  let ETH,
-    APP_MANAGER_ROLE,
+  let APP_MANAGER_ROLE,
     TRANSFER_ROLE,
     UPDATE_CONTROLLER_ROLE,
     UPDATE_RESERVE_ROLE,
@@ -112,7 +112,7 @@ contract('Tap app', accounts => {
     vBase = await Vault.new()
     tBase = await Tap.new()
     // constants
-    ETH = await (await EtherTokenConstantMock.new()).getETHConstant()
+    // ETH = await (await EtherTokenConstantMock.new()).getETHConstant()
     NULL_ADDR = ETH
     APP_MANAGER_ROLE = await kBase.APP_MANAGER_ROLE()
     TRANSFER_ROLE = await vBase.TRANSFER_ROLE()

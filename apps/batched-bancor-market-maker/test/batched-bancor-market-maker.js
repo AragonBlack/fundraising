@@ -3,12 +3,11 @@ const ACL = artifacts.require('ACL')
 const EVMScriptRegistryFactory = artifacts.require('EVMScriptRegistryFactory')
 const DAOFactory = artifacts.require('DAOFactory')
 const MiniMeToken = artifacts.require('MiniMeToken')
-const Controller = artifacts.require('SimpleMarketMakerController')
+const Controller = artifacts.require('AragonFundraisingControllerMock')
 const TokenManager = artifacts.require('TokenManager')
 const Agent = artifacts.require('Agent')
 const Formula = artifacts.require('BancorFormula.sol')
 const BancorMarketMaker = artifacts.require('BatchedBancorMarketMaker')
-const EtherTokenConstantMock = artifacts.require('EtherTokenConstantMock')
 const TokenMock = artifacts.require('TokenMock')
 
 const assertEvent = require('@aragon/test-helpers/assertEvent')
@@ -47,10 +46,11 @@ const RESERVE_RATIOS = [(PPM * 10) / 100, (PPM * 1) / 100]
 
 const progressToNextBatch = require('@ablack/fundraising-shared-test-helpers/progressToNextBatch')(web3, BLOCKS_IN_BATCH)
 
+const { ETH } = require('@ablack/fundraising-shared-test-helpers/constants')
+
 contract('BatchedBancorMarketMaker app', accounts => {
   let factory, dao, acl, cBase, tBase, rBase, mBase, token, tokenManager, controller, reserve, formula, marketMaker, collateral, collaterals
-  let ETH,
-    APP_MANAGER_ROLE,
+  let APP_MANAGER_ROLE,
     MINT_ROLE,
     BURN_ROLE,
     OPEN_ROLE,
@@ -126,9 +126,9 @@ contract('BatchedBancorMarketMaker app', accounts => {
     await marketMaker.initialize(
       controller.address,
       tokenManager.address,
+      formula.address,
       reserve.address,
       beneficiary,
-      formula.address,
       BLOCKS_IN_BATCH,
       BUY_FEE_PERCENT,
       SELL_FEE_PERCENT
@@ -255,7 +255,6 @@ contract('BatchedBancorMarketMaker app', accounts => {
     rBase = await Agent.new()
     mBase = await BancorMarketMaker.new()
     // constants
-    ETH = await (await EtherTokenConstantMock.new()).getETHConstant()
     APP_MANAGER_ROLE = await kBase.APP_MANAGER_ROLE()
     TRANSFER_ROLE = await rBase.TRANSFER_ROLE()
     MINT_ROLE = await tBase.MINT_ROLE()
