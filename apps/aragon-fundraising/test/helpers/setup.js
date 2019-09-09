@@ -19,6 +19,7 @@ const ForceSendETH = artifacts.require('ForceSendETH')
 const { INITIAL_DAI_BALANCE } = require('./constants')
 
 const {
+  ETH,
   ANY_ADDRESS,
   ZERO_ADDRESS,
   VESTING_CLIFF_PERIOD,
@@ -80,6 +81,7 @@ const setup = {
     collaterals: async (ctx, user) => {
       ctx.collaterals = ctx.collaterals || {}
       ctx.collaterals.dai = await TokenMock.new(user, INITIAL_DAI_BALANCE)
+      ctx.collaterals.ant = await TokenMock.new(user, INITIAL_DAI_BALANCE)
     },
     token: async (ctx, root) => {
       ctx.token = await MiniMeToken.new(NULL_ADDRESS, NULL_ADDRESS, 0, 'Bond', 18, 'BON', false, { from: root })
@@ -189,9 +191,9 @@ const setup = {
       await ctx.marketMaker.initialize(
         ctx.controller.address,
         ctx.tokenManager.address,
+        ctx.formula.address,
         ctx.reserve.address,
         ctx.vault.address,
-        ctx.formula.address,
         BLOCKS_IN_BATCH,
         BUY_FEE_PERCENT,
         SELL_FEE_PERCENT,
@@ -313,7 +315,6 @@ const setup = {
       await ctx.acl.createPermission(user, ctx.controller.address, ctx.roles.controller.UPDATE_FEES_ROLE, root, { from: root })
       await ctx.acl.createPermission(user, ctx.controller.address, ctx.roles.controller.UPDATE_MAXIMUM_TAP_RATE_INCREASE_PCT_ROLE, root, { from: root })
       await ctx.acl.createPermission(user, ctx.controller.address, ctx.roles.controller.ADD_COLLATERAL_TOKEN_ROLE, root, { from: root })
-      await ctx.acl.grantPermission(root, ctx.controller.address, ctx.roles.controller.ADD_COLLATERAL_TOKEN_ROLE, { from: root }) // for tests purposes only
       await ctx.acl.createPermission(user, ctx.controller.address, ctx.roles.controller.REMOVE_COLLATERAL_TOKEN_ROLE, root, { from: root })
       await ctx.acl.createPermission(user, ctx.controller.address, ctx.roles.controller.UPDATE_COLLATERAL_TOKEN_ROLE, root, { from: root })
       await ctx.acl.createPermission(user, ctx.controller.address, ctx.roles.controller.UPDATE_TOKEN_TAP_ROLE, root, { from: root })
@@ -324,6 +325,11 @@ const setup = {
       await ctx.acl.createPermission(user, ctx.controller.address, ctx.roles.controller.OPEN_BUY_ORDER_ROLE, root, { from: root })
       await ctx.acl.createPermission(user, ctx.controller.address, ctx.roles.controller.OPEN_SELL_ORDER_ROLE, root, { from: root })
       await ctx.acl.createPermission(user, ctx.controller.address, ctx.roles.controller.WITHDRAW_ROLE, root, { from: root })
+
+      // for tests purposes only
+      await ctx.acl.grantPermission(root, ctx.controller.address, ctx.roles.controller.ADD_COLLATERAL_TOKEN_ROLE, { from: root })
+      await ctx.acl.grantPermission(user, ctx.controller.address, ctx.roles.controller.RESET_TOKEN_TAP_ROLE, { from: root })
+      await ctx.acl.grantPermission(user, ctx.controller.address, ctx.roles.controller.OPEN_CAMPAIGN_ROLE, { from: root })
     },
     all: async (ctx, root, user) => {
       await setup.setPermissions.tokenManager(ctx, root)
@@ -338,15 +344,20 @@ const setup = {
   setCollaterals: async (ctx, root, user) => {
     await ctx.collaterals.dai.approve(ctx.presale.address, INITIAL_DAI_BALANCE, { from: user })
     await ctx.collaterals.dai.approve(ctx.marketMaker.address, INITIAL_DAI_BALANCE, { from: user })
+    await ctx.collaterals.ant.approve(ctx.presale.address, INITIAL_DAI_BALANCE, { from: user })
+    await ctx.collaterals.ant.approve(ctx.marketMaker.address, INITIAL_DAI_BALANCE, { from: user })
 
+    await ctx.controller.addCollateralToken(ETH, VIRTUAL_SUPPLIES[0], VIRTUAL_BALANCES[0], RESERVE_RATIOS[0], SLIPPAGES[0], RATES[0], FLOORS[0], {
+      from: root,
+    })
     await ctx.controller.addCollateralToken(
       ctx.collaterals.dai.address,
-      VIRTUAL_SUPPLIES[0],
-      VIRTUAL_BALANCES[0],
-      RESERVE_RATIOS[0],
-      SLIPPAGES[0],
-      RATES[0],
-      FLOORS[0],
+      VIRTUAL_SUPPLIES[1],
+      VIRTUAL_BALANCES[1],
+      RESERVE_RATIOS[1],
+      SLIPPAGES[1],
+      RATES[1],
+      FLOORS[1],
       {
         from: root,
       }

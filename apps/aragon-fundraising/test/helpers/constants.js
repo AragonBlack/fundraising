@@ -1,10 +1,21 @@
 // Generic
 const NOW = Math.floor(new Date().getTime() / 1000)
 const DAYS = 24 * 3600
-const PPM = 1e6 /* "Parts per million", used to represent percentages; 100% = 1e6, 50% = 0.5 * 1e6, etc... */
+// const PPM = 1e6 /* "Parts per million", used to represent percentages; 100% = 1e6, 50% = 0.5 * 1e6, etc... */
 const ANY_ADDRESS = '0xffffffffffffffffffffffffffffffffffffffff'
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
 const ETH = '0x0000000000000000000000000000000000000000'
+
+const {
+  PPM,
+  INITIAL_ETH_BALANCE,
+  VIRTUAL_SUPPLIES,
+  VIRTUAL_BALANCES,
+  RESERVE_RATIOS,
+  SLIPPAGES,
+  RATES,
+  FLOORS,
+} = require('@ablack/fundraising-shared-test-helpers/constants')
 
 const SALE_STATE = {
   PENDING: 0,
@@ -33,16 +44,17 @@ const BUY_FEE_PERCENT = 100000000000000000 // 1%
 const SELL_FEE_PERCENT = 100000000000000000
 const MARKET_MAKER_CONTROLLER_BATCH_BLOCKS = 10
 
-const VIRTUAL_SUPPLIES = [new web3.BigNumber(Math.pow(10, 23)), new web3.BigNumber(Math.pow(10, 22))]
-const VIRTUAL_BALANCES = [new web3.BigNumber(Math.pow(10, 22)), new web3.BigNumber(Math.pow(10, 20))]
-const RESERVE_RATIOS = [(PPM * 10) / 100, (PPM * 1) / 100]
-const SLIPPAGES = [10000, 15000]
-const RATES = [10, 15]
-const FLOORS = [1000, 5000]
+// const VIRTUAL_SUPPLIES = [new web3.BigNumber(Math.pow(10, 23)), new web3.BigNumber(Math.pow(10, 22))]
+// const VIRTUAL_BALANCES = [new web3.BigNumber(Math.pow(10, 22)), new web3.BigNumber(Math.pow(10, 20))]
+// const RESERVE_RATIOS = [(PPM * 10) / 100, (PPM * 1) / 100]
+// const SLIPPAGES = [10000, 15000]
+// const RATES = [10, 15]
+// const FLOORS = [1000, 5000]
 
 module.exports = {
   ETH,
   INITIAL_DAI_BALANCE,
+  INITIAL_ETH_BALANCE,
   NOW,
   DAYS,
   PPM,

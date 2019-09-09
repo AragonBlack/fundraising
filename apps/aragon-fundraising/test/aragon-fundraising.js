@@ -3,9 +3,15 @@ const { assertRevert } = require('@aragon/test-helpers/assertThrow')
 const sha3 = require('js-sha3').keccak_256
 const AllEvents = require('web3/lib/web3/allevents')
 const setup = require('./helpers/setup')
+const timeTravel = require('@aragon/test-helpers/timeTravel')(web3)
+const increaseBlocks = require('@ablack/fundraising-shared-test-helpers/increaseBlocks')(web3)
+const ForceSendETH = artifacts.require('ForceSendETH')
 
 const {
   ETH,
+  INITIAL_ETH_BALANCE,
+  INITIAL_DAI_BALANCE,
+
   ANY_ADDRESS,
   ZERO_ADDRESS,
   VESTING_CLIFF_PERIOD,
@@ -37,8 +43,8 @@ const {
   randomVirtualBalance,
   randomReserveRatio,
   randomSlippage,
-  randomTapRate,
-  randomTapFloor,
+  randomRate,
+  randomFloor,
   randomFee,
 } = require('@ablack/fundraising-shared-test-helpers/randomness')
 
@@ -53,6 +59,12 @@ const assertExternalEvent = (tx, eventName, instances = 1) => {
 }
 
 contract('AragonFundraisingController app', ([root, authorized, unauthorized]) => {
+  const forceSendETH = async (to, value) => {
+    // Using this contract ETH will be send by selfdestruct which always succeeds
+    const forceSend = await ForceSendETH.new()
+    return forceSend.sendByDying(to, { value })
+  }
+
   const decodeEventsForContract = (contract, receipt) => {
     const ae = new AllEvents(contract._web3, contract.abi, contract.address)
 
@@ -65,7 +77,7 @@ contract('AragonFundraisingController app', ([root, authorized, unauthorized]) =
   const getBuyOrderBatchId = tx => {
     const events = decodeEventsForContract(this.marketMaker, tx.receipt)
     const event = events.filter(l => {
-      return l.event === 'NewBuyOrder'
+      return l.event === 'OpenBuyOrder'
     })[0]
 
     return event.args.batchId
@@ -74,7 +86,7 @@ contract('AragonFundraisingController app', ([root, authorized, unauthorized]) =
   const getSellOrderBatchId = tx => {
     const events = decodeEventsForContract(this.marketMaker, tx.receipt)
     const event = events.filter(l => {
-      return l.event === 'NewSellOrder'
+      return l.event === 'OpenSellOrder'
     })[0]
 
     return event.args.batchId
@@ -82,14 +94,14 @@ contract('AragonFundraisingController app', ([root, authorized, unauthorized]) =
 
   const openAndClaimBuyOrder = async (collateral, amount, { from } = {}) => {
     // create buy order
-    const receipt = await controller.openBuyOrder(collateral, amount, { from, value: collateral === ETH ? amount : 0 })
+    const receipt = await this.controller.openBuyOrder(collateral, amount, { from, value: collateral === ETH ? amount : 0 })
     const batchId = getBuyOrderBatchId(receipt)
     // move to next batch
     await progressToNextBatch()
     // claim bonds
-    await controller.claimBuyOrder(batchId, collateral, { from })
+    await this.controller.claimBuyOrder(from, batchId, collateral, { from })
     // return balance
-    const balance = await token.balanceOf(from)
+    const balance = await this.token.balanceOf(from)
 
     return balance
   }
@@ -155,129 +167,265 @@ contract('AragonFundraisingController app', ([root, authorized, unauthorized]) =
   // #endregion
 
   // #region updateBeneficiary
-  context('> #updateBeneficiary', () => {
-    context('> sender has UPDATE_BENEFICIARY_ROLE', () => {
-      it('it should update beneficiary', async () => {
-        const receipt = await this.controller.updateBeneficiary(root, { from: authorized })
+  // context('> #updateBeneficiary', () => {
+  //   context('> sender has UPDATE_BENEFICIARY_ROLE', () => {
+  //     it('it should update beneficiary', async () => {
+  //       const receipt = await this.controller.updateBeneficiary(root, { from: authorized })
 
-        assertExternalEvent(receipt, 'UpdateBeneficiary(address)', 2)
-        // double checked that the transaction has been dispatched both in marketMaker and tap
-        assert.equal(await this.marketMaker.beneficiary(), root)
-        assert.equal(await this.tap.beneficiary(), root)
-      })
-    })
-
-    context('> sender does not have UPDATE_BENEFICIARY_ROLE', () => {
-      it('it should revert', async () => {
-        await assertRevert(() => this.controller.updateBeneficiary(root, { from: unauthorized }))
-      })
-    })
-  })
-  // #endregion
-
-  // #region updateFees
-  context('> #updateFees', () => {
-    context('> sender has UPDATE_FEES_ROLE', () => {
-      it('it should update fees', async () => {
-        const receipt = await this.controller.updateFees(randomFee(), randomFee(), { from: authorized })
-
-        assertExternalEvent(receipt, 'UpdateFees(uint256,uint256)')
-      })
-    })
-
-    context('> sender does not have UPDATE_FEES_ROLE', () => {
-      it('it should revert', async () => {
-        await assertRevert(() => this.controller.updateFees(randomFee(), randomFee(), { from: unauthorized }))
-      })
-    })
-  })
-  // #endregion
-
-  // #region openPresale
-  context('> #openPresale', () => {
-    context('> sender has OPEN_PRESALE_ROLE', () => {
-      it('it should open presale', async () => {
-        await this.controller.openPresale({ from: authorized })
-
-        assert.equal((await this.presale.currentPresaleState()).toNumber(), SALE_STATE.FUNDING)
-      })
-    })
-
-    context('> sender does not have OPEN_PRESALE_ROLE', () => {
-      it('it should revert', async () => {
-        await assertRevert(() => this.controller.openPresale({ from: unauthorized }))
-      })
-    })
-  })
-  // #endregion
-
-  // #region closePresale
-  context('> #closePresale', () => {
-    beforeEach(async () => {
-      await this.controller.openPresale({ from: authorized })
-      await this.controller.contribute(PRESALE_GOAL, { from: authorized })
-    })
-
-    it('it should close presale', async () => {
-      await this.controller.closePresale({ from: authorized })
-
-      assert.equal((await this.presale.currentPresaleState()).toNumber(), SALE_STATE.CLOSED)
-    })
-  })
-  // #endregion
-
-  // #region contribute
-  context('> #contribute', () => {
-    beforeEach(async () => {
-      await this.controller.openPresale({ from: authorized })
-    })
-
-    context('> sender has CONTRIBUTE_ROLE', () => {
-      it('it should forward contribution', async () => {
-        const receipt = await this.controller.contribute(PRESALE_GOAL / 2, { from: authorized })
-
-        assertExternalEvent(receipt, 'Contribute(address,uint256,uint256,uint256)')
-      })
-    })
-
-    context('> sender does not have CONTRIBUTE_ROLE', () => {
-      it('it should revert', async () => {
-        await assertRevert(() => this.controller.contribute(PRESALE_GOAL / 2, { from: unauthorized }))
-      })
-    })
-  })
-  // #endregion
-
-  // #region refund
-  context('> #refund', () => {
-    beforeEach(async () => {
-      await this.controller.openPresale({ from: authorized })
-      await this.controller.contribute(PRESALE_GOAL / 2, { from: authorized })
-      await this.presale.mockSetTimestamp(now() + PRESALE_PERIOD)
-    })
-
-    it('it should refund buyer', async () => {
-      const receipt = await this.controller.refund(authorized, 0, { from: authorized })
-
-      assertExternalEvent(receipt, 'Refund(address,uint256,uint256,uint256)')
-    })
-  })
-  // #endregion
-
-  // #region updateMaximumTapIncreasePct
-  // context('> #updateMaximumTapIncreasePct', () => {
-  //   context('> sender has UPDATE_MAXIMUM_TAP_INCREASE_PCT_ROLE', () => {
-  //     it('it should update maximum tap increase percentage', async () => {
-  //       const receipt = await controller.updateMaximumTapIncreasePct(70 * Math.pow(10, 16), { from: authorized })
-
-  //       assertExternalEvent(receipt, 'UpdateMaximumTapIncreasePct(uint256)') // tap
+  //       assertExternalEvent(receipt, 'UpdateBeneficiary(address)', 2)
+  //       // double checked that the transaction has been dispatched both in marketMaker and tap
+  //       assert.equal(await this.marketMaker.beneficiary(), root)
+  //       assert.equal(await this.tap.beneficiary(), root)
   //     })
   //   })
 
-  //   context('> sender does not have UPDATE_MAXIMUM_TAP_INCREASE_PCT_ROLE', () => {
+  //   context('> sender does not have UPDATE_BENEFICIARY_ROLE', () => {
   //     it('it should revert', async () => {
-  //       await assertRevert(() => controller.updateMaximumTapIncreasePct(70 * Math.pow(10, 16), { from: unauthorized }))
+  //       await assertRevert(() => this.controller.updateBeneficiary(root, { from: unauthorized }))
   //     })
+  //   })
+  // })
+  // #endregion
+
+  // #region updateFees
+  // context('> #updateFees', () => {
+  //   context('> sender has UPDATE_FEES_ROLE', () => {
+  //     it('it should update fees', async () => {
+  //       const receipt = await this.controller.updateFees(randomFee(), randomFee(), { from: authorized })
+
+  //       assertExternalEvent(receipt, 'UpdateFees(uint256,uint256)')
+  //     })
+  //   })
+
+  //   context('> sender does not have UPDATE_FEES_ROLE', () => {
+  //     it('it should revert', async () => {
+  //       await assertRevert(() => this.controller.updateFees(randomFee(), randomFee(), { from: unauthorized }))
+  //     })
+  //   })
+  // })
+  // #endregion
+
+  // #region openPresale
+  // context('> #openPresale', () => {
+  //   context('> sender has OPEN_PRESALE_ROLE', () => {
+  //     it('it should open presale', async () => {
+  //       await this.controller.openPresale({ from: authorized })
+
+  //       assert.equal((await this.presale.currentPresaleState()).toNumber(), SALE_STATE.FUNDING)
+  //     })
+  //   })
+
+  //   context('> sender does not have OPEN_PRESALE_ROLE', () => {
+  //     it('it should revert', async () => {
+  //       await assertRevert(() => this.controller.openPresale({ from: unauthorized }))
+  //     })
+  //   })
+  // })
+  // #endregion
+
+  // #region closePresale
+  // context('> #closePresale', () => {
+  //   beforeEach(async () => {
+  //     await this.controller.openPresale({ from: authorized })
+  //     await this.controller.contribute(PRESALE_GOAL, { from: authorized })
+  //   })
+
+  //   it('it should close presale', async () => {
+  //     await this.controller.closePresale({ from: authorized })
+
+  //     assert.equal((await this.presale.currentPresaleState()).toNumber(), SALE_STATE.CLOSED)
+  //   })
+  // })
+  // #endregion
+
+  // #region contribute
+  // context('> #contribute', () => {
+  //   beforeEach(async () => {
+  //     await this.controller.openPresale({ from: authorized })
+  //   })
+
+  //   context('> sender has CONTRIBUTE_ROLE', () => {
+  //     it('it should forward contribution', async () => {
+  //       const receipt = await this.controller.contribute(PRESALE_GOAL / 2, { from: authorized })
+
+  //       assertExternalEvent(receipt, 'Contribute(address,uint256,uint256,uint256)')
+  //     })
+  //   })
+
+  //   context('> sender does not have CONTRIBUTE_ROLE', () => {
+  //     it('it should revert', async () => {
+  //       await assertRevert(() => this.controller.contribute(PRESALE_GOAL / 2, { from: unauthorized }))
+  //     })
+  //   })
+  // })
+  // #endregion
+
+  // #region refund
+  // context('> #refund', () => {
+  //   beforeEach(async () => {
+  //     await this.controller.openPresale({ from: authorized })
+  //     await this.controller.contribute(PRESALE_GOAL / 2, { from: authorized })
+  //     await this.presale.mockSetTimestamp(now() + PRESALE_PERIOD)
+  //   })
+
+  //   it('it should refund buyer', async () => {
+  //     const receipt = await this.controller.refund(authorized, 0, { from: authorized })
+
+  //     assertExternalEvent(receipt, 'Refund(address,uint256,uint256,uint256)')
+  //   })
+  // })
+  // #endregion
+
+  // #region openCampaign
+  // context('> #openCampaign', () => {
+  //   context('> sender has OPEN_CAMPAIGN_ROLE', () => {
+  //     it('it should open campaign', async () => {
+  //       const receipt = await this.controller.openCampaign({ from: authorized })
+
+  //       assertExternalEvent(receipt, 'Open()')
+  //     })
+  //   })
+
+  //   context('> sender does not have OPEN_CAMPAIGN_ROLE', () => {
+  //     it('it should revert', async () => {
+  //       await assertRevert(() => this.controller.openCampaign({ from: unauthorized }))
+  //     })
+  //   })
+  // })
+  // #endregion
+
+  // #region openBuyOrder
+  // context('> #openBuyOrder', () => {
+  //   beforeEach(async () => {
+  //     await this.controller.openCampaign({ from: authorized })
+  //   })
+
+  //   context('> sender has OPEN_BUY_ORDER_ROLE', () => {
+  //     it('it should open buy order [ETH]', async () => {
+  //       const amount = randomAmount()
+  //       const receipt = await this.controller.openBuyOrder(ETH, amount, { from: authorized, value: amount })
+
+  //       assertExternalEvent(receipt, 'OpenBuyOrder(address,uint256,address,uint256,uint256)') // market maker
+  //     })
+
+  //     it('it should open buy order [ERC20]', async () => {
+  //       const receipt = await this.controller.openBuyOrder(this.collaterals.dai.address, randomAmount(), { from: authorized })
+
+  //       assertExternalEvent(receipt, 'OpenBuyOrder(address,uint256,address,uint256,uint256)') // market maker
+  //     })
+  //   })
+
+  //   context('> sender does not have OPEN_BUY_ORDER_ROLE', () => {
+  //     it('it should revert [ETH]', async () => {
+  //       const amount = randomAmount()
+
+  //       await assertRevert(() => this.controller.openBuyOrder(ETH, amount, { from: unauthorized, value: amount }))
+  //     })
+
+  //     it('it should revert [ERC20]', async () => {
+  //       await assertRevert(() => this.controller.openBuyOrder(this.collaterals.dai.address, randomAmount(), { from: unauthorized }))
+  //     })
+  //   })
+  // })
+  // #endregion
+
+  // #region openSellOrder
+  // context('> #openSellOrder', () => {
+  //   beforeEach(async () => {
+  //     await this.controller.openCampaign({ from: authorized })
+  //   })
+
+  //   context('> sender has OPEN_SELL_ORDER_ROLE', () => {
+  //     it('it should open sell order [ETH]', async () => {
+  //       const balance = await openAndClaimBuyOrder(ETH, randomAmount(), { from: authorized })
+  //       const receipt = await this.controller.openSellOrder(ETH, balance, { from: authorized })
+
+  //       assertExternalEvent(receipt, 'OpenSellOrder(address,uint256,address,uint256)')
+  //     })
+
+  //     it('it should open sell order [ERC20]', async () => {
+  //       const balance = await openAndClaimBuyOrder(this.collaterals.dai.address, randomAmount(), { from: authorized })
+  //       const receipt = await this.controller.openSellOrder(this.collaterals.dai.address, balance, { from: authorized })
+
+  //       assertExternalEvent(receipt, 'OpenSellOrder(address,uint256,address,uint256)')
+  //     })
+  //   })
+
+  //   context('> sender does not have OPEN_SELL_ORDER_ROLE', () => {
+  //     it('it should revert [ETH]', async () => {
+  //       const balance = await openAndClaimBuyOrder(ETH, randomAmount(), { from: authorized })
+  //       await this.token.transfer(unauthorized, balance, { from: authorized })
+
+  //       await assertRevert(() => this.controller.openSellOrder(ETH, balance, { from: unauthorized }))
+  //     })
+
+  //     it('it should revert [ERC20]', async () => {
+  //       const balance = await openAndClaimBuyOrder(this.collaterals.dai.address, randomAmount(), { from: authorized })
+  //       await this.token.transfer(unauthorized, balance, { from: authorized })
+
+  //       await assertRevert(() => this.controller.openSellOrder(this.collaterals.dai.address, balance, { from: unauthorized }))
+  //     })
+  //   })
+  // })
+  // #endregion
+
+  // #region claimBuyOrderOrder
+  // context('> #claimBuyOrder', () => {
+  //   beforeEach(async () => {
+  //     await this.controller.openCampaign({ from: authorized })
+  //   })
+
+  //   it('it should claim bonds [ETH]', async () => {
+  //     const amount = randomAmount()
+  //     const receipt1 = await this.controller.openBuyOrder(ETH, amount, { from: authorized, value: amount })
+  //     const batchId = getBuyOrderBatchId(receipt1)
+
+  //     await progressToNextBatch()
+  //     const receipt2 = await this.controller.claimBuyOrder(authorized, batchId, ETH, { from: authorized })
+
+  //     assertExternalEvent(receipt2, 'ClaimBuyOrder(address,uint256,address,uint256)')
+  //   })
+
+  //   it('it should claim bonds [ERC20]', async () => {
+  //     const receipt1 = await this.controller.openBuyOrder(this.collaterals.dai.address, randomAmount(), { from: authorized })
+  //     const batchId = getBuyOrderBatchId(receipt1)
+
+  //     await progressToNextBatch()
+  //     const receipt2 = await this.controller.claimBuyOrder(authorized, batchId, this.collaterals.dai.address, { from: authorized })
+
+  //     assertExternalEvent(receipt2, 'ClaimBuyOrder(address,uint256,address,uint256)')
+  //   })
+  // })
+  // #endregion
+
+  // #region claimSellOrder
+  // context('> #claimSellOrder', () => {
+  //   beforeEach(async () => {
+  //     await this.controller.openCampaign({ from: authorized })
+  //   })
+
+  //   it('it should claim collateral [ETH]', async () => {
+  //     const balance = await openAndClaimBuyOrder(ETH, randomAmount(), { from: authorized })
+  //     const receipt1 = await this.controller.openSellOrder(ETH, balance, { from: authorized })
+  //     const batchId = getSellOrderBatchId(receipt1)
+
+  //     await progressToNextBatch()
+
+  //     const receipt2 = await this.controller.claimSellOrder(authorized, batchId, ETH, { from: authorized })
+
+  //     assertExternalEvent(receipt2, 'ClaimSellOrder(address,uint256,address,uint256,uint256)') // market maker
+  //   })
+
+  //   it('it should claim collateral [ERC20]', async () => {
+  //     const balance = await openAndClaimBuyOrder(this.collaterals.dai.address, randomAmount(), { from: authorized })
+  //     const receipt1 = await this.controller.openSellOrder(this.collaterals.dai.address, balance, { from: authorized })
+  //     const batchId = getSellOrderBatchId(receipt1)
+
+  //     await progressToNextBatch()
+
+  //     const receipt2 = await this.controller.claimSellOrder(authorized, batchId, this.collaterals.dai.address, { from: authorized })
+
+  //     assertExternalEvent(receipt2, 'ClaimSellOrder(address,uint256,address,uint256,uint256)') // market maker
   //   })
   // })
   // #endregion
@@ -286,52 +434,35 @@ contract('AragonFundraisingController app', ([root, authorized, unauthorized]) =
   // context('> #addCollateralToken', () => {
   //   context('> sender has ADD_COLLATERAL_TOKEN_ROLE', () => {
   //     it('it should add collateral token', async () => {
-  //       const receipt1 = await controller.addCollateralToken(
-  //         token1.address,
+  //       const receipt = await this.controller.addCollateralToken(
+  //         this.collaterals.ant.address,
   //         randomVirtualSupply(),
   //         randomVirtualBalance(),
   //         randomReserveRatio(),
   //         randomSlippage(),
-  //         randomTap(),
+  //         randomRate(),
   //         randomFloor(),
   //         {
   //           from: authorized,
   //         }
   //       )
 
-  //       const receipt2 = await controller.addCollateralToken(
-  //         ETH,
-  //         randomVirtualSupply(),
-  //         randomVirtualBalance(),
-  //         randomReserveRatio(),
-  //         randomSlippage(),
-  //         randomTap(),
-  //         randomFloor(),
-  //         {
-  //           from: authorized,
-  //         }
-  //       )
-
-  //       assertExternalEvent(receipt1, 'AddCollateralToken(address,uint256,uint256,uint32,uint256)') // market maker
-  //       assertExternalEvent(receipt1, 'AddTappedToken(address,uint256,uint256)') // tap
-  //       assertExternalEvent(receipt1, 'AddProtectedToken(address)') // pool
-
-  //       assertExternalEvent(receipt2, 'AddCollateralToken(address,uint256,uint256,uint32,uint256)') // market maker
-  //       assertExternalEvent(receipt2, 'AddTappedToken(address,uint256,uint256)') // tap
-  //       assertExternalEvent(receipt2, 'AddProtectedToken(address)', 0) // ETH should not be added as a protected token into the pool
+  //       assertExternalEvent(receipt, 'AddCollateralToken(address,uint256,uint256,uint32,uint256)') // market maker
+  //       assertExternalEvent(receipt, 'AddProtectedToken(address)') // pool
+  //       assertExternalEvent(receipt, 'AddTappedToken(address,uint256,uint256)') // tap
   //     })
   //   })
 
   //   context('> sender does not have ADD_COLLATERAL_TOKEN_ROLE', () => {
   //     it('it should revert', async () => {
   //       await assertRevert(() =>
-  //         controller.addCollateralToken(
-  //           token1.address,
+  //         this.controller.addCollateralToken(
+  //           this.collaterals.ant.address,
   //           randomVirtualSupply(),
   //           randomVirtualBalance(),
   //           randomReserveRatio(),
   //           randomSlippage(),
-  //           randomTap(),
+  //           randomRate(),
   //           randomFloor(),
   //           {
   //             from: unauthorized,
@@ -345,47 +476,17 @@ contract('AragonFundraisingController app', ([root, authorized, unauthorized]) =
 
   // #region removeCollateralToken
   // context('> #removeCollateralToken', () => {
-  //   beforeEach(async () => {
-  //     await controller.addCollateralToken(
-  //       token1.address,
-  //       randomVirtualSupply(),
-  //       randomVirtualBalance(),
-  //       randomReserveRatio(),
-  //       randomSlippage(),
-  //       randomTap(),
-  //       randomFloor(),
-  //       {
-  //         from: authorized,
-  //       }
-  //     )
-
-  //     await controller.addCollateralToken(
-  //       ETH,
-  //       randomVirtualSupply(),
-  //       randomVirtualBalance(),
-  //       randomReserveRatio(),
-  //       randomSlippage(),
-  //       randomTap(),
-  //       randomFloor(),
-  //       {
-  //         from: authorized,
-  //       }
-  //     )
-  //   })
-
   //   context('> sender has REMOVE_COLLATERAL_TOKEN_ROLE', () => {
   //     it('it should remove collateral token', async () => {
-  //       const receipt1 = await controller.removeCollateralToken(token1.address, { from: authorized })
-  //       const receipt2 = await controller.removeCollateralToken(ETH, { from: authorized })
+  //       const receipt1 = await this.controller.removeCollateralToken(this.collaterals.dai.address, { from: authorized })
 
-  //       assertExternalEvent(receipt1, 'RemoveCollateralToken(address)') // market maker
-  //       assertExternalEvent(receipt2, 'RemoveCollateralToken(address)') // market maker
+  //       assertExternalEvent(receipt1, 'RemoveCollateralToken(address)')
   //     })
   //   })
 
   //   context('> sender does not have REMOVE_COLLATERAL_TOKEN_ROLE', () => {
   //     it('it should revert', async () => {
-  //       controller.removeCollateralToken(token1.address, { from: authorized })
+  //       await assertRevert(() => this.controller.removeCollateralToken(this.collaterals.dai.address, { from: unauthorized }))
   //     })
   //   })
   // })
@@ -394,24 +495,9 @@ contract('AragonFundraisingController app', ([root, authorized, unauthorized]) =
   // #region updateCollateralToken
   // context('> #updateCollateralToken', () => {
   //   context('> sender has UPDATE_COLLATERAL_TOKEN_ROLE', () => {
-  //     beforeEach(async () => {
-  //       await controller.addCollateralToken(
-  //         token1.address,
-  //         randomVirtualSupply(),
-  //         randomVirtualBalance(),
-  //         randomReserveRatio(),
-  //         randomSlippage(),
-  //         randomTap(),
-  //         randomFloor(),
-  //         {
-  //           from: authorized,
-  //         }
-  //       )
-  //     })
-
   //     it('it should update collateral token', async () => {
-  //       const receipt = await controller.updateCollateralToken(
-  //         token1.address,
+  //       const receipt = await this.controller.updateCollateralToken(
+  //         this.collaterals.dai.address,
   //         randomVirtualSupply(),
   //         randomVirtualBalance(),
   //         randomReserveRatio(),
@@ -419,13 +505,40 @@ contract('AragonFundraisingController app', ([root, authorized, unauthorized]) =
   //         { from: authorized }
   //       )
 
-  //       assertExternalEvent(receipt, 'UpdateCollateralToken(address,uint256,uint256,uint32,uint256)') // market maker
+  //       assertExternalEvent(receipt, 'UpdateCollateralToken(address,uint256,uint256,uint32,uint256)')
   //     })
   //   })
 
   //   context('> sender does not have UPDATE_COLLATERAL_TOKEN_ROLE', () => {
   //     it('it should revert', async () => {
-  //       await assertRevert(() => controller.updateTokenTap(token1.address, randomTap(), randomFloor(), { from: unauthorized }))
+  //       await assertRevert(() =>
+  //         this.controller.updateCollateralToken(
+  //           this.collaterals.dai.address,
+  //           randomVirtualSupply(),
+  //           randomVirtualBalance(),
+  //           randomReserveRatio(),
+  //           randomSlippage(),
+  //           { from: unauthorized }
+  //         )
+  //       )
+  //     })
+  //   })
+  // })
+  // #endregion
+
+  // #region updateMaximumTapRateIncreasePct
+  // context('> #updateMaximumTapRateIncreasePct', () => {
+  //   context('> sender has UPDATE_MAXIMUM_TAP_RATE_INCREASE_PCT_ROLE', () => {
+  //     it('it should update maximum tap rate increase percentage', async () => {
+  //       const receipt = await this.controller.updateMaximumTapRateIncreasePct(70, { from: authorized })
+
+  //       assertExternalEvent(receipt, 'UpdateMaximumTapRateIncreasePct(uint256)')
+  //     })
+  //   })
+
+  //   context('> sender does not have UPDATE_MAXIMUM_TAP_RATE_INCREASE_PCT_ROLE', () => {
+  //     it('it should revert', async () => {
+  //       await assertRevert(() => this.controller.updateMaximumTapRateIncreasePct(70, { from: unauthorized }))
   //     })
   //   })
   // })
@@ -435,256 +548,75 @@ contract('AragonFundraisingController app', ([root, authorized, unauthorized]) =
   // context('> #updateTokenTap', () => {
   //   context('> sender has UPDATE_TOKEN_TAP_ROLE', () => {
   //     beforeEach(async () => {
-  //       await controller.addCollateralToken(
-  //         token1.address,
-  //         randomVirtualSupply(),
-  //         randomVirtualBalance(),
-  //         randomReserveRatio(),
-  //         randomSlippage(),
-  //         10,
-  //         randomFloor(),
-  //         {
-  //           from: authorized,
-  //         }
-  //       )
-
   //       await timeTravel(2592001) // 1 month = 2592000 seconds
   //     })
 
   //     it('it should update token tap', async () => {
-  //       const receipt = await controller.updateTokenTap(token1.address, 14, randomFloor(), { from: authorized })
+  //       const receipt = await this.controller.updateTokenTap(this.collaterals.dai.address, 14, randomFloor(), { from: authorized })
 
-  //       assertExternalEvent(receipt, 'UpdateTappedToken(address,uint256,uint256)') // tap
+  //       assertExternalEvent(receipt, 'UpdateTappedToken(address,uint256,uint256)')
   //     })
   //   })
 
   //   context('> sender does not have UPDATE_TOKEN_TAP_ROLE', () => {
   //     it('it should revert', async () => {
-  //       await assertRevert(() => controller.updateTokenTap(token1.address, randomTap(), randomFloor(), { from: unauthorized }))
+  //       await assertRevert(() => this.controller.updateTokenTap(this.collaterals.dai.address, 14, randomFloor(), { from: unauthorized }))
+  //     })
+  //   })
+  // })
+  // #endregion
+
+  // #region resetTokenTap
+  // context('> #resetTokenTap', () => {
+  //   context('> sender has RESET_TOKEN_TAP_ROLE', () => {
+  //     it('it should reset token tap', async () => {
+  //       const receipt = await this.controller.resetTokenTap(this.collaterals.dai.address, { from: authorized })
+
+  //       assertExternalEvent(receipt, 'ResetTappedToken(address)')
+  //     })
+  //   })
+
+  //   context('> sender does not have RESET_TOKEN_TAP_ROLE', () => {
+  //     it('it should revert', async () => {
+  //       await assertRevert(() => this.controller.resetTokenTap(this.collaterals.dai.address, { from: unauthorized }))
   //     })
   //   })
   // })
   // #endregion
 
   // #region withdraw
-  // context('> #withdraw', () => {
-  //   beforeEach(async () => {
-  //     await forceSendETH(pool.address, INITIAL_ETH_BALANCE)
-  //     await token1.transfer(pool.address, INITIAL_TOKEN_BALANCE, { from: authorized })
+  context('> #withdraw', () => {
+    beforeEach(async () => {
+      await forceSendETH(this.reserve.address, INITIAL_ETH_BALANCE)
+      await this.collaterals.dai.transfer(this.reserve.address, INITIAL_DAI_BALANCE, { from: authorized })
 
-  //     await controller.addCollateralToken(ETH, randomVirtualSupply(), randomVirtualBalance(), randomReserveRatio(), randomSlippage(), 10, 0, {
-  //       from: authorized,
-  //     })
+      await increaseBlocks(1000)
+    })
 
-  //     await controller.addCollateralToken(token1.address, randomVirtualSupply(), randomVirtualBalance(), randomReserveRatio(), randomSlippage(), 10, 0, {
-  //       from: authorized,
-  //     })
+    context('> sender has WITHDRAW_ROLE', () => {
+      it('it should transfer funds from reserve to beneficiary [ETH]', async () => {
+        const receipt = await this.controller.withdraw(ETH, { from: authorized })
 
-  //     await increaseBlocks(1000)
-  //   })
+        assertExternalEvent(receipt, 'Withdraw(address,uint256)') // tap
+      })
 
-  //   context('> sender has WITHDRAW_ROLE', () => {
-  //     it('it should transfer funds from reserve to beneficiary [ETH]', async () => {
-  //       const receipt = await controller.withdraw(ETH, { from: authorized })
+      it('it should transfer funds from reserve to beneficiary [ERC20]', async () => {
+        const receipt = await this.controller.withdraw(this.collaterals.dai.address, { from: authorized })
 
-  //       assertExternalEvent(receipt, 'Withdraw(address,uint256)') // tap
-  //     })
+        assertExternalEvent(receipt, 'Withdraw(address,uint256)') // tap
+      })
+    })
 
-  //     it('it should transfer funds from reserve to beneficiary [ERC20]', async () => {
-  //       const receipt = await controller.withdraw(token1.address, { from: authorized })
+    context('> sender does not have WITHDRAW_ROLE', () => {
+      it('it should revert [ETH]', async () => {
+        await assertRevert(() => this.controller.withdraw(ETH, { from: unauthorized }))
+      })
 
-  //       assertExternalEvent(receipt, 'Withdraw(address,uint256)') // tap
-  //     })
-  //   })
-
-  //   context('> sender does not have WITHDRAW_ROLE', () => {
-  //     it('it should revert [ETH]', async () => {
-  //       await assertRevert(() => controller.withdraw(ETH, { from: unauthorized }))
-  //     })
-
-  //     it('it should revert [ERC20]', async () => {
-  //       await assertRevert(() => controller.withdraw(token1.address, { from: unauthorized }))
-  //     })
-  //   })
-  // })
-  // #endregion
-
-  // #region openBuyOrder
-  // context('> #openBuyOrder', () => {
-  //   beforeEach(async () => {
-  //     await addCollateralToken(ETH, {
-  //       virtualSupply: VIRTUAL_SUPPLIES[0],
-  //       virtualBalance: VIRTUAL_BALANCES[0],
-  //       reserveRatio: RESERVE_RATIOS[0],
-  //       slippage: Math.pow(10, 22),
-  //     })
-  //     await addCollateralToken(token1.address, {
-  //       virtualSupply: VIRTUAL_SUPPLIES[1],
-  //       virtualBalance: VIRTUAL_BALANCES[1],
-  //       reserveRatio: RESERVE_RATIOS[1],
-  //       slippage: Math.pow(10, 22),
-  //     })
-  //   })
-
-  //   context('> sender has OPEN_BUY_ORDER_ROLE', () => {
-  //     it('it should open buy order [ETH]', async () => {
-  //       const amount = randomAmount()
-  //       const receipt = await controller.openBuyOrder(ETH, amount, { from: authorized, value: amount })
-
-  //       assertExternalEvent(receipt, 'NewBuyOrder(address,uint256,address,uint256,uint256)') // market maker
-  //     })
-
-  //     it('it should open buy order [ERC20]', async () => {
-  //       const receipt = await controller.openBuyOrder(token1.address, randomAmount(), { from: authorized })
-
-  //       assertExternalEvent(receipt, 'NewBuyOrder(address,uint256,address,uint256,uint256)') // market maker
-  //     })
-  //   })
-
-  //   context('> sender does not have OPEN_BUY_ORDER_ROLE', () => {
-  //     it('it should revert [ETH]', async () => {
-  //       const amount = randomAmount()
-
-  //       await assertRevert(() => controller.openBuyOrder(ETH, amount, { from: unauthorized, value: amount }))
-  //     })
-
-  //     it('it should revert [ERC20]', async () => {
-  //       await assertRevert(() => controller.openBuyOrder(token1.address, randomAmount(), { from: unauthorized }))
-  //     })
-  //   })
-  // })
-  // #endregion
-
-  // #region openSellOrder
-  // context('> #openSellOrder', () => {
-  //   beforeEach(async () => {
-  //     await addCollateralToken(ETH, {
-  //       virtualSupply: VIRTUAL_SUPPLIES[0],
-  //       virtualBalance: VIRTUAL_BALANCES[0],
-  //       reserveRatio: RESERVE_RATIOS[0],
-  //       slippage: Math.pow(10, 22),
-  //     })
-  //     await addCollateralToken(token1.address, {
-  //       virtualSupply: VIRTUAL_SUPPLIES[1],
-  //       virtualBalance: VIRTUAL_BALANCES[1],
-  //       reserveRatio: RESERVE_RATIOS[1],
-  //       slippage: Math.pow(10, 22),
-  //     })
-  //   })
-
-  //   context('> sender has OPEN_SELL_ORDER_ROLE', () => {
-  //     it('it should open sell order [ETH]', async () => {
-  //       const balance = await openAndClaimBuyOrder(ETH, randomAmount(), { from: authorized })
-  //       const receipt = await controller.openSellOrder(ETH, balance, { from: authorized })
-
-  //       assertExternalEvent(receipt, 'NewSellOrder(address,uint256,address,uint256)') // market maker
-  //     })
-
-  //     it('it should open sell order [ERC20]', async () => {
-  //       const balance = await openAndClaimBuyOrder(token1.address, randomAmount(), { from: authorized })
-  //       const receipt = await controller.openSellOrder(token1.address, balance, { from: authorized })
-
-  //       assertExternalEvent(receipt, 'NewSellOrder(address,uint256,address,uint256)') // market maker
-  //     })
-  //   })
-
-  //   context('> sender does not have OPEN_SELL_ORDER_ROLE', () => {
-  //     it('it should revert [ETH]', async () => {
-  //       const balance = await openAndClaimBuyOrder(ETH, randomAmount(), { from: authorized })
-
-  //       await assertRevert(() => controller.openSellOrder(ETH, balance, { from: unauthorized }))
-  //     })
-
-  //     it('it should revert [ERC20]', async () => {
-  //       const balance = await openAndClaimBuyOrder(token1.address, randomAmount(), { from: authorized })
-
-  //       await assertRevert(() => controller.openSellOrder(token1.address, balance, { from: unauthorized }))
-  //     })
-  //   })
-  // })
-  // #endregion
-
-  // #region claimBuyOrderOrder
-  // context('> #claimBuyOrder', () => {
-  //   beforeEach(async () => {
-  //     await addCollateralToken(ETH, {
-  //       virtualSupply: VIRTUAL_SUPPLIES[0],
-  //       virtualBalance: VIRTUAL_BALANCES[0],
-  //       reserveRatio: RESERVE_RATIOS[0],
-  //       slippage: Math.pow(10, 22),
-  //     })
-  //     await addCollateralToken(token1.address, {
-  //       virtualSupply: VIRTUAL_SUPPLIES[1],
-  //       virtualBalance: VIRTUAL_BALANCES[1],
-  //       reserveRatio: RESERVE_RATIOS[1],
-  //       slippage: Math.pow(10, 22),
-  //     })
-  //   })
-
-  //   it('it should return bonds [ETH]', async () => {
-  //     const amount = randomAmount()
-  //     const receipt1 = await controller.openBuyOrder(ETH, amount, { from: authorized, value: amount })
-  //     const batchId = getBuyOrderBatchId(receipt1)
-
-  //     await progressToNextBatch()
-  //     const receipt2 = await controller.claimBuyOrder(batchId, ETH, { from: authorized })
-
-  //     assertExternalEvent(receipt2, 'ReturnBuyOrder(address,uint256,address,uint256)') // market maker
-  //   })
-
-  //   it('it should return bonds [ERC20]', async () => {
-  //     const receipt1 = await controller.openBuyOrder(token1.address, randomAmount(), { from: authorized })
-  //     const batchId = getBuyOrderBatchId(receipt1)
-
-  //     await progressToNextBatch()
-  //     const receipt2 = await controller.claimBuyOrder(batchId, token1.address, { from: authorized })
-
-  //     assertExternalEvent(receipt2, 'ReturnBuyOrder(address,uint256,address,uint256)') // market maker
-  //   })
-  // })
-  // #endregion
-
-  // #region claimSellOrder
-  // context('> #claimSellOrder', () => {
-  //   beforeEach(async () => {
-  //     await addCollateralToken(ETH, {
-  //       virtualSupply: VIRTUAL_SUPPLIES[0],
-  //       virtualBalance: VIRTUAL_BALANCES[0],
-  //       reserveRatio: RESERVE_RATIOS[0],
-  //       slippage: Math.pow(10, 22),
-  //     })
-  //     await addCollateralToken(token1.address, {
-  //       virtualSupply: VIRTUAL_SUPPLIES[1],
-  //       virtualBalance: VIRTUAL_BALANCES[1],
-  //       reserveRatio: RESERVE_RATIOS[1],
-  //       slippage: Math.pow(10, 22),
-  //     })
-  //   })
-
-  //   it('it should return collateral [ETH]', async () => {
-  //     const balance = await openAndClaimBuyOrder(ETH, randomAmount(), { from: authorized })
-  //     const receipt1 = await controller.openSellOrder(ETH, balance, { from: authorized })
-  //     const batchId = getSellOrderBatchId(receipt1)
-
-  //     await progressToNextBatch()
-
-  //     const receipt2 = await controller.claimSellOrder(batchId, ETH, { from: authorized })
-
-  //     assertExternalEvent(receipt2, 'ReturnSellOrder(address,uint256,address,uint256,uint256)') // market maker
-  //   })
-
-  //   it('it should return collateral [ERC20]', async () => {
-  //     const balance = await openAndClaimBuyOrder(token1.address, randomAmount(), { from: authorized })
-  //     const receipt1 = await controller.openSellOrder(token1.address, balance, { from: authorized })
-  //     const batchId = getSellOrderBatchId(receipt1)
-
-  //     await progressToNextBatch()
-
-  //     const receipt2 = await controller.claimSellOrder(batchId, token1.address, { from: authorized })
-
-  //     assertExternalEvent(receipt2, 'ReturnSellOrder(address,uint256,address,uint256,uint256)') // market maker
-  //   })
-  // })
+      it('it should revert [ERC20]', async () => {
+        await assertRevert(() => this.controller.withdraw(this.collaterals.dai.address, { from: unauthorized }))
+      })
+    })
+  })
   // #endregion
 
   // #region balanceOf
@@ -701,13 +633,13 @@ contract('AragonFundraisingController app', ([root, authorized, unauthorized]) =
   //     })
 
   //     it('it should return available reserve balance [ERC20]', async () => {
-  //       const collateral = await TokenMock.new(pool.address, INITIAL_TOKEN_BALANCE)
+  //       const collateral = await TokenMock.new(pool.address, INITIAL_DAI_BALANCE)
   //       await addCollateralToken(collateral.address, { tap: 7, floor: 0 })
 
   //       await progressToNextBatch()
   //       await progressToNextBatch()
 
-  //       assert.equal((await controller.balanceOf(pool.address, collateral.address)).toNumber(), INITIAL_TOKEN_BALANCE - 7 * 2 * BLOCKS_IN_BATCH)
+  //       assert.equal((await controller.balanceOf(pool.address, collateral.address)).toNumber(), INITIAL_DAI_BALANCE - 7 * 2 * BLOCKS_IN_BATCH)
   //     })
   //   })
   //   context('> other', () => {
@@ -758,7 +690,7 @@ contract('AragonFundraisingController app', ([root, authorized, unauthorized]) =
   //   })
   //   context('> other', () => {
   //     it('it should return zero', async () => {
-  //       const collateral = await TokenMock.new(pool.address, INITIAL_TOKEN_BALANCE)
+  //       const collateral = await TokenMock.new(pool.address, INITIAL_DAI_BALANCE)
   //       assert.equal((await controller.tokensToHold(collateral.address)).toNumber(), 0)
   //     })
   //   })
