@@ -26,9 +26,9 @@
     "apm:publish:rpc:patch": "aragon apm publish patch --files app/build --environment default --prepublish false --skip-confirmation true --propagate-content false",
     "apm:publish:rpc:minor": "aragon apm publish minor --files app/build --environment default --prepublish false --skip-confirmation true --propagate-content false",
     "apm:publish:rpc:major": "aragon apm publish major --files app/build --environment default --skip-confirmation true --propagate-content false",
-    "apm:publish:hatch:patch": "aragon apm publish patch --files app/build --prepublish false --use-frame --environment hatch",
-    "apm:publish:hatch:minor": "aragon apm publish minor --files app/build --prepublish false --use-frame --environment hatch",
-    "apm:publish:hatch:major": "aragon apm publish major --files app/build --use-frame --environment hatch",
+    "apm:publish:hatch:patch": "aragon apm publish patch --files app/build --environment hatch --use-frame --prepublish false",
+    "apm:publish:hatch:minor": "aragon apm publish minor --files app/build --environment hatch --use-frame --prepublish false",
+    "apm:publish:hatch:major": "aragon apm publish major --files app/build --environment hatch --use-frame",
     "publish": "npm run apm:publish:rpc:major"
   },
   "files": [
