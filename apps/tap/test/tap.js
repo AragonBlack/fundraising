@@ -15,7 +15,7 @@ const assertEvent = require('@aragon/test-helpers/assertEvent')
 const timeTravel = require('@aragon/test-helpers/timeTravel')(web3)
 const { hash } = require('eth-ens-namehash')
 const { getEvent } = require('@ablack/fundraising-shared-test-helpers/events')
-const { NULL_ADDRESS } = require('@ablack/fundraising-shared-test-helpers/addresses')
+const { NULL_ADDRESS } = require('@ablack/fundraising-shared-test-helpers/constants')
 const increaseBlocks = require('@ablack/fundraising-shared-test-helpers/increaseBlocks')(web3)
 
 const getTimestamp = receipt => {
