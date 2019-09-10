@@ -301,16 +301,16 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
     function _tapFloorUpdateIsValid(address _token, uint256 _floor) internal view returns (bool) {
         uint256 floor = floors[_token];
 
-        if (maximumTapFloorDecreasePct >= PCT_BASE) {
-            return true;
-        }
-
         if (_floor >= floor) {
             return true;
         }
 
         if (getTimestamp() < lastTapUpdates[_token] + 30 days) {
             return false;
+        }
+
+        if (maximumTapFloorDecreasePct >= PCT_BASE) {
+            return true;
         }
 
         if (_floor.mul(PCT_BASE) >= floor.mul(PCT_BASE.sub(maximumTapFloorDecreasePct))) {
