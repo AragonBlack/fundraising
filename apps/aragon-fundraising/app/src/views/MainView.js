@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { unstable_batchedUpdates as batchedUpdates } from 'react-dom'
 import { useApi, useAppState } from '@aragon/api-react'
 import { Layout, Tabs, Button } from '@aragon/ui'
 import BigNumber from 'bignumber.js'
@@ -69,13 +70,28 @@ export default () => {
     const antPromise = api.call('balanceOf', pool, antAddress).toPromise()
     const batchIdPromise = marketMakerContract.getCurrentBatchId().toPromise()
     const [daiBalance, antBalance, batchId] = await Promise.all([daiPromise, antPromise, batchIdPromise])
-    setPolledReserveBalance(new BigNumber(daiBalance))
-    setPolledDaiBalance(new BigNumber(daiBalance).minus(daiToBeClaimed).plus(daiVirtualBalance))
-    setPolledAntBalance(new BigNumber(antBalance).minus(antToBeClaimed).plus(antVirtualBalance))
-    setPolledBatchId(parseInt(batchId, 10))
+    const newReserveBalance = new BigNumber(daiBalance)
+    const newDaiBalance = new BigNumber(daiBalance).minus(daiToBeClaimed).plus(daiVirtualBalance)
+    const newAntBalance = new BigNumber(antBalance).minus(antToBeClaimed).plus(antVirtualBalance)
+    const newBatchId = parseInt(batchId, 10)
     // polling price
     const price = await marketMakerContract.getStaticPricePPM(daiSupply.toFixed(), polledDaiBalance.toFixed(), reserveRatio.toFixed()).toPromise()
-    setPolledPrice(new BigNumber(price).div(PPM))
+    const newPrice = new BigNumber(price).div(PPM)
+    // TODO: keep an eye on React 17, since all updates will be batched by default
+    // see: https://stackoverflow.com/questions/48563650/does-react-keep-the-order-for-state-updates/48610973#48610973
+    // until then, it's safe to use the unstable API
+    batchedUpdates(() => {
+      // update the state only if the reserve changed
+      if (!newReserveBalance.eq(polledReserveBalance)) setPolledReserveBalance(newReserveBalance)
+      // update the state only if the dai balance changed
+      if (!newDaiBalance.eq(polledDaiBalance)) setPolledDaiBalance(newDaiBalance)
+      // update the state only if the ant balance changed
+      if (!newAntBalance.eq(polledAntBalance)) setPolledAntBalance(newAntBalance)
+      // update the state only if the batchId changed
+      if (newBatchId !== polledBatchId) setPolledBatchId(newBatchId)
+      // update the state only if the price changed
+      if (!newPrice.eq(polledPrice)) setPolledPrice(newPrice)
+    })
   }, 3000)
 
   /**
