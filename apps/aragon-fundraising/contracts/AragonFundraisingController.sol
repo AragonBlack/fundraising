@@ -230,7 +230,7 @@ contract AragonFundraisingController is EtherTokenConstant, IsContract, IAragonF
 
     /**
      * @notice Update maximum tap rate increase percentage to `@formatPct(_maximumTapRateIncreasePct)`%
-     * @param _maximumTapRateIncreasePct The new maximum tap rate increase percentage allowed [in PCT_BASE]
+     * @param _maximumTapRateIncreasePct The new maximum tap rate increase percentage to be allowed [in PCT_BASE]
     */
     function updateMaximumTapRateIncreasePct(uint256 _maximumTapRateIncreasePct) external auth(UPDATE_MAXIMUM_TAP_RATE_INCREASE_PCT_ROLE) {
         tap.updateMaximumTapRateIncreasePct(_maximumTapRateIncreasePct);
