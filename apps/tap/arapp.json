@@ -44,6 +44,11 @@
       "params": []
     },
     {
+      "name": "Update maximum tap floor decrease percentage",
+      "id": "UPDATE_MAXIMUM_TAP_FLOOR_DECREASE_PCT_ROLE",
+      "params": []
+    },
+    {
       "name": "Add tapped tokens",
       "id": "ADD_TAPPED_TOKEN_ROLE",
       "params": []
