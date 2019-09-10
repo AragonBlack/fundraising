@@ -1,5 +1,5 @@
-import React, { useState } from 'react'
-import { useApi, useAppState } from '@aragon/api-react'
+import React, { useState, useEffect } from 'react'
+import { useApi, useAppState, useConnectedAccount } from '@aragon/api-react'
 import { Layout, Tabs, Button, useLayout, ContextMenu, ContextMenuItem } from '@aragon/ui'
 import BigNumber from 'bignumber.js'
 import { useInterval } from '../hooks/use-interval'
@@ -24,6 +24,7 @@ export default () => {
     constants: { PPM },
     bondedToken: {
       overallSupply: { dai: daiSupply },
+      address: bondedTokenAddress,
     },
     collaterals: {
       dai: { address: daiAddress, reserveRatio, toBeClaimed: daiToBeClaimed, virtualBalance: daiVirtualBalance, overallBalance: daiOverallBalance },
@@ -38,9 +39,10 @@ export default () => {
   const marketMakerContract = api.external(marketMakerAddress, marketMaker)
 
   // *****************************
-  // layout name
+  // layout name and connectedUser
   // *****************************
   const { name: layoutName } = useLayout()
+  const connectedUser = useConnectedAccount()
 
   // *****************************
   // internal state, also shared through context
@@ -56,6 +58,9 @@ export default () => {
   const [polledAntBalance, setPolledAntBalance] = useState(antOverallBalance)
   const [polledBatchId, setPolledBatchId] = useState(null)
   const [polledPrice, setPolledPrice] = useState(0)
+  const [userBondedBalance, setUserBondedBalance] = useState(0)
+  const [userDaiBalance, setUserDaiBalance] = useState(0)
+  const [userAntBalance, setUserAntBalance] = useState(0)
 
   // react context accessible on child components
   const context = {
@@ -66,7 +71,23 @@ export default () => {
     price: polledPrice,
     orderPanel,
     setOrderPanel,
+    userBondedBalance,
+    userDaiBalance,
+    userAntBalance,
   }
+
+  useEffect(() => {
+    const getUserBalances = async () => {
+      const balancesPromises = [bondedTokenAddress, daiAddress, antAddress].map(address => api.call('balanceOf', connectedUser, address).toPromise())
+      const [bondedBalance, daiBalance, antBalance] = await Promise.all(balancesPromises)
+      setUserBondedBalance(new BigNumber(bondedBalance))
+      setUserDaiBalance(new BigNumber(daiBalance))
+      setUserAntBalance(new BigNumber(antBalance))
+    }
+    if (connectedUser) {
+      getUserBalances()
+    }
+  }, [connectedUser])
 
   // polls the balances, batchId and price
   useInterval(async () => {
@@ -79,6 +100,13 @@ export default () => {
     setPolledDaiBalance(new BigNumber(daiBalance).minus(daiToBeClaimed).plus(daiVirtualBalance))
     setPolledAntBalance(new BigNumber(antBalance).minus(antToBeClaimed).plus(antVirtualBalance))
     setPolledBatchId(parseInt(batchId, 10))
+    if (connectedUser) {
+      const balancesPromises = [bondedTokenAddress, daiAddress, antAddress].map(address => api.call('balanceOf', connectedUser, address).toPromise())
+      const [bondedBalance, daiBalance, antBalance] = await Promise.all(balancesPromises)
+      setUserBondedBalance(new BigNumber(bondedBalance))
+      setUserDaiBalance(new BigNumber(daiBalance))
+      setUserAntBalance(new BigNumber(antBalance))
+    }
     // polling price
     const price = await marketMakerContract.getStaticPricePPM(daiSupply.toFixed(), polledDaiBalance.toFixed(), reserveRatio.toFixed()).toPromise()
     setPolledPrice(new BigNumber(price).div(PPM))

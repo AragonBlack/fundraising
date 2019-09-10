@@ -6,7 +6,7 @@ import { MainViewContext } from '../../context'
 import Total from './Total'
 import Info from './Info'
 import ValidationError from '../ValidationError'
-import { toDecimals } from '../../utils/bn-utils'
+import { toDecimals, formatBigNumber } from '../../utils/bn-utils'
 
 const Order = ({ isBuyOrder }) => {
   // *****************************
@@ -27,7 +27,7 @@ const Order = ({ isBuyOrder }) => {
   // *****************************
   // context state
   // *****************************
-  const { orderPanel, setOrderPanel } = useContext(MainViewContext)
+  const { orderPanel, setOrderPanel, userBondedBalance, userDaiBalance, userAntBalance } = useContext(MainViewContext)
 
   // *****************************
   // internal state
@@ -104,9 +104,18 @@ const Order = ({ isBuyOrder }) => {
     return collateralItems[selectedCollateral].reserveRatio
   }
 
+  const getUserBalance = () => {
+    const balance = isBuyOrder ? [userDaiBalance, userAntBalance][selectedCollateral] : userBondedBalance
+    const decimals = isBuyOrder ? collateralItems[selectedCollateral].decimals : bondedDecimals
+    return formatBigNumber(balance, decimals, 4)
+  }
+
   return (
     <form onSubmit={handleSubmit}>
       <InputsWrapper>
+        <p css="margin: 1rem 0;">
+          Your balance: {getUserBalance()} {getSymbol()}
+        </p>
         <AmountField key="collateral">
           <label>
             {isBuyOrder && <StyledTextBlock>{collateralItems[selectedCollateral].symbol} TO SPEND</StyledTextBlock>}
