@@ -23,7 +23,7 @@ jobs:
       script: npm run lint
       name: 'All'
     - stage: tests
-    - script: npm run test:aragon-fundraising
+      script: npm run test:aragon-fundraising
       name: 'Aragon Fundraising'
     - script: npm run test:batched-bancor-market-maker
       name: 'Batched Bancor Market Maker'
