@@ -4,12 +4,8 @@ import "@aragon/os/contracts/acl/ACL.sol";
 import "@aragon/os/contracts/factory/DAOFactory.sol";
 import "@aragon/os/contracts/factory/EVMScriptRegistryFactory.sol";
 import "@aragon/os/contracts/kernel/Kernel.sol";
-import "@aragon/apps-agent/contracts/Agent.sol";
 import "@aragon/apps-shared-migrations/contracts/Migrations.sol";
-import "@ablack/fundraising-aragon-fundraising/contracts/AragonFundraisingController.sol";
-import "@ablack/fundraising-bancor-formula/contracts/BancorFormula.sol";
-import "@ablack/fundraising-batched-bancor-market-maker/contracts/BatchedBancorMarketMaker.sol";
-import "@ablack/fundraising-tap/contracts/Tap.sol";
+import "@ablack/fundraising-shared-test-helpers/contracts/AragonFundraisingControllerMock.sol";
 
 
 // HACK to workaround truffle artifact loading on dependencies

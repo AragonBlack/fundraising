@@ -36,12 +36,7 @@
     "@aragon/os": "4.2.1"
   },
   "devDependencies": {
-    "@ablack/fundraising-aragon-fundraising": "^0.1.0",
-    "@ablack/fundraising-bancor-formula": "^0.1.0",
-    "@ablack/fundraising-batched-bancor-market-maker": "^0.1.0",
     "@ablack/fundraising-shared-test-helpers": "^0.1.0",
-    "@ablack/fundraising-tap": "^0.1.0",
-    "@aragon/apps-agent": "^2.0.0-rc.1",
     "@aragon/apps-shared-migrations": "^1.0.0",
     "@aragon/apps-vault": "^4.1.0",
     "@aragon/cli": "^6.2.5",
