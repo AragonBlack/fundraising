@@ -19,13 +19,13 @@
   },
   "roles": [
     {
-      "name": "Start the presale",
-      "id": "START_ROLE",
+      "name": "Open presale",
+      "id": "OPEN_ROLE",
       "params": []
     },
     {
-      "name": "Purchase tokens",
-      "id": "BUY_ROLE",
+      "name": "Contribute to presale",
+      "id": "CONTRIBUTE_ROLE",
       "params": []
     }
   ],

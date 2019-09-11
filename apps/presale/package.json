@@ -11,16 +11,16 @@
   "scripts": {
     "lint": "solium --dir ./contracts --config ../../.soliumrc.json",
     "compile": "truffle compile",
-    "test": "TRUFFLE_TEST=true npm run ganache-cli:test",
+    "test": "TRUFFLE_TEST=true npm run test:ganache",
     "test:gas": "GAS_REPORTER=true npm test",
-    "test:coverage": "SOLIDITY_COVERAGE=true npm run ganache-cli:test",
-    "ganache-cli:test": "./node_modules/@aragon/test-helpers/ganache-cli.sh",
-    "abi:extract": "truffle-extract --output abi/ --keys abi",
+    "test:coverage": "SOLIDITY_COVERAGE=true npm run test:ganache",
+    "test:ganache": "./node_modules/@aragon/test-helpers/ganache-cli.sh",
     "prepublishOnly": "truffle compile --all && npm run abi:extract -- --no-compile",
+    "abi:extract": "truffle-extract --output abi/ --keys abi",
     "apm:prepublish": "npm run compile",
-    "apm:publish:rpc": "aragon apm publish major --environment default --skip-confirmation true --propagate-content false",
-    "apm:publish:hatch:major": "aragon apm publish major --use-frame --environment hatch",
-    "publish": "npm run apm:publish:rpc"
+    "apm:publish:rpc:major": "aragon apm publish major --environment default --skip-confirmation true --propagate-content false",
+    "apm:publish:hatch:major": "aragon apm publish major --environment hatch --use-frame",
+    "publish": "npm run apm:publish:rpc:major"
   },
   "files": [
     "/abi",
@@ -30,6 +30,7 @@
     "/test"
   ],
   "dependencies": {
+    "@ablack/fundraising-shared-interfaces": "^0.1.0",
     "@aragon/apps-shared-minime": "^1.0.0",
     "@aragon/apps-token-manager": "^2.1.0",
     "@aragon/os": "4.2.1"
@@ -38,7 +39,7 @@
     "@ablack/fundraising-aragon-fundraising": "^0.1.0",
     "@ablack/fundraising-bancor-formula": "^0.1.0",
     "@ablack/fundraising-batched-bancor-market-maker": "^0.1.0",
-    "@ablack/fundraising-shared-interfaces": "^0.1.0",
+    "@ablack/fundraising-shared-test-helpers": "^0.1.0",
     "@ablack/fundraising-tap": "^0.1.0",
     "@aragon/apps-agent": "^2.0.0-rc.1",
     "@aragon/apps-shared-migrations": "^1.0.0",
@@ -49,7 +50,6 @@
     "eth-gas-reporter": "^0.2.0",
     "ethereumjs-testrpc-sc": "^6.5.1-sc.0",
     "ganache-cli": "^6.4.3",
-    "js-sha3": "^0.8.0",
     "solidity-coverage": "0.6.2",
     "solium": "^1.2.3",
     "truffle": "4.1.14",

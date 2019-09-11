@@ -2,17 +2,10 @@ const { PRESALE_PERIOD, SALE_STATE, CONNECTOR_WEIGHT, TAP_RATE, PERCENT_FUNDING_
 const { prepareDefaultSetup, defaultDeployParams, initializePresale } = require('./common/deploy')
 const { getEvent, now } = require('./common/utils')
 const { assertRevert } = require('@aragon/test-helpers/assertThrow')
-const sha3 = require('js-sha3').keccak_256
+
+const assertExternalEvent = require('@ablack/fundraising-shared-test-helpers/assertExternalEvent')
 
 const BUYER_BALANCE = 20000
-
-const assertExternalEvent = (tx, eventName, instances = 1) => {
-  const events = tx.receipt.logs.filter(l => {
-    return l.topics[0] === '0x' + sha3(eventName)
-  })
-  assert.equal(events.length, instances, `'${eventName}' event should have been fired ${instances} times`)
-  return events
-}
 
 contract('Presale, close() functionality', ([anyone, appManager, buyer1]) => {
   const itAllowsTheSaleToBeClosed = startDate => {
