@@ -17,20 +17,21 @@ contract AragonFundraisingController is EtherTokenConstant, IsContract, IAragonF
     using SafeERC20 for ERC20;
     using SafeMath  for uint256;
 
-    bytes32 public constant UPDATE_BENEFICIARY_ROLE                   = keccak256("UPDATE_BENEFICIARY_ROLE");
-    bytes32 public constant UPDATE_FEES_ROLE                          = keccak256("UPDATE_FEES_ROLE");
-    bytes32 public constant ADD_COLLATERAL_TOKEN_ROLE                 = keccak256("ADD_COLLATERAL_TOKEN_ROLE");
-    bytes32 public constant REMOVE_COLLATERAL_TOKEN_ROLE              = keccak256("REMOVE_COLLATERAL_TOKEN_ROLE");
-    bytes32 public constant UPDATE_COLLATERAL_TOKEN_ROLE              = keccak256("UPDATE_COLLATERAL_TOKEN_ROLE");
-    bytes32 public constant UPDATE_MAXIMUM_TAP_RATE_INCREASE_PCT_ROLE = keccak256("UPDATE_MAXIMUM_TAP_RATE_INCREASE_PCT_ROLE");
-    bytes32 public constant UPDATE_TOKEN_TAP_ROLE                     = keccak256("UPDATE_TOKEN_TAP_ROLE");
-    bytes32 public constant RESET_TOKEN_TAP_ROLE                      = keccak256("RESET_TOKEN_TAP_ROLE");
-    bytes32 public constant OPEN_PRESALE_ROLE                         = keccak256("OPEN_PRESALE_ROLE");
-    bytes32 public constant OPEN_TRADING_ROLE                         = keccak256("OPEN_TRADING_ROLE");
-    bytes32 public constant CONTRIBUTE_ROLE                           = keccak256("CONTRIBUTE_ROLE");
-    bytes32 public constant OPEN_BUY_ORDER_ROLE                       = keccak256("OPEN_BUY_ORDER_ROLE");
-    bytes32 public constant OPEN_SELL_ORDER_ROLE                      = keccak256("OPEN_SELL_ORDER_ROLE");
-    bytes32 public constant WITHDRAW_ROLE                             = keccak256("WITHDRAW_ROLE");
+    bytes32 public constant UPDATE_BENEFICIARY_ROLE                    = keccak256("UPDATE_BENEFICIARY_ROLE");
+    bytes32 public constant UPDATE_FEES_ROLE                           = keccak256("UPDATE_FEES_ROLE");
+    bytes32 public constant ADD_COLLATERAL_TOKEN_ROLE                  = keccak256("ADD_COLLATERAL_TOKEN_ROLE");
+    bytes32 public constant REMOVE_COLLATERAL_TOKEN_ROLE               = keccak256("REMOVE_COLLATERAL_TOKEN_ROLE");
+    bytes32 public constant UPDATE_COLLATERAL_TOKEN_ROLE               = keccak256("UPDATE_COLLATERAL_TOKEN_ROLE");
+    bytes32 public constant UPDATE_MAXIMUM_TAP_RATE_INCREASE_PCT_ROLE  = keccak256("UPDATE_MAXIMUM_TAP_RATE_INCREASE_PCT_ROLE");
+    bytes32 public constant UPDATE_MAXIMUM_TAP_FLOOR_DECREASE_PCT_ROLE = keccak256("UPDATE_MAXIMUM_TAP_FLOOR_DECREASE_PCT_ROLE");
+    bytes32 public constant UPDATE_TOKEN_TAP_ROLE                      = keccak256("UPDATE_TOKEN_TAP_ROLE");
+    bytes32 public constant RESET_TOKEN_TAP_ROLE                       = keccak256("RESET_TOKEN_TAP_ROLE");
+    bytes32 public constant OPEN_PRESALE_ROLE                          = keccak256("OPEN_PRESALE_ROLE");
+    bytes32 public constant OPEN_TRADING_ROLE                          = keccak256("OPEN_TRADING_ROLE");
+    bytes32 public constant CONTRIBUTE_ROLE                            = keccak256("CONTRIBUTE_ROLE");
+    bytes32 public constant OPEN_BUY_ORDER_ROLE                        = keccak256("OPEN_BUY_ORDER_ROLE");
+    bytes32 public constant OPEN_SELL_ORDER_ROLE                       = keccak256("OPEN_SELL_ORDER_ROLE");
+    bytes32 public constant WITHDRAW_ROLE                              = keccak256("WITHDRAW_ROLE");
 
     string private constant ERROR_CONTRACT_IS_EOA = "FUNDRAISING_CONTRACT_IS_EOA";
 
@@ -196,6 +197,27 @@ contract AragonFundraisingController is EtherTokenConstant, IsContract, IAragonF
     }
 
     /**
+     * @notice Re-add `_collateral.symbol(): string` as a whitelisted collateral token [if it has been un-whitelisted in the past]
+     * @param _collateral     The address of the collateral token to be whitelisted
+     * @param _virtualSupply  The virtual supply to be used for that collateral token [in wei]
+     * @param _virtualBalance The virtual balance to be used for that collateral token [in wei]
+     * @param _reserveRatio   The reserve ratio to be used for that collateral token [in PPM]
+     * @param _slippage       The price slippage below which each market making batch is to be kept for that collateral token [in PCT_BASE]
+    */
+    function reAddCollateralToken(
+        address _collateral,
+        uint256 _virtualSupply,
+        uint256 _virtualBalance,
+        uint32  _reserveRatio,
+        uint256 _slippage
+    )
+    	external
+        auth(ADD_COLLATERAL_TOKEN_ROLE)
+    {
+        marketMaker.addCollateralToken(_collateral, _virtualSupply, _virtualBalance, _reserveRatio, _slippage);
+    }
+
+    /**
       * @notice Remove `_collateral.symbol(): string` as a whitelisted collateral token
       * @param _collateral The address of the collateral token to be un-whitelisted
     */
@@ -234,6 +256,14 @@ contract AragonFundraisingController is EtherTokenConstant, IsContract, IAragonF
     */
     function updateMaximumTapRateIncreasePct(uint256 _maximumTapRateIncreasePct) external auth(UPDATE_MAXIMUM_TAP_RATE_INCREASE_PCT_ROLE) {
         tap.updateMaximumTapRateIncreasePct(_maximumTapRateIncreasePct);
+    }
+
+    /**
+     * @notice Update maximum tap floor decrease percentage to `@formatPct(_maximumTapFloorDecreasePct)`%
+     * @param _maximumTapFloorDecreasePct The new maximum tap floor decrease percentage to be allowed [in PCT_BASE]
+    */
+    function updateMaximumTapFloorDecreasePct(uint256 _maximumTapFloorDecreasePct) external auth(UPDATE_MAXIMUM_TAP_FLOOR_DECREASE_PCT_ROLE) {
+        tap.updateMaximumTapFloorDecreasePct(_maximumTapFloorDecreasePct);
     }
 
     /**

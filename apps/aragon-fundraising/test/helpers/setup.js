@@ -33,6 +33,7 @@ const {
   FLOORS,
   BATCH_BLOCKS,
   MAXIMUM_TAP_RATE_INCREASE_PCT,
+  MAXIMUM_TAP_FLOOR_DECREASE_PCT,
 } = require('@ablack/fundraising-shared-test-helpers/constants')
 
 const { hash } = require('eth-ens-namehash')
@@ -162,16 +163,15 @@ const setup = {
     presale: async (ctx, root) => {
       await ctx.presale.initialize(
         ctx.controller.address,
-        ctx.collaterals.dai.address,
-        ctx.token.address,
         ctx.tokenManager.address,
-        VESTING_CLIFF_PERIOD,
-        VESTING_COMPLETE_PERIOD,
-        PRESALE_GOAL,
-        PERCENT_SUPPLY_OFFERED,
-        PRESALE_PERIOD,
         ctx.reserve.address,
         ctx.vault.address,
+        ctx.collaterals.dai.address,
+        PRESALE_GOAL,
+        PRESALE_PERIOD,
+        VESTING_CLIFF_PERIOD,
+        VESTING_COMPLETE_PERIOD,
+        PERCENT_SUPPLY_OFFERED,
         PERCENT_FUNDING_FOR_BENEFICIARY,
         0,
         [ctx.collaterals.dai.address],
@@ -198,7 +198,15 @@ const setup = {
       await ctx.vault.initialize({ from: root })
     },
     tap: async (ctx, root) => {
-      await ctx.tap.initialize(ctx.controller.address, ctx.reserve.address, ctx.vault.address, BATCH_BLOCKS, MAXIMUM_TAP_RATE_INCREASE_PCT, { from: root })
+      await ctx.tap.initialize(
+        ctx.controller.address,
+        ctx.reserve.address,
+        ctx.vault.address,
+        BATCH_BLOCKS,
+        MAXIMUM_TAP_RATE_INCREASE_PCT,
+        MAXIMUM_TAP_FLOOR_DECREASE_PCT,
+        { from: root }
+      )
     },
     all: async (ctx, root, user) => {
       await setup.initialize.tokenManager(ctx, root)
@@ -216,6 +224,7 @@ const setup = {
       ctx.roles.controller.UPDATE_BENEFICIARY_ROLE = await ctx.base.controller.UPDATE_BENEFICIARY_ROLE()
       ctx.roles.controller.UPDATE_FEES_ROLE = await ctx.base.controller.UPDATE_FEES_ROLE()
       ctx.roles.controller.UPDATE_MAXIMUM_TAP_RATE_INCREASE_PCT_ROLE = await ctx.base.controller.UPDATE_MAXIMUM_TAP_RATE_INCREASE_PCT_ROLE()
+      ctx.roles.controller.UPDATE_MAXIMUM_TAP_FLOOR_DECREASE_PCT_ROLE = await ctx.base.controller.UPDATE_MAXIMUM_TAP_FLOOR_DECREASE_PCT_ROLE()
       ctx.roles.controller.ADD_COLLATERAL_TOKEN_ROLE = await ctx.base.controller.ADD_COLLATERAL_TOKEN_ROLE()
       ctx.roles.controller.REMOVE_COLLATERAL_TOKEN_ROLE = await ctx.base.controller.REMOVE_COLLATERAL_TOKEN_ROLE()
       ctx.roles.controller.UPDATE_COLLATERAL_TOKEN_ROLE = await ctx.base.controller.UPDATE_COLLATERAL_TOKEN_ROLE()
@@ -231,6 +240,7 @@ const setup = {
       await ctx.acl.createPermission(user, ctx.controller.address, ctx.roles.controller.UPDATE_BENEFICIARY_ROLE, root, { from: root })
       await ctx.acl.createPermission(user, ctx.controller.address, ctx.roles.controller.UPDATE_FEES_ROLE, root, { from: root })
       await ctx.acl.createPermission(user, ctx.controller.address, ctx.roles.controller.UPDATE_MAXIMUM_TAP_RATE_INCREASE_PCT_ROLE, root, { from: root })
+      await ctx.acl.createPermission(user, ctx.controller.address, ctx.roles.controller.UPDATE_MAXIMUM_TAP_FLOOR_DECREASE_PCT_ROLE, root, { from: root })
       await ctx.acl.createPermission(user, ctx.controller.address, ctx.roles.controller.ADD_COLLATERAL_TOKEN_ROLE, root, { from: root })
       await ctx.acl.createPermission(user, ctx.controller.address, ctx.roles.controller.REMOVE_COLLATERAL_TOKEN_ROLE, root, { from: root })
       await ctx.acl.createPermission(user, ctx.controller.address, ctx.roles.controller.UPDATE_COLLATERAL_TOKEN_ROLE, root, { from: root })
@@ -314,6 +324,7 @@ const setup = {
       ctx.roles.tap.UPDATE_TAPPED_TOKEN_ROLE = await ctx.base.tap.UPDATE_TAPPED_TOKEN_ROLE()
       ctx.roles.tap.RESET_TAPPED_TOKEN_ROLE = await ctx.base.tap.RESET_TAPPED_TOKEN_ROLE()
       ctx.roles.tap.UPDATE_MAXIMUM_TAP_RATE_INCREASE_PCT_ROLE = await ctx.base.tap.UPDATE_MAXIMUM_TAP_RATE_INCREASE_PCT_ROLE()
+      ctx.roles.tap.UPDATE_MAXIMUM_TAP_FLOOR_DECREASE_PCT_ROLE = await ctx.base.tap.UPDATE_MAXIMUM_TAP_FLOOR_DECREASE_PCT_ROLE()
       ctx.roles.tap.WITHDRAW_ROLE = await ctx.base.tap.WITHDRAW_ROLE()
 
       await ctx.acl.createPermission(ctx.controller.address, ctx.tap.address, ctx.roles.tap.UPDATE_BENEFICIARY_ROLE, root, { from: root })
@@ -321,6 +332,9 @@ const setup = {
       await ctx.acl.createPermission(ctx.controller.address, ctx.tap.address, ctx.roles.tap.RESET_TAPPED_TOKEN_ROLE, root, { from: root })
       await ctx.acl.createPermission(ctx.controller.address, ctx.tap.address, ctx.roles.tap.UPDATE_TAPPED_TOKEN_ROLE, root, { from: root })
       await ctx.acl.createPermission(ctx.controller.address, ctx.tap.address, ctx.roles.tap.UPDATE_MAXIMUM_TAP_RATE_INCREASE_PCT_ROLE, root, {
+        from: root,
+      })
+      await ctx.acl.createPermission(ctx.controller.address, ctx.tap.address, ctx.roles.tap.UPDATE_MAXIMUM_TAP_FLOOR_DECREASE_PCT_ROLE, root, {
         from: root,
       })
       await ctx.acl.createPermission(ctx.controller.address, ctx.tap.address, ctx.roles.tap.WITHDRAW_ROLE, root, { from: root })

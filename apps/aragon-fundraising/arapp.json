@@ -50,7 +50,12 @@
     },
     {
       "name": "Update maximum tap rate increase percentage",
-      "id": "UPDATE_MAXIMUM_TAP_INCREASE_PCT_ROLE",
+      "id": "UPDATE_MAXIMUM_TAP_RATE_INCREASE_PCT_ROLE",
+      "params": []
+    },
+    {
+      "name": "Update maximum tap floor decrease percentage",
+      "id": "UPDATE_MAXIMUM_TAP_FLOOR_DECREASE_PCT_ROLE",
       "params": []
     },
     {

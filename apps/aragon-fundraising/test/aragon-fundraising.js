@@ -1,3 +1,4 @@
+const Controller = artifacts.require('AragonFundraisingController')
 const {
   ETH,
   INITIAL_COLLATERAL_BALANCE,
@@ -5,12 +6,15 @@ const {
   PRESALE_PERIOD,
   PRESALE_STATE,
   BATCH_BLOCKS,
+  RATES,
+  FLOORS,
 } = require('@ablack/fundraising-shared-test-helpers/constants')
 const setup = require('./helpers/setup')
 const { now, getBuyOrderBatchId, getSellOrderBatchId } = require('./helpers/utils')
 const openAndClaimBuyOrder = require('./helpers/utils').openAndClaimBuyOrder(web3, BATCH_BLOCKS)
 const assertExternalEvent = require('@ablack/fundraising-shared-test-helpers/assertExternalEvent')
 const forceSendETH = require('@ablack/fundraising-shared-test-helpers/forceSendETH')
+const getProxyAddress = require('@ablack/fundraising-shared-test-helpers/getProxyAddress')
 const random = require('@ablack/fundraising-shared-test-helpers/random')
 const increaseBlocks = require('@ablack/fundraising-shared-test-helpers/increaseBlocks')(web3)
 const progressToNextBatch = require('@ablack/fundraising-shared-test-helpers/progressToNextBatch')(web3, BATCH_BLOCKS)
@@ -28,43 +32,45 @@ contract('AragonFundraisingController app', ([root, authorized, unauthorized]) =
   })
 
   // #region initialize
-  // context('> #initialize', () => {
-  //   context('> initialization parameters are valid', () => {
-  //     it('it should initialize controller', async () => {
-  //       assert.equal(await this.controller.presale(), this.presale.address)
-  //       assert.equal(await this.controller.marketMaker(), this.marketMaker.address)
-  //       assert.equal(await this.controller.reserve(), this.reserve.address)
-  //       assert.equal(await this.controller.tap(), this.tap.address)
-  //     })
-  //   })
+  context('> #initialize', () => {
+    context('> initialization parameters are valid', () => {
+      it('it should initialize controller', async () => {
+        assert.equal(await this.controller.presale(), this.presale.address)
+        assert.equal(await this.controller.marketMaker(), this.marketMaker.address)
+        assert.equal(await this.controller.reserve(), this.reserve.address)
+        assert.equal(await this.controller.tap(), this.tap.address)
+      })
+    })
 
-  //   // context('> initialization parameters are not valid', () => {
-  //   //   it('it should revert [market maker is not a contract]', async () => {
-  //   //     const cReceipt = await dao.newAppInstance(FUNDRAISING_CONTROLLER_ID, cBase.address, '0x', false)
-  //   //     const uninitialized = await Controller.at(getEvent(cReceipt, 'NewAppProxy', 'proxy'))
+    context('> initialization parameters are not valid', () => {
+      let uninitialized
 
-  //   //     await assertRevert(() => uninitialized.initialize(authorized, pool.address, tap.address, { from: root }))
-  //   //   })
+      beforeEach(async () => {
+        const receipt = await this.dao.newAppInstance(setup.ids.controller, this.base.controller.address, '0x', false)
+        uninitialized = await Controller.at(getProxyAddress(receipt))
+      })
 
-  //   //   it('it should revert [reserve is not a contract]', async () => {
-  //   //     const cReceipt = await dao.newAppInstance(FUNDRAISING_CONTROLLER_ID, cBase.address, '0x', false)
-  //   //     const uninitialized = await Controller.at(getEvent(cReceipt, 'NewAppProxy', 'proxy'))
+      it('it should revert [presale is not a contract]', async () => {
+        await assertRevert(() => uninitialized.initialize(root, this.marketMaker.address, this.reserve.address, this.tap.address, { from: root }))
+      })
 
-  //   //     await assertRevert(() => uninitialized.initialize(marketMaker.address, authorized, tap.address, { from: root }))
-  //   //   })
+      it('it should revert [market maker is not a contract]', async () => {
+        await assertRevert(() => uninitialized.initialize(this.presale.address, root, this.reserve.address, this.tap.address, { from: root }))
+      })
 
-  //   //   it('it should revert [tap is not a contract]', async () => {
-  //   //     const cReceipt = await dao.newAppInstance(FUNDRAISING_CONTROLLER_ID, cBase.address, '0x', false)
-  //   //     const uninitialized = await Controller.at(getEvent(cReceipt, 'NewAppProxy', 'proxy'))
+      it('it should revert [reserve is not a contract]', async () => {
+        await assertRevert(() => uninitialized.initialize(this.presale.address, this.marketMaker.address, root, this.tap.address, { from: root }))
+      })
 
-  //   //     await assertRevert(() => uninitialized.initialize(marketMaker.address, pool.address, authorized, { from: root }))
-  //   //   })
-  //   // })
+      it('it should revert [tap is not a contract]', async () => {
+        await assertRevert(() => uninitialized.initialize(this.presale.address, this.marketMaker.address, this.reserve.address, root, { from: root }))
+      })
+    })
 
-  //   it('it should revert on re-initialization', async () => {
-  //     await assertRevert(() => setup.initialize.controller(this, root))
-  //   })
-  // })
+    it('it should revert on re-initialization', async () => {
+      await assertRevert(() => setup.initialize.controller(this, root))
+    })
+  })
   // #endregion
 
   // #region updateBeneficiary
@@ -375,6 +381,48 @@ contract('AragonFundraisingController app', ([root, authorized, unauthorized]) =
   })
   // #endregion
 
+  // #region reAddCollateralToken
+  context('> #reAddCollateralToken', () => {
+    beforeEach(async () => {
+      await this.controller.removeCollateralToken(this.collaterals.dai.address, { from: authorized })
+    })
+
+    context('> sender has ADD_COLLATERAL_TOKEN_ROLE', () => {
+      it('it should re-add collateral token', async () => {
+        const receipt = await this.controller.reAddCollateralToken(
+          this.collaterals.dai.address,
+          random.virtualSupply(),
+          random.virtualBalance(),
+          random.reserveRatio(),
+          random.slippage(),
+          {
+            from: authorized,
+          }
+        )
+
+        assertExternalEvent(receipt, 'AddCollateralToken(address,uint256,uint256,uint32,uint256)') // market maker
+      })
+    })
+
+    context('> sender does not have ADD_COLLATERAL_TOKEN_ROLE', () => {
+      it('it should revert', async () => {
+        await assertRevert(() =>
+          this.controller.reAddCollateralToken(
+            this.collaterals.dai.address,
+            random.virtualSupply(),
+            random.virtualBalance(),
+            random.reserveRatio(),
+            random.slippage(),
+            {
+              from: unauthorized,
+            }
+          )
+        )
+      })
+    })
+  })
+  // #endregion
+
   // #region removeCollateralToken
   context('> #removeCollateralToken', () => {
     context('> sender has REMOVE_COLLATERAL_TOKEN_ROLE', () => {
@@ -445,6 +493,24 @@ contract('AragonFundraisingController app', ([root, authorized, unauthorized]) =
   })
   // #endregion
 
+  // #region updateMaximumTapFloorDecreasePct
+  context('> #updateMaximumTapFloorDecreasePct', () => {
+    context('> sender has UPDATE_MAXIMUM_TAP_FLOOR_DECREASE_PCT_ROLE', () => {
+      it('it should update maximum tap floor decrease percentage', async () => {
+        const receipt = await this.controller.updateMaximumTapFloorDecreasePct(70, { from: authorized })
+
+        assertExternalEvent(receipt, 'UpdateMaximumTapFloorDecreasePct(uint256)')
+      })
+    })
+
+    context('> sender does not have UPDATE_MAXIMUM_TAP_FLOOR_DECREASE_PCT_ROLE', () => {
+      it('it should revert', async () => {
+        await assertRevert(() => this.controller.updateMaximumTapFloorDecreasePct(70, { from: unauthorized }))
+      })
+    })
+  })
+  // #endregion
+
   // #region updateTokenTap
   context('> #updateTokenTap', () => {
     context('> sender has UPDATE_TOKEN_TAP_ROLE', () => {
@@ -453,7 +519,7 @@ contract('AragonFundraisingController app', ([root, authorized, unauthorized]) =
       })
 
       it('it should update token tap', async () => {
-        const receipt = await this.controller.updateTokenTap(this.collaterals.dai.address, 14, random.floor(), { from: authorized })
+        const receipt = await this.controller.updateTokenTap(this.collaterals.dai.address, RATES[1] - 1, FLOORS[1] + 1, { from: authorized })
 
         assertExternalEvent(receipt, 'UpdateTappedToken(address,uint256,uint256)')
       })
@@ -461,7 +527,7 @@ contract('AragonFundraisingController app', ([root, authorized, unauthorized]) =
 
     context('> sender does not have UPDATE_TOKEN_TAP_ROLE', () => {
       it('it should revert', async () => {
-        await assertRevert(() => this.controller.updateTokenTap(this.collaterals.dai.address, 14, random.floor(), { from: unauthorized }))
+        await assertRevert(() => this.controller.updateTokenTap(this.collaterals.dai.address, RATES[1] - 1, FLOORS[1] + 1, { from: unauthorized }))
       })
     })
   })
@@ -520,81 +586,90 @@ contract('AragonFundraisingController app', ([root, authorized, unauthorized]) =
   })
   // #endregion
 
-  // #region balanceOf
-  // context('> #balanceOf', () => {
-  //   context('> reserve', () => {
-  //     it('it should return available reserve balance [ETH]', async () => {
-  //       await forceSendETH(pool.address, INITIAL_COLLATERAL_BALANCE)
-  //       await addCollateralToken(ETH, { tap: 10, floor: 0 })
-
-  //       await progressToNextBatch()
-  //       await progressToNextBatch()
-
-  //       assert.equal((await controller.balanceOf(pool.address, ETH)).toNumber(), INITIAL_COLLATERAL_BALANCE - 10 * 2 * BATCH_BLOCKS)
-  //     })
-
-  //     it('it should return available reserve balance [ERC20]', async () => {
-  //       const collateral = await TokenMock.new(pool.address, INITIAL_COLLATERAL_BALANCE)
-  //       await addCollateralToken(collateral.address, { tap: 7, floor: 0 })
-
-  //       await progressToNextBatch()
-  //       await progressToNextBatch()
-
-  //       assert.equal((await controller.balanceOf(pool.address, collateral.address)).toNumber(), INITIAL_COLLATERAL_BALANCE - 7 * 2 * BATCH_BLOCKS)
-  //     })
-  //   })
-  //   context('> other', () => {
-  //     it('it should return balance [ETH]', async () => {
-  //       assert.equal((await controller.balanceOf(authorized, ETH)).toNumber(), (await web3.eth.getBalance(authorized)).toNumber())
-  //     })
-
-  //     it('it should return balance [ETH]', async () => {
-  //       assert.equal((await controller.balanceOf(authorized, token1.address)).toNumber(), (await token1.balanceOf(authorized)).toNumber())
-  //     })
-  //   })
-  // })
+  // #region token
+  context('> #token', () => {
+    it('it should return bonded token address', async () => {
+      assert.equal(await this.controller.token(), this.token.address)
+    })
+  })
   // #endregion
 
-  // #region tokensToHold
-  // context('> #tokensToHold', () => {
-  //   beforeEach(async () => {
-  //     await addCollateralToken(ETH, {
-  //       virtualSupply: VIRTUAL_SUPPLIES[0],
-  //       virtualBalance: VIRTUAL_BALANCES[0],
-  //       reserveRatio: RESERVE_RATIOS[0],
-  //       slippage: Math.pow(10, 22),
-  //     })
-  //     await addCollateralToken(token1.address, {
-  //       virtualSupply: VIRTUAL_SUPPLIES[1],
-  //       virtualBalance: VIRTUAL_BALANCES[1],
-  //       reserveRatio: RESERVE_RATIOS[1],
-  //       slippage: Math.pow(10, 22),
-  //     })
-  //   })
+  // #region contributionToken
+  context('> #contributionToken', () => {
+    it('it should return contribution token address', async () => {
+      assert.equal(await this.controller.contributionToken(), this.collaterals.dai.address)
+    })
+  })
+  // #endregion
 
-  //   context('> collaterals', () => {
-  //     it('it should return collaterals to be claimed [ETH]', async () => {
-  //       const balance = await openAndClaimBuyOrder(this, ETH, random.amount(), { from: authorized })
-  //       await controller.openSellOrder(ETH, balance, { from: authorized })
-  //       const collateralsToBeClaimed = await marketMaker.collateralsToBeClaimed(ETH)
+  // #region collateralsToBeClaimed
+  context('> #collateralsToBeClaimed', () => {
+    beforeEach(async () => {
+      await this.controller.openTrading({ from: authorized })
+    })
 
-  //       assert.equal((await controller.tokensToHold(ETH)).toNumber(), collateralsToBeClaimed.toNumber())
-  //     })
+    context('> collaterals', () => {
+      it('it should return collaterals to be claimed [ETH]', async () => {
+        const balance = await openAndClaimBuyOrder(this, ETH, random.amount(), { from: authorized })
+        await this.controller.openSellOrder(ETH, balance, { from: authorized })
+        const collateralsToBeClaimed = await this.marketMaker.collateralsToBeClaimed(ETH)
 
-  //     it('it should return collaterals to be claimed [ERC20]', async () => {
-  //       const balance = await openAndClaimBuyOrder(this, token1.address, random.amount(), { from: authorized })
-  //       await controller.openSellOrder(token1.address, balance, { from: authorized })
-  //       const collateralsToBeClaimed = await marketMaker.collateralsToBeClaimed(token1.address)
+        assert.equal((await this.controller.collateralsToBeClaimed(ETH)).toNumber(), collateralsToBeClaimed.toNumber())
+      })
 
-  //       assert.equal((await controller.tokensToHold(token1.address)).toNumber(), collateralsToBeClaimed.toNumber())
-  //     })
-  //   })
-  //   context('> other', () => {
-  //     it('it should return zero', async () => {
-  //       const collateral = await TokenMock.new(pool.address, INITIAL_COLLATERAL_BALANCE)
-  //       assert.equal((await controller.tokensToHold(collateral.address)).toNumber(), 0)
-  //     })
-  //   })
-  // })
+      it('it should return collaterals to be claimed [ERC20]', async () => {
+        const balance = await openAndClaimBuyOrder(this, this.collaterals.dai.address, random.amount(), { from: authorized })
+        await this.controller.openSellOrder(this.collaterals.dai.address, balance, { from: authorized })
+        const collateralsToBeClaimed = await this.marketMaker.collateralsToBeClaimed(this.collaterals.dai.address)
+
+        assert.equal((await this.controller.collateralsToBeClaimed(this.collaterals.dai.address)).toNumber(), collateralsToBeClaimed.toNumber())
+      })
+    })
+
+    context('> others', () => {
+      it('it should return zero', async () => {
+        assert.equal((await this.controller.collateralsToBeClaimed(root)).toNumber(), 0)
+      })
+    })
+  })
+  // #endregion
+
+  // #region balanceOf
+  context('> #balanceOf', () => {
+    context('> reserve', () => {
+      it('it should return available reserve balance [ETH]', async () => {
+        await forceSendETH(this.reserve.address, INITIAL_COLLATERAL_BALANCE / 2)
+
+        await progressToNextBatch()
+        await progressToNextBatch()
+
+        assert.equal((await this.controller.balanceOf(this.reserve.address, ETH)).toNumber(), INITIAL_COLLATERAL_BALANCE / 2 - RATES[0] * 3 * BATCH_BLOCKS)
+      })
+
+      it('it should return available reserve balance [ERC20]', async () => {
+        await this.collaterals.dai.transfer(this.reserve.address, INITIAL_COLLATERAL_BALANCE, { from: authorized })
+
+        await progressToNextBatch()
+        await progressToNextBatch()
+
+        assert.equal(
+          (await this.controller.balanceOf(this.reserve.address, this.collaterals.dai.address)).toNumber(),
+          INITIAL_COLLATERAL_BALANCE - RATES[1] * 3 * BATCH_BLOCKS
+        )
+      })
+    })
+    context('> others', () => {
+      it('it should return balance [ETH]', async () => {
+        assert.equal((await this.controller.balanceOf(authorized, ETH)).toNumber(), (await web3.eth.getBalance(authorized)).toNumber())
+      })
+
+      it('it should return balance [ETH]', async () => {
+        assert.equal(
+          (await this.controller.balanceOf(authorized, this.collaterals.dai.address)).toNumber(),
+          (await this.collaterals.dai.balanceOf(authorized)).toNumber()
+        )
+      })
+    })
+  })
   // #endregion
 })
