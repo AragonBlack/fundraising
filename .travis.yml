@@ -6,8 +6,10 @@ cache:
     - fundraising/apps/aragon-fundraising/node_modules
     - fundraising/apps/bancor-formula/node_modules
     - fundraising/apps/batched-bancor-market-maker/node_modules
+    - fundraising/apps/presale/node_modules
     - fundraising/apps/tap/node_modules
     - fundraising/shared/interfaces/node_modules
+    - fundraising/shared/test-helpers/node_modules
     - fundraising/templates/multisig/node_modules
 notifications:
   email: false
