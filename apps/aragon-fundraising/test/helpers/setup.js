@@ -167,6 +167,7 @@ const setup = {
         ctx.reserve.address,
         ctx.vault.address,
         ctx.collaterals.dai.address,
+        RESERVE_RATIOS[0],
         PRESALE_GOAL,
         PRESALE_PERIOD,
         VESTING_CLIFF_PERIOD,
