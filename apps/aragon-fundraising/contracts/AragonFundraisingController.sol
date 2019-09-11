@@ -94,7 +94,7 @@ contract AragonFundraisingController is EtherTokenConstant, IsContract, IAragonF
     }
 
     /**
-     * @notice Close presale and open fundraising campaign
+     * @notice Close presale and open trading
     */
     function closePresale() external isInitialized {
         presale.close();
@@ -109,13 +109,12 @@ contract AragonFundraisingController is EtherTokenConstant, IsContract, IAragonF
     }
 
     /**
-     * @notice Refund `_buyer`'s presale contribution #`_vestedPurchaseId`
-     * @param _buyer            The address of the user whose presale contribution is to be refunded
+     * @notice Refund `_contributor`'s presale contribution #`_vestedPurchaseId`
+     * @param _contributor      The address of the contributor whose presale contribution is to be refunded
      * @param _vestedPurchaseId The id of the contribution to be refunded
-
     */
-    function refund(address _buyer, uint256 _vestedPurchaseId) external isInitialized {
-        presale.refund(_buyer, _vestedPurchaseId);
+    function refund(address _contributor, uint256 _vestedPurchaseId) external isInitialized {
+        presale.refund(_contributor, _vestedPurchaseId);
     }
 
     /* market making related functions */
