@@ -21,6 +21,12 @@
         alt="Build"
     >
   </a>
+  <a href="https://coveralls.io/github/AragonBlack/fundraising?branch=next">
+    <img
+      src="https://coveralls.io/repos/github/AragonBlack/fundraising/badge.svg?branch=next"
+      alt="Coverage"
+    >
+  </a>
   <a href="https://www.gnu.org/licenses/agpl-3.0">
     <img
         src="https://img.shields.io/badge/License-AGPL%20v3-blue.svg"
