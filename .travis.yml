@@ -19,9 +19,10 @@ install:
   - travis_wait 60 npm install
 jobs:
   include:
-    - stage: tests
+    - stage: linting
       script: npm run lint
-      name: 'Lint'
+      name: 'All'
+    - stage: tests
     - script: npm run test:aragon-fundraising
       name: 'Aragon Fundraising'
     - script: npm run test:batched-bancor-market-maker
