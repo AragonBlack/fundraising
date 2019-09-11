@@ -10,15 +10,14 @@
 
 <br>
 <h4 align="center">
-    Continuous Fundraising Apps Suite for <a href="https://www.aragon.org" target="_blank">Aragon</a> Organizations
-
+  Fundraising Apps Suite for <a href="https://www.aragon.org" target="_blank">Aragon</a> Organizations
 </h4>
 
 <p align="center">
   <a href="https://badge.fury.io/js/electron-markdownify">
     <img
-        src="https://travis-ci.org/AragonBlack/fundraising.svg?branch=next"
-        alt="Build"
+      src="https://travis-ci.org/AragonBlack/fundraising.svg?branch=next"
+      alt="Build"
     >
   </a>
   <a href="https://coveralls.io/github/AragonBlack/fundraising?branch=next">
@@ -29,26 +28,26 @@
   </a>
   <a href="https://www.gnu.org/licenses/agpl-3.0">
     <img
-        src="https://img.shields.io/badge/License-AGPL%20v3-blue.svg"
-        alt="License"
+      src="https://img.shields.io/badge/License-AGPL%20v3-blue.svg"
+      alt="License"
     >
   </a>
   <a href="https://en.cryptobadges.io/donate/0x233373130f7d859c1d743d01b7dfa09b9667a69a">
     <img
-        src="https://en.cryptobadges.io/badge/micro/0x233373130f7d859c1d743d01b7dfa09b9667a69a"
-        alt="Donate"
+      src="https://en.cryptobadges.io/badge/micro/0x233373130f7d859c1d743d01b7dfa09b9667a69a"
+      alt="Donate"
     >
   </a>
   <a href="https://aragon.chat">
     <img
-        src="https://img.shields.io/badge/chat-Rocket.Chat-GREEN"
-        alt="Chat"
+      src="https://img.shields.io/badge/chat-Rocket.Chat-GREEN"
+      alt="Chat"
     >
   </a>
   <a href="https://twitter.com/AragonBlackTeam">
     <img 
-        src="https://img.shields.io/twitter/follow/AragonBlackTeam?label=Follow"
-        alt="Follow"
+      src="https://img.shields.io/twitter/follow/AragonBlackTeam?label=Follow"
+      alt="Follow"
     >
   </a>
 </p>
