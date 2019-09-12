@@ -1,4 +1,11 @@
 # Workflow
+
+## Pre-requisites
+
+- Node (latest LTS version), with the /bin folder on your $PATH
+- aragonCLI
+- aragon ipfs
+
 ## Development
 
 Make sure you have cloned the fundraising repo (this repo) and also cloned the [Aragon client](https://github.com/aragon/aragon) repo.
@@ -21,7 +28,7 @@ npx aragon ipfs
 ```
 
 
-Then go to the aragon client project and change the `environment.js` file to the following: https://gist.github.com/xseignard/e1952e53e62faa52b4f625344f5fba07
+Then go to the src folder in the aragon client project and change the `environment.js` file to the following: https://gist.github.com/xseignard/e1952e53e62faa52b4f625344f5fba07
 
 Start a third terminal process and install all dependencies by running: `npm install`
 
