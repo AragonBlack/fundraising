@@ -1,9 +1,12 @@
-import React from 'react'
+import React, { useState } from 'react'
 import styled from 'styled-components'
 import { Badge, Box, Countdown, SafeLink, Button, BREAKPOINTS } from '@aragon/ui'
 import CircleGraph from '../components/CircleGraph'
+import RefundSidePanel from '../components/RefundSidePanel'
 
 export default ({ state }) => {
+  const [refundPanel, setRefundPanel] = useState(false)
+
   const DAY_IN_MS = 1000 * 60 * 60 * 24
   const endDate = new Date(Date.now() + 5 * DAY_IN_MS)
   const circleColor = { default: '#21c1e7', success: '#2CC68F', failure: '#FF6969' }
@@ -30,7 +33,7 @@ export default ({ state }) => {
             {state === 'failure' && (
               <>
                 <p css="color: #212B36; font-weight: 300; font-size: 16px;">Unfortunately, the target goal for this project has not been reached.</p>
-                <Button wide mode="strong" label="Refund Presale Tokens" css="margin-top: 1rem; width: 100%;" onClick={() => console.log('asdasd')}>
+                <Button wide mode="strong" label="Refund Presale Tokens" css="margin-top: 1rem; width: 100%;" onClick={() => setRefundPanel(true)}>
                   Refund Presale Tokens
                 </Button>
               </>
@@ -100,6 +103,7 @@ export default ({ state }) => {
           </div>
         </Box>
       </div>
+      <RefundSidePanel opened={refundPanel} onClose={() => setRefundPanel(false)} />
     </Container>
   )
 }

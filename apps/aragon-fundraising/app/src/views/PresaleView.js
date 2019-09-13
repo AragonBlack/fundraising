@@ -9,6 +9,7 @@ export default () => {
   // internal state
   // *****************************
   const [orderPanel, setOrderPanel] = useState(false)
+  // there are 3 states "default", "success" and "failure"
   const state = 'default'
 
   return (

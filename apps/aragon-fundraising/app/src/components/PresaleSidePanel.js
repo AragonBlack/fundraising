@@ -1,6 +1,6 @@
-import React, { useContext } from 'react'
+import React from 'react'
 import styled from 'styled-components'
-import { Button, SidePanel, Text, TextInput } from '@aragon/ui'
+import { Button, SidePanel, TextInput } from '@aragon/ui'
 import transferArrows from '../assets/TransferArrows.svg'
 
 export default ({ opened, onClose }) => {
@@ -94,7 +94,7 @@ export default ({ opened, onClose }) => {
           `}
         >
           <p css="font-weight: 700;">Info</p>
-          <p>Some info here</p>
+          <p>In case this presale goal is not reached in time, you can come back and get a refund.</p>
         </div>
       </Form>
     </SidePanel>
