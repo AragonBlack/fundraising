@@ -21,7 +21,7 @@ npx aragon ipfs
 ```
 
 
-Then go to the aragon client project and change the `environment.js` file to the following: https://gist.github.com/xseignard/e1952e53e62faa52b4f625344f5fba07
+Then go to the aragon client project and create the `environment.js` file to the following: https://gist.github.com/xseignard/e1952e53e62faa52b4f625344f5fba07
 
 Start a third terminal process and install all dependencies by running: `npm install`
 
@@ -38,7 +38,7 @@ npm run bootstrap
 npm run publish
 ```
 
-We can then `cd template/multisig` and `deploy:dao:rpc` to create a DAO. You'll get an address to a DAO which you need to remember since we need it soon.
+We can then `cd template/multisig` and `npm run deploy:dao:rpc` to create a DAO. You'll get an address to a DAO which you need to remember since we need it soon.
 
 Finally we can `cd ../../apps/aragon-fundraising/app` and run `npm start` to start our fundraising frontend. By now you should have four running terminal processes.
 
