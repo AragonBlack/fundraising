@@ -50,6 +50,7 @@
     "@ablack/fundraising-aragon-fundraising": "^0.1.0",
     "@ablack/fundraising-bancor-formula": "^0.1.0",
     "@ablack/fundraising-batched-bancor-market-maker": "^0.1.0",
+    "@ablack/fundraising-presale": "^0.1.0",
     "@ablack/fundraising-tap": "^0.1.0",
     "@aragon/apps-agent": "^2.0.0-rc.1",
     "@aragon/apps-finance": "^3.0.0",
@@ -59,10 +60,11 @@
     "@aragon/apps-voting": "^2.1.0",
     "@aragon/id": "2.0.3",
     "@aragon/os": "4.2.1",
-    "@aragon/templates-shared": "^1.0.0-rc.1"
+    "@aragon/templates-shared": "^1.0.0"
   },
   "devDependencies": {
     "@ablack/fundraising-shared-interfaces": "^0.1.0",
+    "@ablack/fundraising-shared-test-helpers": "^0.1.0",
     "@aragon/apps-payroll": "^1.0.0-rc.1",
     "@aragon/apps-survey": "^1.0.0",
     "@aragon/cli": "^6.2.5",

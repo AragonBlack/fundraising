@@ -1,5 +1,6 @@
 /* time */
 const DAYS = 24 * 3600
+const WEEKS = 7 * DAYS
 const MONTHS = 30 * DAYS
 
 /* constants */
@@ -47,6 +48,7 @@ const MAXIMUM_TAP_FLOOR_DECREASE_PCT = 60e16
 
 module.exports = {
   DAYS,
+  WEEKS,
   MONTHS,
   PPM,
   PCT_BASE,

@@ -45,21 +45,26 @@ This architecture grants [most of] the governance rights to shareholders [to pro
 ### System
 _Handle apps and permissions_
 
-| App    | Permission         | Grantee          | Manager          |
-| ------ | ------------------ | ---------------- | ---------------- |
-| Kernel | APP_MANAGER        | Voting `[SHARE]` | Voting `[SHARE]` |
-| ACL    | CREATE_PERMISSIONS | Voting `[SHARE]` | Voting `[SHARE]` |
+| App               | Permission            | Grantee          | Manager          |
+| ----------------- | --------------------- | ---------------- | ---------------- |
+| Kernel            | APP_MANAGER           | Voting `[SHARE]` | Voting `[SHARE]` |
+| ACL               | CREATE_PERMISSIONS    | Voting `[SHARE]` | Voting `[SHARE]` |
+| EVMScriptRegistry | REGISTRY_MANAGER      | Voting `[SHARE]` | Voting `[SHARE]` |
+| EVMScriptRegistry | REGISTRY_ADD_EXECUTOR | Voting `[SHARE]` | Voting `[SHARE]` |
+
 
 ### Board
 
 #### TokenManager
 _Represents board's membership_
 
-| App                     | Permission | Grantee          | Manager          |
-| ----------------------- | ---------- | ---------------- | ---------------- |
-| Token Manager `[BOARD]` | MINT       | Voting `[BOARD]` | Voting `[SHARE]` |
-| Token Manager `[BOARD]` | BURN       | Voting `[BOARD]` | Voting `[SHARE]` |
-
+| App                     | Permission      | Grantee          | Manager          |
+| ----------------------- | --------------- | ---------------- | ---------------- |
+| Token Manager `[BOARD]` | MINT            | Voting `[BOARD]` | Voting `[SHARE]` |
+| Token Manager `[BOARD]` | BURN            | Voting `[BOARD]` | Voting `[SHARE]` |
+| Token Manager `[BOARD]` | ISSUE           | NULL             | NULL             |
+| Token Manager `[BOARD]` | ASSIGN          | NULL             | NULL             |
+| Token Manager `[BOARD]` | REVOKE_VESTINGS | NULL             | NULL             |
 
 #### Voting
 _Enforces board's decisions_
@@ -73,16 +78,18 @@ _Enforces board's decisions_
 #### Vault and Finance
 _Handle board's funds_
 
-| App     | Permission       | Grantee          | Manager          |
-| ------- | ---------------- | ---------------- | ---------------- |
-| Vault   | TRANSFER         | Finance          | Voting `[SHARE]` |
-| Finance | CREATE_PAYMENTS  | Voting `[BOARD]` | Voting `[SHARE]` |
-| Finance | EXECUTE_PAYMENTS | Voting `[BOARD]` | Voting `[SHARE]` |
-| Finance | MANAGE_PAYMENTS  | Voting `[BOARD]` | Voting `[SHARE]` |
+| App     | Permission          | Grantee          | Manager          |
+| ------- | ------------------- | ---------------- | ---------------- |
+| Vault   | TRANSFER            | Finance          | Voting `[SHARE]` |
+| Finance | CREATE_PAYMENTS     | Voting `[BOARD]` | Voting `[SHARE]` |
+| Finance | EXECUTE_PAYMENTS    | Voting `[BOARD]` | Voting `[SHARE]` |
+| Finance | MANAGE_PAYMENTS     | Voting `[BOARD]` | Voting `[SHARE]` |
+| Finance | CHANGE_PERIOD       | NULL             | NULL             |
+| Finance | CHANGE_BUDGETS_ROLE | NULL             | NULL             |
 
 ### Share Holders
 
-#### TokenManager UPDATE
+#### TokenManager
 _Handle shares / bonds minting and burning_
 
 | App                     | Permission      | Grantee              | Manager          |

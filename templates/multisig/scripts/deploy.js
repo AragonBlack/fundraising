@@ -13,6 +13,7 @@ const APPS = [
   { name: 'batched-bancor-market-maker', contractName: 'BatchedBancorMarketMaker' },
   { name: 'tap', contractName: 'Tap' },
   { name: 'aragon-fundraising', contractName: 'AragonFundraisingController' },
+  { name: 'presale', contractName: 'Presale' },
 ]
 
 module.exports = callback => {
