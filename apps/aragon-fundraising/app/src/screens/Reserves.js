@@ -277,7 +277,7 @@ export default () => {
         </div>
       </Box>
       <SidePanel opened={opened} onClose={() => setOpened(false)} title="Monthly allocation">
-        <div css="margin: 0 -30px 24px; border: 1px solid #DFE3E8;" />
+        <div css="margin: 0 -30px 24px;" />
         <form onSubmit={handleSubmit}>
           <Wrapper>
             <label>

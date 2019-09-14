@@ -39,7 +39,7 @@ const NewOrder = () => {
 }
 
 const TabBarWrapper = styled.div`
-  margin: 0 -30px 30px;
+  margin: 0 -30px 0;
 `
 
 export default NewOrder

@@ -1,7 +1,7 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { unstable_batchedUpdates as batchedUpdates } from 'react-dom'
-import { useApi, useAppState } from '@aragon/api-react'
-import { Layout, Tabs, Button } from '@aragon/ui'
+import { useApi, useAppState, useConnectedAccount } from '@aragon/api-react'
+import { Layout, Tabs, Button, useLayout, ContextMenu, ContextMenuItem } from '@aragon/ui'
 import BigNumber from 'bignumber.js'
 import { useInterval } from '../hooks/use-interval'
 import AppHeader from '../components/AppHeader'
@@ -24,6 +24,7 @@ export default () => {
     constants: { PPM },
     bondedToken: {
       overallSupply: { dai: daiSupply },
+      address: bondedTokenAddress,
     },
     collaterals: {
       dai: { address: daiAddress, reserveRatio, toBeClaimed: daiToBeClaimed, virtualBalance: daiVirtualBalance, overallBalance: daiOverallBalance },
@@ -36,6 +37,12 @@ export default () => {
   // *****************************
   const api = useApi()
   const marketMakerContract = api.external(marketMakerAddress, marketMaker)
+
+  // *****************************
+  // layout name and connectedUser
+  // *****************************
+  const { name: layoutName } = useLayout()
+  const connectedUser = useConnectedAccount()
 
   // *****************************
   // internal state, also shared through context
@@ -51,6 +58,9 @@ export default () => {
   const [polledAntBalance, setPolledAntBalance] = useState(antOverallBalance)
   const [polledBatchId, setPolledBatchId] = useState(null)
   const [polledPrice, setPolledPrice] = useState(0)
+  const [userBondedTokenBalance, setUserBondedTokenBalance] = useState(0)
+  const [userDaiBalance, setUserDaiBalance] = useState(0)
+  const [userAntBalance, setUserAntBalance] = useState(0)
 
   // react context accessible on child components
   const context = {
@@ -61,7 +71,25 @@ export default () => {
     price: polledPrice,
     orderPanel,
     setOrderPanel,
+    userBondedTokenBalance,
+    userDaiBalance,
+    userAntBalance,
   }
+
+  useEffect(() => {
+    const getUserBalances = async () => {
+      const balancesPromises = [bondedTokenAddress, daiAddress, antAddress].map(address => api.call('balanceOf', connectedUser, address).toPromise())
+      const [bondedBalance, daiBalance, antBalance] = await Promise.all(balancesPromises)
+      batchedUpdates(() => {
+        setUserBondedTokenBalance(new BigNumber(bondedBalance))
+        setUserDaiBalance(new BigNumber(daiBalance))
+        setUserAntBalance(new BigNumber(antBalance))
+      })
+    }
+    if (connectedUser) {
+      getUserBalances()
+    }
+  }, [connectedUser])
 
   // polls the balances, batchId and price
   useInterval(async () => {
@@ -74,6 +102,15 @@ export default () => {
     const newDaiBalance = new BigNumber(daiBalance).minus(daiToBeClaimed).plus(daiVirtualBalance)
     const newAntBalance = new BigNumber(antBalance).minus(antToBeClaimed).plus(antVirtualBalance)
     const newBatchId = parseInt(batchId, 10)
+    // poling user balances
+    let newUserBondedTokenBalance, newUserDaiBalance, newUserAntBalance
+    if (connectedUser) {
+      const balancesPromises = [bondedTokenAddress, daiAddress, antAddress].map(address => api.call('balanceOf', connectedUser, address).toPromise())
+      const [bondedBalance, daiBalance, antBalance] = await Promise.all(balancesPromises)
+      newUserBondedTokenBalance = new BigNumber(bondedBalance)
+      newUserDaiBalance = new BigNumber(daiBalance)
+      newUserAntBalance = new BigNumber(antBalance)
+    }
     // polling price
     const price = await marketMakerContract.getStaticPricePPM(daiSupply.toFixed(), polledDaiBalance.toFixed(), reserveRatio.toFixed()).toPromise()
     const newPrice = new BigNumber(price).div(PPM)
@@ -81,16 +118,18 @@ export default () => {
     // see: https://stackoverflow.com/questions/48563650/does-react-keep-the-order-for-state-updates/48610973#48610973
     // until then, it's safe to use the unstable API
     batchedUpdates(() => {
-      // update the state only if the reserve changed
+      // update the state only if value changed
       if (!newReserveBalance.eq(polledReserveBalance)) setPolledReserveBalance(newReserveBalance)
-      // update the state only if the dai balance changed
       if (!newDaiBalance.eq(polledDaiBalance)) setPolledDaiBalance(newDaiBalance)
-      // update the state only if the ant balance changed
       if (!newAntBalance.eq(polledAntBalance)) setPolledAntBalance(newAntBalance)
-      // update the state only if the batchId changed
       if (newBatchId !== polledBatchId) setPolledBatchId(newBatchId)
-      // update the state only if the price changed
       if (!newPrice.eq(polledPrice)) setPolledPrice(newPrice)
+      // update user balances
+      if (connectedUser) {
+        if (!newUserBondedTokenBalance.eq(userBondedTokenBalance)) setUserBondedTokenBalance(newUserBondedTokenBalance)
+        if (!newUserDaiBalance.eq(userDaiBalance)) setUserDaiBalance(newUserDaiBalance)
+        if (!newUserAntBalance.eq(userAntBalance)) setUserAntBalance(newUserAntBalance)
+      }
     })
   }, 3000)
 
@@ -111,15 +150,22 @@ export default () => {
         <Disclaimer />
         <AppHeader
           heading="Fundraising"
-          action1={
-            <Button mode="strong" label="Withdraw" onClick={() => handleWithdraw()}>
-              Withdraw
-            </Button>
-          }
-          action2={
-            <Button mode="strong" label="New Order" css="margin-left: 20px;" onClick={() => setOrderPanel(true)}>
-              New Order
-            </Button>
+          renderActions={
+            layoutName === 'small' ? (
+              <ContextMenu>
+                <ContextMenuItem onClick={() => setOrderPanel(true)}>New Order</ContextMenuItem>
+                <ContextMenuItem onClick={() => handleWithdraw()}>Withdraw</ContextMenuItem>
+              </ContextMenu>
+            ) : (
+              <>
+                <Button mode="strong" label="Withdraw" onClick={() => handleWithdraw()}>
+                  Withdraw
+                </Button>
+                <Button mode="strong" label="New Order" css="margin-left: 20px;" onClick={() => setOrderPanel(true)}>
+                  New Order
+                </Button>
+              </>
+            )
           }
         />
         <Tabs selected={tabIndex} onChange={setTabindex} items={tabs} />
