@@ -35,6 +35,7 @@
     "recharts": "^1.7.1",
     "rxjs": "^6.5.2",
     "styled-components": "^4.3.2",
+    "victory": "^33.0.5",
     "web3-utils": "^1.2.1"
   },
   "devDependencies": {
