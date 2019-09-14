@@ -1,7 +1,7 @@
 import Aragon, { events } from '@aragon/api'
 import { zip } from 'rxjs'
 import { first } from 'rxjs/operators'
-import cloneDeep from 'lodash.clonedeep'
+import cloneDeep from 'lodash/cloneDeep'
 import poolAbi from './abi/Pool.json'
 import tapAbi from './abi/Tap.json'
 import marketMakerAbi from './abi/BatchedBancorMarketMaker.json'
