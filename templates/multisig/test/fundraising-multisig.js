@@ -14,7 +14,7 @@ const Finance = artifacts.require('Finance')
 const Kernel = artifacts.require('Kernel')
 const MarketMaker = artifacts.require('BatchedBancorMarketMaker')
 const MiniMeToken = artifacts.require('MiniMeToken')
-const Presale = artifacts.require('BatchedBancorMarketMaker')
+const Presale = artifacts.require('Presale')
 const PublicResolver = artifacts.require('PublicResolver')
 const Tap = artifacts.require('Tap')
 const Template = artifacts.require('FundraisingMultisigTemplate')
@@ -336,6 +336,24 @@ contract('Fundraising with multisig', ([_, owner, boardMember1, boardMember2]) =
           await assertMissingRole(acl, reserve, 'DESIGNATE_SIGNER_ROLE')
           await assertMissingRole(acl, reserve, 'ADD_PRESIGNED_HASH_ROLE')
           await assertMissingRole(acl, reserve, 'RUN_SCRIPT_ROLE')
+        })
+
+        it('should have presale app correctly setup', async () => {
+          assert.isTrue(await presale.hasInitialized(), 'presale not initialized')
+
+          assert.equal(web3.toChecksumAddress(await presale.controller()), controller.address)
+          assert.equal(web3.toChecksumAddress(await presale.tokenManager()), shareTokenManager.address)
+          assert.equal(await presale.token(), shareToken.address)
+          assert.equal(web3.toChecksumAddress(await presale.reserve()), reserve.address)
+          assert.equal(web3.toChecksumAddress(await presale.beneficiary()), vault.address)
+          assert.equal(web3.toChecksumAddress(await presale.contributionToken()), COLLATERALS[0])
+
+          //reserve ratio
+          // presale shit
+          // etc
+
+          await assertRole(acl, presale, shareVoting, 'OPEN_ROLE', controller)
+          await assertRole(acl, presale, shareVoting, 'CONTRIBUTE_ROLE', controller)
         })
 
         it('should have market-maker app correctly setup', async () => {

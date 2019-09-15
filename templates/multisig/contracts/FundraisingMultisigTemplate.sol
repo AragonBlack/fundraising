@@ -77,7 +77,6 @@ contract FundraisingMultisigTemplate is BaseTemplate {
     )
         external
     {
-        // _ensureBoardSetting(_boardMembers, _boardVotingSettings);
         require(_boardMembers.length > 0,         ERROR_BAD_SETTINGS);
         require(_boardVotingSettings.length == 3, ERROR_BAD_SETTINGS);
 
@@ -289,7 +288,7 @@ contract FundraisingMultisigTemplate is BaseTemplate {
     {
         _presaleCache().initialize(
             _controllerCache(),
-            _boardTMCache(),
+            _shareTMCache(),
             _reserveCache(),
             _vaultCache(),
             ERC20(_collaterals[0]),
@@ -541,11 +540,11 @@ contract FundraisingMultisigTemplate is BaseTemplate {
         voting = Voting(c.shareVoting);
     }
 
-    function _boardTMCache() internal returns (TokenManager boardTM) {
+    function _shareTMCache() internal returns (TokenManager shareTM) {
         Cache storage c = cache[msg.sender];
         // require(c.dao != address(0), ERROR_MISSING_CACHE);
 
-        boardTM = TokenManager(c.boardTokenManager);
+        shareTM = TokenManager(c.shareTokenManager);
     }
 
     function _vaultCache() internal returns (Vault vault) {
