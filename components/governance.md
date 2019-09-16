@@ -6,9 +6,9 @@ The flexibility of aragonOS allows fundraising-enabled organizations to endorse 
 
 Aragon Fundraising default governance template identifies two set actors: the board and the share holders.
 
-The board are the ones being funded by the fundraising campaign. They are represented through a custom `BOARD` token and a dedicated voting app set to be used as a multisig.
+The board token holders are the ones being funded by the fundraising campaign. They are represented through a custom `BOARD` token and a dedicated voting app set to be used as a multisig. 
 
-The share holders are the one contributing to the fundraising campaign. They are represented through a `SHARE` bonded-token \[they can buy and redeem through the Aragon Fundraising interface\] and a voting app.
+The share holders are the one contributing to the fundraising campaign. They are represented through a `SHARE` bonded-token \[that can be bought and redeemed through the Aragon Fundraising interface\] and a voting app.
 
 ## Permissions
 
