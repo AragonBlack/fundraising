@@ -29,8 +29,8 @@ jobs:
       name: 'Batched Bancor Market Maker'
     - script: npm run test:tap
       name: 'Tap'
-    # - script: npm run test:multisig-template
-    #   name: 'Multisig Template'
+    - script: npm run test:multisig-template
+      name: 'Multisig Template'
     - stage: coverage
       script: npm run coverage:aragon-fundraising
       name: 'Aragon Fundraising'
@@ -38,7 +38,5 @@ jobs:
       name: 'Batched Bancor Market Maker'
     - script: npm run coverage:tap
       name: 'Tap'
-    # - script: npm run coverage:multisig-template
-    #   name: 'Multisig Template'
 after_success:
   - ./node_modules/.bin/lcov-result-merger 'apps/*/coverage/lcov.info' | ./node_modules/.bin/coveralls
