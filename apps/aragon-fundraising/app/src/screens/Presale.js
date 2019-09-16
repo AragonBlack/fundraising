@@ -1,14 +1,14 @@
 import React, { useState } from 'react'
 import styled from 'styled-components'
 import { Badge, Box, Countdown, SafeLink, Button, BREAKPOINTS } from '@aragon/ui'
+import addDays from 'date-fns/addDays'
 import CircleGraph from '../components/CircleGraph'
 import RefundSidePanel from '../components/RefundSidePanel'
 
 export default ({ state }) => {
   const [refundPanel, setRefundPanel] = useState(false)
 
-  const DAY_IN_MS = 1000 * 60 * 60 * 24
-  const endDate = new Date(Date.now() + 5 * DAY_IN_MS)
+  const endDate = addDays(new Date(), 5)
   const circleColor = { default: '#21c1e7', success: '#2CC68F', failure: '#FF6969' }
 
   return (
