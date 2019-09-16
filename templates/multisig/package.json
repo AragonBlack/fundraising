@@ -16,8 +16,8 @@
     "docker:run": "cd ./node_modules/@aragon/templates-shared/; docker-compose -f docker-compose.yml up -d; RESULT=$?; cd -; $(exit $RESULT)",
     "docker:stop": "cd ./node_modules/@aragon/templates-shared/; docker-compose down; cd -",
     "docker:wait-gas": "truffle exec ./node_modules/@aragon/templates-shared/scripts/sleep-until-gaslimit.js --network devnet 6900000",
-    "abi:extract": "truffle-extract --output abi/ --keys abi",
     "prepublishOnly": "npm run compile && npm run abi:extract -- --no-compile",
+    "abi:extract": "truffle-extract --output abi/ --keys abi",
     "deploy:arachain": "npm run compile && truffle exec scripts/deploy_raw.js rpc --network rpc",
     "deploy:hatch": "npm run compile && truffle exec scripts/deploy_raw.js hatch --network frame",
     "deploy:rpc": "npm run compile && truffle exec ./scripts/deploy.js --network rpc",
@@ -73,7 +73,6 @@
     "eth-gas-reporter": "^0.2.0",
     "ethereumjs-testrpc-sc": "^6.5.1-sc.0",
     "ganache-cli": "^6.4.3",
-    "solidity-coverage": "0.6.2",
     "solium": "^1.2.3",
     "truffle": "4.1.14",
     "truffle-extract": "^1.2.1"

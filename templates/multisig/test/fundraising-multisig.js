@@ -25,6 +25,7 @@ const Voting = artifacts.require('Voting')
 
 const { APP_IDS, getInstalledAppsById } = require('./helpers/utils')
 const {
+  ZERO_ADDRESS,
   DAYS,
   WEEKS,
   MONTHS,
@@ -45,6 +46,7 @@ const {
   MAXIMUM_TAP_FLOOR_DECREASE_PCT,
 } = require('@ablack/fundraising-shared-test-helpers/constants')
 const ANY_ADDRESS = { address: require('@ablack/fundraising-shared-test-helpers/constants').ANY_ADDRESS }
+const START_DATE = new Date().getTime() + MONTHS
 
 contract('Fundraising with multisig', ([_, owner, boardMember1, boardMember2]) => {
   let daoID, template, dao, acl, ens, feed
@@ -81,62 +83,100 @@ contract('Fundraising with multisig', ([_, owner, boardMember1, boardMember2]) =
     COLLATERALS = [COLLATERAL_1.address, COLLATERAL_2.address]
   })
 
-  // context('when the creation fails', () => {
-  //   const FINANCE_PERIOD = 0
+  context('when the creation fails', () => {
+    const FINANCE_PERIOD = 0
+    daoID = randomId()
 
-  //   context('Prepare transaction', () => {
-  //     it('should revert when no board members are given', async () => {
-  //       await assertRevert(() =>
-  //         template.prepareInstance(BOARD_TOKEN_NAME, BOARD_TOKEN_SYMBOL, [], BOARD_VOTING_SETTINGS, FINANCE_PERIOD, {
-  //           from: owner,
-  //         })
-  //       )
-  //     })
-  //   })
+    context('Prepare transaction', () => {
+      it('should revert when no board members are provided', async () => {
+        await assertRevert(() =>
+          template.prepareInstance(BOARD_TOKEN_NAME, BOARD_TOKEN_SYMBOL, [], BOARD_VOTING_SETTINGS, FINANCE_PERIOD, {
+            from: owner,
+          })
+        )
+      })
+    })
 
-  //   context('Fundraising transaction', () => {
-  //     context('when there is no prepared instance deployed', () => {
-  //       it('should revert', async () => {
-  //         await assertRevert(() =>
-  //           template.installFundraisingApps(randomId(), SHARE_TOKEN_NAME, SHARE_TOKEN_SYMBOL, SHARE_VOTING_SETTINGS, MAXIMUM_TAP_RATE_INCREASE_PCT, {
-  //             from: owner,
-  //           })
-  //         )
-  //       })
-  //     })
-  //   })
+    context('Share transaction', () => {
+      context('when there is no prepared instance deployed', () => {
+        it('should revert', async () => {
+          await assertRevert(() =>
+            template.installShareApps(daoID, SHARE_TOKEN_NAME, SHARE_TOKEN_SYMBOL, SHARE_VOTING_SETTINGS, {
+              from: owner,
+            })
+          )
+        })
+      })
 
-  //   context('Finalize transaction', () => {
-  //     context('when there are no fundraising apps installed', () => {
-  //       it('should revert', async () => {
-  //         await assertRevert(() =>
-  //           template.finalizeInstance(COLLATERALS, VIRTUAL_SUPPLIES, VIRTUAL_BALANCES, SLIPPAGES, RATES, FLOORS, {
-  //             from: owner,
-  //           })
-  //         )
-  //       })
-  //     })
+      context('when there is a prepared instance deployed', () => {
+        beforeEach('deploy prepared instance', async () => {
+          await template.prepareInstance(BOARD_TOKEN_NAME, BOARD_TOKEN_SYMBOL, BOARD_MEMBERS, BOARD_VOTING_SETTINGS, FINANCE_PERIOD, {
+            from: owner,
+          })
+        })
 
-  //     context('when there are fundraising apps installed', () => {
-  //       before('install fundraising apps', async () => {
-  //         await template.prepareInstance(BOARD_TOKEN_NAME, BOARD_TOKEN_SYMBOL, BOARD_MEMBERS, BOARD_VOTING_SETTINGS, FINANCE_PERIOD, {
-  //           from: owner,
-  //         })
-  //         await template.installFundraisingApps(randomId(), SHARE_TOKEN_NAME, SHARE_TOKEN_SYMBOL, SHARE_VOTING_SETTINGS, MAXIMUM_TAP_RATE_INCREASE_PCT, {
-  //           from: owner,
-  //         })
-  //       })
+        it('should revert when an empty id is provided', async () => {
+          await assertRevert(() =>
+            template.installShareApps('', SHARE_TOKEN_NAME, SHARE_TOKEN_SYMBOL, SHARE_VOTING_SETTINGS, {
+              from: owner,
+            })
+          )
+        })
+      })
+    })
 
-  //       it('should revert when there are no collaterals given', async () => {
-  //         await assertRevert(() =>
-  //           template.finalizeInstance([], VIRTUAL_SUPPLIES, VIRTUAL_BALANCES, SLIPPAGES, RATES, FLOORS, {
-  //             from: owner,
-  //           })
-  //         )
-  //       })
-  //     })
-  //   })
-  // })
+    context('Fundraising transaction', () => {
+      beforeEach('deploy prepared instance', async () => {
+        await template.prepareInstance(BOARD_TOKEN_NAME, BOARD_TOKEN_SYMBOL, BOARD_MEMBERS, BOARD_VOTING_SETTINGS, FINANCE_PERIOD, {
+          from: owner,
+        })
+      })
+
+      context('when there is no share instance deployed', () => {
+        it('should revert', async () => {
+          await assertRevert(() =>
+            template.installFundraisingApps(
+              PRESALE_GOAL,
+              PRESALE_PERIOD,
+              VESTING_CLIFF_PERIOD,
+              VESTING_COMPLETE_PERIOD,
+              PERCENT_SUPPLY_OFFERED,
+              PERCENT_FUNDING_FOR_BENEFICIARY,
+              START_DATE,
+              BATCH_BLOCKS,
+              MAXIMUM_TAP_RATE_INCREASE_PCT,
+              MAXIMUM_TAP_FLOOR_DECREASE_PCT,
+              COLLATERALS,
+              {
+                from: owner,
+              }
+            )
+          )
+        })
+      })
+    })
+
+    context('Finalize transaction', () => {
+      beforeEach('deploy share instance', async () => {
+        await template.prepareInstance(BOARD_TOKEN_NAME, BOARD_TOKEN_SYMBOL, BOARD_MEMBERS, BOARD_VOTING_SETTINGS, FINANCE_PERIOD, {
+          from: owner,
+        })
+        await template.installShareApps(daoID, SHARE_TOKEN_NAME, SHARE_TOKEN_SYMBOL, SHARE_VOTING_SETTINGS, {
+          from: owner,
+        })
+      })
+
+      context('when there is no fundraising instance deployed', () => {
+        it('should revert', async () => {
+          await assertRevert(() =>
+            template.finalizeInstance(COLLATERALS, VIRTUAL_SUPPLIES, VIRTUAL_BALANCES, SLIPPAGES, RATES, FLOORS, {
+              from: owner,
+            })
+          )
+        })
+      })
+    })
+  })
 
   context('when the creation succeeds', () => {
     let prepareReceipt, shareReceipt, fundraisingReceipt, finalizationReceipt
@@ -346,11 +386,18 @@ contract('Fundraising with multisig', ([_, owner, boardMember1, boardMember2]) =
           assert.equal(await presale.token(), shareToken.address)
           assert.equal(web3.toChecksumAddress(await presale.reserve()), reserve.address)
           assert.equal(web3.toChecksumAddress(await presale.beneficiary()), vault.address)
-          assert.equal(web3.toChecksumAddress(await presale.contributionToken()), COLLATERALS[0])
-
-          //reserve ratio
-          // presale shit
-          // etc
+          assert.equal(web3.toChecksumAddress(await presale.contributionToken()), web3.toChecksumAddress(COLLATERALS[0]))
+          assert.equal((await presale.reserveRatio()).toNumber(), RESERVE_RATIOS[0])
+          assert.equal((await presale.presaleGoal()).toNumber(), PRESALE_GOAL)
+          assert.equal((await presale.presalePeriod()).toNumber(), PRESALE_PERIOD)
+          assert.equal((await presale.vestingCliffPeriod()).toNumber(), VESTING_CLIFF_PERIOD)
+          assert.equal((await presale.vestingCompletePeriod()).toNumber(), VESTING_COMPLETE_PERIOD)
+          assert.equal((await presale.percentSupplyOffered()).toNumber(), PERCENT_SUPPLY_OFFERED)
+          assert.equal((await presale.percentFundingForBeneficiary()).toNumber(), PERCENT_FUNDING_FOR_BENEFICIARY)
+          assert.equal((await presale.startDate()).toNumber(), START_DATE)
+          assert.equal(web3.toChecksumAddress(await presale.collaterals(0)), web3.toChecksumAddress(COLLATERALS[0]))
+          assert.equal(web3.toChecksumAddress(await presale.collaterals(1)), web3.toChecksumAddress(COLLATERALS[1]))
+          await assertRevert(() => presale.collaterals(2))
 
           await assertRole(acl, presale, shareVoting, 'OPEN_ROLE', controller)
           await assertRole(acl, presale, shareVoting, 'CONTRIBUTE_ROLE', controller)
@@ -467,7 +514,7 @@ contract('Fundraising with multisig', ([_, owner, boardMember1, boardMember2]) =
           VESTING_COMPLETE_PERIOD,
           PERCENT_SUPPLY_OFFERED,
           PERCENT_FUNDING_FOR_BENEFICIARY,
-          0,
+          START_DATE,
           BATCH_BLOCKS,
           MAXIMUM_TAP_RATE_INCREASE_PCT,
           MAXIMUM_TAP_FLOOR_DECREASE_PCT,
@@ -488,7 +535,7 @@ contract('Fundraising with multisig', ([_, owner, boardMember1, boardMember2]) =
       const FINANCE_PERIOD = 60 * 60 * 24 * 15 // 15 days
 
       createDAO(FINANCE_PERIOD)
-      itCostsUpTo(6.75e6)
+      itCostsUpTo(6.8e6)
       itSetupsDAOCorrectly(FINANCE_PERIOD)
     })
 
@@ -496,7 +543,7 @@ contract('Fundraising with multisig', ([_, owner, boardMember1, boardMember2]) =
       const FINANCE_PERIOD = 0 // use default
 
       createDAO(FINANCE_PERIOD)
-      itCostsUpTo(6.75e6)
+      itCostsUpTo(6.8e6)
       itSetupsDAOCorrectly(FINANCE_PERIOD)
     })
   })
