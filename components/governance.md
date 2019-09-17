@@ -8,7 +8,11 @@ Aragon Fundraising default governance template identifies two set actors: the bo
 
 The board token holders are the ones being funded by the fundraising campaign. They are represented through a custom `BOARD` token and a dedicated voting app set to be used as a multisig. 
 
-The share holders are the one contributing to the fundraising campaign. They are represented through a `SHARE` bonded-token \[that can be bought and redeemed through the Aragon Fundraising interface\] and a voting app.
+As you can check in the following default permissions `BOARD`oken holders can mint BOARD tokens and revoke vestings via the multisig voting app.They can also initiate and execute payments from the DAO's Finance app. They can most importantly update the beneficiary address of the tap.
+
+The share holders are the one contributing to the fundraising campaign. They are represented through a `SHARE` bonded-token \[that can be bought and redeemed through the Aragon Fundraising interface\] and a voting app. They  control the permission of who can buy and sell SHARE tokens.
+
+
 
 ## Permissions
 

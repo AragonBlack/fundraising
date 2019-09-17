@@ -23,8 +23,8 @@ The pre-sale screens enables an individual/DAO to configure it's pre-sale terms,
 * **Project’s pitch:** a short description of the fundraising campaign.
 * **Token Supply Offered:** Which percent of the share token supply is offered to the public. Conversely 100-Token Supply Offered corresponds to the amount of Share token that can be vested over time to Board token holders.
 * **Initial Price per token:** A uniform pre-sale share token price is specified. The following formula \(LINK\) helps calculate initial price and trading price once the bonding curve is open to trading.
-* **Vesting Schedule:** Over how long of a period are vested tokens distributed
-* **Cliff Period:** After how long tokens start vesting to BOARD token holders
+* **Vesting Schedule:** Over how long of a period are pre-sale tokens distributed to stakers.
+* **Cliff Period:** After how long share tokens start vesting to pre-sale stakers.
 * **Upfront Costs:** An allocation for upfront investments by the DAO that will be left out of the bonding curve mechanism.
 * **Fundraising schedule Preview:** token supply and pice 
 
