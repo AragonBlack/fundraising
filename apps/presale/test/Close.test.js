@@ -7,7 +7,7 @@ const assertExternalEvent = require('@ablack/fundraising-shared-test-helpers/ass
 
 const BUYER_BALANCE = 20000
 
-contract('Presale, close() functionality', ([anyone, appManager, buyer1]) => {
+contract.only('Presale, close() functionality', ([anyone, appManager, buyer1]) => {
   const itAllowsTheSaleToBeClosed = startDate => {
     describe('When enough purchases have been made to close the sale', () => {
       before(async () => {
@@ -19,12 +19,12 @@ contract('Presale, close() functionality', ([anyone, appManager, buyer1]) => {
 
         if (startDate == 0) {
           startDate = now()
-          await this.presale.start({ from: appManager })
+          await this.presale.open({ from: appManager })
         }
         await this.presale.mockSetTimestamp(startDate + 1)
 
         // Make a single purchase that reaches the funding goal
-        await this.presale.buy(BUYER_BALANCE, { from: buyer1 })
+        await this.presale.contribute(buyer1, BUYER_BALANCE)
       })
 
       it('Sale state is GoalReached', async () => {
@@ -53,7 +53,7 @@ contract('Presale, close() functionality', ([anyone, appManager, buyer1]) => {
           expect((await this.contributionToken.balanceOf(reserve)).toNumber()).to.equal(tokensForReserve)
         })
 
-        it('Collaterals tap timestamps are reset', async () => {
+        it.only('Collaterals tap timestamps are reset', async () => {
           assertExternalEvent(closeReceipt, 'ResetTappedToken(address)', 2)
         })
 

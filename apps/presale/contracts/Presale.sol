@@ -24,7 +24,7 @@ contract Presale is EtherTokenConstant, IsContract, AragonApp {
     bytes32 public constant OPEN_ROLE       = 0xefa06053e2ca99a43c97c4a4f3d8a394ee3323a8ff237e625fba09fe30ceb0a4;
     bytes32 public constant CONTRIBUTE_ROLE = 0x9ccaca4edf2127f20c425fdd86af1ba178b9e5bee280cd70d88ac5f6874c4f07;
 
-    uint256 public constant PPM                   = 1000000; // 0% = 0; 1% = 10 ** 4; 100% = 10 ** 6
+    uint256 public constant PPM                   = 1000000; // 0% = 0 * 10 ** 4; 1% = 1 * 10 ** 4; 100% = 100 * 10 ** 4
     uint256 public constant COLLATERAL_TOKENS_CAP = 10;
 
     string private constant ERROR_CONTRACT_IS_EOA          = "PRESALE_CONTRACT_IS_EOA";
@@ -127,7 +127,7 @@ contract Presale is EtherTokenConstant, IsContract, AragonApp {
         require(_presalePeriod > 0,                                                         ERROR_INVALID_TIME_PERIOD);
         require(_vestingCliffPeriod > _presalePeriod,                                       ERROR_INVALID_TIME_PERIOD);
         require(_vestingCompletePeriod > _vestingCliffPeriod,                               ERROR_INVALID_TIME_PERIOD);
-        require(_percentSupplyOffered >= 0 && _percentSupplyOffered <= PPM,                 ERROR_INVALID_PCT);
+        require(_percentSupplyOffered > 0 && _percentSupplyOffered <= PPM,                  ERROR_INVALID_PCT);
         require(_percentFundingForBeneficiary >= 0 && _percentFundingForBeneficiary <= PPM, ERROR_INVALID_PCT);
         require(_collaterals.length > 0 && _collaterals.length < COLLATERAL_TOKENS_CAP,     ERROR_INVALID_COLLATERALS);
 
@@ -238,7 +238,9 @@ contract Presale is EtherTokenConstant, IsContract, AragonApp {
 
         // (presale) ~~~> contribution tokens ~~~> (beneficiary)
         uint256 tokensForBeneficiary = totalRaised.mul(percentFundingForBeneficiary).div(PPM);
-        require(contributionToken.safeTransfer(beneficiary, tokensForBeneficiary), ERROR_TOKEN_TRANSFER_REVERTED);
+        if (tokensForBeneficiary > 0) {
+            require(contributionToken.safeTransfer(beneficiary, tokensForBeneficiary), ERROR_TOKEN_TRANSFER_REVERTED);
+        }
         // (presale) ~~~> contribution tokens ~~~> (reserve)
         uint256 tokensForReserve = contributionToken.balanceOf(address(this));
         require(contributionToken.safeTransfer(reserve, tokensForReserve), ERROR_TOKEN_TRANSFER_REVERTED);
