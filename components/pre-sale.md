@@ -21,7 +21,16 @@ The pre-sale screens enables an individual/DAO to configure it's pre-sale terms,
 **The terms covered  are fields to be completed to configure a fundraising campaign:**
 
 * **Project’s pitch:** a short description of the fundraising campaign.
-* **Fundraising Terms: Token Supply Offered, Initial Price per token,  Vesting Schedule, Cliff Period**
+* **Token Supply Offered:** Which percent of the share token supply is offered to the public. Conversely 100-Token Supply Offered corresponds to the amount of Share token that can be vested over time to Board token holders.
+* **Initial Price per token:** A uniform pre-sale share token price is specified. The following formula \(LINK\) helps calculate initial price and trading price once the bonding curve is open to trading.
+* **Vesting Schedule:** Over how long of a period are vested tokens distributed
+* **Cliff Period:** After how long tokens start vesting to BOARD token holders
 * **Upfront Costs:** An allocation for upfront investments by the DAO that will be left out of the bonding curve mechanism.
 * **Fundraising schedule Preview:** token supply and pice 
-* 
+
+\(TO BE REVISED\) Based on some of our user testing and research the following preliminary observations are to be considered when setting up a bonding curve:
+
+* The first period of a project is market by high amount of staking due to growth potential and excitement around a project
+* In the medium to long run the share of revenue on total amount in the reserves must increase to account for a smaller growth rate.
+* Depending on which % of project revenue goes to the tap, the tap rate etc... tap can be higher than revenue at the start to allow for outlet expenses and lower in the long run. Then tap can be increased/decreased.
+
