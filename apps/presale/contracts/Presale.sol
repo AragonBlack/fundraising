@@ -313,7 +313,7 @@ contract Presale is EtherTokenConstant, IsContract, AragonApp {
         // here we express the exchange is for bond / collateral so we should have:
         // exchangeRate = 1 / price = presaleSupply * reserveRatio / goal
         // So once we take into account PPM expressed reserveRation
-        // exchangeRate = (presaleSupply * reserveRatio) / (goal * PPM) 
+        // exchangeRate = (presaleSupply * reserveRatio) / (goal * PPM)
         // Also: we use percentSupplyOffered as an absolute amount of tokens while it's a percentage ...
         tokenExchangeRate = presaleGoal.mul(PPM).mul(percentSupplyOffered).div(reserveRatio).div(PPM);
     }
