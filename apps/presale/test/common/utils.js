@@ -3,8 +3,8 @@ const { PRESALE_GOAL, RESERVE_RATIOS, PERCENT_SUPPLY_OFFERED, PPM } = require('@
 const utils = {
   getEvent: (tx, eventName) => tx.logs.filter(log => log.event.includes(eventName))[0],
 
-  contributionToProjectTokens: dai => {
-    return dai * utils.tokenExchangeRate()
+  contributionToProjectTokens: value => {
+    return (web3.toBigNumber(value)).mul(utils.tokenExchangeRate())
   },
 
   now: () => {
@@ -12,9 +12,11 @@ const utils = {
   },
 
   tokenExchangeRate: () => {
-    const connectorWeightDec = RESERVE_RATIOS[0] / PPM
-    const supplyOfferedDec = PERCENT_SUPPLY_OFFERED / PPM
-    return Math.floor((PRESALE_GOAL / connectorWeightDec) * supplyOfferedDec)
+    const ppm = web3.toBigNumber(PPM, 10)
+    const presaleGoal = web3.toBigNumber(PRESALE_GOAL, 10)
+    const reserveRatio = web3.toBigNumber(RESERVE_RATIOS[0], 10)
+    const supplyOffered = web3.toBigNumber(PERCENT_SUPPLY_OFFERED, 10)
+    return presaleGoal.mul(ppm).mul(supplyOffered).div(reserveRatio).div(ppm)
   },
 
   sendTransaction: data => {

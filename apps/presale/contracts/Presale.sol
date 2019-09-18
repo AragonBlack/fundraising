@@ -40,6 +40,7 @@ contract Presale is EtherTokenConstant, IsContract, AragonApp {
     string private constant ERROR_INSUFFICIENT_ALLOWANCE   = "PRESALE_INSUFFICIENT_ALLOWANCE";
     string private constant ERROR_NOTHING_TO_REFUND        = "PRESALE_NOTHING_TO_REFUND";
     string private constant ERROR_TOKEN_TRANSFER_REVERTED  = "PRESALE_TOKEN_TRANSFER_REVERTED";
+    string private constant ERROR_INCORRECT_ETH_VALUE      = "PRESALE_INCORRECT_ETH_VALUE";
 
     enum PresaleState {
         Pending,     // presale is idle and pending to be started
@@ -170,29 +171,38 @@ contract Presale is EtherTokenConstant, IsContract, AragonApp {
     */
     function contribute(address _contributor, uint256 _value) external payable auth(CONTRIBUTE_ROLE) {
         require(currentPresaleState() == PresaleState.Funding, ERROR_INVALID_STATE);
+
+        if (contributionToken == ETH) {
+            require(msg.value == _value, ERROR_INCORRECT_ETH_VALUE);
+        } else {
+            require(msg.value == 0, ERROR_INCORRECT_ETH_VALUE);
+        }
+
         uint256 value = totalRaised.add(_value) > presaleGoal ? presaleGoal.sub(totalRaised) : _value;
-        // TODO: handle ETH case
-        // TODO: now that the function is payable, check if no excess ETH value is sent, otherwise revert
-        require(contributionToken.balanceOf(_contributor) >= value,                ERROR_INSUFFICIENT_BALANCE);
-        require(contributionToken.allowance(_contributor, address(this)) >= value, ERROR_INSUFFICIENT_ALLOWANCE);
 
         // (contributor) ~~~> contribution tokens ~~~> (presale)
-        // TODO: handle ETH case
-        require(contributionToken.safeTransferFrom(_contributor, address(this), value), ERROR_TOKEN_TRANSFER_REVERTED);
+        if (contributionToken != ETH) {
+            require(contributionToken.balanceOf(_contributor) >= value,                ERROR_INSUFFICIENT_BALANCE);
+            require(contributionToken.allowance(_contributor, address(this)) >= value, ERROR_INSUFFICIENT_ALLOWANCE);
+            _transfer(contributionToken, _contributor, address(this), value);
+        }
+
         // (mint ✨) ~~~> project tokens ~~~> (contributor)
         uint256 tokensToSell = contributionToTokens(value);
         tokenManager.issue(tokensToSell);
-        uint256 vestedPurchaseId = tokenManager.assignVested(
-            _contributor,
-            tokensToSell,
-            startDate,
-            vestingCliffDate,
-            vestingCompleteDate,
-            true /* revokable */
-        );
-        totalRaised = totalRaised.add(value);
+        uint256 vestedPurchaseId = 0;
+        // uint256 vestedPurchaseId = tokenManager.assignVested(
+        //     _contributor,
+        //     tokensToSell,
+        //     startDate,
+        //     vestingCliffDate,
+        //     vestingCompleteDate,
+        //     true /* revokable */
+        // );
+        // totalRaised = totalRaised.add(value);
+
         // register contribution tokens spent in this purchase for a possible upcoming refund
-        purchases[_contributor][vestedPurchaseId] = value;
+        // purchases[_contributor][vestedPurchaseId] = value;
 
         emit Contribute(_contributor, value, tokensToSell, vestedPurchaseId);
     }
@@ -211,8 +221,7 @@ contract Presale is EtherTokenConstant, IsContract, AragonApp {
         purchases[_contributor][_vestedPurchaseId] = 0;
 
         // (presale) ~~~> contribution tokens ~~~> (contributor)
-        // TODO: Handle ETH case
-        require(contributionToken.safeTransfer(_contributor, tokensToRefund), ERROR_TOKEN_TRANSFER_REVERTED);
+        _transfer(contributionToken, address(this), _contributor, tokensToRefund);
 
         /**
          * NOTE
@@ -239,11 +248,11 @@ contract Presale is EtherTokenConstant, IsContract, AragonApp {
         // (presale) ~~~> contribution tokens ~~~> (beneficiary)
         uint256 tokensForBeneficiary = totalRaised.mul(percentFundingForBeneficiary).div(PPM);
         if (tokensForBeneficiary > 0) {
-            require(contributionToken.safeTransfer(beneficiary, tokensForBeneficiary), ERROR_TOKEN_TRANSFER_REVERTED);
+            _transfer(contributionToken, address(this), beneficiary, tokensForBeneficiary);
         }
         // (presale) ~~~> contribution tokens ~~~> (reserve)
         uint256 tokensForReserve = contributionToken.balanceOf(address(this));
-        require(contributionToken.safeTransfer(reserve, tokensForReserve), ERROR_TOKEN_TRANSFER_REVERTED);
+        _transfer(contributionToken, address(this), reserve, tokensForReserve);
 
         isClosed = true;
         _resetCollateralsTaps();
@@ -333,6 +342,16 @@ contract Presale is EtherTokenConstant, IsContract, AragonApp {
     function _resetCollateralsTaps() internal {
         for (uint256 i = 0; i < collaterals.length; i++) {
             controller.resetTokenTap(collaterals[i]);
+        }
+    }
+
+    function _transfer(address _token, address _from, address _to, uint256 _amount) internal {
+        if (_token == ETH) {
+            require(_from == address(this), ERROR_TOKEN_TRANSFER_REVERTED);
+            require(_to != address(this), ERROR_TOKEN_TRANSFER_REVERTED);
+            _to.transfer(_amount);
+        } else {
+            require(ERC20(_token).safeTransferFrom(_from, _to, _amount), ERROR_TOKEN_TRANSFER_REVERTED);
         }
     }
 }
