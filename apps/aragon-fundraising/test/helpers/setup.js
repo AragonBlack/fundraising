@@ -19,6 +19,7 @@ const {
   INITIAL_COLLATERAL_BALANCE,
   PRESALE_GOAL,
   PRESALE_PERIOD,
+  PRESALE_EXCHANGE_RATE,
   VESTING_CLIFF_PERIOD,
   VESTING_COMPLETE_PERIOD,
   PERCENT_SUPPLY_OFFERED,
@@ -154,7 +155,9 @@ const setup = {
   },
   initialize: {
     controller: async (ctx, root) => {
-      await ctx.controller.initialize(ctx.presale.address, ctx.marketMaker.address, ctx.reserve.address, ctx.tap.address, { from: root })
+      await ctx.controller.initialize(ctx.presale.address, ctx.marketMaker.address, ctx.reserve.address, ctx.tap.address, [ctx.collaterals.dai.address], {
+        from: root,
+      })
     },
     tokenManager: async (ctx, root) => {
       await ctx.token.changeController(ctx.tokenManager.address, { from: root })
@@ -167,15 +170,14 @@ const setup = {
         ctx.reserve.address,
         ctx.vault.address,
         ctx.collaterals.dai.address,
-        RESERVE_RATIOS[0],
         PRESALE_GOAL,
         PRESALE_PERIOD,
+        PRESALE_EXCHANGE_RATE,
         VESTING_CLIFF_PERIOD,
         VESTING_COMPLETE_PERIOD,
         PERCENT_SUPPLY_OFFERED,
         PERCENT_FUNDING_FOR_BENEFICIARY,
         0,
-        [ctx.collaterals.dai.address],
         { from: root }
       )
     },
@@ -230,7 +232,6 @@ const setup = {
       ctx.roles.controller.REMOVE_COLLATERAL_TOKEN_ROLE = await ctx.base.controller.REMOVE_COLLATERAL_TOKEN_ROLE()
       ctx.roles.controller.UPDATE_COLLATERAL_TOKEN_ROLE = await ctx.base.controller.UPDATE_COLLATERAL_TOKEN_ROLE()
       ctx.roles.controller.UPDATE_TOKEN_TAP_ROLE = await ctx.base.controller.UPDATE_TOKEN_TAP_ROLE()
-      ctx.roles.controller.RESET_TOKEN_TAP_ROLE = await ctx.base.controller.RESET_TOKEN_TAP_ROLE()
       ctx.roles.controller.OPEN_PRESALE_ROLE = await ctx.base.controller.OPEN_PRESALE_ROLE()
       ctx.roles.controller.OPEN_TRADING_ROLE = await ctx.base.controller.OPEN_TRADING_ROLE()
       ctx.roles.controller.CONTRIBUTE_ROLE = await ctx.base.controller.CONTRIBUTE_ROLE()
@@ -246,7 +247,6 @@ const setup = {
       await ctx.acl.createPermission(user, ctx.controller.address, ctx.roles.controller.REMOVE_COLLATERAL_TOKEN_ROLE, root, { from: root })
       await ctx.acl.createPermission(user, ctx.controller.address, ctx.roles.controller.UPDATE_COLLATERAL_TOKEN_ROLE, root, { from: root })
       await ctx.acl.createPermission(user, ctx.controller.address, ctx.roles.controller.UPDATE_TOKEN_TAP_ROLE, root, { from: root })
-      await ctx.acl.createPermission(ctx.presale.address, ctx.controller.address, ctx.roles.controller.RESET_TOKEN_TAP_ROLE, root, { from: root })
       await ctx.acl.createPermission(user, ctx.controller.address, ctx.roles.controller.OPEN_PRESALE_ROLE, root, { from: root })
       await ctx.acl.createPermission(ctx.presale.address, ctx.controller.address, ctx.roles.controller.OPEN_TRADING_ROLE, root, { from: root })
       await ctx.acl.createPermission(user, ctx.controller.address, ctx.roles.controller.CONTRIBUTE_ROLE, root, { from: root })
@@ -256,7 +256,6 @@ const setup = {
 
       // for tests purposes only
       await ctx.acl.grantPermission(root, ctx.controller.address, ctx.roles.controller.ADD_COLLATERAL_TOKEN_ROLE, { from: root })
-      await ctx.acl.grantPermission(user, ctx.controller.address, ctx.roles.controller.RESET_TOKEN_TAP_ROLE, { from: root })
       await ctx.acl.grantPermission(user, ctx.controller.address, ctx.roles.controller.OPEN_TRADING_ROLE, { from: root })
     },
     tokenManager: async (ctx, root) => {

@@ -52,14 +52,13 @@ contract AragonFundraisingController is EtherTokenConstant, IsContract, IAragonF
     uint256 public constant TO_RESET_CAP = 10;
 
     string private constant ERROR_CONTRACT_IS_EOA = "FUNDRAISING_CONTRACT_IS_EOA";
-    string private constant ERROR_INVALID_TOKENS  = "FUNDRAISING_INVALID_TOKEN";
+    string private constant ERROR_INVALID_TOKENS  = "FUNDRAISING_INVALID_TOKENS";
 
     Presale                  public presale;
     BatchedBancorMarketMaker public marketMaker;
     Agent                    public reserve;
     Tap                      public tap;
     address[]                public toReset;
-
 
 
     /***** external functions *****/
@@ -70,7 +69,7 @@ contract AragonFundraisingController is EtherTokenConstant, IsContract, IAragonF
      * @param _marketMaker The address of the market maker contract
      * @param _reserve     The address of the reserve [pool] contract
      * @param _tap         The address of the tap contract
-     * @param _toReset     The tokens whose tap timestamps are to be reset when presale is closed and trading is open
+     * @param _toReset     The addresses of the tokens whose tap timestamps are to be reset when presale is closed and trading is open
     */
     function initialize(
         Presale                  _presale,
@@ -86,7 +85,7 @@ contract AragonFundraisingController is EtherTokenConstant, IsContract, IAragonF
         require(isContract(_marketMaker),                              ERROR_CONTRACT_IS_EOA);
         require(isContract(_reserve),                                  ERROR_CONTRACT_IS_EOA);
         require(isContract(_tap),                                      ERROR_CONTRACT_IS_EOA);
-        require(_toReset.length > 0 && _toReset.length < TO_RESET_CAP, ERROR_INVALID_TOKENS);
+        require(_toReset.length < TO_RESET_CAP,                        ERROR_INVALID_TOKENS);
 
         initialized();
 
@@ -315,14 +314,6 @@ contract AragonFundraisingController is EtherTokenConstant, IsContract, IAragonF
     function updateTokenTap(address _token, uint256 _rate, uint256 _floor) external auth(UPDATE_TOKEN_TAP_ROLE) {
         tap.updateTappedToken(_token, _rate, _floor);
     }
-
-    // /**
-    //  * @notice Reset tap timestamps for `_token.symbol(): string`
-    //  * @param _token The address of the token whose tap timestamps are to be reset
-    // */
-    // function resetTokenTap(address _token) external auth(RESET_TOKEN_TAP_ROLE) {
-    //     tap.resetTappedToken(_token);
-    // }
 
     /**
      * @notice Transfer about `@tokenAmount(_token, self.getMaximumWithdrawal(_token): uint256)` from the reserve to the beneficiary
