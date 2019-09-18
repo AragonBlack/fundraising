@@ -16,14 +16,12 @@ const App = () => {
   const { isReady, collateralsAreOk } = useAppState()
 
   return (
-    <div css="min-width: 320px">
-      <Main assetsUrl="./">
-        <SyncIndicator visible={!isReady} />
-        {isPresale && isReady && collateralsAreOk && <PresaleView />}
-        {!isPresale && isReady && collateralsAreOk && <MainView />}
-        {isReady && !collateralsAreOk && <CollateralError />}
-      </Main>
-    </div>
+    <Main>
+      <SyncIndicator visible={!isReady} />
+      {isPresale && isReady && collateralsAreOk && <PresaleView />}
+      {!isPresale && isReady && collateralsAreOk && <MainView />}
+      {isReady && !collateralsAreOk && <CollateralError />}
+    </Main>
   )
 }
 
