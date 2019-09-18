@@ -66,13 +66,8 @@ const deploy = {
     const appBase = await FundraisingController.new()
     const receipt = await test.dao.newAppInstance(hash('fundraising-controller.aragonpm.eth'), appBase.address, '0x', false, { from: appManager })
     test.fundraising = FundraisingController.at(deploy.getProxyAddress(receipt))
-    test.FUNDRAISING_ADD_COLLATERAL_TOKEN_ROLE = await appBase.ADD_COLLATERAL_TOKEN_ROLE()
-    test.FUNDRAISING_RESET_TOKEN_TAP_ROLE = await appBase.RESET_TOKEN_TAP_ROLE()
   },
-  setFundraisingPermissions: async (test, appManager) => {
-    await test.acl.createPermission(ANY_ADDRESS, test.fundraising.address, test.FUNDRAISING_ADD_COLLATERAL_TOKEN_ROLE, appManager, { from: appManager })
-    await test.acl.createPermission(ANY_ADDRESS, test.fundraising.address, test.FUNDRAISING_RESET_TOKEN_TAP_ROLE, appManager, { from: appManager })
-  },
+  setFundraisingPermissions: async (test, appManager) => {},
   initializeFundraising: async test => {
     await test.fundraising.initialize()
   },
