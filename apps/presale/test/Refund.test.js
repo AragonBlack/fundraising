@@ -1,4 +1,4 @@
-const { PRESALE_PERIOD, SALE_STATE, PRESALE_GOAL } = require('./common/constants')
+const { PRESALE_PERIOD, PRESALE_STATE, PRESALE_GOAL } = require('@ablack/fundraising-shared-test-helpers/constants')
 const { contributionToProjectTokens, getEvent, now } = require('./common/utils')
 const { prepareDefaultSetup, defaultDeployParams, initializePresale } = require('./common/deploy')
 const { assertRevert } = require('@aragon/test-helpers/assertThrow')
@@ -23,7 +23,7 @@ contract('Presale, refund() functionality', ([anyone, appManager, buyer1, buyer2
 
       if (startDate == 0) {
         startDate = now()
-        await this.presale.start({ from: appManager })
+        await this.presale.open({ from: appManager })
       }
       await this.presale.mockSetTimestamp(startDate + 1)
     })
@@ -31,18 +31,18 @@ contract('Presale, refund() functionality', ([anyone, appManager, buyer1, buyer2
     describe('When purchases have been made and the sale is Refunding', () => {
       before(async () => {
         // Make a few purchases, careful not to reach the funding goal.
-        await this.presale.buy(BUYER_BALANCE, { from: buyer1 }) // Spends everything in one purchase
-        await this.presale.buy(BUYER_BALANCE / 2, { from: buyer2 })
-        await this.presale.buy(BUYER_BALANCE / 2, { from: buyer2 }) // Spends everything in two purchases
-        await this.presale.buy(BUYER_BALANCE / 2, { from: buyer3 }) // Spends half
-        await this.presale.buy(1, { from: buyer5 }) // Spends a miserable amount xD
-        await this.presale.buy(1, { from: buyer5 }) // And again
+        await this.presale.contribute(buyer1, BUYER_BALANCE, { from: buyer1 }) // Spends everything in one purchase
+        await this.presale.contribute(buyer2, BUYER_BALANCE / 2, { from: buyer2 })
+        await this.presale.contribute(buyer2, BUYER_BALANCE / 2, { from: buyer2 }) // Spends everything in two purchases
+        await this.presale.contribute(buyer3, BUYER_BALANCE / 2, { from: buyer3 }) // Spends half
+        await this.presale.contribute(buyer5, 1, { from: buyer5 }) // Spends a miserable amount xD
+        await this.presale.contribute(buyer5, 1, { from: buyer5 }) // And again
 
         await this.presale.mockSetTimestamp(startDate + PRESALE_PERIOD)
       })
 
       it('Sale state is Refunding', async () => {
-        expect((await this.presale.currentPresaleState()).toNumber()).to.equal(SALE_STATE.REFUNDING)
+        expect((await this.presale.currentPresaleState()).toNumber()).to.equal(PRESALE_STATE.REFUNDING)
       })
 
       it('Buyers obtained project tokens for their contribution tokens', async () => {
@@ -67,14 +67,14 @@ contract('Presale, refund() functionality', ([anyone, appManager, buyer1, buyer2
         expect((await this.contributionToken.balanceOf(buyer2)).toNumber()).to.equal(BUYER_BALANCE)
       })
 
-      it('A TokensRefunded event is emitted', async () => {
+      it('A Refund event is emitted', async () => {
         const refundTx = await this.presale.refund(buyer5, 0)
         const expectedAmount = contributionToProjectTokens(1)
-        const event = getEvent(refundTx, 'TokensRefunded')
+        const event = getEvent(refundTx, 'Refund')
         expect(event).to.exist
-        expect(event.args.buyer).to.equal(buyer5)
-        expect(event.args.tokensRefunded.toNumber()).to.equal(1)
-        expect(event.args.tokensBurned.toNumber()).to.equal(expectedAmount)
+        expect(event.args.contributor).to.equal(buyer5)
+        expect(event.args.value.toNumber()).to.equal(1)
+        expect(event.args.amount.toNumber()).to.equal(expectedAmount)
         expect(event.args.vestedPurchaseId.toNumber()).to.equal(0)
       })
 
@@ -100,7 +100,7 @@ contract('Presale, refund() functionality', ([anyone, appManager, buyer1, buyer2
       })
 
       it('Sale state is Funding', async () => {
-        expect((await this.presale.currentPresaleState()).toNumber()).to.equal(SALE_STATE.FUNDING)
+        expect((await this.presale.currentPresaleState()).toNumber()).to.equal(PRESALE_STATE.FUNDING)
       })
 
       it('Should revert if a buyer attempts to get a refund', async () => {
@@ -115,11 +115,11 @@ contract('Presale, refund() functionality', ([anyone, appManager, buyer1, buyer2
         await this.contributionToken.approve(this.presale.address, PRESALE_GOAL, { from: buyer4 })
 
         const totalRaised = (await this.presale.totalRaised()).toNumber()
-        await this.presale.buy(PRESALE_GOAL - totalRaised, { from: buyer4 })
+        await this.presale.contribute(buyer4, PRESALE_GOAL - totalRaised, { from: buyer4 })
       })
 
       it('Sale state is GoalReached', async () => {
-        expect((await this.presale.currentPresaleState()).toNumber()).to.equal(SALE_STATE.GOAL_REACHED)
+        expect((await this.presale.currentPresaleState()).toNumber()).to.equal(PRESALE_STATE.GOAL_REACHED)
       })
 
       it('Should revert if a buyer attempts to get a refund', async () => {

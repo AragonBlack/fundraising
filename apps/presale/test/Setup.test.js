@@ -3,13 +3,13 @@ const {
   PERCENT_SUPPLY_OFFERED,
   VESTING_CLIFF_PERIOD,
   VESTING_COMPLETE_PERIOD,
-  SALE_STATE,
+  PRESALE_STATE,
   CONNECTOR_WEIGHT,
   TAP_RATE,
   PRESALE_PERIOD,
   ZERO_ADDRESS,
   PERCENT_FUNDING_FOR_BENEFICIARY,
-} = require('./common/constants')
+} = require('@ablack/fundraising-shared-test-helpers/constants')
 const { prepareDefaultSetup, initializePresale, defaultDeployParams } = require('./common/deploy')
 const { tokenExchangeRate, now } = require('./common/utils')
 const { assertRevert } = require('@aragon/test-helpers/assertThrow')
@@ -62,7 +62,7 @@ contract('Presale, setup', ([anyone, appManager, someEOA]) => {
       })
 
       it('Initial state is Pending', async () => {
-        expect((await this.presale.currentPresaleState()).toNumber()).to.equal(SALE_STATE.PENDING)
+        expect((await this.presale.currentPresaleState()).toNumber()).to.equal(PRESALE_STATE.PENDING)
       })
 
       it('Project token is deployed and set in the app', async () => {

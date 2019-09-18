@@ -1,4 +1,4 @@
-const { SALE_STATE, PRESALE_PERIOD, PRESALE_GOAL } = require('./common/constants')
+const { PRESALE_STATE, PRESALE_PERIOD, PRESALE_GOAL } = require('@ablack/fundraising-shared-test-helpers/constants')
 const { sendTransaction, contributionToProjectTokens, getEvent, now } = require('./common/utils')
 const { prepareDefaultSetup, defaultDeployParams, initializePresale, deployDefaultSetup } = require('./common/deploy')
 const { assertRevert } = require('@aragon/test-helpers/assertThrow')
@@ -43,7 +43,7 @@ contract('Presale, contribute() functionality', ([anyone, appManager, buyer1, bu
         })
 
         it('App state should be Funding', async () => {
-          expect((await this.presale.currentPresaleState()).toNumber()).to.equal(SALE_STATE.FUNDING)
+          expect((await this.presale.currentPresaleState()).toNumber()).to.equal(PRESALE_STATE.FUNDING)
         })
 
         it('A user can query how many project tokens would be obtained for a given amount of contribution tokens', async () => {
@@ -115,7 +115,7 @@ contract('Presale, contribute() functionality', ([anyone, appManager, buyer1, bu
             })
 
             it('Sale state is Refunding', async () => {
-              expect((await this.presale.currentPresaleState()).toNumber()).to.equal(SALE_STATE.REFUNDING)
+              expect((await this.presale.currentPresaleState()).toNumber()).to.equal(PRESALE_STATE.REFUNDING)
             })
 
             it('Reverts if a user attempts to buy tokens', async () => {
@@ -139,7 +139,7 @@ contract('Presale, contribute() functionality', ([anyone, appManager, buyer1, bu
             })
 
             it('Sale state is GoalReached', async () => {
-              expect((await this.presale.currentPresaleState()).toNumber()).to.equal(SALE_STATE.GOAL_REACHED)
+              expect((await this.presale.currentPresaleState()).toNumber()).to.equal(PRESALE_STATE.GOAL_REACHED)
             })
 
             it('Reverts if a user attempts to buy tokens', async () => {
