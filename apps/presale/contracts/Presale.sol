@@ -93,7 +93,7 @@ contract Presale is EtherTokenConstant, IsContract, AragonApp {
      * @param _presalePeriod                The period within which to accept contribution for that presale
      * @param _vestingCliffPeriod           The period during which purchased [bonded] tokens are to be cliffed
      * @param _vestingCompletePeriod        The complete period during which purchased [bonded] tokens are to be vested
-     * @param _percentSupplyOffered         The percentage of the total supply of [bonded] tokens to be offered during that presale [in PPM]
+     * @param _percentSupplyOffered         The percentage of the initial supply of [bonded] tokens to be offered during that presale [in PPM]
      * @param _percentFundingForBeneficiary The percentage of the raised contribution tokens to be sent to the beneficiary [instead of the fundraising reserve] when that presale is closed [in PPM]
      * @param _startDate                    The date upon which that presale is to be open [ignored if 0]
      * @param _collaterals                  The trading collaterals whose tap timestamps are to be reset when that presale is closed
@@ -308,6 +308,13 @@ contract Presale is EtherTokenConstant, IsContract, AragonApp {
     }
 
     function _setExchangeRate() internal {
+        // according to BancorFormula:
+        // price [expressed in collateral / bond] = balance / (supply * reserveRatio)
+        // here we express the exchange is for bond / collateral so we should have:
+        // exchangeRate = 1 / price = presaleSupply * reserveRatio / goal
+        // So once we take into account PPM expressed reserveRation
+        // exchangeRate = (presaleSupply * reserveRatio) / (goal * PPM) 
+        // Also: we use percentSupplyOffered as an absolute amount of tokens while it's a percentage ...
         tokenExchangeRate = presaleGoal.mul(PPM).mul(percentSupplyOffered).div(reserveRatio).div(PPM);
     }
 
