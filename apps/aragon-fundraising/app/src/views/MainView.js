@@ -1,10 +1,9 @@
 import React, { useEffect, useState } from 'react'
 import { unstable_batchedUpdates as batchedUpdates } from 'react-dom'
 import { useApi, useAppState, useConnectedAccount } from '@aragon/api-react'
-import { Layout, Tabs, Button, useLayout, ContextMenu, ContextMenuItem } from '@aragon/ui'
+import { Header, Layout, Tabs, Button, useLayout, ContextMenu, ContextMenuItem } from '@aragon/ui'
 import BigNumber from 'bignumber.js'
 import { useInterval } from '../hooks/use-interval'
-import AppHeader from '../components/AppHeader'
 import NewOrder from '../components/NewOrder'
 import Disclaimer from '../components/Disclaimer'
 import Reserves from '../screens/Reserves'
@@ -148,9 +147,9 @@ export default () => {
     <MainViewContext.Provider value={context}>
       <Layout>
         <Disclaimer />
-        <AppHeader
-          heading="Fundraising"
-          renderActions={
+        <Header
+          primary="Fundraising"
+          secondary={
             layoutName === 'small' ? (
               <ContextMenu>
                 <ContextMenuItem onClick={() => setOrderPanel(true)}>New Order</ContextMenuItem>
