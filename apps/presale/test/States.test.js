@@ -3,7 +3,7 @@ const { prepareDefaultSetup, defaultDeployParams, initializePresale } = require(
 const { getEvent, now } = require('./common/utils')
 
 const getState = async test => {
-  return (await test.presale.currentPresaleState()).toNumber()
+  return (await test.presale.state()).toNumber()
 }
 
 contract('Presale, states validation', ([anyone, appManager, buyer]) => {

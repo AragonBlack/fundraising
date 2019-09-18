@@ -42,7 +42,7 @@ contract('Presale, refund() functionality', ([anyone, appManager, buyer1, buyer2
       })
 
       it('Sale state is Refunding', async () => {
-        expect((await this.presale.currentPresaleState()).toNumber()).to.equal(PRESALE_STATE.REFUNDING)
+        expect((await this.presale.state()).toNumber()).to.equal(PRESALE_STATE.REFUNDING)
       })
 
       it('Buyers obtained project tokens for their contribution tokens', async () => {
@@ -100,7 +100,7 @@ contract('Presale, refund() functionality', ([anyone, appManager, buyer1, buyer2
       })
 
       it('Sale state is Funding', async () => {
-        expect((await this.presale.currentPresaleState()).toNumber()).to.equal(PRESALE_STATE.FUNDING)
+        expect((await this.presale.state()).toNumber()).to.equal(PRESALE_STATE.FUNDING)
       })
 
       it('Should revert if a buyer attempts to get a refund', async () => {
@@ -119,7 +119,7 @@ contract('Presale, refund() functionality', ([anyone, appManager, buyer1, buyer2
       })
 
       it('Sale state is GoalReached', async () => {
-        expect((await this.presale.currentPresaleState()).toNumber()).to.equal(PRESALE_STATE.GOAL_REACHED)
+        expect((await this.presale.state()).toNumber()).to.equal(PRESALE_STATE.GOAL_REACHED)
       })
 
       it('Should revert if a buyer attempts to get a refund', async () => {

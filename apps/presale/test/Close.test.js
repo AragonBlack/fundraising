@@ -28,7 +28,7 @@ contract('Presale, close() functionality', ([anyone, appManager, buyer1]) => {
       })
 
       it('Sale state is GoalReached', async () => {
-        expect((await this.presale.currentPresaleState()).toNumber()).to.equal(PRESALE_STATE.GOAL_REACHED)
+        expect((await this.presale.state()).toNumber()).to.equal(PRESALE_STATE.GOAL_REACHED)
       })
 
       describe('When the sale is closed', () => {
@@ -39,7 +39,7 @@ contract('Presale, close() functionality', ([anyone, appManager, buyer1]) => {
         })
 
         it('Sale state is Closed', async () => {
-          expect((await this.presale.currentPresaleState()).toNumber()).to.equal(PRESALE_STATE.CLOSED)
+          expect((await this.presale.state()).toNumber()).to.equal(PRESALE_STATE.CLOSED)
         })
 
         it('Raised funds are transferred to the fundraising reserve and the beneficiary address', async () => {
@@ -53,8 +53,11 @@ contract('Presale, close() functionality', ([anyone, appManager, buyer1]) => {
           expect((await this.contributionToken.balanceOf(reserve)).toNumber()).to.equal(tokensForReserve)
         })
 
-        it('Collaterals tap timestamps are reset', async () => {
-          assertExternalEvent(closeReceipt, 'ResetTokenTap()', 2)
+        it('Tokens are minted to the beneficiary address', async () => {
+          const supply = await this.projectToken.totalSupply()
+          const balanceOfBeneficiary = await this.projectToken.balanceOf(appManager)
+
+          expect(balanceOfBeneficiary.toNumber(), Math.floor((supply * (PPM - PERCENT_FUNDING_FOR_BENEFICIARY)) / PPM))
         })
 
         it('Continuous fundraising campaign is started', async () => {

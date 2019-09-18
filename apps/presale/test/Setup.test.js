@@ -41,28 +41,23 @@ contract('Presale, setup', ([anyone, appManager, someEOA]) => {
         expect(await this.presale.controller()).to.equal(this.fundraising.address)
       })
 
-      it('Collaterals are set', async () => {
-        expect(await this.presale.collaterals(0)).to.equal(this.contributionToken.address)
-        expect(await this.presale.collaterals(1)).to.equal(this.ant.address)
-      })
-
       it('startDate is set correctly', async () => {
-        expect((await this.presale.startDate()).toNumber()).to.equal(startDate)
+        expect((await this.presale.openDate()).toNumber()).to.equal(startDate)
       })
 
       it('Funding goal and percentage offered are set', async () => {
-        expect((await this.presale.presaleGoal()).toNumber()).to.equal(PRESALE_GOAL)
-        expect((await this.presale.percentSupplyOffered()).toNumber()).to.equal(PERCENT_SUPPLY_OFFERED)
+        expect((await this.presale.goal()).toNumber()).to.equal(PRESALE_GOAL)
+        expect((await this.presale.supplyOfferedPct()).toNumber()).to.equal(PERCENT_SUPPLY_OFFERED)
       })
 
       it('Dates and time periods are set', async () => {
         expect((await this.presale.vestingCliffPeriod()).toNumber()).to.equal(VESTING_CLIFF_PERIOD)
         expect((await this.presale.vestingCompletePeriod()).toNumber()).to.equal(VESTING_COMPLETE_PERIOD)
-        expect((await this.presale.presalePeriod()).toNumber()).to.equal(PRESALE_PERIOD)
+        expect((await this.presale.period()).toNumber()).to.equal(PRESALE_PERIOD)
       })
 
       it('Initial state is Pending', async () => {
-        expect((await this.presale.currentPresaleState()).toNumber()).to.equal(PRESALE_STATE.PENDING)
+        expect((await this.presale.state()).toNumber()).to.equal(PRESALE_STATE.PENDING)
       })
 
       it('Project token is deployed and set in the app', async () => {
@@ -81,7 +76,7 @@ contract('Presale, setup', ([anyone, appManager, someEOA]) => {
       })
 
       it('Exchange rate is calculated to the expected value', async () => {
-        const receivedValue = (await this.presale.tokenExchangeRate()).toNumber()
+        const receivedValue = (await this.presale.exchangeRate()).toNumber()
         const expectedValue = tokenExchangeRate()
         expect(receivedValue).to.equal(expectedValue)
       })
@@ -91,7 +86,7 @@ contract('Presale, setup', ([anyone, appManager, someEOA]) => {
       })
 
       it('Percent funding for beneficiary is set', async () => {
-        expect((await this.presale.percentFundingForBeneficiary()).toNumber()).to.equal(PERCENT_FUNDING_FOR_BENEFICIARY)
+        expect((await this.presale.fundingForBeneficiaryPct()).toNumber()).to.equal(PERCENT_FUNDING_FOR_BENEFICIARY)
       })
     }
 
@@ -131,7 +126,7 @@ contract('Presale, setup', ([anyone, appManager, someEOA]) => {
     })
 
     it('Reverts when setting an invalid funding goal', async () => {
-      await assertRevert(initializePresale(this, { ...defaultParams, presaleGoal: 0 }), 'PRESALE_INVALID_PRESALE_GOAL')
+      await assertRevert(initializePresale(this, { ...defaultParams, presaleGoal: 0 }), 'PRESALE_INVALID_GOAL')
     })
 
     it('Reverts when setting an invalid percent supply offered', async () => {
