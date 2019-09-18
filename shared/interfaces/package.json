@@ -8,7 +8,7 @@
   "license": "(GPL-3.0-or-later OR AGPL-3.0-or-later)",
   "homepage": "https://github.com/AragonBlack/fundraising",
   "scripts": {
-    "lint": "solium --dir ./contracts",
+    "lint": "solium --dir ./contracts --config ../../.soliumrc.json",
     "compile": "truffle compile"
   },
   "files": [

@@ -15,11 +15,6 @@
       "registry": "0x98Df287B6C145399Aaa709692c8D308357bC085D",
       "appName": "tap.hatch.aragonpm.eth",
       "network": "rinkeby"
-    },
-    "staging": {
-      "registry": "0xfe03625ea880a8cba336f9b5ad6e15b0a3b5a939",
-      "appName": "tap.aragonpm.eth",
-      "network": "rinkeby"
     }
   },
   "roles": [
@@ -39,8 +34,13 @@
       "params": []
     },
     {
-      "name": "Update maximum tap increase percentage",
-      "id": "UPDATE_MAXIMUM_TAP_INCREASE_PCT_ROLE",
+      "name": "Update maximum tap rate increase percentage",
+      "id": "UPDATE_MAXIMUM_TAP_RATE_INCREASE_PCT_ROLE",
+      "params": []
+    },
+    {
+      "name": "Update maximum tap floor decrease percentage",
+      "id": "UPDATE_MAXIMUM_TAP_FLOOR_DECREASE_PCT_ROLE",
       "params": []
     },
     {
@@ -56,6 +56,11 @@
     {
       "name": "Update tapped tokens settings",
       "id": "UPDATE_TAPPED_TOKEN_ROLE",
+      "params": []
+    },
+    {
+      "name": "Reset tapped tokens timestamps",
+      "id": "RESET_TAPPED_TOKEN_ROLE",
       "params": []
     },
     {
