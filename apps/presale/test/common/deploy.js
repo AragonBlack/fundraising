@@ -1,20 +1,23 @@
-const Presale = artifacts.require('PresaleMock.sol')
-const FundraisingController = artifacts.require('AragonFundraisingController.sol')
-const MiniMeToken = artifacts.require('@aragon/apps-shared-minime/contracts/MiniMeToken')
-const TokenManager = artifacts.require('TokenManager.sol')
-const Vault = artifacts.require('Vault.sol')
-const Agent = artifacts.require('Agent.sol')
-const Tap = artifacts.require('Tap.sol')
-const MarketMaker = artifacts.require('BatchedBancorMarketMaker.sol')
-// const MarketMakerController = artifacts.require('SimpleMarketMakerController')
-const Formula = artifacts.require('BancorFormula.sol')
+const getContract = name => artifacts.require(name)
+const { hash } = require('eth-ens-namehash')
+
 const DAOFactory = artifacts.require('@aragon/core/contracts/factory/DAOFactory')
 const EVMScriptRegistryFactory = artifacts.require('@aragon/core/contracts/factory/EVMScriptRegistryFactory')
 const ACL = artifacts.require('@aragon/core/contracts/acl/ACL')
 const Kernel = artifacts.require('@aragon/core/contracts/kernel/Kernel')
+const MiniMeToken = artifacts.require('@aragon/apps-shared-minime/contracts/MiniMeToken')
 const ERC20 = artifacts.require('@aragon/core/contracts/lib/token/ERC20')
-const getContract = name => artifacts.require(name)
-const { hash } = require('eth-ens-namehash')
+
+const TokenManager = artifacts.require('TokenManager.sol')
+const Vault = artifacts.require('Vault.sol')
+const Agent = artifacts.require('Agent.sol')
+
+const FundraisingController = artifacts.require('AragonFundraisingControllerMock.sol')
+const Tap = artifacts.require('Tap.sol')
+const MarketMaker = artifacts.require('BatchedBancorMarketMaker.sol')
+// const MarketMakerController = artifacts.require('SimpleMarketMakerController')
+const Formula = artifacts.require('BancorFormula.sol')
+const Presale = artifacts.require('PresaleMock.sol')
 
 const {
   ANY_ADDRESS,
@@ -25,7 +28,8 @@ const {
   PERCENT_SUPPLY_OFFERED,
   PRESALE_PERIOD,
   TAP_RATE,
-  MAX_MONTHLY_TAP_INCREASE_RATE,
+  MAXIMUM_TAP_RATE_INCREASE,
+  MAXIMUM_TAP_FLOOR_DECREASE,
   BLOCKS_IN_BATCH,
   SELL_FEE_PERCENT,
   BUY_FEE_PERCENT,
@@ -35,7 +39,7 @@ const {
   VIRTUAL_BALANCES,
   RESERVE_RATIOS,
   SLIPPAGES,
-  TAPS,
+  RATES,
   FLOORS,
 } = require('./constants')
 
@@ -62,12 +66,12 @@ const deploy = {
     const appBase = await Agent.new()
     const receipt = await test.dao.newAppInstance(hash('pool.aragonpm.eth'), appBase.address, '0x', false, { from: appManager })
     test.reserve = Agent.at(deploy.getProxyAddress(receipt))
-    test.POOL_TRANSFER_ROLE = await appBase.TRANSFER_ROLE()
-    test.POOL_ADD_PROTECTED_TOKEN_ROLE = await appBase.ADD_PROTECTED_TOKEN_ROLE()
+    test.RESERVE_TRANSFER_ROLE = await appBase.TRANSFER_ROLE()
+    test.RESERVE_ADD_PROTECTED_TOKEN_ROLE = await appBase.ADD_PROTECTED_TOKEN_ROLE()
   },
   setReservePermissions: async (test, appManager) => {
-    await test.acl.createPermission(ANY_ADDRESS, test.reserve.address, test.POOL_TRANSFER_ROLE, appManager, { from: appManager })
-    await test.acl.createPermission(ANY_ADDRESS, test.reserve.address, test.POOL_ADD_PROTECTED_TOKEN_ROLE, appManager, { from: appManager })
+    await test.acl.createPermission(ANY_ADDRESS, test.reserve.address, test.RESERVE_TRANSFER_ROLE, appManager, { from: appManager })
+    await test.acl.createPermission(ANY_ADDRESS, test.reserve.address, test.RESERVE_ADD_PROTECTED_TOKEN_ROLE, appManager, { from: appManager })
   },
   initializeReserve: async test => {
     await test.reserve.initialize()
@@ -86,7 +90,7 @@ const deploy = {
     await test.acl.createPermission(ANY_ADDRESS, test.tap.address, test.TAP_RESET_TAPPED_TOKEN_ROLE, appManager, { from: appManager })
   },
   initializeTap: async (test, beneficiary) => {
-    await test.tap.initialize(test.fundraising.address, test.vault.address, beneficiary, MARKET_MAKER_CONTROLLER_BATCH_BLOCKS, MAX_MONTHLY_TAP_INCREASE_RATE)
+    await test.tap.initialize(test.fundraising.address, test.vault.address, beneficiary, MARKET_MAKER_CONTROLLER_BATCH_BLOCKS, MAXIMUM_TAP_RATE_INCREASE, MAXIMUM_TAP_FLOOR_DECREASE)
   },
 
   /* MARKET-MAKER-CONTROLLER */
@@ -116,9 +120,9 @@ const deploy = {
     await test.marketMaker.initialize(
       test.fundraising.address,
       test.tokenManager.address,
+      test.formula.address,
       test.vault.address,
       beneficiary,
-      test.formula.address,
       BLOCKS_IN_BATCH,
       BUY_FEE_PERCENT,
       SELL_FEE_PERCENT
@@ -132,15 +136,13 @@ const deploy = {
     test.fundraising = FundraisingController.at(deploy.getProxyAddress(receipt))
     test.FUNDRAISING_ADD_COLLATERAL_TOKEN_ROLE = await appBase.ADD_COLLATERAL_TOKEN_ROLE()
     test.FUNDRAISING_RESET_TOKEN_TAP_ROLE = await appBase.RESET_TOKEN_TAP_ROLE()
-    test.FUNDRAISING_START_CAMPAIGN_ROLE = await appBase.START_CAMPAIGN_ROLE()
   },
   setFundraisingPermissions: async (test, appManager) => {
     await test.acl.createPermission(ANY_ADDRESS, test.fundraising.address, test.FUNDRAISING_ADD_COLLATERAL_TOKEN_ROLE, appManager, { from: appManager })
     await test.acl.createPermission(ANY_ADDRESS, test.fundraising.address, test.FUNDRAISING_RESET_TOKEN_TAP_ROLE, appManager, { from: appManager })
-    await test.acl.createPermission(ANY_ADDRESS, test.fundraising.address, test.FUNDRAISING_START_CAMPAIGN_ROLE, appManager, { from: appManager })
   },
   initializeFundraising: async test => {
-    await test.fundraising.initialize(test.marketMaker.address, test.reserve.address, test.tap.address)
+    await test.fundraising.initialize()
   },
 
   initializeCollateralTokens: async test => {
@@ -150,11 +152,19 @@ const deploy = {
       VIRTUAL_BALANCES[0],
       RESERVE_RATIOS[0],
       SLIPPAGES[0],
-      TAPS[0],
+      RATES[0],
       FLOORS[0]
     )
 
-    await test.fundraising.addCollateralToken(test.ant.address, VIRTUAL_SUPPLIES[1], VIRTUAL_BALANCES[1], RESERVE_RATIOS[1], SLIPPAGES[1], TAPS[1], FLOORS[1])
+    await test.fundraising.addCollateralToken(
+      test.ant.address,
+      VIRTUAL_SUPPLIES[1],
+      VIRTUAL_BALANCES[1],
+      RESERVE_RATIOS[1],
+      SLIPPAGES[1],
+      RATES[1],
+      FLOORS[1]
+    )
   },
 
   /* VAULT */
@@ -198,26 +208,26 @@ const deploy = {
     const appBase = await Presale.new()
     const receipt = await test.dao.newAppInstance(hash('presale.aragonpm.eth'), appBase.address, '0x', false, { from: appManager })
     test.presale = Presale.at(deploy.getProxyAddress(receipt))
-    test.PRESALE_START_ROLE = await appBase.START_ROLE()
-    test.PRESALE_BUY_ROLE = await appBase.BUY_ROLE()
+    test.PRESALE_OPEN_ROLE = await appBase.OPEN_ROLE()
+    test.PRESALE_CONTRIBUTE_ROLE = await appBase.CONTRIBUTE_ROLE()
   },
   setPresalePermissions: async (test, appManager) => {
-    await test.acl.createPermission(appManager, test.presale.address, test.PRESALE_START_ROLE, appManager, { from: appManager })
-    await test.acl.createPermission(ANY_ADDRESS, test.presale.address, test.PRESALE_BUY_ROLE, appManager, { from: appManager })
+    await test.acl.createPermission(appManager, test.presale.address, test.PRESALE_OPEN_ROLE, appManager, { from: appManager })
+    await test.acl.createPermission(ANY_ADDRESS, test.presale.address, test.PRESALE_CONTRIBUTE_ROLE, appManager, { from: appManager })
   },
   initializePresale: async (test, params) => {
     const paramsArr = [
       params.fundraising,
-      params.contributionToken,
-      params.projectToken,
       params.tokenManager,
-      params.vestingCliffPeriod,
-      params.vestingCompletePeriod,
-      params.presaleGoal,
-      params.percentSupplyOffered,
-      params.presalePeriod,
       params.reserve,
       params.beneficiary,
+      params.contributionToken,
+      params.reserveRatio,
+      params.presaleGoal,
+      params.presalePeriod,
+      params.vestingCliffPeriod,
+      params.vestingCompletePeriod,
+      params.percentSupplyOffered,
       params.percentFundingForBeneficiary,
       params.startDate,
       params.collaterals,
@@ -228,9 +238,9 @@ const deploy = {
     return {
       fundraising: test.fundraising.address,
       contributionToken: test.contributionToken.address,
-      projectToken: test.projectToken.address,
       tokenManager: test.tokenManager.address,
       vestingCliffPeriod: VESTING_CLIFF_PERIOD,
+      reserveRatio: RESERVE_RATIOS[0],
       vestingCompletePeriod: VESTING_COMPLETE_PERIOD,
       presaleGoal: PRESALE_GOAL,
       percentSupplyOffered: PERCENT_SUPPLY_OFFERED,
@@ -286,8 +296,8 @@ const deploy = {
     // await deploy.initializeMarketMakerController(test)
     await deploy.initializeTap(test, appManager)
     await deploy.initializeFundraising(test)
-    await deploy.initializeMarketMaker(test, appManager)
     await deploy.initializeTokenManager(test)
+    await deploy.initializeMarketMaker(test, appManager)
 
     await deploy.initializeCollateralTokens(test)
   },

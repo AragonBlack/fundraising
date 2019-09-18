@@ -36,4 +36,19 @@ contract AragonFundraisingControllerMock is IAragonFundraisingController, Aragon
             return ERC20(_token).staticBalanceOf(_who);
         }
     }
+
+    function addCollateralToken(
+        address _collateral,
+        uint256 _virtualSupply,
+        uint256 _virtualBalance,
+        uint32  _reserveRatio,
+        uint256 _slippage,
+        uint256 _rate,
+        uint256 _floor
+    )
+    	external
+        auth(ADD_COLLATERAL_TOKEN_ROLE)
+    {
+        // mock
+    }
 }

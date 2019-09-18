@@ -117,7 +117,7 @@ contract('Presale, setup', ([anyone, appManager, someEOA]) => {
     })
 
     it('Reverts when setting an invalid reserve', async () => {
-      await assertRevert(initializePresale(this, { ...defaultParams, reserve: someEOA }), 'PRESALE_INVALID_RESERVE')
+      await assertRevert(initializePresale(this, { ...defaultParams, reserve: someEOA }), 'PRESALE_CONTRACT_IS_EOA')
     })
 
     it('Reverts when setting invalid dates', async () => {
@@ -135,13 +135,12 @@ contract('Presale, setup', ([anyone, appManager, someEOA]) => {
     })
 
     it('Reverts when setting an invalid percent supply offered', async () => {
-      await assertRevert(initializePresale(this, { ...defaultParams, percentSupplyOffered: 0 }), 'PRESALE_INVALID_PERCENT_VALUE')
-      await assertRevert(initializePresale(this, { ...defaultParams, percentSupplyOffered: 1e6 + 1 }), 'PRESALE_INVALID_PERCENT_VALUE')
+      await assertRevert(initializePresale(this, { ...defaultParams, percentSupplyOffered: 0 }), 'PRESALE_INVALID_PCT')
+      await assertRevert(initializePresale(this, { ...defaultParams, percentSupplyOffered: 1e6 + 1 }), 'PRESALE_INVALID_PCT')
     })
 
     it('Reverts when setting an invalid percent funding for beneficiary', async () => {
-      await assertRevert(initializePresale(this, { ...defaultParams, percentFundingForBeneficiary: 0 }), 'PRESALE_INVALID_PERCENT_VALUE')
-      await assertRevert(initializePresale(this, { ...defaultParams, percentFundingForBeneficiary: 1e6 + 1 }), 'PRESALE_INVALID_PERCENT_VALUE')
+      await assertRevert(initializePresale(this, { ...defaultParams, percentFundingForBeneficiary: 1e6 + 1 }), 'PRESALE_INVALID_PCT')
     })
 
     it('Reverts when setting an invalid beneficiary address', async () => {

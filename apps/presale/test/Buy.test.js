@@ -6,7 +6,7 @@ const { assertRevert } = require('@aragon/test-helpers/assertThrow')
 const BUYER_1_BALANCE = 100
 const BUYER_2_BALANCE = 100000
 
-contract('Presale, buy() functionality', ([anyone, appManager, buyer1, buyer2]) => {
+contract('Presale, contribute() functionality', ([anyone, appManager, buyer1, buyer2]) => {
   describe('When using other tokens', () => {
     before(async () => {
       await deployDefaultSetup(this, appManager)
@@ -30,14 +30,14 @@ contract('Presale, buy() functionality', ([anyone, appManager, buyer1, buyer2]) 
       })
 
       it('Reverts if the user attempts to buy tokens before the sale has started', async () => {
-        await assertRevert(this.presale.buy(BUYER_1_BALANCE, { from: buyer1 }), 'PRESALE_INVALID_STATE')
+        await assertRevert(this.presale.contribute(buyer1, BUYER_1_BALANCE), 'PRESALE_INVALID_STATE')
       })
 
       describe('When the sale has started', () => {
         before(async () => {
           if (startDate == 0) {
             startDate = now()
-            await this.presale.start({ from: appManager })
+            await this.presale.open({ from: appManager })
           }
           await this.presale.mockSetTimestamp(startDate + 1)
         })
@@ -58,7 +58,7 @@ contract('Presale, buy() functionality', ([anyone, appManager, buyer1, buyer2]) 
 
           before(async () => {
             initialProjectTokenSupply = (await this.projectToken.totalSupply()).toNumber()
-            purchaseTx = await this.presale.buy(BUYER_1_BALANCE, { from: buyer1 })
+            purchaseTx = await this.presale.contribute(buyer1, BUYER_1_BALANCE)
           })
 
           it('Project tokens are minted on purchases', async () => {
@@ -79,21 +79,21 @@ contract('Presale, buy() functionality', ([anyone, appManager, buyer1, buyer2]) 
             expect(userBalance).to.equal(expectedAmount)
           })
 
-          it('A TokensPurchased event is emitted', async () => {
+          it('A Contribute event is emitted', async () => {
             const expectedAmount = contributionToProjectTokens(BUYER_1_BALANCE)
-            const event = getEvent(purchaseTx, 'TokensPurchased')
+            const event = getEvent(purchaseTx, 'Contribute')
             expect(event).to.exist
-            expect(event.args.buyer).to.equal(buyer1)
-            expect(event.args.tokensSpent.toNumber()).to.equal(BUYER_1_BALANCE)
-            expect(event.args.tokensPurchased.toNumber()).to.equal(expectedAmount)
+            expect(event.args.contributor).to.equal(buyer1)
+            expect(event.args.value.toNumber()).to.equal(BUYER_1_BALANCE)
+            expect(event.args.amount.toNumber()).to.equal(expectedAmount)
             expect(event.args.vestedPurchaseId.toNumber()).to.equal(0)
           })
 
           it('The purchase produces a valid purchase id for the buyer', async () => {
-            await this.presale.buy(1, { from: buyer2 })
-            await this.presale.buy(2, { from: buyer2 })
-            const tx = await this.presale.buy(3, { from: buyer2 })
-            const event = getEvent(tx, 'TokensPurchased')
+            await this.presale.contribute(buyer2, 1)
+            await this.presale.contribute(buyer2, 2)
+            const tx = await this.presale.contribute(buyer2, 3)
+            const event = getEvent(tx, 'Contribute')
             expect(event.args.vestedPurchaseId.toNumber()).to.equal(2)
           })
 
@@ -119,7 +119,7 @@ contract('Presale, buy() functionality', ([anyone, appManager, buyer1, buyer2]) 
             })
 
             it('Reverts if a user attempts to buy tokens', async () => {
-              await assertRevert(this.presale.buy(1, { from: buyer2 }), 'PRESALE_INVALID_STATE')
+              await assertRevert(this.presale.contribute(buyer2, 1), 'PRESALE_INVALID_STATE')
             })
           })
 
@@ -132,7 +132,7 @@ contract('Presale, buy() functionality', ([anyone, appManager, buyer1, buyer2]) 
               const raised = (await this.presale.totalRaised()).toNumber()
               const remainingToFundingGoal = PRESALE_GOAL - raised
               const userBalanceBeforePurchase = await this.contributionToken.balanceOf(buyer2)
-              await this.presale.buy(PRESALE_GOAL * 2, { from: buyer2 })
+              await this.presale.contribute(buyer2, PRESALE_GOAL * 2)
               const userBalanceAfterPurchase = await this.contributionToken.balanceOf(buyer2)
               const tokensUsedInPurchase = userBalanceBeforePurchase - userBalanceAfterPurchase
               expect(tokensUsedInPurchase).to.equal(remainingToFundingGoal)
@@ -143,7 +143,7 @@ contract('Presale, buy() functionality', ([anyone, appManager, buyer1, buyer2]) 
             })
 
             it('Reverts if a user attempts to buy tokens', async () => {
-              await assertRevert(this.presale.buy(1, { from: buyer2 }), 'PRESALE_INVALID_STATE')
+              await assertRevert(this.presale.contribute(buyer2, 1), 'PRESALE_INVALID_STATE')
             })
           })
         })
