@@ -111,27 +111,27 @@ contract FundraisingMultisigTemplate is BaseTemplate {
     }
 
     function installFundraisingApps(
-        uint256    _presaleGoal,
-        uint64     _presalePeriod,
-        uint64     _vestingCliffPeriod,
-        uint64     _vestingCompletePeriod,
-        uint256    _percentSupplyOffered,
-        uint256    _percentFundingForBeneficiary,
-        uint64     _startDate,
-        uint256    _batchBlocks,
-        uint256    _maxTapRateIncreasePct,
-        uint256    _maxTapFloorDecreasePct,
-        address[2] _collaterals
+        ERC20   _collateral,
+        uint256 _presaleGoal,
+        uint64  _presalePeriod,
+        uint64  _vestingCliffPeriod,
+        uint64  _vestingCompletePeriod,
+        uint256 _percentSupplyOffered,
+        uint256 _percentFundingForBeneficiary,
+        uint64  _startDate,
+        uint256 _batchBlocks,
+        uint256 _maxTapRateIncreasePct,
+        uint256 _maxTapFloorDecreasePct
     )
         external
     {
-        require(_collaterals.length == 2, ERROR_BAD_SETTINGS);
         _ensureShareAppsCache();
 
         Kernel dao = _daoCache();
         // install fundraising apps
         _installFundraisingApps(
             dao,
+            _collateral,
             _presaleGoal,
             _presalePeriod,
             _vestingCliffPeriod,
@@ -141,8 +141,7 @@ contract FundraisingMultisigTemplate is BaseTemplate {
             _startDate,
             _batchBlocks,
             _maxTapRateIncreasePct,
-            _maxTapFloorDecreasePct,
-            _collaterals
+            _maxTapFloorDecreasePct
         );
         // setup share apps permissions [now that fundraising apps have been installed]
         _setupSharePermissions(dao);
@@ -208,36 +207,32 @@ contract FundraisingMultisigTemplate is BaseTemplate {
     }
 
     function _installFundraisingApps(
-        Kernel     _dao,
-        uint256    _presaleGoal,
-        uint64     _presalePeriod,
-        uint64     _vestingCliffPeriod,
-        uint64     _vestingCompletePeriod,
-        uint256    _percentSupplyOffered,
-        uint256    _percentFundingForBeneficiary,
-        uint64     _startDate,
-        uint256    _batchBlocks,
-        uint256    _maxTapRateIncreasePct,
-        uint256    _maxTapFloorDecreasePct,
-        address[2] _collaterals
+        Kernel  _dao,
+        ERC20   _collateral,
+        uint256 _presaleGoal,
+        uint64  _presalePeriod,
+        uint64  _vestingCliffPeriod,
+        uint64  _vestingCompletePeriod,
+        uint256 _percentSupplyOffered,
+        uint256 _percentFundingForBeneficiary,
+        uint64  _startDate,
+        uint256 _batchBlocks,
+        uint256 _maxTapRateIncreasePct,
+        uint256 _maxTapFloorDecreasePct
     )
         internal
     {
-        address[] memory collaterals = new address[](2);
-        collaterals[0] = _collaterals[0];
-        collaterals[1] = _collaterals[1];
-
         _proxifyFundraisingApps(_dao);
 
         _initializePresale(
+            _collateral,
             _presaleGoal,
             _presalePeriod,
             _vestingCliffPeriod,
             _vestingCompletePeriod,
             _percentSupplyOffered,
             _percentFundingForBeneficiary,
-            _startDate,
-            collaterals
+            _startDate
         );
         _initializeMarketMaker(_batchBlocks);
         _initializeTap(_batchBlocks, _maxTapRateIncreasePct, _maxTapFloorDecreasePct);
@@ -257,23 +252,26 @@ contract FundraisingMultisigTemplate is BaseTemplate {
     /***** internal apps initialization functions *****/
 
     function _initializePresale(
-        uint256   _presaleGoal,
-        uint64    _presalePeriod,
-        uint64    _vestingCliffPeriod,
-        uint64    _vestingCompletePeriod,
-        uint256   _percentSupplyOffered,
-        uint256   _percentFundingForBeneficiary,
-        uint64    _startDate,
-        address[] _collaterals
+        ERC20   _collateral,
+        uint256 _presaleGoal,
+        uint64  _presalePeriod,
+        uint64  _vestingCliffPeriod,
+        uint64  _vestingCompletePeriod,
+        uint256 _percentSupplyOffered,
+        uint256 _percentFundingForBeneficiary,
+        uint64  _startDate
     )
         internal
     {
+        address[] memory collaterals = new address[](1);
+        collaterals[0] = address(_collateral);
+
         _presaleCache().initialize(
             _controllerCache(),
             _shareTMCache(),
             _reserveCache(),
             _vaultCache(),
-            ERC20(_collaterals[0]),
+            _collateral,
             DAI_RESERVE_RATIO,
             _presaleGoal,
             _presalePeriod,
@@ -282,7 +280,7 @@ contract FundraisingMultisigTemplate is BaseTemplate {
             _percentSupplyOffered,
             _percentFundingForBeneficiary,
             _startDate,
-            _collaterals
+            collaterals
         );
     }
 
@@ -324,15 +322,23 @@ contract FundraisingMultisigTemplate is BaseTemplate {
     {
         ACL acl = ACL(_dao.acl());
         (, Voting shareVoting) = _shareAppsCache();
-        (,,,, Controller c) = _fundraisingAppsCache();
+        (Agent reserve,, MarketMaker marketMaker, Tap tap, Controller controller) = _fundraisingAppsCache();
 
-        // create and grant ADD_COLLATERAL_TOKEN_ROLE to template
-        acl.createPermission(this, c, c.ADD_COLLATERAL_TOKEN_ROLE(), this);
-        // add collaterals
-        c.addCollateralToken(_collaterals[0], _virtualSupplies[0], _virtualBalances[0], DAI_RESERVE_RATIO, _slippages[0], _taps[0], _floors[0]);
-        c.addCollateralToken(_collaterals[1], _virtualSupplies[1], _virtualBalances[1], ANT_RESERVE_RATIO, _slippages[1], _taps[1], _floors[1]);
-        // transfer ADD_COLLATERAL_TOKEN_ROLE to shareVoting
-        _transferPermissionFromTemplate(acl, c, shareVoting, c.ADD_COLLATERAL_TOKEN_ROLE(), shareVoting);
+        // create and grant necessary permissions to this template
+        acl.createPermission(this, reserve, reserve.ADD_PROTECTED_TOKEN_ROLE(), this);
+        acl.createPermission(this, marketMaker, marketMaker.ADD_COLLATERAL_TOKEN_ROLE(), this);
+        acl.createPermission(this, tap, tap.ADD_TAPPED_TOKEN_ROLE(), this);
+        // add DAI both as a protected collateral and a tapped token
+        reserve.addProtectedToken(_collaterals[0]);
+        marketMaker.addCollateralToken(_collaterals[0], _virtualSupplies[0], _virtualBalances[0], DAI_RESERVE_RATIO, _slippages[0]);
+        tap.addTappedToken(_collaterals[0], _taps[0], _floors[0]);
+        // add ANT as a protected collateral [but not as a tapped token]
+        reserve.addProtectedToken(_collaterals[1]);
+        marketMaker.addCollateralToken(_collaterals[1], _virtualSupplies[1], _virtualBalances[1], ANT_RESERVE_RATIO, _slippages[1]);
+        // transfer roles
+        _transferPermissionFromTemplate(acl, reserve, controller, reserve.ADD_PROTECTED_TOKEN_ROLE(), shareVoting);
+        _transferPermissionFromTemplate(acl, marketMaker, controller, marketMaker.ADD_COLLATERAL_TOKEN_ROLE(), shareVoting);
+        _transferPermissionFromTemplate(acl, tap, controller, tap.ADD_TAPPED_TOKEN_ROLE(), shareVoting);
     }
 
     /***** internal permissions functions *****/
@@ -385,33 +391,36 @@ contract FundraisingMultisigTemplate is BaseTemplate {
         address[] memory grantees = new address[](2);
         grantees[0] = address(tap);
         grantees[1] = address(marketMaker);
+        // ADD_PROTECTED_TOKEN_ROLE is handled later [after collaterals have been added]
         acl.createPermission(shareVoting, reserve, reserve.SAFE_EXECUTE_ROLE(), shareVoting);
-        acl.createPermission(controller, reserve, reserve.ADD_PROTECTED_TOKEN_ROLE(), shareVoting);
+        // acl.createPermission(controller, reserve, reserve.ADD_PROTECTED_TOKEN_ROLE(), shareVoting);
         _createPermissions(acl, grantees, reserve, reserve.TRANSFER_ROLE(), shareVoting);
         // presale
         acl.createPermission(controller, presale, presale.OPEN_ROLE(), shareVoting);
         acl.createPermission(controller, presale, presale.CONTRIBUTE_ROLE(), shareVoting);
         // market maker
+        // ADD_COLLATERAL_TOKEN_ROLE is handled later [after collaterals have been added]
         acl.createPermission(controller, marketMaker, marketMaker.OPEN_ROLE(), shareVoting);
         acl.createPermission(controller, marketMaker, marketMaker.UPDATE_BENEFICIARY_ROLE(), shareVoting);
         acl.createPermission(controller, marketMaker, marketMaker.UPDATE_FEES_ROLE(), shareVoting);
-        acl.createPermission(controller, marketMaker, marketMaker.ADD_COLLATERAL_TOKEN_ROLE(), shareVoting);
+        // acl.createPermission(controller, marketMaker, marketMaker.ADD_COLLATERAL_TOKEN_ROLE(), shareVoting);
         acl.createPermission(controller, marketMaker, marketMaker.REMOVE_COLLATERAL_TOKEN_ROLE(), shareVoting);
         acl.createPermission(controller, marketMaker, marketMaker.UPDATE_COLLATERAL_TOKEN_ROLE(), shareVoting);
         acl.createPermission(controller, marketMaker, marketMaker.OPEN_BUY_ORDER_ROLE(), shareVoting);
         acl.createPermission(controller, marketMaker, marketMaker.OPEN_SELL_ORDER_ROLE(), shareVoting);
         // tap
+        // ADD_TAPPED_TOKEN_ROLE is handled later [after collaterals have been added]
         acl.createPermission(controller, tap, tap.UPDATE_BENEFICIARY_ROLE(), shareVoting);
         acl.createPermission(controller, tap, tap.UPDATE_MAXIMUM_TAP_RATE_INCREASE_PCT_ROLE(), shareVoting);
         acl.createPermission(controller, tap, tap.UPDATE_MAXIMUM_TAP_FLOOR_DECREASE_PCT_ROLE(), shareVoting);
-        acl.createPermission(controller, tap, tap.ADD_TAPPED_TOKEN_ROLE(), shareVoting);
+        // acl.createPermission(controller, tap, tap.ADD_TAPPED_TOKEN_ROLE(), shareVoting);
         acl.createPermission(controller, tap, tap.UPDATE_TAPPED_TOKEN_ROLE(), shareVoting);
         acl.createPermission(controller, tap, tap.RESET_TAPPED_TOKEN_ROLE(), shareVoting);
         acl.createPermission(controller, tap, tap.WITHDRAW_ROLE(), shareVoting);
         // controller
-        // ADD_COLLATERAL_TOKEN_ROLE is handled later [after collaterals have been added]
         acl.createPermission(shareVoting, controller, controller.UPDATE_BENEFICIARY_ROLE(), shareVoting);
         acl.createPermission(shareVoting, controller, controller.UPDATE_FEES_ROLE(), shareVoting);
+        acl.createPermission(shareVoting, controller, controller.ADD_COLLATERAL_TOKEN_ROLE(), shareVoting);
         acl.createPermission(shareVoting, controller, controller.REMOVE_COLLATERAL_TOKEN_ROLE(), shareVoting);
         acl.createPermission(shareVoting, controller, controller.UPDATE_COLLATERAL_TOKEN_ROLE(), shareVoting);
         acl.createPermission(shareVoting, controller, controller.UPDATE_MAXIMUM_TAP_RATE_INCREASE_PCT_ROLE(), shareVoting);

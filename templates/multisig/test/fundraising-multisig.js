@@ -136,6 +136,7 @@ contract('Fundraising with multisig', ([_, owner, boardMember1, boardMember2]) =
         it('should revert', async () => {
           await assertRevert(() =>
             template.installFundraisingApps(
+              COLLATERALS[0],
               PRESALE_GOAL,
               PRESALE_PERIOD,
               VESTING_CLIFF_PERIOD,
@@ -146,7 +147,6 @@ contract('Fundraising with multisig', ([_, owner, boardMember1, boardMember2]) =
               BATCH_BLOCKS,
               MAXIMUM_TAP_RATE_INCREASE_PCT,
               MAXIMUM_TAP_FLOOR_DECREASE_PCT,
-              COLLATERALS,
               {
                 from: owner,
               }
@@ -396,8 +396,7 @@ contract('Fundraising with multisig', ([_, owner, boardMember1, boardMember2]) =
           assert.equal((await presale.percentFundingForBeneficiary()).toNumber(), PERCENT_FUNDING_FOR_BENEFICIARY)
           assert.equal((await presale.startDate()).toNumber(), START_DATE)
           assert.equal(web3.toChecksumAddress(await presale.collaterals(0)), web3.toChecksumAddress(COLLATERALS[0]))
-          assert.equal(web3.toChecksumAddress(await presale.collaterals(1)), web3.toChecksumAddress(COLLATERALS[1]))
-          await assertRevert(() => presale.collaterals(2))
+          await assertRevert(() => presale.collaterals(1))
 
           await assertRole(acl, presale, shareVoting, 'OPEN_ROLE', controller)
           await assertRole(acl, presale, shareVoting, 'CONTRIBUTE_ROLE', controller)
@@ -454,9 +453,7 @@ contract('Fundraising with multisig', ([_, owner, boardMember1, boardMember2]) =
           assert.equal((await tap.maximumTapFloorDecreasePct()).toNumber(), MAXIMUM_TAP_FLOOR_DECREASE_PCT)
 
           assert.equal((await tap.rates(COLLATERAL_1.address)).toNumber(), RATES[0], 'DAI tap rate should be ' + RATES[0])
-          assert.equal((await tap.rates(COLLATERAL_2.address)).toNumber(), RATES[1], 'ANT tap rate should be ' + RATES[1])
           assert.equal((await tap.floors(COLLATERAL_1.address)).toNumber(), FLOORS[0], 'DAI tap floor should be ' + FLOORS[0])
-          assert.equal((await tap.floors(COLLATERAL_1.address)).toNumber(), FLOORS[0], 'ANT tap floor should be ' + FLOORS[1])
 
           await assertRole(acl, tap, shareVoting, 'UPDATE_BENEFICIARY_ROLE', controller)
           await assertRole(acl, tap, shareVoting, 'UPDATE_MAXIMUM_TAP_RATE_INCREASE_PCT_ROLE', controller)
@@ -508,6 +505,7 @@ contract('Fundraising with multisig', ([_, owner, boardMember1, boardMember2]) =
           from: owner,
         })
         fundraisingReceipt = await template.installFundraisingApps(
+          COLLATERALS[0],
           PRESALE_GOAL,
           PRESALE_PERIOD,
           VESTING_CLIFF_PERIOD,
@@ -518,7 +516,6 @@ contract('Fundraising with multisig', ([_, owner, boardMember1, boardMember2]) =
           BATCH_BLOCKS,
           MAXIMUM_TAP_RATE_INCREASE_PCT,
           MAXIMUM_TAP_FLOOR_DECREASE_PCT,
-          COLLATERALS,
           {
             from: owner,
           }
