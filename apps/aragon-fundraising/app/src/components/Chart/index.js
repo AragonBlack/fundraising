@@ -4,6 +4,7 @@ import { Box } from '@aragon/ui'
 import styled from 'styled-components'
 import NoData from '../NoData'
 import PriceLine from './PriceLine'
+import PriceSticks from './PriceSticks'
 
 export default () => {
   const { orders } = useAppState()
@@ -16,7 +17,7 @@ export default () => {
         <Chart>
           {activeChart === 0 && <PriceLine activeChart={activeChart} setActiveChart={setActiveChart} />}
           {activeChart === 1 && <PriceLine activeChart={activeChart} setActiveChart={setActiveChart} />}
-          {activeChart === 2 && <PriceLine activeChart={activeChart} setActiveChart={setActiveChart} />}
+          {activeChart === 2 && <PriceSticks activeChart={activeChart} setActiveChart={setActiveChart} />}
         </Chart>
       )}
     </>

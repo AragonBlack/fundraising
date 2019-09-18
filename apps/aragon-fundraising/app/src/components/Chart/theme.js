@@ -1,3 +1,5 @@
+import { theme } from '@aragon/ui'
+
 // Colors
 const blue = 'rgb(8, 190, 229)'
 const grey = 'rgb(204, 204, 204)'
@@ -15,7 +17,7 @@ const baseLabelStyles = {
 
 export const none = { fill: 'none', stroke: 'none' }
 
-export const brushStyle = { fill: blue, stroke: 'none', fillOpacity: 0.2 }
+export const brushStyle = { fill: theme.accent, stroke: 'none', fillOpacity: 0.2 }
 
 export const handleStyle = { fill: grey, stroke: 'none', fillOpacity: 0.7 }
 
@@ -50,7 +52,7 @@ export default {
   bar: {
     style: {
       data: {
-        fill: blue,
+        fill: theme.accent,
         stroke: 'none',
       },
       labels: baseLabelStyles,
@@ -63,16 +65,17 @@ export default {
       },
     },
     candleColors: {
-      positive: '#ffffff',
-      negative: darkGrey,
+      positive: theme.positive,
+      negative: theme.negative,
     },
+    wickStrokeWidth: 2,
   },
   line: {
     style: {
       data: {
         fill: 'none',
         opacity: 1,
-        stroke: blue,
+        stroke: theme.accent,
         strokeWidth: 2,
       },
     },
