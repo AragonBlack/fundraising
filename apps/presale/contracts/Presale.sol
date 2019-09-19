@@ -170,7 +170,9 @@ contract Presale is EtherTokenConstant, IsContract, AragonApp {
         }
 
         uint256 value = totalRaised.add(_value) > goal ? goal.sub(totalRaised) : _value;
-
+        if (contributionToken == ETH && _value > value) {
+            msg.sender.transfer(_value.sub(value));
+        }
 
         // (contributor) ~~~> contribution tokens ~~~> (presale)
         if (contributionToken != ETH) {
