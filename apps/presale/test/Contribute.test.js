@@ -4,7 +4,6 @@ const { prepareDefaultSetup, defaultDeployParams, initializePresale, deployDefau
 const { assertRevert } = require('@aragon/test-helpers/assertThrow')
 
 contract.only('Presale, contribute() functionality', ([anyone, appManager, buyer1, buyer2]) => {
-
   // TODO: This is deprecated now that Presale accepts ETH
   // describe('When using other tokens', () => {
   //   before(async () => {
@@ -16,7 +15,7 @@ contract.only('Presale, contribute() functionality', ([anyone, appManager, buyer
   //   })
   // })
 
-  const initializePresaleWithERC20 = async (startDate) => {
+  const initializePresaleWithERC20 = async startDate => {
     await this.contributionToken.generateTokens(buyer1, 100e18)
     await this.contributionToken.generateTokens(buyer2, 100000e18)
     await this.contributionToken.approve(this.presale.address, 100e18, { from: buyer1 })
@@ -25,9 +24,9 @@ contract.only('Presale, contribute() functionality', ([anyone, appManager, buyer
     await initializePresale(this, { ...defaultDeployParams(this, appManager), startDate })
   }
 
-  const initializePresaleWithETH = async (startDate) => {
+  const initializePresaleWithETH = async startDate => {
     this.contributionToken = {
-      balanceOf: async address => new Promise(resolve => resolve(web3.eth.getBalance(address)))
+      balanceOf: async address => new Promise(resolve => resolve(web3.eth.getBalance(address))),
     }
 
     await initializePresale(this, { ...defaultDeployParams(this, appManager), startDate, contributionToken: ZERO_ADDRESS })
@@ -85,13 +84,16 @@ contract.only('Presale, contribute() functionality', ([anyone, appManager, buyer
           console.log(`supply before`, (await this.projectToken.totalSupply()).toString())
           console.log(`balance before`, (await this.projectToken.balanceOf(this.tokenManager.address)).toString())
           purchaseTx = await contribute(buyer1, contributionAmount, useETH)
-          console.log( JSON.stringify(purchaseTx, null, 2) )
+          console.log(JSON.stringify(purchaseTx, null, 2))
         })
 
         it('Mints the correct amount of project tokens', async () => {
           const expectedAmount = contributionToProjectTokens(contributionAmount).toString()
-          console.log(`supply after`, (await this.projectToken.totalSupply()).toString())
-          console.log(`balance after`, (await this.projectToken.balanceOf(this.tokenManager.address)).toString())
+          const xRate = await this.presale.tokenExchangeRate()
+          console.log('Contract xRate: ' + xRate.toString())
+          console.log('Expected amount: ' + expectedAmount.toString())
+          console.log(`supply after`, (await this.projectToken.totalSupply()).toNumber())
+          console.log(`balance after`, (await this.projectToken.balanceOf(this.tokenManager.address)).toNumber())
           expect((await this.projectToken.totalSupply()).toString()).to.equal(expectedAmount)
         })
 

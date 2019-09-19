@@ -4,7 +4,7 @@ const utils = {
   getEvent: (tx, eventName) => tx.logs.filter(log => log.event.includes(eventName))[0],
 
   contributionToProjectTokens: value => {
-    return (web3.toBigNumber(value)).mul(utils.tokenExchangeRate())
+    return web3.toBigNumber(value).mul(utils.tokenExchangeRate())
   },
 
   now: () => {
@@ -16,7 +16,12 @@ const utils = {
     const presaleGoal = web3.toBigNumber(PRESALE_GOAL, 10)
     const reserveRatio = web3.toBigNumber(RESERVE_RATIOS[0], 10)
     const supplyOffered = web3.toBigNumber(PERCENT_SUPPLY_OFFERED, 10)
-    return presaleGoal.mul(ppm).mul(supplyOffered).div(reserveRatio).div(ppm)
+
+    return presaleGoal
+      .mul(ppm)
+      .mul(supplyOffered)
+      .div(reserveRatio)
+      .div(ppm)
   },
 
   sendTransaction: data => {
