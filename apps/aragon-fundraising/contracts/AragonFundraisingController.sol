@@ -69,7 +69,7 @@ contract AragonFundraisingController is EtherTokenConstant, IsContract, IAragonF
      * @param _marketMaker The address of the market maker contract
      * @param _reserve     The address of the reserve [pool] contract
      * @param _tap         The address of the tap contract
-     * @param _toReset     The addresses of the tokens whose tap timestamps are to be reset when presale is closed and trading is open
+     * @param _toReset     The addresses of the tokens whose tap timestamps are to be reset [when presale is closed and trading is open]
     */
     function initialize(
         Presale                  _presale,
@@ -81,11 +81,11 @@ contract AragonFundraisingController is EtherTokenConstant, IsContract, IAragonF
         external
         onlyInit
     {
-        require(isContract(_presale),                                  ERROR_CONTRACT_IS_EOA);
-        require(isContract(_marketMaker),                              ERROR_CONTRACT_IS_EOA);
-        require(isContract(_reserve),                                  ERROR_CONTRACT_IS_EOA);
-        require(isContract(_tap),                                      ERROR_CONTRACT_IS_EOA);
-        require(_toReset.length < TO_RESET_CAP,                        ERROR_INVALID_TOKENS);
+        require(isContract(_presale),           ERROR_CONTRACT_IS_EOA);
+        require(isContract(_marketMaker),       ERROR_CONTRACT_IS_EOA);
+        require(isContract(_reserve),           ERROR_CONTRACT_IS_EOA);
+        require(isContract(_tap),               ERROR_CONTRACT_IS_EOA);
+        require(_toReset.length < TO_RESET_CAP, ERROR_INVALID_TOKENS);
 
         initialized();
 

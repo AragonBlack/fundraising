@@ -1,8 +1,8 @@
 pragma solidity 0.4.24;
 
-import "@aragon/templates-shared/contracts/BaseTemplate.sol";
 import "@aragon/os/contracts/common/EtherTokenConstant.sol";
 import "@aragon/os/contracts/lib/token/ERC20.sol";
+import "@aragon/templates-shared/contracts/BaseTemplate.sol";
 import "@aragon/apps-agent/contracts/Agent.sol";
 import "@ablack/fundraising-bancor-formula/contracts/BancorFormula.sol";
 import {AragonFundraisingController as Controller} from "@ablack/fundraising-aragon-fundraising/contracts/AragonFundraisingController.sol";
@@ -37,8 +37,6 @@ contract FundraisingMultisigTemplate is EtherTokenConstant, BaseTemplate {
     bytes32   private constant ARAGON_FUNDRAISING_ID  = 0x668ac370eed7e5861234d1c0a1e512686f53594fcb887e5bcecc35675a4becac;
     bytes32   private constant TAP_ID                 = 0x82967efab7144b764bc9bca2f31a721269b6618c0ff4e50545737700a5e9c9dc;
 
-    address[] public           collaterals;
-
     struct Cache {
         address dao;
         address boardTokenManager;
@@ -54,7 +52,8 @@ contract FundraisingMultisigTemplate is EtherTokenConstant, BaseTemplate {
         address controller;
     }
 
-    mapping (address => Cache) internal cache;
+    address[] public collaterals;
+    mapping (address => Cache) private cache;
 
     constructor(
         DAOFactory              _daoFactory,
@@ -481,13 +480,7 @@ contract FundraisingMultisigTemplate is EtherTokenConstant, BaseTemplate {
         dao = Kernel(c.dao);
     }
 
-    function _boardAppsCache() internal returns (
-        TokenManager boardTM,
-        Voting boardVoting,
-        Vault vault,
-        Finance finance
-    )
-    {
+    function _boardAppsCache() internal returns (TokenManager boardTM, Voting boardVoting, Vault vault, Finance finance) {
         Cache storage c = cache[msg.sender];
 
         boardTM = TokenManager(c.boardTokenManager);
