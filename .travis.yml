@@ -38,8 +38,8 @@ jobs:
       name: 'Aragon Fundraising'
     - script: npm run coverage:batched-bancor-market-maker
       name: 'Batched Bancor Market Maker'
-    - script: npm run coverage:presale
-      name: 'Presale'
+    # - script: npm run coverage:presale
+    #   name: 'Presale'
     - script: npm run coverage:tap
       name: 'Tap'
 after_success:
