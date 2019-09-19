@@ -475,10 +475,6 @@ contract FundraisingMultisigTemplate is EtherTokenConstant, BaseTemplate {
         c.controller = address(_controller);
     }
 
-    function _cacheCollaterals(address _dai, address _ant) internal {
-
-    }
-
     function _daoCache() internal returns (Kernel dao) {
         Cache storage c = cache[msg.sender];
 
