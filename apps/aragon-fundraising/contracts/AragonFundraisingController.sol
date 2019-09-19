@@ -26,6 +26,7 @@ contract AragonFundraisingController is EtherTokenConstant, IsContract, IAragonF
     bytes32 public constant UPDATE_COLLATERAL_TOKEN_ROLE               = keccak256("UPDATE_COLLATERAL_TOKEN_ROLE");
     bytes32 public constant UPDATE_MAXIMUM_TAP_RATE_INCREASE_PCT_ROLE  = keccak256("UPDATE_MAXIMUM_TAP_RATE_INCREASE_PCT_ROLE");
     bytes32 public constant UPDATE_MAXIMUM_TAP_FLOOR_DECREASE_PCT_ROLE = keccak256("UPDATE_MAXIMUM_TAP_FLOOR_DECREASE_PCT_ROLE");
+    bytes32 public constant ADD_TOKEN_TAP_ROLE                         = keccak256("ADD_TOKEN_TAP_ROLE");
     bytes32 public constant UPDATE_TOKEN_TAP_ROLE                      = keccak256("UPDATE_TOKEN_TAP_ROLE");
     bytes32 public constant OPEN_PRESALE_ROLE                          = keccak256("OPEN_PRESALE_ROLE");
     bytes32 public constant OPEN_TRADING_ROLE                          = keccak256("OPEN_TRADING_ROLE");
@@ -41,6 +42,7 @@ contract AragonFundraisingController is EtherTokenConstant, IsContract, IAragonF
     bytes32 public constant UPDATE_COLLATERAL_TOKEN_ROLE               = 0xe0565c2c43e0d841e206bb36a37f12f22584b4652ccee6f9e0c071b697a2e13d;
     bytes32 public constant UPDATE_MAXIMUM_TAP_RATE_INCREASE_PCT_ROLE  = 0x5d94de7e429250eee4ff97e30ab9f383bea3cd564d6780e0a9e965b1add1d207;
     bytes32 public constant UPDATE_MAXIMUM_TAP_FLOOR_DECREASE_PCT_ROLE = 0x57c9c67896cf0a4ffe92cbea66c2f7c34380af06bf14215dabb078cf8a6d99e1;
+    bytes32 public constant ADD_TOKEN_TAP_ROLE                         = 0xbc9cb5e3f7ce81c4fd021d86a4bcb193dee9df315b540808c3ed59a81e596207;
     bytes32 public constant UPDATE_TOKEN_TAP_ROLE                      = 0xdb8c88bedbc61ea0f92e1ce46da0b7a915affbd46d1c76c4bbac9a209e4a8416;
     bytes32 public constant OPEN_PRESALE_ROLE                          = 0xf323aa41eef4850a8ae7ebd047d4c89f01ce49c781f3308be67303db9cdd48c2;
     bytes32 public constant OPEN_TRADING_ROLE                          = 0x26ce034204208c0bbca4c8a793d17b99e546009b1dd31d3c1ef761f66372caf6;
@@ -229,9 +231,11 @@ contract AragonFundraisingController is EtherTokenConstant, IsContract, IAragonF
         auth(ADD_COLLATERAL_TOKEN_ROLE)
     {
         marketMaker.addCollateralToken(_collateral, _virtualSupply, _virtualBalance, _reserveRatio, _slippage);
-        tap.addTappedToken(_collateral, _rate, _floor);
         if (_collateral != ETH) {
             reserve.addProtectedToken(_collateral);
+        }
+        if (_rate > 0) {
+            tap.addTappedToken(_collateral, _rate, _floor);
         }
     }
 
@@ -303,6 +307,16 @@ contract AragonFundraisingController is EtherTokenConstant, IsContract, IAragonF
     */
     function updateMaximumTapFloorDecreasePct(uint256 _maximumTapFloorDecreasePct) external auth(UPDATE_MAXIMUM_TAP_FLOOR_DECREASE_PCT_ROLE) {
         tap.updateMaximumTapFloorDecreasePct(_maximumTapFloorDecreasePct);
+    }
+
+    /**
+     * @notice Add tap for `_token.symbol(): string` with a rate of `@tokenAmount(_token, _rate)` per block and a floor of `@tokenAmount(_token, _floor)`
+     * @param _token The address of the token to be tapped
+     * @param _rate  The rate at which that token is to be tapped [in wei / block]
+     * @param _floor The floor above which the reserve [pool] balance for that token is to be kept [in wei]
+    */
+    function addTokenTap(address _token, uint256 _rate, uint256 _floor) external auth(ADD_TOKEN_TAP_ROLE) {
+        tap.addTappedToken(_token, _rate, _floor);
     }
 
     /**

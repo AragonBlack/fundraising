@@ -59,6 +59,11 @@
       "params": []
     },
     {
+      "name": "Add collateral tokens tap",
+      "id": "ADD_TOKEN_TAP_ROLE",
+      "params": []
+    },
+    {
       "name": "Update collateral tokens tap",
       "id": "UPDATE_TOKEN_TAP_ROLE",
       "params": []

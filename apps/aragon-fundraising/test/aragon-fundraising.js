@@ -1,4 +1,5 @@
 const Controller = artifacts.require('AragonFundraisingController')
+const TokenMock = artifacts.require('TokenMock')
 const {
   ETH,
   INITIAL_COLLATERAL_BALANCE,
@@ -362,23 +363,46 @@ contract('AragonFundraisingController app', ([root, authorized, unauthorized]) =
   // #region addCollateralToken
   context('> #addCollateralToken', () => {
     context('> sender has ADD_COLLATERAL_TOKEN_ROLE', () => {
-      it('it should add collateral token', async () => {
-        const receipt = await this.controller.addCollateralToken(
-          this.collaterals.ant.address,
-          random.virtualSupply(),
-          random.virtualBalance(),
-          random.reserveRatio(),
-          random.slippage(),
-          random.rate(),
-          random.floor(),
-          {
-            from: authorized,
-          }
-        )
+      context('> and rate is superior to zero', () => {
+        it('it should add collateral token, protect it and tap it', async () => {
+          const receipt = await this.controller.addCollateralToken(
+            this.collaterals.ant.address,
+            random.virtualSupply(),
+            random.virtualBalance(),
+            random.reserveRatio(),
+            random.slippage(),
+            random.rate(),
+            random.floor(),
+            {
+              from: authorized,
+            }
+          )
 
-        assertExternalEvent(receipt, 'AddCollateralToken(address,uint256,uint256,uint32,uint256)') // market maker
-        assertExternalEvent(receipt, 'AddProtectedToken(address)') // pool
-        assertExternalEvent(receipt, 'AddTappedToken(address,uint256,uint256)') // tap
+          assertExternalEvent(receipt, 'AddCollateralToken(address,uint256,uint256,uint32,uint256)') // market maker
+          assertExternalEvent(receipt, 'AddProtectedToken(address)') // pool
+          assertExternalEvent(receipt, 'AddTappedToken(address,uint256,uint256)') // tap
+        })
+      })
+
+      context('> and rate is zero', () => {
+        it('it should add collateral token, protect it, but not tap it', async () => {
+          const receipt = await this.controller.addCollateralToken(
+            this.collaterals.ant.address,
+            random.virtualSupply(),
+            random.virtualBalance(),
+            random.reserveRatio(),
+            random.slippage(),
+            0,
+            random.floor(),
+            {
+              from: authorized,
+            }
+          )
+
+          assertExternalEvent(receipt, 'AddCollateralToken(address,uint256,uint256,uint32,uint256)') // market maker
+          assertExternalEvent(receipt, 'AddProtectedToken(address)') // pool
+          assertExternalEvent(receipt, 'AddTappedToken(address,uint256,uint256)', 0) // tap
+        })
       })
     })
 
@@ -528,6 +552,28 @@ contract('AragonFundraisingController app', ([root, authorized, unauthorized]) =
     context('> sender does not have UPDATE_MAXIMUM_TAP_FLOOR_DECREASE_PCT_ROLE', () => {
       it('it should revert', async () => {
         await assertRevert(() => this.controller.updateMaximumTapFloorDecreasePct(70, { from: unauthorized }))
+      })
+    })
+  })
+  // #endregion
+
+  // #region addTokenTap
+  context('> #addTokenTap', () => {
+    let token
+    beforeEach(async () => {
+      token = await TokenMock.new(authorized, INITIAL_COLLATERAL_BALANCE)
+    })
+    context('> sender has ADD_TOKEN_TAP_ROLE', () => {
+      it('it should add token tap', async () => {
+        const receipt = await this.controller.addTokenTap(token.address, random.rate(), random.floor(), { from: authorized })
+
+        assertExternalEvent(receipt, 'AddTappedToken(address,uint256,uint256)')
+      })
+    })
+
+    context('> sender does not have ADD_TOKEN_TAP_ROLE', () => {
+      it('it should revert', async () => {
+        await assertRevert(() => this.controller.addTokenTap(token.address, random.rate(), random.floor(), { from: unauthorized }))
       })
     })
   })
