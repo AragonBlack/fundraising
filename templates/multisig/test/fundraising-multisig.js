@@ -482,6 +482,7 @@ contract('Fundraising with multisig', ([_, owner, boardMember1, boardMember2]) =
           await assertRole(acl, controller, shareVoting, 'UPDATE_COLLATERAL_TOKEN_ROLE')
           await assertRole(acl, controller, shareVoting, 'UPDATE_MAXIMUM_TAP_RATE_INCREASE_PCT_ROLE')
           await assertRole(acl, controller, shareVoting, 'UPDATE_MAXIMUM_TAP_FLOOR_DECREASE_PCT_ROLE')
+          await assertRole(acl, controller, shareVoting, 'ADD_TOKEN_TAP_ROLE')
           await assertRole(acl, controller, shareVoting, 'UPDATE_TOKEN_TAP_ROLE')
           await assertRole(acl, controller, shareVoting, 'OPEN_PRESALE_ROLE', boardVoting)
           await assertRole(acl, controller, shareVoting, 'OPEN_TRADING_ROLE', presale)
