@@ -112,7 +112,7 @@ export default () => {
   // *****************************
   const {
     constants: { PPM, PCT_BASE },
-    values: { maximumTapIncreasePct },
+    values: { maximumTapRateIncreasePct, maximumTapFloorDecreasePct },
     collaterals: {
       dai: {
         address: daiAddress,
@@ -138,8 +138,10 @@ export default () => {
   const adjustedRate = toMonthlyAllocation(rate, daiDecimals)
   const displayRate = formatBigNumber(adjustedRate, daiDecimals)
   const displayFloor = formatBigNumber(floor, daiDecimals)
-  const adjustedIncrease = maximumTapIncreasePct.div(PCT_BASE)
-  const displayIncrease = formatBigNumber(adjustedIncrease.times(100), 0, 0)
+  const adjustedRateIncrease = maximumTapRateIncreasePct.div(PCT_BASE)
+  const adjustedFloorDecrease = maximumTapFloorDecreasePct.div(PCT_BASE)
+  const displayRateIncrease = formatBigNumber(adjustedRateIncrease.times(100), 0, 0)
+  const displayFloorIncrease = formatBigNumber(adjustedFloorDecrease.times(100), 0, 0)
   const daiRatio = formatBigNumber(daiReserveRatio.div(PPM), 0)
   const antRatio = formatBigNumber(antReserveRatio.div(PPM), 0)
 
@@ -148,7 +150,7 @@ export default () => {
   // *****************************
   const [newRate, setNewRate] = useState(fromDecimals(adjustedRate, daiDecimals).toFixed())
   const [newFloor, setNewFloor] = useState(fromDecimals(floor, daiDecimals).toFixed())
-  const [errorMessage, setErrorMessage] = useState(null)
+  const [errorMessages, setErrorMessages] = useState(null)
   const [valid, setValid] = useState(false)
   const [opened, setOpened] = useState(false)
 
@@ -182,24 +184,42 @@ export default () => {
   }
 
   const validate = () => {
-    // check if it's a tap decrease
-    const isDecrease = fromMonthlyAllocation(newRate, daiDecimals).lte(rate)
-    // check if the tap increase respects the max tap increase
-    const regularIncrease = fromMonthlyAllocation(newRate, daiDecimals).lte(rate.times(adjustedIncrease).plus(rate))
-    // check if the last tap update is at least one month old
-    // when a tap have never been updated, there's no timestamp, and can be updated
+    // check if the last rate/floor update is at least one month old
     const atLeastOneMonthOld = timestamp ? differenceInMonths(new Date(), new Date(timestamp)) >= 1 : true
-    // updating tap is valid if:
+
+    // RATE RULES
+    // check if it's a rate decrease
+    const isRateDecrease = fromMonthlyAllocation(newRate, daiDecimals).lte(rate)
+    // check if the rate increase respects the max rate increase
+    const regularRateIncrease = fromMonthlyAllocation(newRate, daiDecimals).lte(rate.plus(rate.times(adjustedRateIncrease)))
+    // updating rate is valid if:
     // - it's a decrease
-    // - or it's a regular increase after at least one month since the previous increase (or never been updated)
-    const valid = isDecrease || (regularIncrease && atLeastOneMonthOld)
-    if (valid) {
-      setErrorMessage(null)
+    // - or it's a regular increase after at least one month since the previous update
+    const validRate = isRateDecrease || (regularRateIncrease && atLeastOneMonthOld)
+
+    // FLOOR RULES
+    // check if it's a floor increase
+    const isFloorIncrease = toDecimals(newFloor, daiDecimals).gte(floor)
+    // check if the floor decrease respects the max floor decrease
+    console.log(formatBigNumber(floor.minus(floor.times(adjustedFloorDecrease)), 18))
+    const regularFloorDecrease = toDecimals(newFloor, daiDecimals).gte(floor.minus(floor.times(adjustedFloorDecrease)))
+    // updating floor is valid if:
+    // - it's an increase
+    // - or it's a regular decrease after at least one month since the previous update
+    const validFloor = isFloorIncrease || (regularFloorDecrease && atLeastOneMonthOld)
+
+    if (validRate && validFloor) {
+      setErrorMessages(null)
       setValid(true)
+    } else if (!atLeastOneMonthOld) {
+      setErrorMessages(['You cannot increase the tap more than once per month'])
+      setValid(false)
     } else {
-      setErrorMessage(
-        !atLeastOneMonthOld ? 'You cannot increase the tap more than once per month' : `You cannot increase the tap by more than ${displayIncrease}%}`
-      )
+      // stack messages for each validation problem
+      const errorMessages = []
+      if (!validRate) errorMessages.push(`You cannot increase the rate by more than ${displayRateIncrease}%`)
+      if (!validFloor) errorMessages.push(`You cannot decrease the floor by more than ${displayFloorIncrease}%`)
+      setErrorMessages(errorMessages)
       setValid(false)
     }
   }
@@ -228,7 +248,7 @@ export default () => {
         <div className="settings-content">
           <div css="margin-right: 4rem;">
             <div css="display: flex; flex-direction: column; margin-bottom: 1.5rem;">
-              {NotificationLabel('Monthly allocation', hoverTextNotifications[0])}
+              {NotificationLabel('Rate', hoverTextNotifications[0])}
               <Text as="p" css="padding-right: 1.5rem; font-weight: bold;">
                 {displayRate} DAI / month
               </Text>
@@ -281,7 +301,7 @@ export default () => {
         <form onSubmit={handleSubmit}>
           <Wrapper>
             <label>
-              <StyledTextBlock>Tap (DAI)</StyledTextBlock>
+              <StyledTextBlock>Rate (DAI)</StyledTextBlock>
             </label>
             <TextInput type="number" value={newRate} onChange={handleMonthlyChange} wide required />
           </Wrapper>
@@ -296,10 +316,19 @@ export default () => {
               Save monthly allocation
             </Button>
           </ButtonWrapper>
-          {errorMessage && <ValidationError message={errorMessage} />}
+          {errorMessages && (
+            <ValidationError
+              message={errorMessages.map((e, i) => (
+                <Text key={i} as="p">
+                  {e}
+                </Text>
+              ))}
+            />
+          )}
           <Info css="margin-top: 1rem;">
             <p css="font-weight: 700;">Info</p>
-            <Text as="p">You can increase the tap by {displayIncrease}%.</Text>
+            <Text as="p">You can increase the rate by {displayRateIncrease}%.</Text>
+            <Text as="p">You can decrease the floor by {displayFloorIncrease}%.</Text>
             <Text as="p">Current monthly allocation: {displayRate} DAI</Text>
             <Text as="p">Current floor: {displayFloor} DAI</Text>
           </Info>

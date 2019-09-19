@@ -84,7 +84,7 @@ On the "My orders" tab, filter the orders by the connected user (accessible via 
 
 ## Reserve
 
-There's 2 tapped token, but we only care about the DAI.
+DAI is the only tapped token
 
 ### **Monthly allowance**
 
@@ -143,7 +143,7 @@ Update monthly allocation and floor according to the following rules:
 
 - no more than one increase per month. Check last update with `timestamp` on the tapped token
 - no restrictions on decrease
-- an increase should fit within the `maximumTapIncreasePct`
+- an increase should fit within the `maximumTapRateIncreasePct`
 - no particular rules on the `floor` (TODO: what about preventing floor increase over reserve balance ?)
 
 ### **Claim**
@@ -182,7 +182,7 @@ All values coming from the event, except `ppm` which can be found on the backgro
         "PCT_BASE": BigNumber
     },
     "values": {
-        "maximumTapIncreasePct": BigNumber
+        "maximumTapRateIncreasePct": BigNumber
     },
     "network": {
         "id": Number,
@@ -193,6 +193,22 @@ All values coming from the event, except `ppm` which can be found on the backgro
         "formula": address,
         "tap": address,
         "reserve": address
+    },
+    "presale": {
+        "state": String, // "PENDING", "FUNDING", "REFUNDING", "GOAL_REACHED" or "CLOSED"
+        "contributionToken": {
+            "address": String,
+            "symbol": String,
+            "name": String,
+            "decimals": Number,
+        },
+        "startDate": Date, // "timestamp, also polled from the frontend"
+        "presalePeriod": Number,
+        "vestingCliffPeriod": Number,
+        "vestingCompletePeriod": Number,
+        "tokenExchangeRate": BigNumber,
+        "presaleGoal": BigNumber,
+        "totalRaised": BigNumber // "polled from the frontend"
     },
     "collaterals": {
         "dai": {
@@ -207,7 +223,7 @@ All values coming from the event, except `ppm` which can be found on the backgro
             "actualBalance": BigNumber, // "this one needs to fetched from frontend for now ..."
             "realBalance": BigNumber, // "= actualBalance - toBeClaimed"
             "overallBalance": BigNumber, // "=realBalance + virtualBalance"
-            "tap" : {
+            "tap" : { // only for DAI
                 "rate": BigNumber,
                 "floor": BigNumber,
                 "timestamp": Number

@@ -1,6 +1,7 @@
 import cloneDeep from 'lodash.clonedeep'
 import BigNumber from 'bignumber.js'
 import { Order, Tokens } from '../constants'
+import Presale from '../screens/Presale'
 
 /**
  * Checks whether we have enough data to start the fundraising app
@@ -11,7 +12,7 @@ import { Order, Tokens } from '../constants'
 export const ready = state => {
   const synced = !state?.isSyncing
   const hasCollaterals = state?.collaterals.size > 0
-  const hasTaps = state && [...state?.collaterals.values()].every(c => c.tap)
+  const hasTaps = state && [...state?.collaterals.values()].some(c => c.tap)
   return synced && hasCollaterals && hasTaps
 }
 
@@ -55,7 +56,20 @@ export const computeConstants = constants => ({
  */
 export const computeValues = values => ({
   ...values,
-  maximumTapIncreasePct: new BigNumber(values.maximumTapIncreasePct),
+  maximumTapRateIncreasePct: new BigNumber(values.maximumTapRateIncreasePct),
+  maximumTapFloorDecreasePct: new BigNumber(values.maximumTapFloorDecreasePct),
+})
+
+/**
+ * Compute some data related to the presale
+ * @param {Object} presale - background script presale data
+ * @returns {Object} transformed presale
+ */
+export const computePresale = presale => ({
+  ...presale,
+  tokenExchangeRate: new BigNumber(presale.tokenExchangeRate),
+  presaleGoal: new BigNumber(presale.presaleGoal),
+  totalRaised: new BigNumber(presale.totalRaised),
 })
 
 /**
@@ -71,6 +85,8 @@ const transformCollateral = (address, data) => {
   const actualBalance = new BigNumber(data.actualBalance)
   const realBalance = actualBalance.minus(toBeClaimed)
   const overallBalance = realBalance.plus(virtualBalance)
+  // only DAI collateral has a tap
+  const tap = data.tap ? { ...data.tap, rate: new BigNumber(data.tap.rate), floor: new BigNumber(data.tap.floor) } : null
   return {
     address,
     ...data,
@@ -82,11 +98,7 @@ const transformCollateral = (address, data) => {
     actualBalance,
     realBalance,
     overallBalance,
-    tap: {
-      ...data.tap,
-      rate: new BigNumber(data.tap.rate),
-      floor: new BigNumber(data.tap.floor),
-    },
+    tap,
   }
 }
 

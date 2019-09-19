@@ -76,10 +76,12 @@ export default () => {
     userAntBalance,
   }
 
+  // watch for a connected user and get its balances
   useEffect(() => {
     const getUserBalances = async () => {
       const balancesPromises = [bondedTokenAddress, daiAddress, antAddress].map(address => api.call('balanceOf', connectedUser, address).toPromise())
       const [bondedBalance, daiBalance, antBalance] = await Promise.all(balancesPromises)
+      // TODO: keep an eye on React 17, since all updates will be batched by default
       batchedUpdates(() => {
         setUserBondedTokenBalance(new BigNumber(bondedBalance))
         setUserDaiBalance(new BigNumber(daiBalance))

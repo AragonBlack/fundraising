@@ -26,13 +26,13 @@ import { formatBigNumber } from '../utils/bn-utils'
 import { MainViewContext } from '../context'
 
 /**
- * Keeps an order if within the date range
+ * Keeps an order if within the date range (inclusive)
  * @param {Object} order - a background script order object
  * @param {Object} dateFilter - a filter with a start and end timestamp
  * @returns {Boolean} true if within, false otherwise
  */
 const withinDateRange = (order, { payload: { start, end } }) => {
-  return order.timestamp > start && order.timestamp < end
+  return order.timestamp >= start && order.timestamp <= end
 }
 
 /**
@@ -143,10 +143,13 @@ export default ({ myOrders }) => {
   // handlers
   // *****************************
   const handleClaim = ({ batchId, collateral, type }) => {
-    const functionToCall = type === Order.type.BUY ? 'claimBuyOrder' : 'claimSellOrder'
-    api[functionToCall](batchId, collateral)
-      .toPromise()
-      .catch(console.error)
+    // can claim only if connected
+    if (account) {
+      const functionToCall = type === Order.type.BUY ? 'claimBuyOrder' : 'claimSellOrder'
+      api[functionToCall](account, batchId, collateral)
+        .toPromise()
+        .catch(console.error)
+    }
   }
 
   return (

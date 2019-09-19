@@ -5,12 +5,13 @@ import cloneDeep from 'lodash.clonedeep'
 import poolAbi from './abi/Pool.json'
 import tapAbi from './abi/Tap.json'
 import marketMakerAbi from './abi/BatchedBancorMarketMaker.json'
+import presaleAbi from './abi/Presale.json'
 import miniMeTokenAbi from './abi/MiniMeToken.json'
 import tokenDecimalsAbi from './abi/token-decimals.json'
 import tokenNameAbi from './abi/token-name.json'
 import tokenSymbolAbi from './abi/token-symbol.json'
 import retryEvery from './utils/retryEvery'
-import { Order } from './constants'
+import { Order, Presale } from './constants'
 
 // abis used to call decimals, name and symbol on a token
 const tokenAbi = [].concat(tokenDecimalsAbi, tokenNameAbi, tokenSymbolAbi)
@@ -26,10 +27,10 @@ const tokenSymbols = new Map() // External contract -> symbol
 const app = new Aragon()
 
 // get the token address to initialize ourselves
-const externals = zip(app.call('reserve'), app.call('tap'), app.call('marketMaker'))
+const externals = zip(app.call('reserve'), app.call('tap'), app.call('marketMaker'), app.call('presale'))
 retryEvery(retry => {
   externals.subscribe(
-    ([poolAddress, tapAddress, marketMakerAddress]) => initialize(poolAddress, tapAddress, marketMakerAddress),
+    ([poolAddress, tapAddress, marketMakerAddress, presaleAddress]) => initialize(poolAddress, tapAddress, marketMakerAddress, presaleAddress),
     err => {
       console.error('Could not start background script execution due to the contract not loading external contract addresses:', err)
       retry()
@@ -37,11 +38,12 @@ retryEvery(retry => {
   )
 })
 
-const initialize = async (poolAddress, tapAddress, marketMakerAddress) => {
+const initialize = async (poolAddress, tapAddress, marketMakerAddress, presaleAddress) => {
   // get external smart contracts to listen to their events and interact with them
   const marketMakerContract = app.external(marketMakerAddress, marketMakerAbi)
   const tapContract = app.external(tapAddress, tapAbi)
   const poolContract = app.external(poolAddress, poolAbi)
+  const presaleContract = app.external(presaleAddress, presaleAbi)
 
   // preload bonded token contract
   const bondedTokenAddress = await marketMakerContract.token().toPromise()
@@ -70,6 +72,10 @@ const initialize = async (poolAddress, tapAddress, marketMakerAddress) => {
     pool: {
       address: poolAddress,
       contract: poolContract,
+    },
+    presale: {
+      address: presaleAddress,
+      contract: presaleContract,
     },
     bondedToken: {
       address: bondedTokenAddress,
@@ -113,18 +119,24 @@ const initialize = async (poolAddress, tapAddress, marketMakerAddress) => {
         case 'AddTappedToken':
         case 'UpdateTappedToken':
           return handleTappedToken(nextState, returnValues, blockNumber)
-        case 'NewBuyOrder':
-        case 'NewSellOrder':
+        case 'ResetTappedToken':
+          return resetTappedToken(nextState, returnValues, blockNumber)
+        case 'OpenBuyOrder':
+        case 'OpenSellOrder':
           return newOrder(nextState, returnValues, settings, blockNumber, transactionHash)
-        case 'ReturnBuyOrder':
-        case 'ReturnSellOrder':
-          return newReturn(nextState, returnValues, settings)
+        case 'ClaimBuyOrder':
+        case 'ClaimSellOrder':
+          return newClaim(nextState, returnValues, settings)
         case 'NewBatch':
           return newBatch(nextState, returnValues, blockNumber)
         case 'UpdatePricing':
           return updatePricing(nextState, returnValues)
-        case 'UpdateMaximumTapIncreasePct':
-          return updateMaximumTapIncreasePct(nextState, returnValues)
+        case 'UpdateMaximumTapRateIncreasePct':
+          return updateMaximumTapRateIncreasePct(nextState, returnValues)
+        case 'UpdateMaximumTapFloorDecreasePct':
+          return updateMaximumTapFloorDecreasePct(nextState, returnValues)
+        case 'SetStartDate':
+          return setStartDate(nextState, returnValues)
         default:
           return nextState
       }
@@ -149,6 +161,7 @@ const initState = settings => async cachedState => {
       marketMaker: settings.marketMaker.address,
       tap: settings.tap.address,
       pool: settings.pool.address,
+      presale: settings.presale.address,
       formula: settings.formula.address,
     },
     network: settings.network,
@@ -164,17 +177,59 @@ const initState = settings => async cachedState => {
  * @param {Object} settings - the settings needed to access external contracts data
  * @returns {Object} the current store's state augmented with the smart contracts data
  */
-const loadContractsData = async (state, { bondedToken, marketMaker, tap }) => {
-  // loads data related to the bonded token, market maker and tap contracts
-  const [symbol, name, decimals, totalSupply, toBeMinted, PPM, maximumTapIncreasePct, PCT_BASE] = await Promise.all([
+const loadContractsData = async (state, { bondedToken, marketMaker, tap, presale, network }) => {
+  // loads data related to the bonded token, market maker, tap and presale contracts
+  const [
+    symbol,
+    name,
+    decimals,
+    totalSupply,
+    toBeMinted,
+    PPM,
+    maximumTapRateIncreasePct,
+    maximumTapFloorDecreasePct,
+    PCT_BASE,
+    currentPresaleState,
+    startDate,
+    presalePeriod,
+    vestingCliffPeriod,
+    vestingCompletePeriod,
+    presaleGoal,
+    totalRaised,
+    tokenExchangeRate,
+    contributionToken,
+  ] = await Promise.all([
+    // bonded token data
     bondedToken.contract.symbol().toPromise(),
     bondedToken.contract.name().toPromise(),
     bondedToken.contract.decimals().toPromise(),
     bondedToken.contract.totalSupply().toPromise(),
+    // market maker data
     marketMaker.contract.tokensToBeMinted().toPromise(),
     marketMaker.contract.PPM().toPromise(),
-    tap.contract.maximumTapIncreasePct().toPromise(),
+    // tap data
+    tap.contract.maximumTapRateIncreasePct().toPromise(),
+    tap.contract.maximumTapFloorDecreasePct().toPromise(),
     tap.contract.PCT_BASE().toPromise(),
+    // presale data
+    presale.contract.currentPresaleState().toPromise(),
+    presale.contract.startDate().toPromise(),
+    presale.contract.presalePeriod().toPromise(),
+    presale.contract.vestingCliffPeriod().toPromise(),
+    presale.contract.vestingCompletePeriod().toPromise(),
+    presale.contract.presaleGoal().toPromise(),
+    presale.contract.totalRaised().toPromise(),
+    presale.contract.tokenExchangeRate().toPromise(),
+    presale.contract.contributionToken().toPromise(),
+  ])
+  // find the corresponding contract in the in memory map or get the external
+  const tokenContract = tokenContracts.has(contributionToken) ? tokenContracts.get(contributionToken) : app.external(contributionToken, tokenAbi)
+  tokenContracts.set(contributionToken, tokenContract)
+  // load presale contributionToken data
+  const [contributionTokenSymbol, contributionTokenName, contributionTokenDecimals] = await Promise.all([
+    loadTokenSymbol(tokenContract, contributionToken, { network }),
+    loadTokenName(tokenContract, contributionToken, { network }),
+    loadTokenDecimals(tokenContract, contributionToken, { network }),
   ])
   return {
     ...state,
@@ -185,7 +240,24 @@ const loadContractsData = async (state, { bondedToken, marketMaker, tap }) => {
     },
     values: {
       ...state.values,
-      maximumTapIncreasePct,
+      maximumTapRateIncreasePct,
+      maximumTapFloorDecreasePct,
+    },
+    presale: {
+      state: Object.values(Presale.state)[currentPresaleState],
+      contributionToken: {
+        address: contributionToken,
+        symbol: contributionTokenSymbol,
+        name: contributionTokenName,
+        decimals: parseInt(contributionTokenDecimals, 10),
+      },
+      startDate: parseInt(startDate, 10) * 1000, // in ms
+      presalePeriod: parseInt(presalePeriod, 10) * 1000, // in ms
+      vestingCliffPeriod: parseInt(vestingCliffPeriod, 10) * 1000, // in ms
+      vestingCompletePeriod: parseInt(vestingCompletePeriod, 10) * 1000, // in ms
+      tokenExchangeRate,
+      presaleGoal,
+      totalRaised,
     },
     bondedToken: {
       address: bondedToken.address,
@@ -267,11 +339,23 @@ const removeCollateralToken = (state, { collateral }) => {
   }
 }
 
-const handleTappedToken = async (state, { token, tap: rate, floor }, blockNumber) => {
+const handleTappedToken = async (state, { token, rate, floor }, blockNumber) => {
   const collaterals = cloneDeep(state.collaterals)
   const timestamp = await loadTimestamp(blockNumber)
   const tap = { rate, floor, timestamp }
   collaterals.set(token, { ...collaterals.get(token), tap })
+  return {
+    ...state,
+    collaterals,
+  }
+}
+
+const resetTappedToken = async (state, { token }, blockNumber) => {
+  const collaterals = cloneDeep(state.collaterals)
+  const timestamp = await loadTimestamp(blockNumber)
+  const currentCollateral = collaterals.get(token)
+  const tap = { ...currentCollateral.tap, timestamp }
+  collaterals.set(token, { ...currentCollateral, tap })
   return {
     ...state,
     collaterals,
@@ -310,7 +394,7 @@ const newOrder = async (state, { buyer, seller, collateral, batchId, value, amou
   }
 }
 
-const newReturn = async (state, { buyer, seller, collateral, batchId, value, amount }, settings) => {
+const newClaim = async (state, { buyer, seller, collateral, batchId, value, amount }, settings) => {
   // if it's a buy return, seller and value will undefined
   // if it's a sell return, buyer and amount will be undefined
   const user = buyer || seller
@@ -376,12 +460,32 @@ const updatePricing = (state, { batchId, collateral, totalBuyReturn, totalBuySpe
   }
 }
 
-const updateMaximumTapIncreasePct = (state, { maximumTapIncreasePct }) => {
+const updateMaximumTapRateIncreasePct = (state, { maximumTapRateIncreasePct }) => {
   return {
     ...state,
     values: {
       ...state.values,
-      maximumTapIncreasePct,
+      maximumTapRateIncreasePct,
+    },
+  }
+}
+
+const updateMaximumTapFloorDecreasePct = (state, { maximumTapFloorDecreasePct }) => {
+  return {
+    ...state,
+    values: {
+      ...state.values,
+      maximumTapFloorDecreasePct,
+    },
+  }
+}
+
+const setStartDate = (state, { date }) => {
+  return {
+    ...state,
+    presale: {
+      ...state.presale,
+      startDate: parseInt(date, 10) * 1000, // in ms
     },
   }
 }
