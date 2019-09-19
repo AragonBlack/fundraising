@@ -28,11 +28,11 @@
     "test:tap": "lerna run --scope=@ablack/fundraising-tap --stream test",
     "test:multisig-template": "lerna run --scope=@ablack/fundraising-templates-multisig --stream test",
     "coverage": "npm run coverage:all",
-    "coverage:all": "lerna run --scope=@ablack/fundraising-* --concurrency=1 --stream coverage",
-    "coverage:aragon-fundraising": "lerna run --scope=@ablack/fundraising-aragon-fundraising --stream coverage",
-    "coverage:batched-bancor-market-maker": "lerna run --scope=@ablack/fundraising-batched-bancor-market-maker --stream coverage",
-    "coverage:presale": "lerna run --scope=@ablack/fundraising-presale --stream coverage",
-    "coverage:tap": "lerna run --scope=@ablack/fundraising-tap --stream coverage",
+    "coverage:all": "lerna run --scope=@ablack/fundraising-* --concurrency=1 --stream test:coverage",
+    "coverage:aragon-fundraising": "lerna run --scope=@ablack/fundraising-aragon-fundraising --stream test:coverage",
+    "coverage:batched-bancor-market-maker": "lerna run --scope=@ablack/fundraising-batched-bancor-market-maker --stream test:coverage",
+    "coverage:presale": "lerna run --scope=@ablack/fundraising-presale --stream test:coverage",
+    "coverage:tap": "lerna run --scope=@ablack/fundraising-tap --stream test:coverage",
     "publish": "lerna run --scope=@ablack/fundraising-* --concurrency=1 --stream publish"
   },
   "devDependencies": {
