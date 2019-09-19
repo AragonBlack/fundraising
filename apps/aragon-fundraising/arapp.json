@@ -64,11 +64,6 @@
       "params": []
     },
     {
-      "name": "Reset collateral tokens tap",
-      "id": "RESET_TOKEN_TAP_ROLE",
-      "params": []
-    },
-    {
       "name": "Open presale",
       "id": "OPEN_PRESALE_ROLE",
       "params": []

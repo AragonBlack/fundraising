@@ -1,4 +1,4 @@
-const { PRESALE_GOAL, RESERVE_RATIOS, PERCENT_SUPPLY_OFFERED, PPM } = require('@ablack/fundraising-shared-test-helpers/constants')
+const { PRESALE_GOAL, PRESALE_EXCHANGE_RATE, RESERVE_RATIOS, PERCENT_SUPPLY_OFFERED, PPM } = require('@ablack/fundraising-shared-test-helpers/constants')
 
 const utils = {
   getEvent: (tx, eventName) => tx.logs.filter(log => log.event.includes(eventName))[0],
@@ -12,16 +12,7 @@ const utils = {
   },
 
   tokenExchangeRate: () => {
-    const ppm = web3.toBigNumber(PPM, 10)
-    const presaleGoal = web3.toBigNumber(PRESALE_GOAL, 10)
-    const reserveRatio = web3.toBigNumber(RESERVE_RATIOS[0], 10)
-    const supplyOffered = web3.toBigNumber(PERCENT_SUPPLY_OFFERED, 10)
-
-    return presaleGoal
-      .mul(ppm)
-      .mul(supplyOffered)
-      .div(reserveRatio)
-      .div(ppm)
+    return PRESALE_EXCHANGE_RATE
   },
 
   sendTransaction: data => {

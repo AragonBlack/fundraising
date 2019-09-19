@@ -182,7 +182,6 @@ _API contract forwarding transactions to relevant contracts_
 | Controller | UPDATE_MAXIMUM_TAP_RATE_INCREASE_PCT  | Voting `[SHARE]` | Voting `[SHARE]` |
 | Controller | UPDATE_MAXIMUM_TAP_FLOOR_DECREASE_PCT | Voting `[SHARE]` | Voting `[SHARE]` |
 | Controller | UPDATE_TOKEN_TAP                      | Voting `[SHARE]` | Voting `[SHARE]` |
-| Controller | RESET_TOKEN_TAP                       | Presale          | Voting `[SHARE]` |
 | Controller | OPEN_PRESALE                          | Voting `[BOARD]` | Voting `[SHARE]` |
 | Controller | OPEN_TRADING                          | Presale          | Voting `[SHARE]` |
 | Controller | CONTRIBUTE                            | Any              | Voting `[SHARE]` |

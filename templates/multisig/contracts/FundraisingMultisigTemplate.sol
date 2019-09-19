@@ -36,6 +36,8 @@ contract FundraisingMultisigTemplate is BaseTemplate {
     bytes32 private constant TAP_ID                 = 0x82967efab7144b764bc9bca2f31a721269b6618c0ff4e50545737700a5e9c9dc;
     bytes32 private constant ARAGON_FUNDRAISING_ID  = 0x668ac370eed7e5861234d1c0a1e512686f53594fcb887e5bcecc35675a4becac;
 
+    address[] private collaterals;
+
     struct Cache {
         address dao;
         address boardTokenManager;
@@ -53,12 +55,15 @@ contract FundraisingMultisigTemplate is BaseTemplate {
 
     mapping (address => Cache) internal cache;
 
-    constructor(DAOFactory _daoFactory, ENS _ens, MiniMeTokenFactory _miniMeFactory, IFIFSResolvingRegistrar _aragonID)
+    constructor(DAOFactory _daoFactory, ENS _ens, MiniMeTokenFactory _miniMeFactory, IFIFSResolvingRegistrar _aragonID, address _dai, address _ant)
         BaseTemplate(_daoFactory, _ens, _miniMeFactory, _aragonID)
         public
     {
         _ensureAragonIdIsValid(_aragonID);
         _ensureMiniMeFactoryIsValid(_miniMeFactory);
+
+        collaterals.push(address(_dai));
+        collaterals.push(address(_ant));
     }
 
     /***** external functions *****/
@@ -114,6 +119,7 @@ contract FundraisingMultisigTemplate is BaseTemplate {
         ERC20   _collateral,
         uint256 _presaleGoal,
         uint64  _presalePeriod,
+        uint256 _presalePrice,
         uint64  _vestingCliffPeriod,
         uint64  _vestingCompletePeriod,
         uint256 _percentSupplyOffered,
@@ -134,6 +140,7 @@ contract FundraisingMultisigTemplate is BaseTemplate {
             _collateral,
             _presaleGoal,
             _presalePeriod,
+            _presalePrice,
             _vestingCliffPeriod,
             _vestingCompletePeriod,
             _percentSupplyOffered,
@@ -211,6 +218,7 @@ contract FundraisingMultisigTemplate is BaseTemplate {
         ERC20   _collateral,
         uint256 _presaleGoal,
         uint64  _presalePeriod,
+        uint256 _presalePrice,
         uint64  _vestingCliffPeriod,
         uint64  _vestingCompletePeriod,
         uint256 _percentSupplyOffered,
@@ -225,9 +233,9 @@ contract FundraisingMultisigTemplate is BaseTemplate {
         _proxifyFundraisingApps(_dao);
 
         _initializePresale(
-            _collateral,
             _presaleGoal,
             _presalePeriod,
+            _presalePrice,
             _vestingCliffPeriod,
             _vestingCompletePeriod,
             _percentSupplyOffered,
@@ -251,10 +259,16 @@ contract FundraisingMultisigTemplate is BaseTemplate {
 
     /***** internal apps initialization functions *****/
 
+    // function _contributionToken() returns (address) {
+    //     return collaterals[0];
+    // }
+
+    // function _toReset() returns ()
+
     function _initializePresale(
-        ERC20   _collateral,
         uint256 _presaleGoal,
         uint64  _presalePeriod,
+        uint256 _presalePrice,
         uint64  _vestingCliffPeriod,
         uint64  _vestingCompletePeriod,
         uint256 _percentSupplyOffered,
@@ -263,24 +277,25 @@ contract FundraisingMultisigTemplate is BaseTemplate {
     )
         internal
     {
-        address[] memory collaterals = new address[](1);
-        collaterals[0] = address(_collateral);
+        // address[] memory collaterals_ = new address[](1);
+        // collaterals_[0] = collaterals[0];
 
         _presaleCache().initialize(
             _controllerCache(),
             _shareTMCache(),
             _reserveCache(),
             _vaultCache(),
-            _collateral,
+            ERC20(collaterals[0]),
             DAI_RESERVE_RATIO,
             _presaleGoal,
             _presalePeriod,
+            _presalePrice,
             _vestingCliffPeriod,
             _vestingCompletePeriod,
             _percentSupplyOffered,
             _percentFundingForBeneficiary,
-            _startDate,
-            collaterals
+            _startDate
+            // collaterals_
         );
     }
 
@@ -303,8 +318,9 @@ contract FundraisingMultisigTemplate is BaseTemplate {
 
     function _initializeController() internal {
         (Agent reserve, Presale presale, MarketMaker marketMaker, Tap tap, Controller controller) = _fundraisingAppsCache();
-
-        controller.initialize(presale, marketMaker, reserve, tap);
+        address[] memory toReset = new address[](1);
+        toReset[0] = collaterals[1];
+        controller.initialize(presale, marketMaker, reserve, tap, toReset);
     }
 
     /***** internal setup functions *****/
@@ -426,7 +442,7 @@ contract FundraisingMultisigTemplate is BaseTemplate {
         acl.createPermission(shareVoting, controller, controller.UPDATE_MAXIMUM_TAP_RATE_INCREASE_PCT_ROLE(), shareVoting);
         acl.createPermission(shareVoting, controller, controller.UPDATE_MAXIMUM_TAP_FLOOR_DECREASE_PCT_ROLE(), shareVoting);
         acl.createPermission(shareVoting, controller, controller.UPDATE_TOKEN_TAP_ROLE(), shareVoting);
-        acl.createPermission(presale, controller, controller.RESET_TOKEN_TAP_ROLE(), shareVoting);
+        // acl.createPermission(presale, controller, controller.RESET_TOKEN_TAP_ROLE(), shareVoting);
         acl.createPermission(boardVoting, controller, controller.OPEN_PRESALE_ROLE(), shareVoting);
         acl.createPermission(presale, controller, controller.OPEN_TRADING_ROLE(), shareVoting);
         acl.createPermission(address(-1), controller, controller.CONTRIBUTE_ROLE(), shareVoting);
@@ -467,6 +483,10 @@ contract FundraisingMultisigTemplate is BaseTemplate {
         c.marketMaker = address(_marketMaker);
         c.tap = address(_tap);
         c.controller = address(_controller);
+    }
+
+    function _cacheCollaterals(address _dai, address _ant) internal {
+
     }
 
     function _daoCache() internal returns (Kernel dao) {
