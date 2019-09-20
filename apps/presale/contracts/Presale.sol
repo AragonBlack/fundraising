@@ -87,7 +87,7 @@ contract Presale is EtherTokenConstant, IsContract, AragonApp {
      * @param _contributionToken        The address of the token to be used to contribute
      * @param _goal                     The goal to be reached by the end of that presale [in contribution token wei]
      * @param _period                   The period within which to accept contribution for that presale
-     * @param _exchangeRate             The exchangeRate [= 1/price] at which [bonded] tokens are to be purchased for that presale
+     * @param _exchangeRate             The exchangeRate [= 1/price] at which [bonded] tokens are to be purchased for that presale [in PPM]
      * @param _vestingCliffPeriod       The period during which purchased [bonded] tokens are to be cliffed
      * @param _vestingCompletePeriod    The complete period during which purchased [bonded] tokens are to be vested
      * @param _supplyOfferedPct         The percentage of the initial supply of [bonded] tokens to be offered during that presale [in PPM]
@@ -199,7 +199,7 @@ contract Presale is EtherTokenConstant, IsContract, AragonApp {
      * @param _value The amount of contribution tokens to be used in that computation
     */
     function contributionToTokens(uint256 _value) public view isInitialized returns (uint256) {
-        return _value.mul(exchangeRate);
+        return _value.mul(exchangeRate).div(PPM);
     }
 
     /**

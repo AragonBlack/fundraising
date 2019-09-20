@@ -50,9 +50,9 @@ contract('Presale, refund() functionality', ([anyone, appManager, buyer1, buyer2
         expect((await this.contributionToken.balanceOf(buyer2)).toNumber()).to.equal(0)
         expect((await this.contributionToken.balanceOf(buyer3)).toNumber()).to.equal(BUYER_BALANCE / 2)
 
-        expect((await this.projectToken.balanceOf(buyer1)).toNumber()).to.equal(contributionToProjectTokens(BUYER_BALANCE).toNumber())
-        expect((await this.projectToken.balanceOf(buyer2)).toNumber()).to.equal(contributionToProjectTokens(BUYER_BALANCE).toNumber())
-        expect((await this.projectToken.balanceOf(buyer3)).toNumber()).to.equal(contributionToProjectTokens(BUYER_BALANCE / 2).toNumber())
+        expect((await this.projectToken.balanceOf(buyer1)).toNumber()).to.equal(contributionToProjectTokens(BUYER_BALANCE))
+        expect((await this.projectToken.balanceOf(buyer2)).toNumber()).to.equal(contributionToProjectTokens(BUYER_BALANCE))
+        expect((await this.projectToken.balanceOf(buyer3)).toNumber()).to.equal(contributionToProjectTokens(BUYER_BALANCE / 2))
       })
 
       it('Allows a buyer who made a single purchase to get refunded', async () => {
@@ -74,7 +74,7 @@ contract('Presale, refund() functionality', ([anyone, appManager, buyer1, buyer2
         expect(event).to.exist
         expect(event.args.contributor).to.equal(buyer5)
         expect(event.args.value.toNumber()).to.equal(1)
-        expect(event.args.amount.toNumber()).to.equal(expectedAmount.toNumber())
+        expect(event.args.amount.toNumber()).to.equal(expectedAmount)
         expect(event.args.vestedPurchaseId.toNumber()).to.equal(0)
       })
 

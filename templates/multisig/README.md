@@ -87,7 +87,7 @@ template.installFundraisingApps(
 
 - **goal** The presale goal
 - **period** The presale period
-- **exchangeRate** The presale exchange rate
+- **exchangeRate** The presale exchange rate [in PPM]
 - **vestingCliffPeriod** The cliff period for vested shares purchased during presale
 - **vestingCompletePeriod** The complete period for vested shares purchased during presale
 - **supplyOfferedPct** The percentage of the initial token supply offered to presale's contributors

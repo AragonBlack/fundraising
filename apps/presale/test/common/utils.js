@@ -4,7 +4,13 @@ const utils = {
   getEvent: (tx, eventName) => tx.logs.filter(log => log.event.includes(eventName))[0],
 
   contributionToProjectTokens: value => {
-    return web3.toBigNumber(value).mul(utils.tokenExchangeRate())
+    return Math.floor(
+      web3
+        .toBigNumber(value)
+        .mul(utils.tokenExchangeRate())
+        .div(PPM)
+        .toNumber()
+    )
   },
 
   now: () => {

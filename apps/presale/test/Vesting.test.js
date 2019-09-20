@@ -34,7 +34,7 @@ contract('Presale, vesting functionality', ([anyone, appManager, buyer]) => {
 
       it('Token manager registers the correct vested amount', async () => {
         const expectedAmount = contributionToProjectTokens(BUYER_BALANCE)
-        expect(vestedAmount.toNumber()).to.equal(expectedAmount.toNumber())
+        expect(vestedAmount.toNumber()).to.equal(expectedAmount)
       })
 
       it('Token manager registers the correct vesting start date', async () => {
