@@ -25,7 +25,7 @@ const Total = ({ isBuyOrder, amount, conversionSymbol, onError }) => {
   // *****************************
   // context state
   // *****************************
-  const { daiBalance, antBalance } = useContext(MainViewContext)
+  const { daiBalance, antBalance, userDaiBalance, userAntBalance } = useContext(MainViewContext)
 
   // *****************************
   // internal state
@@ -70,7 +70,14 @@ const Total = ({ isBuyOrder, amount, conversionSymbol, onError }) => {
         errorCb(null)
       }
     }
-    if (value?.length && value > 0) {
+
+    const userBalance = symbol === 'DAI' ? userDaiBalance : userAntBalance
+    if (userBalance.lt(toDecimals(value, decimals))) {
+      // cannot buy more than your own balance
+      setFormattedAmount(formatBigNumber(value, 0))
+      setEvaluatedPrice(null)
+      onError(false, `Your ${symbol} balance is not sufficient`)
+    } else if (value?.length && value > 0) {
       // only try to evaluate when an amount is entered, and valid
       evaluateOrderReturn()
       setFormattedAmount(formatBigNumber(value, 0))
