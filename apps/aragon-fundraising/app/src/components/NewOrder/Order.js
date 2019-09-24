@@ -1,103 +1,128 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useContext, useRef, useState } from 'react'
 import styled from 'styled-components'
+import { useApi, useAppState } from '@aragon/api-react'
 import { Button, DropDown, Text, TextInput, theme, unselectable } from '@aragon/ui'
+import { MainViewContext } from '../../context'
 import Total from './Total'
 import Info from './Info'
 import ValidationError from '../ValidationError'
-import { round, toDecimals } from '../../lib/math-utils'
+import { toDecimals, formatBigNumber } from '../../utils/bn-utils'
 
-const Order = ({ opened, isBuyOrder, collaterals, bondedToken, polledData, onOrder }) => {
-  const [selectedCollateral, setSelectedCollateral] = useState(0)
-  const [amount, setAmount] = useState(undefined)
+const Order = ({ isBuyOrder }) => {
+  // *****************************
+  // background script state
+  // *****************************
+  const {
+    addresses: { marketMaker },
+    collaterals,
+    bondedToken: { decimals: bondedDecimals, symbol: bondedSymbol },
+  } = useAppState()
+  const collateralItems = [collaterals.dai, collaterals.ant]
+
+  // *****************************
+  // aragon api
+  // *****************************
+  const api = useApi()
+
+  // *****************************
+  // context state
+  // *****************************
+  const { orderPanel, setOrderPanel, userBondedTokenBalance, userDaiBalance, userAntBalance } = useContext(MainViewContext)
+
+  // *****************************
+  // internal state
+  // *****************************
+  const [selectedCollateral, setSelectedCollateral] = useState(1)
+  const [amount, setAmount] = useState('')
   const [valid, setValid] = useState(false)
   const [errorMessage, setErrorMessage] = useState(null)
-
   const amountInput = useRef(null)
 
-  const collateralSymbols = collaterals.map(c => c.symbol)
-
+  // *****************************
+  // effects
+  // *****************************
   // handle reset when opening
   useEffect(() => {
-    if (opened) {
+    if (orderPanel) {
       // reset to default values
       setSelectedCollateral(0)
-      setAmount(undefined)
+      setAmount('')
       setValid(false)
       setErrorMessage(null)
       // focus the right input, given the order type
       // timeout to avoid some flicker
       amountInput && setTimeout(() => amountInput.current.focus(), 20)
     }
-  }, [opened, isBuyOrder])
+  }, [orderPanel, isBuyOrder])
 
-  // // validate when new amounts
-  // useEffect(() => {
-  //   validate()
-  // }, [amount])
-
+  // *****************************
+  // handlers
+  // *****************************
   const handleAmountUpdate = event => {
     setAmount(event.target.value)
   }
 
   const validate = (err, message) => {
-    // TODO: is this good, when token price is very high/low ?
-    // TODO: check balance ?
-    // TODO: error message ?
     setValid(err)
     setErrorMessage(message)
   }
 
-  const roundAmount = amount => {
-    return amount ? round(amount) : ''
-  }
-
   const handleSubmit = event => {
     event.preventDefault()
-
-    const collateral = collaterals[selectedCollateral]
-    const decimals = isBuyOrder ? collateral.decimals : bondedToken.decimals
-    console.log(decimals)
-
-    // console.log(collaterals[selectedCollateral])
-    // console.log(bondedToken)
-    // console.log('old amount: ' + amount)
-    // console.log('new amount:' + toDecimals(amount, decimals))
-
-    if (valid) onOrder(collateral.address, toDecimals(amount, decimals), isBuyOrder)
+    const address = collateralItems[selectedCollateral].address
+    if (valid) {
+      const amountBn = toDecimals(amount, collateralItems[selectedCollateral].decimals).toFixed()
+      if (isBuyOrder) {
+        const intent = { token: { address, value: amountBn, spender: marketMaker } }
+        api
+          .openBuyOrder(address, amountBn, intent)
+          .toPromise()
+          .catch(console.error)
+      } else {
+        api
+          .openSellOrder(address, amountBn)
+          .toPromise()
+          .catch(console.error)
+      }
+      setOrderPanel(false)
+    }
   }
 
   const getDecimals = () => {
-    return isBuyOrder ? collaterals[selectedCollateral].decimals : bondedToken.decimals
+    return isBuyOrder ? collateralItems[selectedCollateral].decimals : bondedDecimals
   }
 
   const getSymbol = () => {
-    return isBuyOrder ? collateralSymbols[selectedCollateral] : bondedToken.symbol
+    return isBuyOrder ? collateralItems[selectedCollateral].symbol : bondedSymbol
   }
 
   const getConversionSymbol = () => {
-    return isBuyOrder ? bondedToken.symbol : collateralSymbols[selectedCollateral]
+    return isBuyOrder ? bondedSymbol : collateralItems[selectedCollateral].symbol
+  }
+
+  const getReserveRatio = () => {
+    return collateralItems[selectedCollateral].reserveRatio
+  }
+
+  const getUserBalance = () => {
+    const balance = isBuyOrder ? [userDaiBalance, userAntBalance][selectedCollateral] : userBondedTokenBalance
+    const decimals = isBuyOrder ? collateralItems[selectedCollateral].decimals : bondedDecimals
+    return formatBigNumber(balance, decimals, 4)
   }
 
   return (
     <form onSubmit={handleSubmit}>
       <InputsWrapper>
+        <p css="margin: 1rem 0;">
+          Your balance: {getUserBalance()} {getSymbol()}
+        </p>
         <AmountField key="collateral">
           <label>
-            {isBuyOrder && <StyledTextBlock>{collaterals[selectedCollateral].symbol} TO SPEND</StyledTextBlock>}
-            {!isBuyOrder && <StyledTextBlock>{bondedToken.symbol} TO SELL</StyledTextBlock>}
+            {isBuyOrder && <StyledTextBlock>{collateralItems[selectedCollateral].symbol} TO SPEND</StyledTextBlock>}
+            {!isBuyOrder && <StyledTextBlock>{bondedSymbol} TO SELL</StyledTextBlock>}
           </label>
           <CombinedInput>
-            <TextInput
-              ref={amountInput}
-              type="number"
-              value={roundAmount(amount)}
-              onChange={handleAmountUpdate}
-              min={0}
-              placeholder="0"
-              step="any"
-              required
-              wide
-            />
+            <TextInput ref={amountInput} type="number" value={amount} onChange={handleAmountUpdate} min={0} placeholder="0" step="any" required wide />
             {!isBuyOrder && (
               <Text
                 as="span"
@@ -111,16 +136,14 @@ const Order = ({ opened, isBuyOrder, collaterals, bondedToken, polledData, onOrd
                 against
               </Text>
             )}
-            <DropDown items={collateralSymbols} selected={selectedCollateral} onChange={setSelectedCollateral} />
+            <DropDown items={[collaterals.dai.symbol, collaterals.ant.symbol]} selected={selectedCollateral} onChange={setSelectedCollateral} />
           </CombinedInput>
         </AmountField>
       </InputsWrapper>
       <Total
         isBuyOrder={isBuyOrder}
-        amount={{ value: amount, decimals: getDecimals(), symbol: getSymbol() }}
+        amount={{ value: amount, decimals: getDecimals(), symbol: getSymbol(), reserveRatio: getReserveRatio() }}
         conversionSymbol={getConversionSymbol()}
-        polledData={polledData}
-        bondedToken={bondedToken}
         onError={validate}
       />
       <ButtonWrapper>
@@ -128,9 +151,8 @@ const Order = ({ opened, isBuyOrder, collaterals, bondedToken, polledData, onOrd
           Open {isBuyOrder ? 'buy' : 'sell'} order
         </Button>
       </ButtonWrapper>
-
-      <Info isBuyOrder={isBuyOrder} slippage={collaterals[selectedCollateral].slippage} />
       {errorMessage && <ValidationError message={errorMessage} />}
+      <Info isBuyOrder={isBuyOrder} slippage={collateralItems[selectedCollateral].slippage} />
     </form>
   )
 }

@@ -1,11 +1,11 @@
-import { Box, DropDown } from '@aragon/ui'
 import React, { useState } from 'react'
+import { Box, _DateRange as DateRange, DropDown } from '@aragon/ui'
+import { useAppState } from '@aragon/api-react'
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, ReferenceDot, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import styled from 'styled-components'
 import { startOfDay, endOfDay } from 'date-fns'
-import DateRangeInput from '../DateRange/DateRangeInput'
 import { filter } from './utils'
-import EmptyOrders from '../../assets/EmptyOrders.svg'
+import NoData from '../NoData'
 
 const bondingCurveData = [...Array(600).keys()].map(idx => ({
   tokens: idx + 1,
@@ -15,7 +15,8 @@ const bondingCurveData = [...Array(600).keys()].map(idx => ({
 
 const items = ['Bonding curve', 'History chart']
 
-export default ({ batches }) => {
+export default () => {
+  const { batches } = useAppState()
   const [activeItem, setActiveItem] = useState(1)
   const [activeNavItem, setActiveNavItem] = useState(1)
   const [date, setDate] = useState({
@@ -25,14 +26,8 @@ export default ({ batches }) => {
 
   return (
     <>
-      {!batches.length && (
-        <EmptyState>
-          <img src={EmptyOrders} />
-          <p css="font-size: 24px; margin-top: 1rem;">No data to show.</p>
-        </EmptyState>
-      )}
-
-      {!!batches.length && (
+      {batches.length === 0 && <NoData message="No data to show." />}
+      {batches.length > 0 && (
         <Chart>
           <div className="navbar">
             {activeItem === 1 ? (
@@ -58,7 +53,7 @@ export default ({ batches }) => {
                     ALL
                   </span>
                 </div>
-                <DateRangeInput
+                <DateRange
                   startDate={date.start}
                   endDate={date.end}
                   onClick={() => setActiveNavItem(5)}
@@ -84,7 +79,6 @@ export default ({ batches }) => {
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="8 8" vertical={false} />
-
                 <XAxis
                   type="number"
                   dataKey="tokens"
@@ -197,25 +191,10 @@ const Chart = styled(Box)`
 
       & > div:nth-child(1) {
         margin-top: 2rem;
-        justify-content: flex-end;
       }
       .item:last-child {
         margin-right: 0;
       }
     }
   }
-`
-
-const EmptyState = styled.div`
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  height: 500px;
-
-  border-radius: 4px;
-  border-style: solid;
-  border-color: #dde4e9;
-  border-width: 1px;
-  background: #ffffff;
 `

@@ -84,7 +84,7 @@ On the "My orders" tab, filter the orders by the connected user (accessible via 
 
 ## Reserve
 
-There's 2 tapped token, but we only care about the DAI.
+DAI is the only tapped token
 
 ### **Monthly allowance**
 
@@ -143,7 +143,7 @@ Update monthly allocation and floor according to the following rules:
 
 - no more than one increase per month. Check last update with `timestamp` on the tapped token
 - no restrictions on decrease
-- an increase should fit within the `maximumTapIncreasePct`
+- an increase should fit within the `maximumTapRateIncreasePct`
 - no particular rules on the `floor` (TODO: what about preventing floor increase over reserve balance ?)
 
 ### **Claim**
@@ -172,3 +172,113 @@ startPrice = (balance * ppm) / (supply * reserveRatio)
 All values coming from the event, except `ppm` which can be found on the background script state.
 
 (TODO: Should we continue to calculate it on the background script ?)
+
+## JSON view of the frontend state
+
+```json
+{
+    "constants": {
+        "PPM": BigNumber,
+        "PCT_BASE": BigNumber
+    },
+    "values": {
+        "maximumTapRateIncreasePct": BigNumber
+    },
+    "network": {
+        "id": Number,
+        "type": String // "private or rinkeby or main"
+    },
+    "addresses": {
+        "marketMaker": address,
+        "formula": address,
+        "tap": address,
+        "reserve": address
+    },
+    "presale": {
+        "state": String, // "PENDING", "FUNDING", "REFUNDING", "GOAL_REACHED" or "CLOSED"
+        "contributionToken": {
+            "address": String,
+            "symbol": String,
+            "name": String,
+            "decimals": Number,
+        },
+        "token": {
+            "address": String,
+            "symbol": String,
+            "name": String,
+            "decimals": Number,
+        },
+        "startDate": Date, // "timestamp, also polled from the frontend"
+        "presalePeriod": Number,
+        "vestingCliffPeriod": Number,
+        "vestingCompletePeriod": Number,
+        "tokenExchangeRate": BigNumber,
+        "presaleGoal": BigNumber,
+        "totalRaised": BigNumber // "polled from the frontend"
+    },
+    "collaterals": {
+        "dai": {
+            "address": String,
+            "symbol": String,
+            "name": String,
+            "decimals": Number,
+            "reserveRatio": BigNumber,
+            "virtualSupply": BigNumber,
+            "virtualBalance": BigNumber,
+            "toBeClaimed": BigNumber,
+            "actualBalance": BigNumber, // "this one needs to fetched from frontend for now ..."
+            "realBalance": BigNumber, // "= actualBalance - toBeClaimed"
+            "overallBalance": BigNumber, // "=realBalance + virtualBalance"
+            "tap" : { // only for DAI
+                "rate": BigNumber,
+                "floor": BigNumber,
+                "timestamp": Number
+            },
+            "slippage": BigNumber
+        },
+        "ant": {
+        }
+    },
+    "bondedToken": {
+        "address": String,
+        "symbol": String,
+        "name": String,
+        "decimals": Number,
+        "totalSupply": BigNumber,
+        "toBeMinted": BigNumber,
+        "realSupply": BigNumber, // "= totalSupply + toBeMinted"
+        "overallSupply": {
+           "dai":  BigNumber, // "=realSupply + virtualBalance(dai)"
+           "ant":  BigNumber // "=realSupply + virtualBalance(ant)"
+        }
+    },
+    "batches": {
+      "id": Number,
+      "timestamp": Date,
+      "collateral": address || String,
+      "supply": BigNumber,
+      "balance": BigNumber,
+      "reserveRatio": BigNumber,
+      "totalBuySpend": BigNumber,
+      "totalBuyReturn": BigNumber,
+      "totalSellSpend": BigNumber,
+      "totalSellReturn": BigNumber,
+      "startPrice": BigNumber, // "=(balance * PPM) / (supply * reserveRatio)"
+      "buyPrice": BigNumber, // "=totalBuySpend / totalBuyReturn"
+      "sellPrice": BigNumber // "=totalSellReturn / totalSellSpend"
+    },
+    "orders": {
+        "transactionHash": String,
+        "timestamp": Date,
+        "batchId": Number,
+        "collateral": String,
+        "symbol": String,
+        "user": String,
+        "type": String, // "BUY or SELL"
+        "state": String, // "PENDING or OVER or RETURNED"
+        "amount": BigNumber, // "always expressed in number of bonds"
+        "value": BigNumber, // "always expressed in number of collaterals"
+        "price": BigNumber, // "derived in app-reducer from batch parameters"
+    }
+}
+```

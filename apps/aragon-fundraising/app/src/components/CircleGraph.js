@@ -51,7 +51,7 @@ const CircleGraph = ({ value, label, size, color, width }) => {
           <Label
             size={size / 6}
             css={`
-              margin-top: ${size / 8}px;
+              margin-top: ${size / 10}px;
             `}
           >
             %
