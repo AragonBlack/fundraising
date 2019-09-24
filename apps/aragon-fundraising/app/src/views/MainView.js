@@ -58,9 +58,9 @@ export default () => {
   const [polledAntBalance, setPolledAntBalance] = useState(antOverallBalance)
   const [polledBatchId, setPolledBatchId] = useState(null)
   const [polledPrice, setPolledPrice] = useState(0)
-  const [userBondedTokenBalance, setUserBondedTokenBalance] = useState(0)
-  const [userDaiBalance, setUserDaiBalance] = useState(0)
-  const [userAntBalance, setUserAntBalance] = useState(0)
+  const [userBondedTokenBalance, setUserBondedTokenBalance] = useState(new BigNumber(0))
+  const [userDaiBalance, setUserDaiBalance] = useState(new BigNumber(0))
+  const [userAntBalance, setUserAntBalance] = useState(new BigNumber(0))
 
   // react context accessible on child components
   const context = {

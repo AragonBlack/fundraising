@@ -1,7 +1,6 @@
 import cloneDeep from 'lodash.clonedeep'
 import BigNumber from 'bignumber.js'
 import { Order, Tokens } from '../constants'
-import Presale from '../screens/Presale'
 
 /**
  * Checks whether we have enough data to start the fundraising app
@@ -13,7 +12,8 @@ export const ready = state => {
   const synced = !state?.isSyncing
   const hasCollaterals = state?.collaterals.size > 0
   const hasTaps = state && [...state?.collaterals.values()].some(c => c.tap)
-  return synced && hasCollaterals && hasTaps
+  const presaleStateIsKnown = state?.presale?.state
+  return synced && hasCollaterals && hasTaps && presaleStateIsKnown
 }
 
 /**

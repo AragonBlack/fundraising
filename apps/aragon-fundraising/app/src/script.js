@@ -136,14 +136,16 @@ const initialize = async (poolAddress, tapAddress, marketMakerAddress, presaleAd
         case 'UpdateMaximumTapFloorDecreasePct':
           return updateMaximumTapFloorDecreasePct(nextState, returnValues)
         case 'SetStartDate':
-          return setStartDate(nextState, returnValues)
+          return setStartDate(nextState, returnValues, settings)
+        case 'Contribute':
+          return updateTotalRaised(nextState, settings)
         default:
           return nextState
       }
     },
     {
       init: initState(settings),
-      externals: [marketMakerContract, tapContract, poolContract].map(c => ({ contract: c })),
+      externals: [marketMakerContract, tapContract, poolContract, presaleContract].map(c => ({ contract: c })),
     }
   )
 }
@@ -198,6 +200,7 @@ const loadContractsData = async (state, { bondedToken, marketMaker, tap, presale
     totalRaised,
     tokenExchangeRate,
     contributionToken,
+    token,
   ] = await Promise.all([
     // bonded token data
     bondedToken.contract.symbol().toPromise(),
@@ -221,15 +224,21 @@ const loadContractsData = async (state, { bondedToken, marketMaker, tap, presale
     presale.contract.totalRaised().toPromise(),
     presale.contract.tokenExchangeRate().toPromise(),
     presale.contract.contributionToken().toPromise(),
+    presale.contract.token().toPromise(),
   ])
   // find the corresponding contract in the in memory map or get the external
-  const tokenContract = tokenContracts.has(contributionToken) ? tokenContracts.get(contributionToken) : app.external(contributionToken, tokenAbi)
-  tokenContracts.set(contributionToken, tokenContract)
+  const contributionTokenContract = tokenContracts.has(contributionToken) ? tokenContracts.get(contributionToken) : app.external(contributionToken, tokenAbi)
+  tokenContracts.set(contributionToken, contributionTokenContract)
+  const tokenContract = tokenContracts.has(token) ? tokenContracts.get(token) : app.external(token, tokenAbi)
+  tokenContracts.set(token, tokenContract)
   // load presale contributionToken data
-  const [contributionTokenSymbol, contributionTokenName, contributionTokenDecimals] = await Promise.all([
-    loadTokenSymbol(tokenContract, contributionToken, { network }),
-    loadTokenName(tokenContract, contributionToken, { network }),
-    loadTokenDecimals(tokenContract, contributionToken, { network }),
+  const [contributionTokenSymbol, contributionTokenName, contributionTokenDecimals, tokenSymbol, tokenName, tokenDecimals] = await Promise.all([
+    loadTokenSymbol(contributionTokenContract, contributionToken, { network }),
+    loadTokenName(contributionTokenContract, contributionToken, { network }),
+    loadTokenDecimals(contributionTokenContract, contributionToken, { network }),
+    loadTokenSymbol(tokenContract, token, { network }),
+    loadTokenName(tokenContract, token, { network }),
+    loadTokenDecimals(tokenContract, token, { network }),
   ])
   return {
     ...state,
@@ -250,6 +259,12 @@ const loadContractsData = async (state, { bondedToken, marketMaker, tap, presale
         symbol: contributionTokenSymbol,
         name: contributionTokenName,
         decimals: parseInt(contributionTokenDecimals, 10),
+      },
+      token: {
+        address: token,
+        symbol: tokenSymbol,
+        name: tokenName,
+        decimals: parseInt(tokenDecimals, 10),
       },
       startDate: parseInt(startDate, 10) * 1000, // in ms
       presalePeriod: parseInt(presalePeriod, 10) * 1000, // in ms
@@ -480,12 +495,30 @@ const updateMaximumTapFloorDecreasePct = (state, { maximumTapFloorDecreasePct })
   }
 }
 
-const setStartDate = (state, { date }) => {
+const setStartDate = async (state, { date }, { presale }) => {
+  const startDate = parseInt(date, 10) * 1000 // in ms
+  // update the state of the presale
+  const currentPresaleState = await presale.contract.currentPresaleState().toPromise()
   return {
     ...state,
     presale: {
       ...state.presale,
-      startDate: parseInt(date, 10) * 1000, // in ms
+      state: Object.values(Presale.state)[currentPresaleState],
+      startDate,
+    },
+  }
+}
+
+const updateTotalRaised = async (state, { presale }) => {
+  // we call `presale.contract.totalRaised` instead of directly to the claculation here
+  // because we can't make BigNumber calculations from the background script
+  // and pass it to the fronted
+  const totalRaised = await presale.contract.totalRaised().toPromise()
+  return {
+    ...state,
+    presale: {
+      ...state.presale,
+      totalRaised,
     },
   }
 }
