@@ -135,8 +135,8 @@ const initialize = async (poolAddress, tapAddress, marketMakerAddress, presaleAd
           return updateMaximumTapRateIncreasePct(nextState, returnValues)
         case 'UpdateMaximumTapFloorDecreasePct':
           return updateMaximumTapFloorDecreasePct(nextState, returnValues)
-        case 'SetStartDate':
-          return setStartDate(nextState, returnValues, settings)
+        case 'SetOpenDate':
+          return setOpenDate(nextState, returnValues, settings)
         case 'Contribute':
           return updateTotalRaised(nextState, settings)
         default:
@@ -191,14 +191,14 @@ const loadContractsData = async (state, { bondedToken, marketMaker, tap, presale
     maximumTapRateIncreasePct,
     maximumTapFloorDecreasePct,
     PCT_BASE,
-    currentPresaleState,
-    startDate,
-    presalePeriod,
+    presaleState,
+    openDate,
+    period,
     vestingCliffPeriod,
     vestingCompletePeriod,
-    presaleGoal,
+    goal,
     totalRaised,
-    tokenExchangeRate,
+    exchangeRate,
     contributionToken,
     token,
   ] = await Promise.all([
@@ -215,14 +215,14 @@ const loadContractsData = async (state, { bondedToken, marketMaker, tap, presale
     tap.contract.maximumTapFloorDecreasePct().toPromise(),
     tap.contract.PCT_BASE().toPromise(),
     // presale data
-    presale.contract.currentPresaleState().toPromise(),
-    presale.contract.startDate().toPromise(),
-    presale.contract.presalePeriod().toPromise(),
+    presale.contract.state().toPromise(),
+    presale.contract.openDate().toPromise(),
+    presale.contract.period().toPromise(),
     presale.contract.vestingCliffPeriod().toPromise(),
     presale.contract.vestingCompletePeriod().toPromise(),
-    presale.contract.presaleGoal().toPromise(),
+    presale.contract.goal().toPromise(),
     presale.contract.totalRaised().toPromise(),
-    presale.contract.tokenExchangeRate().toPromise(),
+    presale.contract.exchangeRate().toPromise(),
     presale.contract.contributionToken().toPromise(),
     presale.contract.token().toPromise(),
   ])
@@ -253,7 +253,7 @@ const loadContractsData = async (state, { bondedToken, marketMaker, tap, presale
       maximumTapFloorDecreasePct,
     },
     presale: {
-      state: Object.values(Presale.state)[currentPresaleState],
+      state: Object.values(Presale.state)[presaleState],
       contributionToken: {
         address: contributionToken,
         symbol: contributionTokenSymbol,
@@ -266,12 +266,12 @@ const loadContractsData = async (state, { bondedToken, marketMaker, tap, presale
         name: tokenName,
         decimals: parseInt(tokenDecimals, 10),
       },
-      startDate: parseInt(startDate, 10) * 1000, // in ms
-      presalePeriod: parseInt(presalePeriod, 10) * 1000, // in ms
+      openDate: parseInt(openDate, 10) * 1000, // in ms
+      period: parseInt(period, 10) * 1000, // in ms
       vestingCliffPeriod: parseInt(vestingCliffPeriod, 10) * 1000, // in ms
       vestingCompletePeriod: parseInt(vestingCompletePeriod, 10) * 1000, // in ms
-      tokenExchangeRate,
-      presaleGoal,
+      exchangeRate,
+      goal,
       totalRaised,
     },
     bondedToken: {
@@ -495,16 +495,16 @@ const updateMaximumTapFloorDecreasePct = (state, { maximumTapFloorDecreasePct })
   }
 }
 
-const setStartDate = async (state, { date }, { presale }) => {
-  const startDate = parseInt(date, 10) * 1000 // in ms
+const setOpenDate = async (state, { date }, { presale }) => {
+  const openDate = parseInt(date, 10) * 1000 // in ms
   // update the state of the presale
-  const currentPresaleState = await presale.contract.currentPresaleState().toPromise()
+  const presaleState = await presale.contract.state().toPromise()
   return {
     ...state,
     presale: {
       ...state.presale,
-      state: Object.values(Presale.state)[currentPresaleState],
-      startDate,
+      state: Object.values(Presale.state)[presaleState],
+      openDate,
     },
   }
 }

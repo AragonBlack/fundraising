@@ -67,8 +67,8 @@ export const computeValues = values => ({
  */
 export const computePresale = presale => ({
   ...presale,
-  tokenExchangeRate: new BigNumber(presale.tokenExchangeRate),
-  presaleGoal: new BigNumber(presale.presaleGoal),
+  exchangeRate: new BigNumber(presale.exchangeRate),
+  goal: new BigNumber(presale.goal),
   totalRaised: new BigNumber(presale.totalRaised),
 })
 

@@ -208,12 +208,12 @@ All values coming from the event, except `ppm` which can be found on the backgro
             "name": String,
             "decimals": Number,
         },
-        "startDate": Date, // "timestamp, also polled from the frontend"
-        "presalePeriod": Number,
+        "openDate": Date, // "timestamp, also polled from the frontend"
+        "period": Number,
         "vestingCliffPeriod": Number,
         "vestingCompletePeriod": Number,
-        "tokenExchangeRate": BigNumber,
-        "presaleGoal": BigNumber,
+        "exchangeRate": BigNumber,
+        "goal": BigNumber,
         "totalRaised": BigNumber // "polled from the frontend"
     },
     "collaterals": {
