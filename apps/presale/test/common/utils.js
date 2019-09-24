@@ -1,16 +1,16 @@
-const {
-  PRESALE_GOAL,
-  CONNECTOR_WEIGHT,
-  PERCENT_SUPPLY_OFFERED,
-  PPM
-} = require('./constants')
+const { PRESALE_GOAL, PRESALE_EXCHANGE_RATE, RESERVE_RATIOS, PERCENT_SUPPLY_OFFERED, PPM } = require('@ablack/fundraising-shared-test-helpers/constants')
 
 const utils = {
-
   getEvent: (tx, eventName) => tx.logs.filter(log => log.event.includes(eventName))[0],
 
-  contributionToProjectTokens: (dai) => {
-    return dai * utils.tokenExchangeRate()
+  contributionToProjectTokens: value => {
+    return Math.floor(
+      web3
+        .toBigNumber(value)
+        .mul(utils.tokenExchangeRate())
+        .div(PPM)
+        .toNumber()
+    )
   },
 
   now: () => {
@@ -18,21 +18,17 @@ const utils = {
   },
 
   tokenExchangeRate: () => {
-    const connectorWeightDec = CONNECTOR_WEIGHT / PPM;
-    const supplyOfferedDec = PERCENT_SUPPLY_OFFERED / PPM;
-    return Math.floor(
-      (PRESALE_GOAL / connectorWeightDec) * supplyOfferedDec
-    )
+    return PRESALE_EXCHANGE_RATE
   },
 
-  sendTransaction: (data) => {
+  sendTransaction: data => {
     return new Promise((resolve, reject) => {
       web3.eth.sendTransaction(data, (err, txHash) => {
-        if(err) reject(err)
+        if (err) reject(err)
         else resolve(txHash)
       })
     })
-  }
+  },
 }
 
 module.exports = utils

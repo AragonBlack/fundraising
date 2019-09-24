@@ -1,9 +1,9 @@
-const { PRESALE_PERIOD, PRESALE_GOAL, SALE_STATE } = require('./common/constants')
+const { PRESALE_PERIOD, PRESALE_GOAL, PRESALE_STATE } = require('@ablack/fundraising-shared-test-helpers/constants')
 const { prepareDefaultSetup, defaultDeployParams, initializePresale } = require('./common/deploy')
 const { getEvent, now } = require('./common/utils')
 
 const getState = async test => {
-  return (await test.presale.currentPresaleState()).toNumber()
+  return (await test.presale.state()).toNumber()
 }
 
 contract('Presale, states validation', ([anyone, appManager, buyer]) => {
@@ -18,20 +18,20 @@ contract('Presale, states validation', ([anyone, appManager, buyer]) => {
       })
 
       it('Initial state is Pending', async () => {
-        expect(await getState(this)).to.equal(SALE_STATE.PENDING)
+        expect(await getState(this)).to.equal(PRESALE_STATE.PENDING)
       })
 
       describe('When the sale is started', () => {
         before(async () => {
           if (startDate == 0) {
             startDate = now()
-            await this.presale.start({ from: appManager })
+            await this.presale.open({ from: appManager })
           }
           await this.presale.mockSetTimestamp(startDate + 1)
         })
 
         it('The state is Funding', async () => {
-          expect(await getState(this)).to.equal(SALE_STATE.FUNDING)
+          expect(await getState(this)).to.equal(PRESALE_STATE.FUNDING)
         })
 
         describe('When the funding period is still running', () => {
@@ -40,16 +40,16 @@ contract('Presale, states validation', ([anyone, appManager, buyer]) => {
           })
 
           it('The state is still Funding', async () => {
-            expect(await getState(this)).to.equal(SALE_STATE.FUNDING)
+            expect(await getState(this)).to.equal(PRESALE_STATE.FUNDING)
           })
 
           describe('When purchases are made, not reaching the funding goal', () => {
             before(async () => {
-              await this.presale.buy(PRESALE_GOAL / 2, { from: buyer })
+              await this.presale.contribute(buyer, PRESALE_GOAL / 2, { from: buyer })
             })
 
             it('The state is still Funding', async () => {
-              expect(await getState(this)).to.equal(SALE_STATE.FUNDING)
+              expect(await getState(this)).to.equal(PRESALE_STATE.FUNDING)
             })
 
             describe('When the funding period elapses without having reached the funding goal', () => {
@@ -58,7 +58,7 @@ contract('Presale, states validation', ([anyone, appManager, buyer]) => {
               })
 
               it('The state is Refunding', async () => {
-                expect(await getState(this)).to.equal(SALE_STATE.REFUNDING)
+                expect(await getState(this)).to.equal(PRESALE_STATE.REFUNDING)
               })
             })
           })
@@ -66,11 +66,11 @@ contract('Presale, states validation', ([anyone, appManager, buyer]) => {
           describe('When purchases are made, reaching the funding goal before the funding period elapsed', () => {
             before(async () => {
               await this.presale.mockSetTimestamp(startDate + PRESALE_PERIOD / 2)
-              await this.presale.buy(PRESALE_GOAL / 2, { from: buyer })
+              await this.presale.contribute(buyer, PRESALE_GOAL / 2, { from: buyer })
             })
 
             it('The state is GoalReached', async () => {
-              expect(await getState(this)).to.equal(SALE_STATE.GOAL_REACHED)
+              expect(await getState(this)).to.equal(PRESALE_STATE.GOAL_REACHED)
             })
 
             describe('When the funding period elapses having reached the funding goal', () => {
@@ -79,7 +79,7 @@ contract('Presale, states validation', ([anyone, appManager, buyer]) => {
               })
 
               it('The state is still GoalReached', async () => {
-                expect(await getState(this)).to.equal(SALE_STATE.GOAL_REACHED)
+                expect(await getState(this)).to.equal(PRESALE_STATE.GOAL_REACHED)
               })
             })
 
@@ -89,7 +89,7 @@ contract('Presale, states validation', ([anyone, appManager, buyer]) => {
               })
 
               it('The state is Closed', async () => {
-                expect(await getState(this)).to.equal(SALE_STATE.CLOSED)
+                expect(await getState(this)).to.equal(PRESALE_STATE.CLOSED)
               })
             })
           })

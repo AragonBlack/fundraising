@@ -9,16 +9,19 @@ import "@ablack/fundraising-shared-interfaces/contracts/IAragonFundraisingContro
 contract AragonFundraisingControllerMock is IAragonFundraisingController, AragonApp {
     using SafeERC20 for ERC20;
 
+    event OpenTrading();
+    event ResetTokenTap();
+
     function initialize() external onlyInit {
         initialized();
     }
 
     function openTrading() external {
-        // mock
+        emit OpenTrading();
     }
 
     function resetTokenTap(address _token) external {
-        // mock
+        emit ResetTokenTap();
     }
 
     function collateralsToBeClaimed(address _collateral) public view returns (uint256) {

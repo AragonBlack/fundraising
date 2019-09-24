@@ -13,7 +13,7 @@ export default () => {
     presale: {
       state,
       contributionToken: { symbol, decimals },
-      presaleGoal,
+      goal,
       totalRaised,
     },
   } = useAppState()
@@ -28,10 +28,10 @@ export default () => {
   return (
     <Box heading="Fundraising Goal">
       <div className="circle">
-        <CircleGraph value={totalRaised.div(presaleGoal).toNumber()} size={224} width={6} color={circleColor[state]} />
+        <CircleGraph value={totalRaised.div(goal).toNumber()} size={224} width={6} color={circleColor[state]} />
         <div>
           <p css="color: #212B36; display: inline;">{formatBigNumber(totalRaised, decimals)}</p> {symbol} of{' '}
-          <p css="color: #212B36; display: inline;">{formatBigNumber(presaleGoal, decimals)}</p> {symbol}
+          <p css="color: #212B36; display: inline;">{formatBigNumber(goal, decimals)}</p> {symbol}
         </div>
         {state === Presale.state.GOAL_REACHED && (
           <>

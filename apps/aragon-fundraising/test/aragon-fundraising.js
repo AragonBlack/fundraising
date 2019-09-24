@@ -1,4 +1,5 @@
 const Controller = artifacts.require('AragonFundraisingController')
+const TokenMock = artifacts.require('TokenMock')
 const {
   ETH,
   INITIAL_COLLATERAL_BALANCE,
@@ -39,6 +40,8 @@ contract('AragonFundraisingController app', ([root, authorized, unauthorized]) =
         assert.equal(await this.controller.marketMaker(), this.marketMaker.address)
         assert.equal(await this.controller.reserve(), this.reserve.address)
         assert.equal(await this.controller.tap(), this.tap.address)
+        assert.equal(await this.controller.toReset(0), this.collaterals.dai.address)
+        await assertRevert(() => this.controller.toReset(1))
       })
     })
 
@@ -51,19 +54,33 @@ contract('AragonFundraisingController app', ([root, authorized, unauthorized]) =
       })
 
       it('it should revert [presale is not a contract]', async () => {
-        await assertRevert(() => uninitialized.initialize(root, this.marketMaker.address, this.reserve.address, this.tap.address, { from: root }))
+        await assertRevert(() =>
+          uninitialized.initialize(root, this.marketMaker.address, this.reserve.address, this.tap.address, [this.collaterals.dai.address], { from: root })
+        )
       })
 
       it('it should revert [market maker is not a contract]', async () => {
-        await assertRevert(() => uninitialized.initialize(this.presale.address, root, this.reserve.address, this.tap.address, { from: root }))
+        await assertRevert(() =>
+          uninitialized.initialize(this.presale.address, root, this.reserve.address, this.tap.address, [this.collaterals.dai.address], { from: root })
+        )
       })
 
       it('it should revert [reserve is not a contract]', async () => {
-        await assertRevert(() => uninitialized.initialize(this.presale.address, this.marketMaker.address, root, this.tap.address, { from: root }))
+        await assertRevert(() =>
+          uninitialized.initialize(this.presale.address, this.marketMaker.address, root, this.tap.address, [this.collaterals.dai.address], { from: root })
+        )
       })
 
       it('it should revert [tap is not a contract]', async () => {
-        await assertRevert(() => uninitialized.initialize(this.presale.address, this.marketMaker.address, this.reserve.address, root, { from: root }))
+        await assertRevert(() =>
+          uninitialized.initialize(this.presale.address, this.marketMaker.address, this.reserve.address, root, [this.collaterals.dai.address], { from: root })
+        )
+      })
+
+      it('it should revert [toReset tokens are not contract or ETH]', async () => {
+        await assertRevert(() =>
+          uninitialized.initialize(this.presale.address, this.marketMaker.address, this.reserve.address, this.tap.address, [root], { from: root })
+        )
       })
     })
 
@@ -118,7 +135,7 @@ contract('AragonFundraisingController app', ([root, authorized, unauthorized]) =
       it('it should open presale', async () => {
         await this.controller.openPresale({ from: authorized })
 
-        assert.equal((await this.presale.currentPresaleState()).toNumber(), PRESALE_STATE.FUNDING)
+        assert.equal((await this.presale.state()).toNumber(), PRESALE_STATE.FUNDING)
       })
     })
 
@@ -140,7 +157,7 @@ contract('AragonFundraisingController app', ([root, authorized, unauthorized]) =
     it('it should close presale', async () => {
       await this.controller.closePresale({ from: authorized })
 
-      assert.equal((await this.presale.currentPresaleState()).toNumber(), PRESALE_STATE.CLOSED)
+      assert.equal((await this.presale.state()).toNumber(), PRESALE_STATE.CLOSED)
     })
   })
   // #endregion
@@ -186,10 +203,16 @@ contract('AragonFundraisingController app', ([root, authorized, unauthorized]) =
   // #region openTrading
   context('> #openTrading', () => {
     context('> sender has OPEN_TRADING_ROLE', () => {
-      it('it should open campaign', async () => {
+      it('it should open trading', async () => {
         const receipt = await this.controller.openTrading({ from: authorized })
 
         assertExternalEvent(receipt, 'Open()')
+      })
+
+      it('it should reset toReset tokens taps', async () => {
+        const receipt = await this.controller.openTrading({ from: authorized })
+
+        assertExternalEvent(receipt, 'ResetTappedToken(address)')
       })
     })
 
@@ -340,23 +363,46 @@ contract('AragonFundraisingController app', ([root, authorized, unauthorized]) =
   // #region addCollateralToken
   context('> #addCollateralToken', () => {
     context('> sender has ADD_COLLATERAL_TOKEN_ROLE', () => {
-      it('it should add collateral token', async () => {
-        const receipt = await this.controller.addCollateralToken(
-          this.collaterals.ant.address,
-          random.virtualSupply(),
-          random.virtualBalance(),
-          random.reserveRatio(),
-          random.slippage(),
-          random.rate(),
-          random.floor(),
-          {
-            from: authorized,
-          }
-        )
+      context('> and rate is superior to zero', () => {
+        it('it should add collateral token, protect it and tap it', async () => {
+          const receipt = await this.controller.addCollateralToken(
+            this.collaterals.ant.address,
+            random.virtualSupply(),
+            random.virtualBalance(),
+            random.reserveRatio(),
+            random.slippage(),
+            random.rate(),
+            random.floor(),
+            {
+              from: authorized,
+            }
+          )
 
-        assertExternalEvent(receipt, 'AddCollateralToken(address,uint256,uint256,uint32,uint256)') // market maker
-        assertExternalEvent(receipt, 'AddProtectedToken(address)') // pool
-        assertExternalEvent(receipt, 'AddTappedToken(address,uint256,uint256)') // tap
+          assertExternalEvent(receipt, 'AddCollateralToken(address,uint256,uint256,uint32,uint256)') // market maker
+          assertExternalEvent(receipt, 'AddProtectedToken(address)') // pool
+          assertExternalEvent(receipt, 'AddTappedToken(address,uint256,uint256)') // tap
+        })
+      })
+
+      context('> and rate is zero', () => {
+        it('it should add collateral token, protect it, but not tap it', async () => {
+          const receipt = await this.controller.addCollateralToken(
+            this.collaterals.ant.address,
+            random.virtualSupply(),
+            random.virtualBalance(),
+            random.reserveRatio(),
+            random.slippage(),
+            0,
+            random.floor(),
+            {
+              from: authorized,
+            }
+          )
+
+          assertExternalEvent(receipt, 'AddCollateralToken(address,uint256,uint256,uint32,uint256)') // market maker
+          assertExternalEvent(receipt, 'AddProtectedToken(address)') // pool
+          assertExternalEvent(receipt, 'AddTappedToken(address,uint256,uint256)', 0) // tap
+        })
       })
     })
 
@@ -511,6 +557,28 @@ contract('AragonFundraisingController app', ([root, authorized, unauthorized]) =
   })
   // #endregion
 
+  // #region addTokenTap
+  context('> #addTokenTap', () => {
+    let token
+    beforeEach(async () => {
+      token = await TokenMock.new(authorized, INITIAL_COLLATERAL_BALANCE)
+    })
+    context('> sender has ADD_TOKEN_TAP_ROLE', () => {
+      it('it should add token tap', async () => {
+        const receipt = await this.controller.addTokenTap(token.address, random.rate(), random.floor(), { from: authorized })
+
+        assertExternalEvent(receipt, 'AddTappedToken(address,uint256,uint256)')
+      })
+    })
+
+    context('> sender does not have ADD_TOKEN_TAP_ROLE', () => {
+      it('it should revert', async () => {
+        await assertRevert(() => this.controller.addTokenTap(token.address, random.rate(), random.floor(), { from: unauthorized }))
+      })
+    })
+  })
+  // #endregion
+
   // #region updateTokenTap
   context('> #updateTokenTap', () => {
     context('> sender has UPDATE_TOKEN_TAP_ROLE', () => {
@@ -528,24 +596,6 @@ contract('AragonFundraisingController app', ([root, authorized, unauthorized]) =
     context('> sender does not have UPDATE_TOKEN_TAP_ROLE', () => {
       it('it should revert', async () => {
         await assertRevert(() => this.controller.updateTokenTap(this.collaterals.dai.address, RATES[1] - 1, FLOORS[1] + 1, { from: unauthorized }))
-      })
-    })
-  })
-  // #endregion
-
-  // #region resetTokenTap
-  context('> #resetTokenTap', () => {
-    context('> sender has RESET_TOKEN_TAP_ROLE', () => {
-      it('it should reset token tap', async () => {
-        const receipt = await this.controller.resetTokenTap(this.collaterals.dai.address, { from: authorized })
-
-        assertExternalEvent(receipt, 'ResetTappedToken(address)')
-      })
-    })
-
-    context('> sender does not have RESET_TOKEN_TAP_ROLE', () => {
-      it('it should revert', async () => {
-        await assertRevert(() => this.controller.resetTokenTap(this.collaterals.dai.address, { from: unauthorized }))
       })
     })
   })

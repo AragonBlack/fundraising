@@ -13,7 +13,7 @@ export default ({ value, onError }) => {
     presale: {
       contributionToken: { symbol: contributionSymbol, decimals: contributionDecimals },
       token: { symbol, decimals },
-      tokenExchangeRate,
+      exchangeRate,
     },
   } = useAppState()
 
@@ -41,7 +41,7 @@ export default ({ value, onError }) => {
     } else if (value?.length && value > 0) {
       // only try to evaluate when an amount is entered, and valid
       setFormattedValue(formatBigNumber(value, 0))
-      setEvaluatedPrice(formatBigNumber(tokenExchangeRate.times(value), decimals))
+      setEvaluatedPrice(formatBigNumber(exchangeRate.times(value), decimals))
       onError(true, null)
     } else {
       // if input is empty, reset to default values and disable order button

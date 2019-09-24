@@ -1,18 +1,12 @@
-const {
-  VESTING_CLIFF_PERIOD,
-  VESTING_COMPLETE_PERIOD
-} = require('./common/constants')
+const { VESTING_CLIFF_PERIOD, VESTING_COMPLETE_PERIOD } = require('@ablack/fundraising-shared-test-helpers/constants')
 const { prepareDefaultSetup, defaultDeployParams, initializePresale } = require('./common/deploy')
 const { contributionToProjectTokens, now } = require('./common/utils')
 
 const BUYER_BALANCE = 20000
 
 contract('Presale, vesting functionality', ([anyone, appManager, buyer]) => {
-
-  const itVestsTokensCorrectly = (startDate) => {
-
+  const itVestsTokensCorrectly = startDate => {
     describe('When a purchase produces vested tokens', () => {
-
       let vestedAmount, vestingStartDate, vestingCliffDate, vestingCompleteDate, vestingRevokable
 
       before(async () => {
@@ -24,11 +18,11 @@ contract('Presale, vesting functionality', ([anyone, appManager, buyer]) => {
 
         if (startDate == 0) {
           startDate = now()
-          await this.presale.start({ from: appManager })
+          await this.presale.open({ from: appManager })
         }
         await this.presale.mockSetTimestamp(startDate + 1)
 
-        await this.presale.buy(BUYER_BALANCE, { from: buyer })
+        await this.presale.contribute(buyer, BUYER_BALANCE, { from: buyer })
 
         const vestingData = await this.tokenManager.getVesting(buyer, 0)
         vestedAmount = vestingData[0]

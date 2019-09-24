@@ -1,4 +1,4 @@
-const deployTemplate = require('@aragon/templates-shared/scripts/deploy-template')
+const deployTemplate = require('../lib/deploy-template')
 
 const TEMPLATE_NAME = 'fundraising-multisig-template'
 const CONTRACT_NAME = 'FundraisingMultisigTemplate'

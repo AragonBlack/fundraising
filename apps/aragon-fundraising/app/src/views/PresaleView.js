@@ -19,7 +19,7 @@ export default () => {
     addresses: { presale: presaleAddress },
     presale: {
       state,
-      startDate,
+      openDate,
       contributionToken: { address },
     },
   } = useAppState()
@@ -39,10 +39,10 @@ export default () => {
   // *****************************
   // context state
   // *****************************
-  const [polledStartDate, setPolledStartDate] = useState(startDate)
+  const [polledOpenDate, setPolledOpenDate] = useState(openDate)
   const [userDaiBalance, setUserDaiBalance] = useState(new BigNumber(0))
   const context = {
-    startDate: polledStartDate,
+    openDate: polledOpenDate,
     userDaiBalance,
     presalePanel,
     setPresalePanel,
@@ -60,16 +60,16 @@ export default () => {
 
   // polls the start date
   useInterval(async () => {
-    let newStartDate = polledStartDate
+    let newOpenDate = polledOpenDate
     let newUserDaiBalance = userDaiBalance
-    // only poll if the startDate is not set yet
-    if (startDate === 0) newStartDate = parseInt(await presale.startDate().toPromise(), 10)
+    // only poll if the openDate is not set yet
+    if (openDate === 0) newOpenDate = parseInt(await presale.openDate().toPromise(), 10)
     // only poll if there is a connected user
     if (connectedUser) newUserDaiBalance = new BigNumber(await api.call('balanceOf', connectedUser, address).toPromise())
     // TODO: keep an eye on React 17
     batchedUpdates(() => {
       // only update if values are different
-      if (newStartDate !== polledStartDate) setPolledStartDate(newStartDate)
+      if (newOpenDate !== polledOpenDate) setPolledOpenDate(newOpenDate)
       if (!newUserDaiBalance.eq(userDaiBalance)) setUserDaiBalance(newUserDaiBalance)
     })
   }, 3000)

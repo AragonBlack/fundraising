@@ -31,6 +31,7 @@ const {
   MONTHS,
   PRESALE_GOAL,
   PRESALE_PERIOD,
+  PRESALE_EXCHANGE_RATE,
   VESTING_CLIFF_PERIOD,
   VESTING_COMPLETE_PERIOD,
   PERCENT_SUPPLY_OFFERED,
@@ -51,7 +52,7 @@ const START_DATE = new Date().getTime() + MONTHS
 contract('Fundraising with multisig', ([_, owner, boardMember1, boardMember2]) => {
   let daoID, template, dao, acl, ens, feed
   let shareVoting, boardVoting, boardTokenManager, shareTokenManager, boardToken, shareToken, finance, vault, reserve, presale, marketMaker, tap, controller
-  let COLLATERAL_1, COLLATERAL_2, COLLATERALS
+  let COLLATERALS
 
   const BOARD_MEMBERS = [boardMember1, boardMember2]
 
@@ -77,10 +78,8 @@ contract('Fundraising with multisig', ([_, owner, boardMember1, boardMember2]) =
     template = Template.at(address)
   })
 
-  before('deploy collateral tokens', async () => {
-    COLLATERAL_1 = await TokenMock.new('0xb4124cEB3451635DAcedd11767f004d8a28c6eE7', 1000000000000000000, 'DAI', 'DAI')
-    COLLATERAL_2 = await TokenMock.new('0xb4124cEB3451635DAcedd11767f004d8a28c6eE7', 1000000000000000000, 'ANT', 'ANT')
-    COLLATERALS = [COLLATERAL_1.address, COLLATERAL_2.address]
+  before('fetch collateral tokens', async () => {
+    COLLATERALS = [await template.collaterals(0), await template.collaterals(1)]
   })
 
   context('when the creation fails', () => {
@@ -136,9 +135,9 @@ contract('Fundraising with multisig', ([_, owner, boardMember1, boardMember2]) =
         it('should revert', async () => {
           await assertRevert(() =>
             template.installFundraisingApps(
-              COLLATERALS[0],
               PRESALE_GOAL,
               PRESALE_PERIOD,
+              PRESALE_EXCHANGE_RATE,
               VESTING_CLIFF_PERIOD,
               VESTING_COMPLETE_PERIOD,
               PERCENT_SUPPLY_OFFERED,
@@ -169,7 +168,7 @@ contract('Fundraising with multisig', ([_, owner, boardMember1, boardMember2]) =
       context('when there is no fundraising instance deployed', () => {
         it('should revert', async () => {
           await assertRevert(() =>
-            template.finalizeInstance(COLLATERALS, VIRTUAL_SUPPLIES, VIRTUAL_BALANCES, SLIPPAGES, RATES, FLOORS, {
+            template.finalizeInstance(VIRTUAL_SUPPLIES, VIRTUAL_BALANCES, SLIPPAGES, RATES[0], FLOORS[0], {
               from: owner,
             })
           )
@@ -363,8 +362,8 @@ contract('Fundraising with multisig', ([_, owner, boardMember1, boardMember2]) =
         it('should have reserve / agent app correctly setup', async () => {
           assert.isTrue(await reserve.hasInitialized(), 'reserve / agent not initialized')
 
-          assert.equal(await reserve.protectedTokens(0), COLLATERAL_1.address, 'DAI not protected')
-          assert.equal(await reserve.protectedTokens(1), COLLATERAL_2.address, 'ANT not protected')
+          assert.equal(await reserve.protectedTokens(0), COLLATERALS[0], 'DAI not protected')
+          assert.equal(await reserve.protectedTokens(1), COLLATERALS[1], 'ANT not protected')
 
           await assertRole(acl, reserve, shareVoting, 'SAFE_EXECUTE_ROLE')
           await assertRole(acl, reserve, shareVoting, 'ADD_PROTECTED_TOKEN_ROLE', controller)
@@ -387,16 +386,14 @@ contract('Fundraising with multisig', ([_, owner, boardMember1, boardMember2]) =
           assert.equal(web3.toChecksumAddress(await presale.reserve()), reserve.address)
           assert.equal(web3.toChecksumAddress(await presale.beneficiary()), vault.address)
           assert.equal(web3.toChecksumAddress(await presale.contributionToken()), web3.toChecksumAddress(COLLATERALS[0]))
-          assert.equal((await presale.reserveRatio()).toNumber(), RESERVE_RATIOS[0])
-          assert.equal((await presale.presaleGoal()).toNumber(), PRESALE_GOAL)
-          assert.equal((await presale.presalePeriod()).toNumber(), PRESALE_PERIOD)
+          assert.equal((await presale.goal()).toNumber(), PRESALE_GOAL)
+          assert.equal((await presale.period()).toNumber(), PRESALE_PERIOD)
+          assert.equal((await presale.exchangeRate()).toNumber(), PRESALE_EXCHANGE_RATE)
           assert.equal((await presale.vestingCliffPeriod()).toNumber(), VESTING_CLIFF_PERIOD)
           assert.equal((await presale.vestingCompletePeriod()).toNumber(), VESTING_COMPLETE_PERIOD)
-          assert.equal((await presale.percentSupplyOffered()).toNumber(), PERCENT_SUPPLY_OFFERED)
-          assert.equal((await presale.percentFundingForBeneficiary()).toNumber(), PERCENT_FUNDING_FOR_BENEFICIARY)
-          assert.equal((await presale.startDate()).toNumber(), START_DATE)
-          assert.equal(web3.toChecksumAddress(await presale.collaterals(0)), web3.toChecksumAddress(COLLATERALS[0]))
-          await assertRevert(() => presale.collaterals(1))
+          assert.equal((await presale.supplyOfferedPct()).toNumber(), PERCENT_SUPPLY_OFFERED)
+          assert.equal((await presale.fundingForBeneficiaryPct()).toNumber(), PERCENT_FUNDING_FOR_BENEFICIARY)
+          assert.equal((await presale.openDate()).toNumber(), START_DATE)
 
           await assertRole(acl, presale, shareVoting, 'OPEN_ROLE', controller)
           await assertRole(acl, presale, shareVoting, 'CONTRIBUTE_ROLE', controller)
@@ -415,8 +412,8 @@ contract('Fundraising with multisig', ([_, owner, boardMember1, boardMember2]) =
           assert.equal((await marketMaker.buyFeePct()).toNumber(), 0)
           assert.equal((await marketMaker.sellFeePct()).toNumber(), 0)
 
-          const dai = await marketMaker.getCollateralToken(COLLATERAL_1.address)
-          const ant = await marketMaker.getCollateralToken(COLLATERAL_2.address)
+          const dai = await marketMaker.getCollateralToken(COLLATERALS[0])
+          const ant = await marketMaker.getCollateralToken(COLLATERALS[1])
 
           assert.isTrue(dai[0], 'DAI not whitelisted')
           assert.equal(dai[1].toNumber(), VIRTUAL_SUPPLIES[0], 'DAI virtual supply should be ' + VIRTUAL_SUPPLIES[0])
@@ -452,8 +449,8 @@ contract('Fundraising with multisig', ([_, owner, boardMember1, boardMember2]) =
           assert.equal((await tap.maximumTapRateIncreasePct()).toNumber(), MAXIMUM_TAP_RATE_INCREASE_PCT)
           assert.equal((await tap.maximumTapFloorDecreasePct()).toNumber(), MAXIMUM_TAP_FLOOR_DECREASE_PCT)
 
-          assert.equal((await tap.rates(COLLATERAL_1.address)).toNumber(), RATES[0], 'DAI tap rate should be ' + RATES[0])
-          assert.equal((await tap.floors(COLLATERAL_1.address)).toNumber(), FLOORS[0], 'DAI tap floor should be ' + FLOORS[0])
+          assert.equal((await tap.rates(COLLATERALS[0])).toNumber(), RATES[0], 'DAI tap rate should be ' + RATES[0])
+          assert.equal((await tap.floors(COLLATERALS[0])).toNumber(), FLOORS[0], 'DAI tap floor should be ' + FLOORS[0])
 
           await assertRole(acl, tap, shareVoting, 'UPDATE_BENEFICIARY_ROLE', controller)
           await assertRole(acl, tap, shareVoting, 'UPDATE_MAXIMUM_TAP_RATE_INCREASE_PCT_ROLE', controller)
@@ -475,6 +472,8 @@ contract('Fundraising with multisig', ([_, owner, boardMember1, boardMember2]) =
           assert.equal(web3.toChecksumAddress(await controller.marketMaker()), marketMaker.address)
           assert.equal(web3.toChecksumAddress(await controller.reserve()), reserve.address)
           assert.equal(web3.toChecksumAddress(await controller.tap()), tap.address)
+          assert.equal(await controller.toReset(0), COLLATERALS[0])
+          await assertRevert(() => controller.toReset(1))
 
           await assertRole(acl, controller, shareVoting, 'UPDATE_BENEFICIARY_ROLE')
           await assertRole(acl, controller, shareVoting, 'UPDATE_FEES_ROLE')
@@ -483,8 +482,8 @@ contract('Fundraising with multisig', ([_, owner, boardMember1, boardMember2]) =
           await assertRole(acl, controller, shareVoting, 'UPDATE_COLLATERAL_TOKEN_ROLE')
           await assertRole(acl, controller, shareVoting, 'UPDATE_MAXIMUM_TAP_RATE_INCREASE_PCT_ROLE')
           await assertRole(acl, controller, shareVoting, 'UPDATE_MAXIMUM_TAP_FLOOR_DECREASE_PCT_ROLE')
+          await assertRole(acl, controller, shareVoting, 'ADD_TOKEN_TAP_ROLE')
           await assertRole(acl, controller, shareVoting, 'UPDATE_TOKEN_TAP_ROLE')
-          await assertRole(acl, controller, shareVoting, 'RESET_TOKEN_TAP_ROLE', presale)
           await assertRole(acl, controller, shareVoting, 'OPEN_PRESALE_ROLE', boardVoting)
           await assertRole(acl, controller, shareVoting, 'OPEN_TRADING_ROLE', presale)
           await assertRole(acl, controller, shareVoting, 'CONTRIBUTE_ROLE', ANY_ADDRESS)
@@ -505,9 +504,9 @@ contract('Fundraising with multisig', ([_, owner, boardMember1, boardMember2]) =
           from: owner,
         })
         fundraisingReceipt = await template.installFundraisingApps(
-          COLLATERALS[0],
           PRESALE_GOAL,
           PRESALE_PERIOD,
+          PRESALE_EXCHANGE_RATE,
           VESTING_CLIFF_PERIOD,
           VESTING_COMPLETE_PERIOD,
           PERCENT_SUPPLY_OFFERED,
@@ -520,7 +519,7 @@ contract('Fundraising with multisig', ([_, owner, boardMember1, boardMember2]) =
             from: owner,
           }
         )
-        finalizationReceipt = await template.finalizeInstance(COLLATERALS, VIRTUAL_SUPPLIES, VIRTUAL_BALANCES, SLIPPAGES, RATES, FLOORS, {
+        finalizationReceipt = await template.finalizeInstance(VIRTUAL_SUPPLIES, VIRTUAL_BALANCES, SLIPPAGES, RATES[0], FLOORS[0], {
           from: owner,
         })
 

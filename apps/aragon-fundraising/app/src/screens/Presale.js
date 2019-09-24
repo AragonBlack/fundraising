@@ -12,7 +12,7 @@ export default () => {
   // background script state
   // *****************************
   const {
-    presale: { state, presalePeriod, vestingCliffPeriod, vestingCompletePeriod },
+    presale: { state, period, vestingCliffPeriod, vestingCompletePeriod },
   } = useAppState()
   const presaleEnded = state !== Presale.state.PENDING && state !== Presale.state.FUNDING
 
@@ -24,11 +24,11 @@ export default () => {
   // *****************************
   // context state
   // *****************************
-  const { startDate } = useContext(PresaleViewContext)
-  const noStartDate = state === Presale.state.PENDING && startDate === 0
-  const endDate = addMilliseconds(startDate, presalePeriod)
-  const vestingCliffDate = addMilliseconds(startDate, vestingCliffPeriod)
-  const vestingCompleteDate = addMilliseconds(startDate, vestingCompletePeriod)
+  const { openDate } = useContext(PresaleViewContext)
+  const noOpenDate = state === Presale.state.PENDING && openDate === 0
+  const endDate = addMilliseconds(openDate, period)
+  const vestingCliffDate = addMilliseconds(openDate, vestingCliffPeriod)
+  const vestingCompleteDate = addMilliseconds(openDate, vestingCompletePeriod)
 
   /**
    * Calls the `presale.open` smart contarct function on button click
@@ -58,7 +58,7 @@ export default () => {
         <div className="left">
           <PresaleGoal />
           <Box heading="Fundraising Period">
-            {noStartDate && (
+            {noOpenDate && (
               <Button mode="strong" label="Open the presale" onClick={handleOpenPresale}>
                 Open the presale
               </Button>
@@ -70,7 +70,7 @@ export default () => {
             )}
             {presaleEnded && <p css="color: #212B36; font-size: 16px; margin-bottom: 0.5rem;">Presale closed</p>}
             {state === Presale.state.FUNDING && <p css="color: #637381; font-size: 16px; margin-bottom: 0.5rem;">Time remaining</p>}
-            {(!noStartDate || presaleEnded) && <Countdown end={endDate} />}
+            {(!noOpenDate || presaleEnded) && <Countdown end={endDate} />}
           </Box>
         </div>
         <div className="right">
@@ -80,31 +80,31 @@ export default () => {
                 <p className="title">Presale</p>
                 <div className="dot" />
                 <div className="line" />
-                {startDate !== 0 && <DateBadge>{startDate}</DateBadge>}
+                {openDate !== 0 && <DateBadge>{openDate}</DateBadge>}
                 <p className="text">Patreons can buy presale tokens</p>
               </div>
               <div>
                 <p className="title">FUNDRAISING PERIOD ENDS</p>
                 <div className="dot" />
-                {startDate !== 0 && <DateBadge>{endDate}</DateBadge>}
+                {openDate !== 0 && <DateBadge>{endDate}</DateBadge>}
                 <p className="text">Fundraising app is inicialized</p>
               </div>
               <div>
                 <p className="title">OPEN TRADING</p>
                 <div className="dot" />
-                {startDate !== 0 && <DateBadge>{endDate}</DateBadge>}
+                {openDate !== 0 && <DateBadge>{endDate}</DateBadge>}
                 <p className="text">The fundraising trading is open</p>
               </div>
               <div>
                 <p className="title">CLIFF PERIOD ENDS</p>
                 <div className="dot" />
-                {startDate !== 0 && <DateBadge>{vestingCliffDate}</DateBadge>}
+                {openDate !== 0 && <DateBadge>{vestingCliffDate}</DateBadge>}
                 <p className="text">Patreons can start claiming their vested tokens</p>
               </div>
               <div>
                 <p className="title">VESTING PERIOD ENDS</p>
                 <div className="dot" />
-                {startDate !== 0 && <DateBadge>{vestingCompleteDate}</DateBadge>}
+                {openDate !== 0 && <DateBadge>{vestingCompleteDate}</DateBadge>}
                 <p className="text">Patreons can start claiming their vested tokens</p>
               </div>
             </div>

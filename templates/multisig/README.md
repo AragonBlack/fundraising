@@ -40,6 +40,76 @@ Shareholders decide on whether / how beneficiary, fees, collateralization settin
 
 This architecture grants [most of] the governance rights to shareholders [to protect their investment]. There is thus a need to mitigate situations where a shareholder owning more than 50% of the shares would own the whole organization. This is why `SHARE` based votes [_i.e._ most of the organization decisions] can only be open and initiated by the board.
 
+
+## Usage
+
+### Prepare instance
+> Deploy a DAO and install all board related apps
+
+```
+template.prepareInstance(boardTokenName, boardTokenSymbol, boardMembers, boardVotingsSettings, financePeriod)
+```
+
+- **boardTokenName** Name for the token used by the board
+- **boardTokenSymbol** Symbol for the token used by the board
+- **boardMembers** Array of board members addresses
+- **boardVotingSettings:** Array of [supportRequired, minAcceptanceQuorum, voteDuration] to set up the board voting app [multisig]
+- **financePeriod** Initial duration for accounting periods of the boards discretionnary vault [it can be set to zero in order to use the default of 30 days]
+
+### Install share apps
+
+```
+template.installShareApps(id, shareTokenName, shareTokenSymbol, shareVotingsSettings)
+```
+
+- **id** Id for org, will assign [id].aragonid.eth
+- **shareTokenName** Name for the token used by the shareholders [the bonded token]
+- **shareTokenSymbol** Symbol for the token used by shareholders [the bonded token]
+- **shareVotingSettings:** Array of [supportRequired, minAcceptanceQuorum, voteDuration] to set up the shareholders voting app [multisig]
+
+### Install fundraising apps
+
+```
+template.installFundraisingApps(
+    goal,
+    period,
+    exchangeRate,
+    vestingCliffPeriod,
+    vestingCompletePeriod,
+    supplyOfferedPct,
+    fundingForBeneficiaryPct,
+    openDate,
+    batchBlocks,
+    maximumTapRateIncreasePct,
+    maximumTapFloorDecreasePct
+)
+```
+
+- **goal** The presale goal
+- **period** The presale period
+- **exchangeRate** The presale exchange rate [in PPM]
+- **vestingCliffPeriod** The cliff period for vested shares purchased during presale
+- **vestingCompletePeriod** The complete period for vested shares purchased during presale
+- **supplyOfferedPct** The percentage of the initial token supply offered to presale's contributors
+- **fundingForBeneficiaryPct** The percentage of the presale raised funds which are to be transferred to the board's discretionnary vault
+- **openDate** The date upon which the presale will be open [if 0, the presale can be open manually later]
+- **batchBlocks** The number of blocks trading batches will last
+- **maximumTapRateIncreasePct** The maximum percentage tap rates can be increased at once
+- **maximumTapRateIncreasePct** The maximum percentage tap floors can be decreased at once
+
+### Finalize instance
+> Set collateralization settings
+
+```
+template.finalizeInstance(virtualSupplies, virtualBalances, slippages, daiRate, daiFloor)
+```
+
+- **virtualSupplies** Array of [daiVirtualSupply, antVirtualSupply] to set up the market maker
+- **virtualBalances** Array of [daiVirtualBalance, antVirtualBalance] to set up the market maker
+- **slippages** Array of [daiMaxSlippage, antMaxSlippage] to set up the maximum per-batch price slippage in the market maker
+- **daiRate** The rate at which DAIs are to be tapped
+- **daiFloor** The floor above which the DAI reserve pool is to be kept
+
 ## Permissions
 
 ### System
@@ -181,8 +251,8 @@ _API contract forwarding transactions to relevant contracts_
 | Controller | UPDATE_COLLATERAL_TOKEN               | Voting `[SHARE]` | Voting `[SHARE]` |
 | Controller | UPDATE_MAXIMUM_TAP_RATE_INCREASE_PCT  | Voting `[SHARE]` | Voting `[SHARE]` |
 | Controller | UPDATE_MAXIMUM_TAP_FLOOR_DECREASE_PCT | Voting `[SHARE]` | Voting `[SHARE]` |
+| Controller | ADD_TOKEN_TAP                         | Voting `[SHARE]` | Voting `[SHARE]` |
 | Controller | UPDATE_TOKEN_TAP                      | Voting `[SHARE]` | Voting `[SHARE]` |
-| Controller | RESET_TOKEN_TAP                       | Presale          | Voting `[SHARE]` |
 | Controller | OPEN_PRESALE                          | Voting `[BOARD]` | Voting `[SHARE]` |
 | Controller | OPEN_TRADING                          | Presale          | Voting `[SHARE]` |
 | Controller | CONTRIBUTE                            | Any              | Voting `[SHARE]` |
