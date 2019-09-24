@@ -202,6 +202,12 @@ All values coming from the event, except `ppm` which can be found on the backgro
             "name": String,
             "decimals": Number,
         },
+        "token": {
+            "address": String,
+            "symbol": String,
+            "name": String,
+            "decimals": Number,
+        },
         "startDate": Date, // "timestamp, also polled from the frontend"
         "presalePeriod": Number,
         "vestingCliffPeriod": Number,

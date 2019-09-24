@@ -1,106 +1,117 @@
-import React from 'react'
+import React, { useContext } from 'react'
+import { useAppState, useApi } from '@aragon/api-react'
 import styled from 'styled-components'
-import { Badge, Box, Countdown, SafeLink, Button, BREAKPOINTS } from '@aragon/ui'
-import CircleGraph from '../components/CircleGraph'
+import { Badge, Box, Button, Countdown, BREAKPOINTS } from '@aragon/ui'
+import addMilliseconds from 'date-fns/addMilliseconds'
+import { PresaleViewContext } from '../context'
+import PresaleGoal from '../components/PresaleGoal'
+import { Presale } from '../constants'
 
-export default ({ state }) => {
-  const DAY_IN_MS = 1000 * 60 * 60 * 24
-  const endDate = new Date(Date.now() + 5 * DAY_IN_MS)
-  const circleColor = { default: '#21c1e7', success: '#2CC68F', failure: '#FF6969' }
+export default () => {
+  // *****************************
+  // background script state
+  // *****************************
+  const {
+    presale: { state, presalePeriod, vestingCliffPeriod, vestingCompletePeriod },
+  } = useAppState()
+  const presaleEnded = state !== Presale.state.PENDING && state !== Presale.state.FUNDING
+
+  // *****************************
+  // aragon api
+  // *****************************
+  const api = useApi()
+
+  // *****************************
+  // context state
+  // *****************************
+  const { startDate } = useContext(PresaleViewContext)
+  const noStartDate = state === Presale.state.PENDING && startDate === 0
+  const endDate = addMilliseconds(startDate, presalePeriod)
+  const vestingCliffDate = addMilliseconds(startDate, vestingCliffPeriod)
+  const vestingCompleteDate = addMilliseconds(startDate, vestingCompletePeriod)
+
+  /**
+   * Calls the `presale.open` smart contarct function on button click
+   * @returns {void}
+   */
+  const handleOpenPresale = () => {
+    api
+      .openPresale()
+      .toPromise()
+      .catch(console.error)
+  }
+
+  /**
+   * Calls the `presale.close` smart contarct function on button click
+   * @returns {void}
+   */
+  const handleClosePresale = () => {
+    api
+      .closePresale()
+      .toPromise()
+      .catch(console.error)
+  }
 
   return (
-    <Container>
-      <div className="left">
-        <Box heading="Fundraising Goal">
-          <div className="circle">
-            <CircleGraph value={1 / 3} size={224} width={6} color={circleColor[state]} />
-            {state !== 'success' && (
+    <>
+      <Container>
+        <div className="left">
+          <PresaleGoal />
+          <Box heading="Fundraising Period">
+            {noStartDate && (
+              <Button mode="strong" label="Open the presale" onClick={handleOpenPresale}>
+                Open the presale
+              </Button>
+            )}
+            {state === Presale.state.CLOSED && (
+              <Button mode="strong" label="Open the presale" onClick={handleClosePresale}>
+                Open the trading
+              </Button>
+            )}
+            {presaleEnded && <p css="color: #212B36; font-size: 16px; margin-bottom: 0.5rem;">Presale closed</p>}
+            {state === Presale.state.FUNDING && <p css="color: #637381; font-size: 16px; margin-bottom: 0.5rem;">Time remaining</p>}
+            {(!noStartDate || presaleEnded) && <Countdown end={endDate} />}
+          </Box>
+        </div>
+        <div className="right">
+          <Box heading="Fundraising Timeline" padding={false}>
+            <div className="timeline">
               <div>
-                <p css="color: #212B36; display: inline;">10,766</p> DAI of <p css="color: #212B36; display: inline;">40,000</p> DAI
+                <p className="title">Presale</p>
+                <div className="dot" />
+                <div className="line" />
+                {startDate !== 0 && <DateBadge>{startDate}</DateBadge>}
+                <p className="text">Patreons can buy presale tokens</p>
               </div>
-            )}
-            {state === 'success' && (
-              <>
-                <p>Target goal completed! 🎉</p>
-                <Button wide mode="strong" label="Open Trading" css="margin-top: 1rem; width: 100%;" onClick={() => console.log('asdasd')}>
-                  Open Trading
-                </Button>
-              </>
-            )}
-            {state === 'failure' && (
-              <>
-                <p css="color: #212B36; font-weight: 300; font-size: 16px;">Unfortunately, the target goal for this project has not been reached.</p>
-                <Button wide mode="strong" label="Refund Presale Tokens" css="margin-top: 1rem; width: 100%;" onClick={() => console.log('asdasd')}>
-                  Refund Presale Tokens
-                </Button>
-              </>
-            )}
-          </div>
-        </Box>
-        <Box heading="Fundraising Period">
-          {state === 'default' && <p css="color: #637381; font-size: 16px; margin-bottom: 0.5rem;">Time remaining</p>}
-          {state !== 'default' && <p css="color: #212B36; font-size: 16px; margin-bottom: 0.5rem;">Presale closed</p>}
-          <Countdown end={endDate} />
-        </Box>
-      </div>
-      <div className="right">
-        <Box heading="Description">
-          Neufund provides an end-to-end solution for asset tokenization and issuance. Its open-source set of protocols for enhanced ownership allows anyone to
-          give real-world assets a representation on the Ethereum Blockchain in form of legally-binding security tokens. The first application of our company’s
-          tech and legal architecture are “Equity Tokens” which enable companies to conduct regulated offerings on Blockchain. You can read more about our
-          progress on{' '}
-          <SafeLink href="http://www.neufund.org" target="_blank">
-            www.neufund.org
-          </SafeLink>
-          .
-        </Box>
-        <Box heading="Fundraising Timeline" padding={false}>
-          <div className="timeline">
-            <div>
-              <p className="title">Presale</p>
-              <div className="dot" />
-              <div className="line" />
-              <Badge foreground="#4D22DF" background="rgba(204, 189, 244, 0.16)">
-                22/08/2019
-              </Badge>
-              <p className="text">Patreons can buy presale tokens</p>
+              <div>
+                <p className="title">FUNDRAISING PERIOD ENDS</p>
+                <div className="dot" />
+                {startDate !== 0 && <DateBadge>{endDate}</DateBadge>}
+                <p className="text">Fundraising app is inicialized</p>
+              </div>
+              <div>
+                <p className="title">OPEN TRADING</p>
+                <div className="dot" />
+                {startDate !== 0 && <DateBadge>{endDate}</DateBadge>}
+                <p className="text">The fundraising trading is open</p>
+              </div>
+              <div>
+                <p className="title">CLIFF PERIOD ENDS</p>
+                <div className="dot" />
+                {startDate !== 0 && <DateBadge>{vestingCliffDate}</DateBadge>}
+                <p className="text">Patreons can start claiming their vested tokens</p>
+              </div>
+              <div>
+                <p className="title">VESTING PERIOD ENDS</p>
+                <div className="dot" />
+                {startDate !== 0 && <DateBadge>{vestingCompleteDate}</DateBadge>}
+                <p className="text">Patreons can start claiming their vested tokens</p>
+              </div>
             </div>
-            <div>
-              <p className="title">FUNDRAISING PERIOD ENDS</p>
-              <div className="dot" />
-              <Badge foreground="#4D22DF" background="rgba(204, 189, 244, 0.16)">
-                01/09/2019
-              </Badge>
-              <p className="text">Fundraising app is inicialized</p>
-            </div>
-            <div>
-              <p className="title">OPEN TRADING</p>
-              <div className="dot" />
-              <Badge foreground="#4D22DF" background="rgba(204, 189, 244, 0.16)">
-                01/09/2019
-              </Badge>
-              <p className="text">The fundraising trading is open</p>
-            </div>
-            <div>
-              <p className="title">CLIFF PERIOD ENDS</p>
-              <div className="dot" />
-              <Badge foreground="#4D22DF" background="rgba(204, 189, 244, 0.16)">
-                01/09/2019
-              </Badge>
-              <p className="text">Patreons can start claiming their vested tokens</p>
-            </div>
-            <div>
-              <p className="title">VESTING PERIOD ENDS</p>
-              <div className="dot" />
-              <Badge foreground="#4D22DF" background="rgba(204, 189, 244, 0.16)">
-                01/09/2019
-              </Badge>
-              <p className="text">Patreons can start claiming their vested tokens</p>
-            </div>
-          </div>
-        </Box>
-      </div>
-    </Container>
+          </Box>
+        </div>
+      </Container>
+    </>
   )
 }
 
@@ -276,3 +287,9 @@ const Container = styled.div`
     }
   }
 `
+
+const DateBadge = ({ children }) => (
+  <Badge foreground="#4D22DF" background="rgba(204, 189, 244, 0.16)">
+    {new Date(children).toLocaleDateString()}
+  </Badge>
+)

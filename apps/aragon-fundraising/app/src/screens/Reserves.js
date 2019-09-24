@@ -201,7 +201,6 @@ export default () => {
     // check if it's a floor increase
     const isFloorIncrease = toDecimals(newFloor, daiDecimals).gte(floor)
     // check if the floor decrease respects the max floor decrease
-    console.log(formatBigNumber(floor.minus(floor.times(adjustedFloorDecrease)), 18))
     const regularFloorDecrease = toDecimals(newFloor, daiDecimals).gte(floor.minus(floor.times(adjustedFloorDecrease)))
     // updating floor is valid if:
     // - it's an increase
