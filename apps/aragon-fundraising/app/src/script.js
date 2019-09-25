@@ -138,7 +138,9 @@ const initialize = async (poolAddress, tapAddress, marketMakerAddress, presaleAd
         case 'SetOpenDate':
           return setOpenDate(nextState, returnValues, settings)
         case 'Contribute':
-          return updateTotalRaised(nextState, settings)
+          return addContribution(nextState, returnValues, settings, blockNumber)
+        case 'Refund':
+          return removeContribution(nextState, returnValues)
         default:
           return nextState
       }
@@ -299,6 +301,7 @@ const loadDefaultValues = state => {
     collaterals: new Map(),
     orders: [],
     batches: [],
+    contributions: new Map(),
     ...state,
   }
 }
@@ -508,19 +511,42 @@ const setOpenDate = async (state, { date }, { presale }) => {
     },
   }
 }
-
-const updateTotalRaised = async (state, { presale }) => {
+const addContribution = async (state, { contributor, value, amount, vestedPurchaseId }, { presale }, blockNumber) => {
   // we call `presale.contract.totalRaised` instead of directly to the claculation here
   // because we can't make BigNumber calculations from the background script
   // and pass it to the fronted
-  const totalRaised = await presale.contract.totalRaised().toPromise()
+  const [totalRaised, timestamp] = await Promise.all([presale.contract.totalRaised().toPromise(), loadTimestamp(blockNumber)])
+  // get the user contributions and push the new one
+  const contributions = cloneDeep(state.contributions)
+  const userContributions = contributions.get(contributor) || []
+  userContributions.push({
+    value,
+    amount,
+    vestedPurchaseId,
+    timestamp,
+  })
+  contributions.set(contributor, userContributions)
   return {
     ...state,
     presale: {
       ...state.presale,
       totalRaised,
     },
+    contributions,
   }
+}
+
+const removeContribution = (state, { contributor, value, amount, vestedPurchaseId }) => {
+  const contributions = cloneDeep(state.contributions)
+  const userContributions = contributions.get(contributor)
+  if (userContributions) {
+    const newUserContributions = userContributions.filter(c => c.vestedPurchaseId !== vestedPurchaseId)
+    contributions.set(contributor, newUserContributions)
+    return {
+      ...state,
+      contributions,
+    }
+  } else return state
 }
 
 /***********************

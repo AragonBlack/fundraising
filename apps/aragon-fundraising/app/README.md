@@ -216,6 +216,12 @@ All values coming from the event, except `ppm` which can be found on the backgro
         "goal": BigNumber,
         "totalRaised": BigNumber // "polled from the frontend"
     },
+    "contributions": Map("contributor": String, [{
+        "value": String, // not computed as BigNumber, only when presale state is REFUNDING
+        "amount": String, // not computed as BigNumber, only when presale state is REFUNDING
+        "vestedPurchaseId": String,
+        "timestamp": Number
+    }]),
     "collaterals": {
         "dai": {
             "address": String,

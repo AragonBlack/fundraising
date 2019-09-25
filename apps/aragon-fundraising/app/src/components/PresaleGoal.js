@@ -1,7 +1,8 @@
-import React from 'react'
+import React, { useContext } from 'react'
+import { useAppState, useApi } from '@aragon/api-react'
 import { Box, Button } from '@aragon/ui'
 import CircleGraph from '../components/CircleGraph'
-import { useAppState } from '@aragon/api-react'
+import { PresaleViewContext } from '../context'
 import { Presale } from '../constants'
 import { formatBigNumber } from '../utils/bn-utils'
 
@@ -11,7 +12,6 @@ export default () => {
   // *****************************
   const {
     presale: {
-      state,
       contributionToken: { symbol, decimals },
       goal,
       totalRaised,
@@ -25,6 +25,27 @@ export default () => {
     [Presale.state.REFUNDING]: '#FF6969',
   }
 
+  // *****************************
+  // aragon api
+  // *****************************
+  const api = useApi()
+
+  // *****************************
+  // context state
+  // *****************************
+  const { state, setRefundPanel } = useContext(PresaleViewContext)
+
+  /**
+   * Calls the `presale.close` smart contarct function on button click
+   * @returns {void}
+   */
+  const handleClosePresale = () => {
+    api
+      .closePresale()
+      .toPromise()
+      .catch(console.error)
+  }
+
   return (
     <Box heading="Fundraising Goal">
       <div className="circle">
@@ -36,7 +57,7 @@ export default () => {
         {state === Presale.state.GOAL_REACHED && (
           <>
             <p>Target goal completed! 🎉</p>
-            <Button wide mode="strong" label="Open Trading" css="margin-top: 1rem; width: 100%;" onClick={() => console.log('asdasd')}>
+            <Button wide mode="strong" label="Open Trading" css="margin-top: 1rem; width: 100%;" onClick={handleClosePresale}>
               Open Trading
             </Button>
           </>
@@ -44,7 +65,7 @@ export default () => {
         {state === Presale.state.REFUNDING && (
           <>
             <p css="color: #212B36; font-weight: 300; font-size: 16px;">Unfortunately, the target goal for this project has not been reached.</p>
-            <Button wide mode="strong" label="Refund Presale Tokens" css="margin-top: 1rem; width: 100%;" onClick={() => console.log('asdasd')}>
+            <Button wide mode="strong" label="Refund Presale Tokens" css="margin-top: 1rem; width: 100%;" onClick={() => setRefundPanel(true)}>
               Refund Presale Tokens
             </Button>
           </>

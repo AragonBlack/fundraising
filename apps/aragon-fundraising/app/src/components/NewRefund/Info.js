@@ -13,7 +13,10 @@ const Info = () => {
       `}
     >
       <p css="font-weight: 700;">Info</p>
-      <p>In case this presale goal is not reached in time, you can come back and get a refund.</p>
+      <p>
+        The presale did not reach its goal. You can thus request for your contributions to get refunded. If you have made multiple contributions, you should
+        request to get refunded for each of them.
+      </p>
     </div>
   )
 }
