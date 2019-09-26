@@ -1,18 +1,19 @@
 # Table of contents
 
-* [Introduction](README.md)
+* [Aragon Fundraising](README.md)
 
 ## Overview
 
 * [Introduction](overview/introduction.md)
 * [Bonding Curve](overview/bonding-curve.md)
+* [Governance](overview/governance.md)
 
 ## Components
 
-* [Overview](components/overview.md)
-* [Governance](components/governance.md)
 * [Pre-sale](components/pre-sale.md)
 * [Tap](components/tap.md)
+* [Market Maker](components/market-maker.md)
+* [Controller](components/controller.md)
 
 ## How-to
 
