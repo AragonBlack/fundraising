@@ -58,7 +58,6 @@ export default () => {
   // *****************************
   // human readable values
   // *****************************
-  //
   // numbers
   const adjustedPrice = price ? formatBigNumber(price, 0, { numberPrefix: '$' }) : '...'
   const marketCap = price ? price.times(realSupply) : null
@@ -76,12 +75,27 @@ export default () => {
   const adjustedReserves = realReserve ? formatBigNumber(realReserve, daiDecimals, { numberPrefix: '$' }) : '...'
   const adjustedMonthlyAllowance = formatBigNumber(toMonthlyAllocation(rate, daiDecimals), daiDecimals, { numberPrefix: '$' })
   const adjustedYearlyAllowance = formatBigNumber(toMonthlyAllocation(rate, daiDecimals).times(12), daiDecimals, { numberPrefix: '$' })
-  //
+
   // trends
+  /**
+   * Util to get the percentage variation
+   * @param {BigNumber} start - start of variation calculation
+   * @param {BigNumber} end - end of variation calculation
+   * @returns {BigNumber} the variation in percents
+   */
+  const variation = (start, end) => {
+    return end
+      .minus(start)
+      .div(start)
+      .times(100)
+  }
   const adjustedPriceTrend =
     price && trendBatch?.startPrice ? formatBigNumber(price.minus(trendBatch.startPrice), 0, { keepSign: true, numberPrefix: '$' }) : null
+  const adjustedPriceTrendPct =
+    price && trendBatch?.startPrice ? formatBigNumber(variation(trendBatch.startPrice, price), 0, { keepSign: true, numberSuffix: '%' }) : null
   // if startPrice is here, realSupply too, since NewMetaBatch event occurs before NewBatch one
-  const marketCapDiff = marketCap && trendBatch?.startPrice ? marketCap.minus(trendBatch.startPrice.times(trendBatch.realSupply)) : null
+  const trendBatchMarketCap = marketCap && trendBatch?.startPrice ? trendBatch.startPrice.times(trendBatch.realSupply) : null
+  const marketCapDiff = marketCap && trendBatch?.startPrice ? marketCap.minus(trendBatchMarketCap) : null
   const adjustedMarketCapTrend = marketCapDiff ? formatBigNumber(marketCapDiff, daiDecimals, { keepSign: true, numberPrefix: '$' }) : null
   const tradingTrendVolume = trendBatch?.id
     ? orders
@@ -98,8 +112,6 @@ export default () => {
     reserveBalance && trendBatch?.realBalance
       ? formatBigNumber(realReserve.minus(trendBatch.realBalance), tokenDecimals, { keepSign: true, numberPrefix: '$' })
       : null
-  // helper to compute the trend color (green if positive, red if negative)
-  const getTrendColor = value => (value ? (value.startsWith('+') ? 'green' : 'red') : 'none')
 
   return (
     <div>
@@ -113,42 +125,54 @@ export default () => {
               <p className="title">Price</p>
               <p className="number">{adjustedPrice}</p>
             </div>
-            <p className={`sub-number ${getTrendColor(adjustedPriceTrend)}`}>{adjustedPriceTrend} (M)</p>
+            <div>
+              <Trend value={adjustedPriceTrend ? `${adjustedPriceTrend} / ${adjustedPriceTrendPct}` : null} suffix="M" />
+            </div>
           </li>
           <li>
             <div>
               <p className="title">Market Cap</p>
               <p className="number">{adjustedMarketCap}</p>
             </div>
-            <p className={`sub-number ${getTrendColor(adjustedMarketCapTrend)}`}>{adjustedMarketCapTrend} (M)</p>
+            <div>
+              <Trend value={adjustedMarketCapTrend} suffix="M" />
+            </div>
           </li>
           <li>
             <div>
               <p className="title">Trading Volume</p>
               <p className="number">{adjustedTradingVolume}</p>
             </div>
-            <p className={`sub-number ${getTrendColor(adjustedTradingVolumeTrend)}`}>{adjustedTradingVolumeTrend} (M)</p>
+            <div>
+              <Trend value={adjustedTradingVolumeTrend} suffix="M" />
+            </div>
           </li>
           <li>
             <div>
               <p className="title">Token Supply</p>
               <p className="number">{adjustedTokenSupply}</p>
             </div>
-            <p className={`sub-number ${getTrendColor(adjustedTokenSupplyTrend)}`}>{adjustedTokenSupplyTrend} (M)</p>
+            <div>
+              <Trend value={adjustedTokenSupplyTrend} suffix="M" />
+            </div>
           </li>
           <li>
             <div>
               <p className="title">Reserves</p>
               <p className="number">{adjustedReserves}</p>
             </div>
-            <p className={`sub-number ${getTrendColor(adjustedReservesTrend)}`}>{adjustedReservesTrend} (M)</p>
+            <div>
+              <Trend value={adjustedReservesTrend} suffix="M" />
+            </div>
           </li>
           <li>
             <div>
               <p className="title">Monthly Allowance</p>
               <p className="number">{adjustedMonthlyAllowance}</p>
             </div>
-            <p className="sub-number green">{adjustedYearlyAllowance} (Y)</p>
+            <div>
+              <Trend value={adjustedYearlyAllowance} suffix="Y" />
+            </div>
           </li>
         </ul>
         <Info css="margin: 1rem; margin-top: 0; width: auto; display: inline-block;">
@@ -198,6 +222,10 @@ const KeyMetrics = styled(Box)`
       margin-right: 0.5rem;
     }
 
+    div:last-child {
+      display: flex;
+    }
+
     .title {
       display: flex;
       font-size: 16px;
@@ -215,6 +243,10 @@ const KeyMetrics = styled(Box)`
 
     .sub-number {
       font-size: 16px;
+      span {
+        font-weight: 300;
+        color: #dadada;
+      }
     }
   }
 
@@ -232,6 +264,13 @@ const KeyMetrics = styled(Box)`
       padding: 1rem;
       border-bottom: 1px solid #dde4e9;
 
+      div:last-child {
+        align-self: flex-end;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+      }
+
       .number {
         margin-bottom: 0;
       }
@@ -242,3 +281,13 @@ const KeyMetrics = styled(Box)`
     }
   }
 `
+
+const Trend = ({ value, suffix }) => {
+  // helper to compute the trend color (green if positive, red if negative)
+  const getTrendColor = value => (value ? (value.startsWith('-') ? 'red' : 'green') : 'none')
+  return (
+    <p className={`sub-number ${getTrendColor(value)}`}>
+      {value} <span>({suffix})</span>
+    </p>
+  )
+}
