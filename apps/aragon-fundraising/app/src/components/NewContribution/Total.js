@@ -36,7 +36,7 @@ export default ({ value, onError }) => {
     const valueBn = toDecimals(value, contributionDecimals)
     if (userDaiBalance.lt(valueBn)) {
       // cannot buy more than your own balance
-      setFormattedValue(formatBigNumber(value, 0))
+      setFormattedValue(formatBigNumber(valueBn, contributionDecimals))
       setEvaluatedPrice(null)
       onError(false, `Your ${contributionSymbol} balance is not sufficient`)
     } else if (value?.length && value > 0) {
