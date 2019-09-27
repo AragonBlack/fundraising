@@ -33,15 +33,16 @@ export default ({ value, onError }) => {
   // *****************************
   // recalculate price when amount changed
   useEffect(() => {
-    if (userDaiBalance.lt(toDecimals(value, contributionDecimals))) {
+    const valueBn = toDecimals(value, contributionDecimals)
+    if (userDaiBalance.lt(valueBn)) {
       // cannot buy more than your own balance
       setFormattedValue(formatBigNumber(value, 0))
       setEvaluatedPrice(null)
       onError(false, `Your ${contributionSymbol} balance is not sufficient`)
     } else if (value?.length && value > 0) {
       // only try to evaluate when an amount is entered, and valid
-      setFormattedValue(formatBigNumber(value, 0))
-      setEvaluatedPrice(formatBigNumber(exchangeRate.times(value), decimals))
+      setFormattedValue(formatBigNumber(valueBn, contributionDecimals))
+      setEvaluatedPrice(formatBigNumber(exchangeRate.times(valueBn), decimals))
       onError(true, null)
     } else {
       // if input is empty, reset to default values and disable order button
