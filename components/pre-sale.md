@@ -28,9 +28,33 @@ The pre-sale screens enables an individual/DAO to configure it's pre-sale terms,
 * **Upfront Costs:** An allocation for upfront investments by the DAO that will be left out of the bonding curve mechanism.
 * **Fundraising schedule Preview:** token supply and pice 
 
-\(TO BE REVISED\) Based on some of our user testing and research the following preliminary observations are to be considered when setting up a bonding curve:
+Once the fundraising terms have been configured the pre-sale terms are shown in the DAO's Fundraising app page.
 
-* The first period of a project is market by high amount of staking due to growth potential and excitement around a project
-* In the medium to long run the share of revenue on total amount in the reserves must increase to account for a smaller growth rate.
-* Depending on which % of project revenue goes to the tap, the tap rate etc... tap can be higher than revenue at the start to allow for outlet expenses and lower in the long run. Then tap can be increased/decreased.
+![](../.gitbook/assets/capture-de-cran-2019-09-27-a-12.03.02.png)
+
+Members of the DAO can then click the "Open the pre-sale" button to initiate a vote of BOARD token members.
+
+![](../.gitbook/assets/capture-de-cran-2019-09-27-a-12.04.26.png)
+
+![](../.gitbook/assets/capture-de-cran-2019-09-27-a-12.04.55.png)
+
+If by the end of the Voting period a majority of BOARD token members have voted "Yes" the Fundraising campaign starts.
+
+![](../.gitbook/assets/capture-de-cran-2019-09-27-a-12.06.04.png)
+
+The presale then starts and Fundraising Period window shows the time remaining in the presale while Fundraising timeline displays various informations relate to the sales start and end, trading, cliff period and vesting period.
+
+At this point Patreons can buy Presale Tokens by clicking on the "Buy Presale Tokens" button. This will open a side panel where the patreon can imput the amount of contribution tokens \(DAI and ETH\)  they want to spend in return for SHARE tokens. By inputting various amounts of contribution tokens the Fundraising app computes the corresponding amount of SHARE token based on the configured presale price.
+
+The Patreon then can click the place order button and initiate a transaction to purchase the presale tokens.
+
+![](../.gitbook/assets/capture-de-cran-2019-09-27-a-12.16.23.png)
+
+As Patreons contribute tokens the Fundraising Goal is updated over time to reflect this.
+
+![](../.gitbook/assets/capture-de-cran-2019-09-27-a-12.19.39.png)
+
+ When 100% of the target has been reached the bonding curve is then initiated!
+
+
 

@@ -8,21 +8,21 @@
 * [Bonding Curve](overview/bonding-curve.md)
 * [Governance](overview/governance.md)
 
-## Components
+## How To <a id="components"></a>
 
+* [Setting Up](components/setting-up.md)
 * [Pre-sale](components/pre-sale.md)
 * [Tap](components/tap.md)
-* [Market Maker](components/market-maker.md)
-* [Controller](components/controller.md)
+* [Overview Tab](components/overview-tab.md)
+* [Placing an order](components/placing-an-order.md)
+* [Orders Tab](components/orders-tab.md)
+* [My Orders Tab](components/my-orders-tab.md)
+* [Reserves Tab](components/reserves-tab.md)
 
-## How-to
+## Components <a id="how-to"></a>
 
-* [Setting Up](how-to/setting-up.md)
-* [Overview Tab](how-to/overview-tab.md)
-* [Placing an order](how-to/placing-an-order.md)
-* [Orders Tab](how-to/orders-tab.md)
-* [My Orders Tab](how-to/my-orders-tab.md)
-* [Reserves Tab](how-to/reserves-tab.md)
+* [Market Maker](how-to/market-maker.md)
+* [Controller](how-to/controller.md)
 * [CLI](how-to/cli.md)
 * [Arbitrage](how-to/arbitrage.md)
 * [Using Agent](how-to/using-agent.md)
