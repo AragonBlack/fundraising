@@ -2,7 +2,7 @@
 description: (COMBINE W HOW TO)
 ---
 
-# Pre-sale
+# Pre-sale configuration
 
 Fundraising allows for projects to fund a pre-sale as a way to:
 

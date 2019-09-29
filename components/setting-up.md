@@ -1,4 +1,4 @@
-# Setting Up
+# Setting up a Fundraising DAO
 
 To set up a fundraising type DAO go to [https://mainnet.aragon.org/\#/](https://mainnet.aragon.org/#/) and click on the “Create a new organization” button.
 

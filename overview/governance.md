@@ -1,4 +1,4 @@
-# Governance
+# Governance overview
 
 The flexibility of aragonOS allows fundraising-enabled organizations to endorse a wide variety of governance structures: from a personal DAO where an individual manages a continuously funded organization supported by patrons \[similar to patreon\], to a community project where token holders are expected to actively participate in key governance decisions. Though, to streamline the use of Aragon Fundraising, we implemented a default governance template.
 

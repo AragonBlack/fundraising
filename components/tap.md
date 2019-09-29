@@ -1,4 +1,4 @@
-# Tap
+# Providing accountability - Tap
 
 The tap is the rate of how many tokens of collateral can be withdrawn per time period by project managers to sustain.
 

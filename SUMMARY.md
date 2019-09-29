@@ -1,18 +1,18 @@
 # Table of contents
 
-* [Aragon Fundraising](README.md)
+* [Introductory Ressources](README.md)
 
 ## Overview
 
-* [Introduction](overview/introduction.md)
-* [Bonding Curve](overview/bonding-curve.md)
-* [Governance](overview/governance.md)
+* [Aragon Fundraising in a few words](overview/introduction.md)
+* [Intro to Bonding Curves](overview/bonding-curve.md)
+* [Governance overview](overview/governance.md)
 
 ## How To <a id="components"></a>
 
-* [Setting Up](components/setting-up.md)
-* [Pre-sale](components/pre-sale.md)
-* [Tap](components/tap.md)
+* [Setting up a Fundraising DAO](components/setting-up.md)
+* [Pre-sale configuration](components/pre-sale.md)
+* [Providing accountability - Tap](components/tap.md)
 * [Overview Tab](components/overview-tab.md)
 * [Placing an order](components/placing-an-order.md)
 * [Orders Tab](components/orders-tab.md)

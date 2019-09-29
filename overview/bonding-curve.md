@@ -1,8 +1,10 @@
-# Bonding Curve
+# Intro to Bonding Curves
 
 ## 2.1 Automated Market Makers
 
-Bonding Curves use a pricing algorithm to serve as an automated market maker and provide an always available source of liquidity. Depending on the algorithm used markets can be made to be more or less sensitive to price volatility. Users can interact with a bonding curve by staking tokens into the bonding curve’s reserve pool, when they do the bonding curve mints corresponding tokens for the user based on the the pricing algorithm. The newly minted tokens can have specific utility and even be traded among users, but can always be exchanged back through the bonding curve for tokens in the bonding curve’s reserve pool.
+Bonding Curves use a pricing algorithm to serve as an automated market maker and provide an always available source of liquidity. 
+
+Depending on the algorithm used markets can be made to be more or less sensitive to price volatility. Users can interact with a bonding curve by staking tokens into the bonding curve’s reserve pool, when they do the bonding curve mints corresponding tokens for the user based on the the pricing algorithm. The newly minted tokens can have specific utility and even be traded among users, but can always be exchanged back through the bonding curve for tokens in the bonding curve’s reserve pool.
 
 ## Reserve Pool
 
