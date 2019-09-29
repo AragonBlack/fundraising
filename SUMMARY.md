@@ -11,9 +11,10 @@
 ## How To <a id="components"></a>
 
 * [Setting up a Fundraising DAO](components/setting-up.md)
-* [Pre-sale configuration](components/pre-sale.md)
-* [Providing accountability - Tap](components/tap.md)
-* [Overview Tab](components/overview-tab.md)
+* [Configuring a Pre-Sale campaign](components/pre-sale.md)
+* [Initiating and participating in a Pre-Sale](components/untitled.md)
+* [Providing accountability - The Tap](components/tap.md)
+* [Fundraising DAO information in one glance - The Overview Tab](components/overview-tab.md)
 * [Placing an order](components/placing-an-order.md)
 * [Orders Tab](components/orders-tab.md)
 * [My Orders Tab](components/my-orders-tab.md)
@@ -23,7 +24,7 @@
 
 * [Market Maker](how-to/market-maker.md)
 * [Controller](how-to/controller.md)
-* [CLI](how-to/cli.md)
+* [Installing and Deploying a Fundraising DAO from the CLI](how-to/cli.md)
 * [Arbitrage](how-to/arbitrage.md)
-* [Using Agent](how-to/using-agent.md)
+* [Using the Aragon Agent to connect to external dapps](how-to/using-agent.md)
 

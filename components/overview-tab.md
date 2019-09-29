@@ -1,4 +1,4 @@
-# Overview Tab
+# Fundraising DAO information in one glance - The Overview Tab
 
 ![](https://lh3.googleusercontent.com/Iepcqm0AaL23qgG1LC2vzJnmIhvePqIm2nin2EZxnyt0nUL0BrivUv8BHphg6XQ4r-eKhYOj7pEmaUSWon3X4opyPn9DfZtAkIW-7ZLAY-dwZanZEJOkQmu3Sg4CsTENBaO9fpYp)
 

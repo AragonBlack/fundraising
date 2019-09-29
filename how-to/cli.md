@@ -1,8 +1,4 @@
----
-description: Installing and Deploying a Fundraising DAO
----
-
-# CLI
+# Installing and Deploying a Fundraising DAO from the CLI
 
 
 
