@@ -10,7 +10,7 @@ A Fundraising DAO is characterised by its transparency, accountability and liqui
 
 In a continuous fundraising campaign patrons purchase a DAO's tokens against a certain amount of collateral \(such as DAI, ETH, ANT etc..\). This collateral is then put into a reserve pool. 
 
-Every time period \(for example monthly\) a fraction of this reserve pool here-after named  "tap" is sent to an address. The tap can be changed by a certain amount every period by the patrons and the beneficiary address by a vote of DAOs members.
+Every time period \(for example monthly\) a fraction of this reserve pool here-after named  "tap" is sent to an address. The tap can be changed by a certain amount every period by the patrons and the beneficiary address by a vote of DAOs members. 
 
 Compared to traditional equity or token based fundraising methods there is no lump sum given to founders of a project, instead the amount available for expenses fluctuates over time. Terms of investment are transparent and equal for all participants. Project revenue can be sent to the reserve pool, increasing the value of the token and thus attracting patrons that wish to benefit from subsequent price increases.
 
