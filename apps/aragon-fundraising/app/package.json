@@ -27,6 +27,7 @@
     "@aragon/ui": "^1.0.0-alpha.26",
     "bignumber.js": "^9.0.0",
     "date-fns": "^2.0.1",
+    "file-saver": "^2.0.2",
     "lodash.clonedeep": "^4.5.0",
     "perf_hooks": "0.0.1",
     "prop-types": "^15.7.2",
