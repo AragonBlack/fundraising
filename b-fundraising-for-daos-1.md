@@ -6,15 +6,15 @@ However DAOs had no straight-forward way of having capital enter and exit in a l
 
 The solution adopted by Aragon Fundraising is called a DAICO \(Decentralized Autonomous ICO\) or Continuous Organization where a project/organization structures itself as a DAO and then emits a token throughout what is called a continuous fundraising campaign. 
 
-In a continuous fundraising campaign patrons purchase share tokens for a certain amount of collateral \(such as DAI, ETH, ANT etc..\). This collateral is then put into a reserve pool. Every time period \(for example monthly\) a fraction of this reserve pool called hereafter the tap is sent to an address \(the beneficiary address, by default would be the BOARD token holders DAO treasury\). The tap can be changed by a certain amount every period by the patrons and the beneficiary address by a vote of the board members. 
+A Fundraising DAO is characterised by its transparency, accountability and liquidity.
+
+In a continuous fundraising campaign patrons purchase a DAO's tokens against a certain amount of collateral \(such as DAI, ETH, ANT etc..\). This collateral is then put into a reserve pool. 
+
+Every time period \(for example monthly\) a fraction of this reserve pool here-after named  "tap" is sent to an address. The tap can be changed by a certain amount every period by the patrons and the beneficiary address by a vote of DAOs members.
+
+Compared to traditional equity or token based fundraising methods there is no lump sum given to founders of a project, instead the amount available for expenses fluctuates over time. Terms of investment are transparent and equal for all participants. Project revenue can be sent to the reserve pool, increasing the value of the token and thus attracting patrons that wish to benefit from subsequent price increases.
+
+The following page will be consecrated to the modality of emission and redemption of this token by the bonding curve and it's valuation.
 
 
-
-The following page will be consecrated to the modality of emission and redemption of this token by the bonding curve but for now let's focus on the other properties of a Fundraising DAO.
-
-The DAO is constituted of project managers with a BOARD token. They can vote with this token to organize themselves in a cooperative fashion: they can vote on budgets, priorities, payroll, grants etc... 
-
-
-
-But any one of the DAO members can configure a presale campaign and propose it to a vote of the BOARD token members \(you can go to the How to section for a practical explainer\). This presale allows patrons to purchase SHARE tokens which then al
 
