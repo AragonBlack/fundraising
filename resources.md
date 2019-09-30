@@ -19,5 +19,7 @@ description: >-
 
 {% embed url="https://hackernoon.com/introducing-continuous-organizations-22ad9d1f63b7" %}
 
+{% embed url="https://kauri.io/article/f7853f4914bd42b6bee19758a97b42ee/an-introduction-to-bonding-curves" %}
+
 {% embed url="https://medium.com/@billyrennekamp/batched-bonding-curves-ce69a57d8ae4" caption="A primer on order batching for bonding curves" %}
 
