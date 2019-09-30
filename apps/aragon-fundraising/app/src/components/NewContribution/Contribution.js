@@ -13,6 +13,8 @@ export default () => {
   // background script state
   // *****************************
   const {
+    addresses: { presale },
+    collaterals,
     presale: {
       contributionToken: { symbol: contributionSymbol, decimals: contributionDecimals },
     },
@@ -67,8 +69,9 @@ export default () => {
   const handleSubmit = event => {
     event.preventDefault()
     if (account) {
+      const intent = { token: { address: collaterals.dai.address, value: toDecimals(value, contributionDecimals).toFixed(), spender: presale } }
       api
-        .contribute(toDecimals(value, contributionDecimals).toFixed())
+        .contribute(toDecimals(value, contributionDecimals).toFixed(), intent)
         .toPromise()
         .catch(console.error)
     }
