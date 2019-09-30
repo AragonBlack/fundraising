@@ -44,7 +44,9 @@ We can then algebraically solve for price as follows:
 
 Price = connector balance / \(smart token supply x CW\)
 
-Different Connector Weight measures modify the slope of the curve and the response of price to token supply. \(**to be updated with CW effect on curve that has collateral x price y axis\)**
+Different Connector Weight measures modify the slope of the curve and the response of price to token supply. 
+
+As you can see a CW close to 100% approximates a stable-coin: the bonding curve token's price is the same regardless of the amount of collateral in the pool. On the contrary a low CW results in more rewards for early patrons but becomes very volatile after a certain inflexion point.
 
 ![Numbers and slope are illustrative and will vary according to a host of variables ](https://lh4.googleusercontent.com/ahqOfYhIIA6Sm-JN1FDe_7MXT9mlj_CGiObVzdM07UZGHshNmK0FHVGDTuGVjUnlHnUX6_sPdzdww042pLb6gt8jiycikk00ltPx9LZZYxr6Kj5G-cRReBEvL7ep8DX6f9mxA_ki)
 
