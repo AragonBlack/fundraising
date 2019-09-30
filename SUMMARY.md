@@ -1,10 +1,10 @@
 # Table of contents
 
-* [Introductory Ressources](README.md)
+* [Preface and Resources](README.md)
 
 ## Overview
 
-* [Aragon Fundraising in a few words](overview/introduction.md)
+* [High level overview of Aragon Fundraising](overview/introduction.md)
 * [Intro to Bonding Curves](overview/bonding-curve.md)
 * [Governance overview](overview/governance.md)
 

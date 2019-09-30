@@ -1,4 +1,4 @@
-# Aragon Fundraising in a few words
+# High level overview of Aragon Fundraising
 
 Aragon Fundraising is a suite of **Aragon** apps providing Aragon organizations continuous fundraising capabilities.
 
