@@ -95,7 +95,7 @@ template.installFundraisingApps(
 - **openDate** The date upon which the presale will be open [if 0, the presale can be open manually later]
 - **batchBlocks** The number of blocks trading batches will last
 - **maximumTapRateIncreasePct** The maximum percentage tap rates can be increased at once
-- **maximumTapRateIncreasePct** The maximum percentage tap floors can be decreased at once
+- **maximumTapFloorDecreasePct** The maximum percentage tap floors can be decreased at once
 
 ### Finalize instance
 > Set collateralization settings
