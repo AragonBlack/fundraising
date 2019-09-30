@@ -2,7 +2,7 @@
 description: If you already know about DAOs you can skip straight to part 2
 ---
 
-# a\) What the DAO
+# a\) What's a DAO?
 
 Unless you have been living under a rock you might have heard of the term DAO: Decentralized Autonomous Organization. 
 

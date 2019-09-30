@@ -2,7 +2,7 @@
 
 * [Aragon Fundraising](README.md)
 * [Preface and Resources](preface-and-resources.md)
-* [a\) What the DAO](a-what-the-dao.md)
+* [a\) What's a DAO?](a-what-the-dao.md)
 * [b\) How can DAOs raise funds](b-fundraising-for-daos-1.md)
 * [c\) Intro to bonding curves](untitled-1.md)
 * [Resources](resources.md)
