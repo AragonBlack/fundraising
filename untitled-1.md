@@ -14,9 +14,11 @@ To note that here can be what are called "memetic curves" that can be used to cu
 
 The bonding curve's pricing method guarantees liquidity: because the bonding curve's market maker is a smart contract patrons can always buy and sell tokens "back to the curve" by adding and withdrawing the amount of collateral corresponding to the price of the tokens they are buying/selling. 
 
+From this liquidity derives a crucial property of Fundraising DAOs: their tokens are liquid and exchangeable without needing to be listed on an order book based exchange.
+
 This allows for alignement of incentives between stakeholders: if founders do not carry on with their promises patrons can exit the curve and they will see their potential tap decreased, on the contrary if they do well on their work, the amount in reserves will increase potentially leading to a tap increase . 
 
 Curation is encouraged as early stakers are compensated for the risk they take by having a higher rate of returns than later stakers for the same amount of collateral.
 
-
+The "Aragon Fundraising Bonding Curves" section provides an in depth explainer of the bonding curves used in this implementation.
 

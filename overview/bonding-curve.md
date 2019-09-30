@@ -1,4 +1,4 @@
-# Bonding Curves in depth
+# Aragon Fundraising Bonding Curves
 
 ## Automated Market Makers
 

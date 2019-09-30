@@ -10,7 +10,7 @@
 ## Theoritical Overview <a id="overview"></a>
 
 * [High level overview of Aragon Fundraising](overview/introduction.md)
-* [Bonding Curves in depth](overview/bonding-curve.md)
+* [Aragon Fundraising Bonding Curves](overview/bonding-curve.md)
 * [Governance overview](overview/governance.md)
 
 ## How To <a id="components"></a>
