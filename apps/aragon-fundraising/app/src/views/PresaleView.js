@@ -4,7 +4,7 @@ import { useAppState, useApi, useConnectedAccount } from '@aragon/api-react'
 import { Layout, Button } from '@aragon/ui'
 import BigNumber from 'bignumber.js'
 import { useInterval } from '../hooks/use-interval'
-import { Presale as PresaleConstants } from '../constants'
+import { Presale as PresaleConstants, Polling } from '../constants'
 import Presale from '../screens/Presale'
 import AppHeader from '../components/AppHeader'
 import NewContribution from '../components/NewContribution'
@@ -72,7 +72,7 @@ export default () => {
       if (newOpenDate !== polledOpenDate) setPolledOpenDate(newOpenDate)
       if (!newUserDaiBalance.eq(userDaiBalance)) setUserDaiBalance(newUserDaiBalance)
     })
-  }, 3000)
+  }, Polling.DURATION)
 
   return (
     <PresaleViewContext.Provider value={context}>

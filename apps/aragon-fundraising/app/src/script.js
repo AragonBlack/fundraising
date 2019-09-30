@@ -28,14 +28,16 @@ const app = new Aragon()
 
 // get the token address to initialize ourselves
 const externals = zip(app.call('reserve'), app.call('tap'), app.call('marketMaker'), app.call('presale'))
-retryEvery(retry => {
-  externals.subscribe(
-    ([poolAddress, tapAddress, marketMakerAddress, presaleAddress]) => initialize(poolAddress, tapAddress, marketMakerAddress, presaleAddress),
-    err => {
-      console.error('Could not start background script execution due to the contract not loading external contract addresses:', err)
-      retry()
-    }
-  )
+retryEvery(() => {
+  externals
+    .toPromise()
+    .then(([poolAddress, tapAddress, marketMakerAddress, presaleAddress]) => {
+      initialize(poolAddress, tapAddress, marketMakerAddress, presaleAddress)
+    })
+    .catch(err => {
+      console.error('Could not start background script execution due to the contract not loading external contracts:', err)
+      throw err
+    })
 })
 
 const initialize = async (poolAddress, tapAddress, marketMakerAddress, presaleAddress) => {
@@ -88,7 +90,7 @@ const initialize = async (poolAddress, tapAddress, marketMakerAddress, presaleAd
 
   // init the aragon API store
   // first param is a function handling blockchain events and updating the store'state accordingly
-  // second param is an object with a way to get the initial state (cached one, in the client's IndexedDB)
+  // second param is an object with a way to refresh the initial loaded state (cached one, in the client's IndexedDB)
   // and the external contracts on which we want to listen events
   return app.store(
     async (state, evt) => {
@@ -100,7 +102,7 @@ const initialize = async (poolAddress, tapAddress, marketMakerAddress, presaleAd
       console.log(evt.event)
       console.log(evt)
       console.log('#########################')
-      const { event, returnValues, blockNumber, transactionHash } = evt
+      const { event, returnValues, blockNumber, transactionHash, logIndex } = evt
       switch (event) {
         // app is syncing
         case events.SYNC_STATUS_SYNCING:
@@ -123,7 +125,7 @@ const initialize = async (poolAddress, tapAddress, marketMakerAddress, presaleAd
           return resetTappedToken(nextState, returnValues, blockNumber)
         case 'OpenBuyOrder':
         case 'OpenSellOrder':
-          return newOrder(nextState, returnValues, settings, blockNumber, transactionHash)
+          return newOrder(nextState, returnValues, settings, blockNumber, transactionHash, logIndex)
         case 'ClaimBuyOrder':
         case 'ClaimSellOrder':
           return newClaim(nextState, returnValues, settings)
@@ -157,7 +159,6 @@ const initialize = async (poolAddress, tapAddress, marketMakerAddress, presaleAd
  */
 const initState = settings => async cachedState => {
   const newState = {
-    ...cachedState,
     isSyncing: true,
     addresses: {
       marketMaker: settings.marketMaker.address,
@@ -167,6 +168,7 @@ const initState = settings => async cachedState => {
       formula: settings.formula.address,
     },
     network: settings.network,
+    ...cachedState,
   }
   const withContractsData = await loadContractsData(newState, settings)
   const withDefaultValues = loadDefaultValues(withContractsData)
@@ -377,35 +379,44 @@ const resetTappedToken = async (state, { token }, blockNumber) => {
   }
 }
 
-const newOrder = async (state, { buyer, seller, collateral, batchId, value, amount }, settings, blockNumber, transactionHash) => {
-  // if it's a buy order, seller and amount will undefined
-  // if it's a sell order, buyer and value will be undefined
-  const orders = cloneDeep(state.orders)
-  const tokenContract = tokenContracts.has(collateral) ? tokenContracts.get(collateral) : app.external(collateral, tokenAbi)
-  const [timestamp, symbol, bondedToken, collaterals] = await Promise.all([
-    loadTimestamp(blockNumber),
-    loadTokenSymbol(tokenContract, collateral, settings),
-    updateBondedToken(state.bondedToken, settings),
-    updateCollateralsToken(state.collaterals, collateral, settings),
-  ])
-  orders.push({
-    transactionHash,
-    timestamp,
-    batchId: parseInt(batchId, 10),
-    collateral,
-    symbol,
-    user: buyer || seller,
-    type: buyer ? Order.type.BUY : Order.type.SELL,
-    state: Order.state.PENDING, // start with a PENDING state
-    amount, // can be undefined
-    value, // can be undefined
-    // price is calculated in the reducer
-  })
-  return {
-    ...state,
-    orders,
-    bondedToken,
-    collaterals,
+const newOrder = async (state, { buyer, seller, collateral, batchId, value, amount }, settings, blockNumber, transactionHash, logIndex) => {
+  // because of chain re-orgs, events can be fired more than once
+  // transactionHash + logIndex + batchId make a good uniqueness identifier
+  const orderFound =
+    state.orders.findIndex(o => {
+      return o.transactionHash === transactionHash && o.logIndex === logIndex && o.batchId === parseInt(batchId, 10)
+    }) !== -1
+  if (orderFound) return state
+  else {
+    // if it's a buy order, seller and amount will undefined
+    // if it's a sell order, buyer and value will be undefined
+    const orders = cloneDeep(state.orders)
+    const tokenContract = tokenContracts.has(collateral) ? tokenContracts.get(collateral) : app.external(collateral, tokenAbi)
+    const [timestamp, symbol, bondedToken, collaterals] = await Promise.all([
+      loadTimestamp(blockNumber),
+      loadTokenSymbol(tokenContract, collateral, settings),
+      updateBondedToken(state.bondedToken, settings),
+      updateCollateralsToken(state.collaterals, collateral, settings),
+    ])
+    orders.push({
+      transactionHash,
+      timestamp,
+      batchId: parseInt(batchId, 10),
+      collateral,
+      symbol,
+      user: buyer || seller,
+      type: buyer ? Order.type.BUY : Order.type.SELL,
+      state: Order.state.PENDING, // start with a PENDING state
+      amount, // can be undefined
+      value, // can be undefined
+      // price is calculated in the reducer
+    })
+    return {
+      ...state,
+      orders,
+      bondedToken,
+      collaterals,
+    }
   }
 }
 
@@ -439,21 +450,27 @@ const newClaim = async (state, { buyer, seller, collateral, batchId, value, amou
 }
 
 const newBatch = async (state, { id, collateral, supply, balance, reserveRatio }, blockNumber) => {
-  const batches = cloneDeep(state.batches)
-  const timestamp = await loadTimestamp(blockNumber)
-  batches.push({
-    id: parseInt(id, 10),
-    timestamp,
-    collateral,
-    supply,
-    balance,
-    reserveRatio,
-    // startPrice, buyPrice, sellPrice are calculated in the reducer
-    // totalBuySpend, totalBuyReturn, totalSellReturn, totalSellSpend updated via updatePricing events
-  })
-  return {
-    ...state,
-    batches,
+  // because of chain re-orgs, events can be fired more than once
+  // id makes a good uniqueness identifier
+  const batchFound = state.batches.findIndex(b => b.id === parseInt(id, 10)) !== -1
+  if (batchFound) return state
+  else {
+    const batches = cloneDeep(state.batches)
+    const timestamp = await loadTimestamp(blockNumber)
+    batches.push({
+      id: parseInt(id, 10),
+      timestamp,
+      collateral,
+      supply,
+      balance,
+      reserveRatio,
+      // startPrice, buyPrice, sellPrice are calculated in the reducer
+      // totalBuySpend, totalBuyReturn, totalSellReturn, totalSellSpend updated via updatePricing events
+    })
+    return {
+      ...state,
+      batches,
+    }
   }
 }
 

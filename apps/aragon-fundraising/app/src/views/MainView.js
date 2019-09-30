@@ -12,6 +12,7 @@ import Orders from '../screens/Orders'
 import Overview from '../screens/Overview'
 import marketMaker from '../abi/BatchedBancorMarketMaker.json'
 import { MainViewContext } from '../context'
+import { Polling } from '../constants'
 
 const tabs = ['Overview', 'Orders', 'My Orders', 'Reserve Settings']
 
@@ -133,7 +134,7 @@ export default () => {
         if (!newUserAntBalance.eq(userAntBalance)) setUserAntBalance(newUserAntBalance)
       }
     })
-  }, 3000)
+  }, Polling.DURATION)
 
   /**
    * Calls the `controller.withdraw` smart contarct function on button click

@@ -1,5 +1,6 @@
 /*
  * Calls `callback` exponentially, everytime `retry()` is called.
+ * Returns a promise that resolves with the callback's result if it (eventually) succeeds.
  *
  * Usage:
  *
@@ -13,15 +14,26 @@
  * }, 1000, 2)
  *
  */
-export default (callback, initialRetryTimer = 1000, increaseFactor = 5) => {
-  const attempt = (retryTimer = initialRetryTimer) => {
-    // eslint-disable-next-line standard/no-callback-literal
-    callback(() => {
-      console.error(`Retrying in ${retryTimer / 1000}s...`)
+export default async (callback, { initialRetryTimer = 1000, increaseFactor = 3, maxRetries = 3 } = {}) => {
+  const sleep = time => new Promise(resolve => setTimeout(resolve, time))
+
+  let retryNum = 0
+  const attempt = async (retryTimer = initialRetryTimer) => {
+    try {
+      return await callback()
+    } catch (err) {
+      if (retryNum === maxRetries) {
+        throw err
+      }
+      ++retryNum
 
       // Exponentially backoff attempts
-      setTimeout(() => attempt(retryTimer * increaseFactor), retryTimer)
-    })
+      const nextRetryTime = retryTimer * increaseFactor
+      console.log(`Retrying in ${nextRetryTime}s... (attempt ${retryNum} of ${maxRetries})`)
+      await sleep(nextRetryTime)
+      return attempt(nextRetryTime)
+    }
   }
-  attempt()
+
+  return attempt()
 }
