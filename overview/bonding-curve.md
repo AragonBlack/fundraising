@@ -1,6 +1,6 @@
-# Intro to Bonding Curves
+# Bonding Curves in depth
 
-## 2.1 Automated Market Makers
+## Automated Market Makers
 
 Bonding Curves use a pricing algorithm to serve as an automated market maker and provide an always available source of liquidity. 
 

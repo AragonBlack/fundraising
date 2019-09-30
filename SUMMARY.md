@@ -1,11 +1,16 @@
 # Table of contents
 
-* [Preface and Resources](README.md)
+* [Aragon Fundraising](README.md)
+* [Preface and Resources](preface-and-resources.md)
+* [a\) What the DAO](a-what-the-dao.md)
+* [b\) How can DAO raise funds](b-fundraising-for-daos-1.md)
+* [c\) Intro to bonding curves](untitled-1.md)
+* [Resources](resources.md)
 
-## Overview
+## Theoritical Overview <a id="overview"></a>
 
 * [High level overview of Aragon Fundraising](overview/introduction.md)
-* [Intro to Bonding Curves](overview/bonding-curve.md)
+* [Bonding Curves in depth](overview/bonding-curve.md)
 * [Governance overview](overview/governance.md)
 
 ## How To <a id="components"></a>
