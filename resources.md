@@ -17,5 +17,7 @@ description: >-
 
 {% embed url="https://blog.aragon.black/aragon-fundraising-the-return-of-the-commons/" caption="Some doors opened by Aragon Fundraising" %}
 
+{% embed url="https://hackernoon.com/introducing-continuous-organizations-22ad9d1f63b7" %}
+
 {% embed url="https://medium.com/@billyrennekamp/batched-bonding-curves-ce69a57d8ae4" caption="A primer on order batching for bonding curves" %}
 
