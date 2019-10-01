@@ -9,6 +9,7 @@ import Presale from '../screens/Presale'
 import AppHeader from '../components/AppHeader'
 import NewContribution from '../components/NewContribution'
 import NewRefund from '../components/NewRefund'
+import Disclaimer from '../components/Disclaimer'
 import { PresaleViewContext } from '../context'
 import PresaleAbi from '../abi/Presale.json'
 
@@ -87,6 +88,7 @@ export default () => {
   return (
     <PresaleViewContext.Provider value={context}>
       <Layout>
+        <Disclaimer />
         <AppHeader
           heading="Fundraising Presale"
           renderActions={
