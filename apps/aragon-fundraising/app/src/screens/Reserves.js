@@ -142,8 +142,8 @@ export default () => {
   const adjustedFloorDecrease = maximumTapFloorDecreasePct.div(PCT_BASE)
   const displayRateIncrease = formatBigNumber(adjustedRateIncrease.times(100), 0, 0)
   const displayFloorIncrease = formatBigNumber(adjustedFloorDecrease.times(100), 0, 0)
-  const daiRatio = formatBigNumber(daiReserveRatio.div(PPM), 0)
-  const antRatio = formatBigNumber(antReserveRatio.div(PPM), 0)
+  const daiRatio = formatBigNumber(daiReserveRatio.div(PPM).times(100), 0)
+  const antRatio = formatBigNumber(antReserveRatio.div(PPM).times(100), 0)
 
   // *****************************
   // internal state
