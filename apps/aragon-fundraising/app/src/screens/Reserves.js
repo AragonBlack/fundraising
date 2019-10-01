@@ -182,6 +182,14 @@ export default () => {
       <Split
         primary={
           <Box padding={layoutName === 'small' ? 2 * GU : 3 * GU}>
+            <h1
+              css={`
+                margin-bottom: ${3 * GU}px;
+                ${textStyle('body1')};
+              `}
+            >
+              Edit reserve settings
+            </h1>
             <div
               css={`
                 display: grid;
@@ -191,14 +199,6 @@ export default () => {
               `}
             >
               <div>
-                <h1
-                  css={`
-                    margin-bottom: ${3 * GU}px;
-                    ${textStyle('body1')};
-                  `}
-                >
-                  Edit reserve settings
-                </h1>
                 <ReserveSetting label="Monthly allocation" helpContent={helpContent[0]} value={`${displayRate} DAI / month`} />
                 <ReserveSetting label="Floor" helpContent={helpContent[2]} value={`${displayFloor} DAI`} />
                 <div>{layoutName !== 'small' && editMonthlyAllocationButton}</div>
