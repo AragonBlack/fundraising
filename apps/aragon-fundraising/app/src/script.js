@@ -512,19 +512,25 @@ const setOpenDate = async (state, { date }, { presale }) => {
   }
 }
 const addContribution = async (state, { contributor, value, amount, vestedPurchaseId }, { presale }, blockNumber) => {
+  // get the user contributions
+  const contributions = cloneDeep(state.contributions)
+  const userContributions = contributions.get(contributor) || []
   // we call `presale.contract.totalRaised` instead of directly to the claculation here
   // because we can't make BigNumber calculations from the background script
   // and pass it to the fronted
   const [totalRaised, timestamp] = await Promise.all([presale.contract.totalRaised().toPromise(), loadTimestamp(blockNumber)])
-  // get the user contributions and push the new one
-  const contributions = cloneDeep(state.contributions)
-  const userContributions = contributions.get(contributor) || []
-  userContributions.push({
+  const newContribution = {
     value,
     amount,
     vestedPurchaseId,
     timestamp,
-  })
+  }
+  const contributionIndex = userContributions.findIndex(c => c.contributor === contributor && c.vestedPurchaseId === vestedPurchaseId)
+  const contributionFound = contributionIndex !== -1
+  // update the contribution in place if already in the list
+  if (contributionFound) userContributions[contributionIndex] = newContribution
+  // add the contribution if not in the list
+  else userContributions.push(newContribution)
   contributions.set(contributor, userContributions)
   return {
     ...state,
