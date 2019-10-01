@@ -3,7 +3,6 @@ import { Box, Button, Field, GU, Help, Info, SidePanel, Split, TextInput, textSt
 import { useApi, useAppState } from '@aragon/api-react'
 import { differenceInMonths } from 'date-fns'
 import EditIcon from '../assets/EditIcon.svg'
-import ValidationError from '../components/ValidationError'
 import DefinitionsBox from '../components/DefinitionsBox'
 import { formatBigNumber, fromMonthlyAllocation, toMonthlyAllocation, toDecimals, fromDecimals } from '../utils/bn-utils'
 
@@ -176,10 +175,10 @@ export default () => {
   const theme = useTheme()
   const { layoutName } = useLayout()
 
-  const editMonthlyAllocationButton = <Button icon={<img src={EditIcon} />} label="Edit monthly allocation" onClick={() => setOpened(true)}></Button>
+  const editMonthlyAllocationButton = <Button icon={<img src={EditIcon} />} label="Edit monthly allocation" onClick={() => setOpened(true)} />
 
   return (
-    <React.Fragment>
+    <>
       <Split
         primary={
           <Box padding={layoutName === 'small' ? 2 * GU : 3 * GU}>
@@ -281,6 +280,6 @@ export default () => {
           </Info>
         </form>
       </SidePanel>
-    </React.Fragment>
+    </>
   )
 }

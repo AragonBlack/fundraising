@@ -8,7 +8,10 @@ const Info = ({ isBuyOrder, slippage }) => {
   const {
     constants: { PCT_BASE },
   } = useAppState()
-  const slippagePct = slippage.div(PCT_BASE).times(100).toFixed(2)
+  const slippagePct = slippage
+    .div(PCT_BASE)
+    .times(100)
+    .toFixed(2)
 
   return (
     <div
