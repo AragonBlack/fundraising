@@ -27,7 +27,7 @@ import OrderTypeTag from '../components/Orders/OrderTypeTag'
 import OrderState from '../components/Orders/OrderState'
 import NoData from '../components/NoData'
 import { Order } from '../constants'
-import { formatBigNumber } from '../utils/bn-utils'
+import { formatBigNumber, fromDecimals } from '../utils/bn-utils'
 import { MainViewContext } from '../context'
 
 /**
@@ -142,22 +142,22 @@ export default ({ myOrders }) => {
 
   const dataViewFields = myOrders
     ? [
-        <SortHeader label="Date" onClick={rotateSortByDate} sortBy={sortBy[0] === 'date' && sortBy[1]} />,
+        <SortHeader key="date" label="Date" onClick={rotateSortByDate} sortBy={sortBy[0] === 'date' && sortBy[1]} />,
         'Status',
-        <SortHeader label="Order Amount" onClick={rotateSortByAmount} sortBy={sortBy[0] === 'amount' && sortBy[1]} />,
-        <SortHeader label="Token Price" onClick={rotateSortByPrice} sortBy={sortBy[0] === 'price' && sortBy[1]} />,
+        <SortHeader key="amount" label="Order Amount" onClick={rotateSortByAmount} sortBy={sortBy[0] === 'amount' && sortBy[1]} />,
+        <SortHeader key="price" label="Token Price" onClick={rotateSortByPrice} sortBy={sortBy[0] === 'price' && sortBy[1]} />,
         'Order Type',
-        <SortHeader label="Tokens" onClick={rotateSortByTokens} sortBy={sortBy[0] === 'tokens' && sortBy[1]} />,
+        <SortHeader key="token" label="Tokens" onClick={rotateSortByTokens} sortBy={sortBy[0] === 'tokens' && sortBy[1]} />,
         'Actions',
       ]
     : [
-        <SortHeader label="Date" onClick={rotateSortByDate} sortBy={sortBy[0] === 'date' && sortBy[1]} />,
+        <SortHeader key="date" label="Date" onClick={rotateSortByDate} sortBy={sortBy[0] === 'date' && sortBy[1]} />,
         'Holder',
         'Status',
-        <SortHeader label="Order Amount" onClick={rotateSortByAmount} sortBy={sortBy[0] === 'amount' && sortBy[1]} />,
-        <SortHeader label="Token Price" onClick={rotateSortByPrice} sortBy={sortBy[0] === 'price' && sortBy[1]} />,
+        <SortHeader key="amount" label="Order Amount" onClick={rotateSortByAmount} sortBy={sortBy[0] === 'amount' && sortBy[1]} />,
+        <SortHeader key="price" label="Token Price" onClick={rotateSortByPrice} sortBy={sortBy[0] === 'price' && sortBy[1]} />,
         'Order Type',
-        <SortHeader label="Tokens" onClick={rotateSortByTokens} sortBy={sortBy[0] === 'tokens' && sortBy[1]} />,
+        <SortHeader key="token" label="Tokens" onClick={rotateSortByTokens} sortBy={sortBy[0] === 'tokens' && sortBy[1]} />,
       ]
 
   // *****************************
@@ -234,10 +234,11 @@ export default ({ myOrders }) => {
 
   const handleDownload = () => {
     const mappedData = filteredOrders.map(order => {
-      return `${format(order.timestamp, 'MM/dd/yyyy - HH:mm:ss')},${order.user},${order.state},${formatBigNumber(
-        order.value,
-        order.symbol === 'DAI' ? daiDecimals : antDecimals
-      ) + ` ${order.symbol}`},${'$' + formatBigNumber(order.price, 0)},${order.type},${formatBigNumber(order.amount, tokenDecimals)}`
+      const date = format(order.timestamp, 'MM/dd/yyyy - HH:mm:ss')
+      const amount = fromDecimals(order.value, order.symbol === 'DAI' ? daiDecimals : antDecimals).toFixed(2)
+      const price = `$${order.price.toFixed(2)}`
+      const tokens = fromDecimals(order.amount, tokenDecimals).toFixed(2)
+      return `${date},${order.user},${order.state},${amount} ${order.symbol},${price},${order.type},${tokens}`
     })
     const result = ['Date,Holder,Status,Order Amount,Token Price,Order Type,Tokens'].concat(mappedData).join('\n')
     const today = format(Date.now(), 'yyyy-MM-dd')
