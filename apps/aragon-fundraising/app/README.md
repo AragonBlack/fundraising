@@ -192,7 +192,8 @@ All values coming from the event, except `ppm` which can be found on the backgro
         "marketMaker": address,
         "formula": address,
         "tap": address,
-        "reserve": address
+        "reserve": address,
+        "presale": address,
     },
     "presale": {
         "state": String, // "PENDING", "FUNDING", "REFUNDING", "GOAL_REACHED" or "CLOSED"
@@ -269,6 +270,7 @@ All values coming from the event, except `ppm` which can be found on the backgro
     },
     "orders": {
         "transactionHash": String,
+        "logIndex": Number,
         "timestamp": Date,
         "batchId": Number,
         "collateral": String,

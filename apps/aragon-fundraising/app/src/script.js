@@ -380,43 +380,45 @@ const resetTappedToken = async (state, { token }, blockNumber) => {
 }
 
 const newOrder = async (state, { buyer, seller, collateral, batchId, value, amount }, settings, blockNumber, transactionHash, logIndex) => {
+  const orders = cloneDeep(state.orders)
+  // if it's a buy order, seller and amount will undefined
+  // if it's a sell order, buyer and value will be undefined
+  const tokenContract = tokenContracts.has(collateral) ? tokenContracts.get(collateral) : app.external(collateral, tokenAbi)
+  const [timestamp, symbol, bondedToken, collaterals] = await Promise.all([
+    loadTimestamp(blockNumber),
+    loadTokenSymbol(tokenContract, collateral, settings),
+    updateBondedToken(state.bondedToken, settings),
+    updateCollateralsToken(state.collaterals, collateral, settings),
+  ])
+  const newOrder = {
+    transactionHash,
+    logIndex,
+    timestamp,
+    batchId: parseInt(batchId, 10),
+    collateral,
+    symbol,
+    user: buyer || seller,
+    type: buyer ? Order.type.BUY : Order.type.SELL,
+    state: Order.state.PENDING, // start with a PENDING state
+    amount, // can be undefined
+    value, // can be undefined
+    // price is calculated in the reducer
+  }
   // because of chain re-orgs, events can be fired more than once
   // transactionHash + logIndex + batchId make a good uniqueness identifier
-  const orderFound =
-    state.orders.findIndex(o => {
-      return o.transactionHash === transactionHash && o.logIndex === logIndex && o.batchId === parseInt(batchId, 10)
-    }) !== -1
-  if (orderFound) return state
-  else {
-    // if it's a buy order, seller and amount will undefined
-    // if it's a sell order, buyer and value will be undefined
-    const orders = cloneDeep(state.orders)
-    const tokenContract = tokenContracts.has(collateral) ? tokenContracts.get(collateral) : app.external(collateral, tokenAbi)
-    const [timestamp, symbol, bondedToken, collaterals] = await Promise.all([
-      loadTimestamp(blockNumber),
-      loadTokenSymbol(tokenContract, collateral, settings),
-      updateBondedToken(state.bondedToken, settings),
-      updateCollateralsToken(state.collaterals, collateral, settings),
-    ])
-    orders.push({
-      transactionHash,
-      timestamp,
-      batchId: parseInt(batchId, 10),
-      collateral,
-      symbol,
-      user: buyer || seller,
-      type: buyer ? Order.type.BUY : Order.type.SELL,
-      state: Order.state.PENDING, // start with a PENDING state
-      amount, // can be undefined
-      value, // can be undefined
-      // price is calculated in the reducer
-    })
-    return {
-      ...state,
-      orders,
-      bondedToken,
-      collaterals,
-    }
+  const orderIndex = orders.findIndex(o => {
+    return o.transactionHash === transactionHash && o.logIndex === logIndex && o.batchId === parseInt(batchId, 10)
+  })
+  const orderFound = orderIndex !== -1
+  // update the order in place if already in the list
+  if (orderFound) orders[orderIndex] = newOrder
+  // add the order if not in the list
+  else orders.push(newOrder)
+  return {
+    ...state,
+    orders,
+    bondedToken,
+    collaterals,
   }
 }
 
@@ -450,27 +452,29 @@ const newClaim = async (state, { buyer, seller, collateral, batchId, value, amou
 }
 
 const newBatch = async (state, { id, collateral, supply, balance, reserveRatio }, blockNumber) => {
+  const batches = cloneDeep(state.batches)
+  const timestamp = await loadTimestamp(blockNumber)
+  const newBatch = {
+    id: parseInt(id, 10),
+    timestamp,
+    collateral,
+    supply,
+    balance,
+    reserveRatio,
+    // startPrice, buyPrice, sellPrice are calculated in the reducer
+    // totalBuySpend, totalBuyReturn, totalSellReturn, totalSellSpend updated via updatePricing events
+  }
   // because of chain re-orgs, events can be fired more than once
   // id makes a good uniqueness identifier
-  const batchFound = state.batches.findIndex(b => b.id === parseInt(id, 10)) !== -1
-  if (batchFound) return state
-  else {
-    const batches = cloneDeep(state.batches)
-    const timestamp = await loadTimestamp(blockNumber)
-    batches.push({
-      id: parseInt(id, 10),
-      timestamp,
-      collateral,
-      supply,
-      balance,
-      reserveRatio,
-      // startPrice, buyPrice, sellPrice are calculated in the reducer
-      // totalBuySpend, totalBuyReturn, totalSellReturn, totalSellSpend updated via updatePricing events
-    })
-    return {
-      ...state,
-      batches,
-    }
+  const batchIndex = batches.findIndex(b => b.id === parseInt(id, 10))
+  const batchFound = batchIndex !== -1
+  // update the batch in place if already in the list
+  if (batchFound) batches[batchIndex] = newBatch
+  // add the batch if not in the list
+  else batches.push(newBatch)
+  return {
+    ...state,
+    batches,
   }
 }
 
