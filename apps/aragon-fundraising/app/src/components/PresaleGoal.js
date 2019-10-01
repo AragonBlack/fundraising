@@ -24,6 +24,14 @@ export default () => {
   const api = useApi()
   const account = useConnectedAccount()
 
+  // *****************************
+  // context state
+  // *****************************
+  const { state, setRefundPanel } = useContext(PresaleViewContext)
+
+  // *****************************
+  // misc
+  // *****************************
   const circleColor = {
     [Presale.state.PENDING]: '#ecedf1',
     [Presale.state.FUNDING]: '#21c1e7',
@@ -31,18 +39,9 @@ export default () => {
     [Presale.state.REFUNDING]: '#FF6969',
   }
 
-  // *****************************
-  // aragon api
-  // *****************************
-  const api = useApi()
-
-  // *****************************
-  // context state
-  // *****************************
-  const { state, setRefundPanel } = useContext(PresaleViewContext)
-
   /**
    * Calls the `presale.close` smart contarct function on button click
+   * @param {Object} event - the event to prevent
    * @returns {void}
    */
   const handleOpenTrading = event => {
