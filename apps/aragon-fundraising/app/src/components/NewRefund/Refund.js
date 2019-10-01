@@ -37,22 +37,18 @@ export default () => {
         contributions.get(account) &&
         contributions.get(account).map(c => {
           return (
-            <Wrapper key={c.vestedPurchaseId}>
-              <Text>
+            <div key={c.vestedPurchaseId}>
+              <Text css="margin: 1rem 0;">
                 Contribution of {formatBigNumber(c.value, decimals)} {symbol} the {new Date(c.timestamp).toLocaleDateString()}
               </Text>
               <Button mode="strong" wide onClick={() => handleRefund(c.vestedPurchaseId)}>
                 Refund
               </Button>
-            </Wrapper>
+            </div>
           )
         })}
-      {(!account || !contributions.get(account)) && <Wrapper>You don't have any contributions</Wrapper>}
+      {(!account || !contributions.get(account)) && <p css="margin-top: 1rem;">You don't have any contributions</p>}
       <Info />
     </div>
   )
 }
-
-const Wrapper = styled.div`
-  padding-top: 10px;
-`
