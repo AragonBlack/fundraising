@@ -5,15 +5,14 @@ import { Main, SyncIndicator } from '@aragon/ui'
 import MainView from './views/MainView'
 import PresaleView from './views/PresaleView'
 import CollateralError from './screens/CollateralError'
-
-// TODO: handle it the right way
-const isPresale = false
+import { Presale } from './constants'
 
 const App = () => {
   // *****************************
   // background script state
   // *****************************
-  const { isReady, collateralsAreOk } = useAppState()
+  const { isReady, collateralsAreOk, presale } = useAppState()
+  const isPresale = presale?.state !== Presale.state.CLOSED
 
   return (
     <Main>

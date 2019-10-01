@@ -1,4 +1,4 @@
-const ETH = '0x0000000000000000000000000000000000000000'
+const { ETH } = require('./constants')
 
 module.exports = (web3, TokenMock) => async (collateral, address) => {
   if (collateral === ETH) {

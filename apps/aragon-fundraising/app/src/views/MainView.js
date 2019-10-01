@@ -11,6 +11,7 @@ import Orders from '../screens/Orders'
 import Overview from '../screens/Overview'
 import marketMaker from '../abi/BatchedBancorMarketMaker.json'
 import { MainViewContext } from '../context'
+import { Polling } from '../constants'
 
 const tabs = ['Overview', 'Orders', 'My Orders', 'Reserve Settings']
 
@@ -57,9 +58,9 @@ export default () => {
   const [polledAntBalance, setPolledAntBalance] = useState(antOverallBalance)
   const [polledBatchId, setPolledBatchId] = useState(null)
   const [polledPrice, setPolledPrice] = useState(0)
-  const [userBondedTokenBalance, setUserBondedTokenBalance] = useState(0)
-  const [userDaiBalance, setUserDaiBalance] = useState(0)
-  const [userAntBalance, setUserAntBalance] = useState(0)
+  const [userBondedTokenBalance, setUserBondedTokenBalance] = useState(new BigNumber(0))
+  const [userDaiBalance, setUserDaiBalance] = useState(new BigNumber(0))
+  const [userAntBalance, setUserAntBalance] = useState(new BigNumber(0))
 
   // react context accessible on child components
   const context = {
@@ -75,10 +76,12 @@ export default () => {
     userAntBalance,
   }
 
+  // watch for a connected user and get its balances
   useEffect(() => {
     const getUserBalances = async () => {
       const balancesPromises = [bondedTokenAddress, daiAddress, antAddress].map(address => api.call('balanceOf', connectedUser, address).toPromise())
       const [bondedBalance, daiBalance, antBalance] = await Promise.all(balancesPromises)
+      // TODO: keep an eye on React 17, since all updates will be batched by default
       batchedUpdates(() => {
         setUserBondedTokenBalance(new BigNumber(bondedBalance))
         setUserDaiBalance(new BigNumber(daiBalance))
@@ -130,7 +133,7 @@ export default () => {
         if (!newUserAntBalance.eq(userAntBalance)) setUserAntBalance(newUserAntBalance)
       }
     })
-  }, 3000)
+  }, Polling.DURATION)
 
   /**
    * Calls the `controller.withdraw` smart contarct function on button click

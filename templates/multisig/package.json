@@ -8,7 +8,7 @@
   "license": "(GPL-3.0-or-later OR AGPL-3.0-or-later)",
   "homepage": "https://github.com/AragonBlack/fundraising",
   "scripts": {
-    "lint": "solium --dir ./contracts",
+    "lint": "solium --dir ./contracts  --config ../../.soliumrc.json",
     "compile": "truffle compile --all",
     "test": "npm run test:ganache",
     "test:ganache": "./node_modules/@aragon/templates-shared/scripts/test-ganache.sh",
@@ -16,13 +16,13 @@
     "docker:run": "cd ./node_modules/@aragon/templates-shared/; docker-compose -f docker-compose.yml up -d; RESULT=$?; cd -; $(exit $RESULT)",
     "docker:stop": "cd ./node_modules/@aragon/templates-shared/; docker-compose down; cd -",
     "docker:wait-gas": "truffle exec ./node_modules/@aragon/templates-shared/scripts/sleep-until-gaslimit.js --network devnet 6900000",
-    "abi:extract": "truffle-extract --output abi/ --keys abi",
     "prepublishOnly": "npm run compile && npm run abi:extract -- --no-compile",
+    "abi:extract": "truffle-extract --output abi/ --keys abi",
     "deploy:arachain": "npm run compile && truffle exec scripts/deploy_raw.js rpc --network rpc",
-    "deploy:hatch": "npm run compile && truffle exec scripts/deploy_raw.js hatch --network frame",
     "deploy:rpc": "npm run compile && truffle exec ./scripts/deploy.js --network rpc",
     "deploy:devnet": "npm run compile && truffle exec ./scripts/deploy.js --network devnet",
     "deploy:staging": "npm run compile && truffle exec ./scripts/deploy.js --network rinkeby --ens 0xfe03625ea880a8cba336f9b5ad6e15b0a3b5a939",
+    "deploy:hatch": "npm run compile && truffle exec scripts/deploy_raw.js hatch --network frame",
     "deploy:rinkeby": "npm run compile && truffle exec ./scripts/deploy.js --network rinkeby --ens 0x98Df287B6C145399Aaa709692c8D308357bC085D",
     "deploy:ropsten": "npm run compile && truffle exec ./scripts/deploy.js --network ropsten --ens 0x6afe2cacee211ea9179992f89dc61ff25c61e923",
     "deploy:mainnet": "npm run compile && truffle exec ./scripts/deploy.js --network mainnet --ens 0x314159265dd8dbb310642f98f50c066173c1259b",
@@ -50,6 +50,7 @@
     "@ablack/fundraising-aragon-fundraising": "^0.1.0",
     "@ablack/fundraising-bancor-formula": "^0.1.0",
     "@ablack/fundraising-batched-bancor-market-maker": "^0.1.0",
+    "@ablack/fundraising-presale": "^0.1.0",
     "@ablack/fundraising-tap": "^0.1.0",
     "@aragon/apps-agent": "^2.0.0-rc.1",
     "@aragon/apps-finance": "^3.0.0",
@@ -59,10 +60,11 @@
     "@aragon/apps-voting": "^2.1.0",
     "@aragon/id": "2.0.3",
     "@aragon/os": "4.2.1",
-    "@aragon/templates-shared": "^1.0.0-rc.1"
+    "@aragon/templates-shared": "^1.0.0"
   },
   "devDependencies": {
     "@ablack/fundraising-shared-interfaces": "^0.1.0",
+    "@ablack/fundraising-shared-test-helpers": "^0.1.0",
     "@aragon/apps-payroll": "^1.0.0-rc.1",
     "@aragon/apps-survey": "^1.0.0",
     "@aragon/cli": "^6.2.5",
@@ -71,7 +73,6 @@
     "eth-gas-reporter": "^0.2.0",
     "ethereumjs-testrpc-sc": "^6.5.1-sc.0",
     "ganache-cli": "^6.4.3",
-    "solidity-coverage": "^0.6.2",
     "solium": "^1.2.3",
     "truffle": "4.1.14",
     "truffle-extract": "^1.2.1"
