@@ -1,7 +1,7 @@
 import React from 'react'
 import { Box, Button } from '@aragon/ui'
 import CircleGraph from '../components/CircleGraph'
-import { useAppState } from '@aragon/api-react'
+import { useApi, useAppState, useConnectedAccount } from '@aragon/api-react'
 import { Presale } from '../constants'
 import { formatBigNumber } from '../utils/bn-utils'
 
@@ -18,6 +18,12 @@ export default () => {
     },
   } = useAppState()
 
+  // *****************************
+  // aragon api
+  // *****************************
+  const api = useApi()
+  const account = useConnectedAccount()
+
   const circleColor = {
     [Presale.state.PENDING]: '#ecedf1',
     [Presale.state.FUNDING]: '#21c1e7',
@@ -25,8 +31,18 @@ export default () => {
     [Presale.state.REFUNDING]: '#FF6969',
   }
 
+  const handleOpenTrading = event => {
+    event.preventDefault()
+    if (account) {
+      api
+        .closePresale()
+        .toPromise()
+        .catch(console.error)
+    }
+  }
+
   return (
-    <Box heading="Fundraising Goal">
+    <Box heading="Presale Goal">
       <div className="circle">
         <CircleGraph value={totalRaised.div(goal).toNumber()} size={224} width={6} color={circleColor[state]} />
         <div>
@@ -35,9 +51,9 @@ export default () => {
         </div>
         {state === Presale.state.GOAL_REACHED && (
           <>
-            <p>Target goal completed! 🎉</p>
-            <Button wide mode="strong" label="Open Trading" css="margin-top: 1rem; width: 100%;" onClick={() => console.log('asdasd')}>
-              Open Trading
+            <p>Presale goal completed! 🎉</p>
+            <Button wide mode="strong" label="Open trading" css="margin-top: 1rem; width: 100%;" onClick={handleOpenTrading}>
+              Open trading
             </Button>
           </>
         )}
