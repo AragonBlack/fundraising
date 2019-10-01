@@ -56,7 +56,8 @@ const Total = ({ isBuyOrder, amount, conversionSymbol, onError }) => {
       // supply, balance, weight, amount
       const currentSymbol = isBuyOrder ? symbol : conversionSymbol
       const supply = currentSymbol === 'DAI' ? overallSupply.dai : overallSupply.ant
-      const balance = symbol === 'DAI' ? daiBalance : antBalance
+      const balance = currentSymbol === 'DAI' ? daiBalance : antBalance
+
       if (balance) {
         const result = await formula[functionToCall](supply.toFixed(), balance.toFixed(), reserveRatio.toFixed(), valueBn.toFixed())
           .toPromise()

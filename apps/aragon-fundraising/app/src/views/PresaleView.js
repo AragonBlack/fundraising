@@ -96,7 +96,7 @@ export default () => {
               label="Buy Presale Tokens"
               onClick={() => setPresalePanel(true)}
             >
-              Buy Presale Tokens
+              Buy Presale shares
             </Button>
           }
         />

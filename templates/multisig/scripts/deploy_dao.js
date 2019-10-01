@@ -26,7 +26,7 @@ const SHARE_VOTING_SETTINGS = [SHARE_SUPPORT_REQUIRED, SHARE_MIN_ACCEPTANCE_QUOR
 
 const PRESALE_GOAL = 100e18
 const PRESALE_PERIOD = 14 * DAYS
-const PRESALE_EXCHANGE_RATE = 1
+const PRESALE_EXCHANGE_RATE = PPM
 const VESTING_CLIFF_PERIOD = 90 * DAYS
 const VESTING_COMPLETE_PERIOD = 360 * DAYS
 const PERCENT_SUPPLY_OFFERED = 0.9 * PPM // 90%
@@ -50,7 +50,13 @@ module.exports = async callback => {
     if (process.argv[4] === 'rpc') {
       const template = await Template.at(process.argv[7])
 
-      const receipt = await template.prepareInstance(BOARD_TOKEN_NAME, BOARD_TOKEN_SYMBOL, BOARD_MEMBERS, BOARD_VOTING_SETTINGS, 0)
+      const receipt = await template.prepareInstance(
+        BOARD_TOKEN_NAME,
+        BOARD_TOKEN_SYMBOL,
+        BOARD_MEMBERS,
+        [BOARD_SUPPORT_REQUIRED, BOARD_MIN_ACCEPTANCE_QUORUM, 60],
+        0
+      )
       await template.installShareApps(ID, SHARE_TOKEN_NAME, SHARE_TOKEN_SYMBOL, SHARE_VOTING_SETTINGS)
       await template.installFundraisingApps(
         PRESALE_GOAL,

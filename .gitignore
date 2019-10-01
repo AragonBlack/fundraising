@@ -26,5 +26,8 @@ package-lock.json
 */**/arapp_local.json
 */**/flattened_contracts
 
+# keep abis used in the frontend
+!apps/aragon-fundraising/app/src/abi
+
 # macOS shit
 */**/.DS_Store

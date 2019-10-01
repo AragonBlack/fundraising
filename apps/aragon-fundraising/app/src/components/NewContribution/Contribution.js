@@ -13,6 +13,8 @@ export default () => {
   // background script state
   // *****************************
   const {
+    addresses: { presale },
+    collaterals,
     presale: {
       contributionToken: { symbol: contributionSymbol, decimals: contributionDecimals },
     },
@@ -67,8 +69,9 @@ export default () => {
   const handleSubmit = event => {
     event.preventDefault()
     if (account) {
+      const intent = { token: { address: collaterals.dai.address, value: toDecimals(value, contributionDecimals).toFixed(), spender: presale } }
       api
-        .contribute(toDecimals(value, contributionDecimals).toFixed())
+        .contribute(toDecimals(value, contributionDecimals).toFixed(), intent)
         .toPromise()
         .catch(console.error)
     }
@@ -90,7 +93,7 @@ export default () => {
       <Total value={value} onError={validate} />
       <ButtonWrapper>
         <Button mode="strong" type="submit" disabled={!valid || !account} wide>
-          Place order
+          Buy presale shares
         </Button>
       </ButtonWrapper>
       {errorMessage && <ValidationError message={errorMessage} />}
