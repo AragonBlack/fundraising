@@ -63,11 +63,12 @@ export const computeValues = values => ({
 /**
  * Compute some data related to the presale
  * @param {Object} presale - background script presale data
+ * @param {BigNumber} PPM - part per million
  * @returns {Object} transformed presale
  */
-export const computePresale = presale => ({
+export const computePresale = (presale, PPM) => ({
   ...presale,
-  exchangeRate: new BigNumber(presale.exchangeRate),
+  exchangeRate: new BigNumber(presale.exchangeRate).div(PPM),
   goal: new BigNumber(presale.goal),
   totalRaised: new BigNumber(presale.totalRaised),
 })

@@ -22,7 +22,7 @@ const appStateReducer = state => {
     const { constants, values, network, presale, contributions, collaterals, bondedToken, batches, orders } = state
     const computedConstants = computeConstants(constants)
     const computedValues = computeValues(values)
-    const computedPresale = computePresale(presale)
+    const computedPresale = computePresale(presale, computedConstants.PPM)
     const computedCollaterals = computeCollaterals(collaterals)
     const computedBondedToken = computeBondedToken(bondedToken, computedCollaterals)
     const computedBatches = computeBatches(batches, computedConstants.PPM)
