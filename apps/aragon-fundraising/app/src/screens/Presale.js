@@ -12,9 +12,8 @@ export default () => {
   // background script state
   // *****************************
   const {
-    presale: { state, period, vestingCliffPeriod, vestingCompletePeriod },
+    presale: { period, vestingCliffPeriod, vestingCompletePeriod },
   } = useAppState()
-  const presaleEnded = state !== Presale.state.PENDING && state !== Presale.state.FUNDING
 
   // *****************************
   // aragon api
@@ -24,7 +23,8 @@ export default () => {
   // *****************************
   // context state
   // *****************************
-  const { openDate } = useContext(PresaleViewContext)
+  const { openDate, state } = useContext(PresaleViewContext)
+  const presaleEnded = state !== Presale.state.PENDING && state !== Presale.state.FUNDING
   const noOpenDate = state === Presale.state.PENDING && openDate === 0
   const endDate = addMilliseconds(openDate, period)
   const vestingCliffDate = addMilliseconds(openDate, vestingCliffPeriod)
@@ -41,17 +41,6 @@ export default () => {
       .catch(console.error)
   }
 
-  /**
-   * Calls the `presale.close` smart contarct function on button click
-   * @returns {void}
-   */
-  const handleClosePresale = () => {
-    api
-      .closePresale()
-      .toPromise()
-      .catch(console.error)
-  }
-
   return (
     <>
       <Container>
@@ -63,14 +52,9 @@ export default () => {
                 Open the presale
               </Button>
             )}
-            {state === Presale.state.CLOSED && (
-              <Button mode="strong" label="Open the presale" onClick={handleClosePresale}>
-                Open the trading
-              </Button>
-            )}
             {presaleEnded && <p css="color: #212B36; font-size: 16px; margin-bottom: 0.5rem;">Presale closed</p>}
             {state === Presale.state.FUNDING && <p css="color: #637381; font-size: 16px; margin-bottom: 0.5rem;">Time remaining</p>}
-            {(!noOpenDate || presaleEnded) && <Countdown end={endDate} />}
+            {!noOpenDate && <Countdown end={endDate} />}
           </Box>
         </div>
         <div className="right">

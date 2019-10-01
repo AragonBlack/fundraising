@@ -8,6 +8,7 @@ import { Presale as PresaleConstants, Polling } from '../constants'
 import Presale from '../screens/Presale'
 import AppHeader from '../components/AppHeader'
 import NewContribution from '../components/NewContribution'
+import NewRefund from '../components/NewRefund'
 import { PresaleViewContext } from '../context'
 import PresaleAbi from '../abi/Presale.json'
 
@@ -35,17 +36,22 @@ export default () => {
   // internal state, also shared through context
   // *****************************
   const [presalePanel, setPresalePanel] = useState(false)
+  const [refundPanel, setRefundPanel] = useState(false)
 
   // *****************************
   // context state
   // *****************************
   const [polledOpenDate, setPolledOpenDate] = useState(openDate)
+  const [polledPresaleState, setPolledPresaleState] = useState(state)
   const [userDaiBalance, setUserDaiBalance] = useState(new BigNumber(0))
   const context = {
     openDate: polledOpenDate,
+    state: polledPresaleState,
     userDaiBalance,
     presalePanel,
     setPresalePanel,
+    refundPanel,
+    setRefundPanel,
   }
 
   // watch for a connected user and get its balances
@@ -62,15 +68,19 @@ export default () => {
   useInterval(async () => {
     let newOpenDate = polledOpenDate
     let newUserDaiBalance = userDaiBalance
+    let newPresaleState = polledPresaleState
     // only poll if the openDate is not set yet
     if (openDate === 0) newOpenDate = parseInt(await presale.openDate().toPromise(), 10)
     // only poll if there is a connected user
     if (connectedUser) newUserDaiBalance = new BigNumber(await api.call('balanceOf', connectedUser, address).toPromise())
+    // poll presale state
+    newPresaleState = Object.values(PresaleConstants.state)[await presale.state().toPromise()]
     // TODO: keep an eye on React 17
     batchedUpdates(() => {
       // only update if values are different
       if (newOpenDate !== polledOpenDate) setPolledOpenDate(newOpenDate)
       if (!newUserDaiBalance.eq(userDaiBalance)) setUserDaiBalance(newUserDaiBalance)
+      if (newPresaleState !== polledPresaleState) setPolledPresaleState(newPresaleState)
     })
   }, Polling.DURATION)
 
@@ -80,14 +90,20 @@ export default () => {
         <AppHeader
           heading="Fundraising Presale"
           renderActions={
-            <Button disabled={state !== PresaleConstants.state.FUNDING} mode="strong" label="Buy Presale Tokens" onClick={() => setPresalePanel(true)}>
-              Buy presale shares
+            <Button
+              disabled={polledPresaleState !== PresaleConstants.state.FUNDING}
+              mode="strong"
+              label="Buy Presale Tokens"
+              onClick={() => setPresalePanel(true)}
+            >
+              Buy Presale shares
             </Button>
           }
         />
         <Presale />
       </Layout>
       <NewContribution />
+      <NewRefund />
     </PresaleViewContext.Provider>
   )
 }

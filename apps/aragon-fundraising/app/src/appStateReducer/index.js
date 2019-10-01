@@ -19,7 +19,7 @@ const appStateReducer = state => {
   // don't reduce not yet populated state
   const isReady = ready(state)
   if (isReady) {
-    const { constants, values, network, presale, collaterals, bondedToken, batches, orders } = state
+    const { constants, values, network, presale, contributions, collaterals, bondedToken, batches, orders } = state
     const computedConstants = computeConstants(constants)
     const computedValues = computeValues(values)
     const computedPresale = computePresale(presale)
@@ -34,6 +34,9 @@ const appStateReducer = state => {
       values: computedValues,
       collateralsAreOk: checkCollaterals(collaterals, network),
       presale: computedPresale,
+      // we don't compute BigNumbers on contributions, since it's only necessary if the presale state is refund
+      // we will compute the BigNumbers on the newRefund panel
+      contributions,
       collaterals: computedCollaterals,
       bondedToken: computedBondedToken,
       batches: computedBatches,
