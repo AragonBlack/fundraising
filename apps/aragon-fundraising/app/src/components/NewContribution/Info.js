@@ -13,7 +13,7 @@ const Info = () => {
       `}
     >
       <p css="font-weight: 700;">Info</p>
-      <p>BLABLA</p>
+      <p>If the presale campaign fails you will be able to get refunded. If the presale campaign succeeds your shares will be vested.</p>
     </div>
   )
 }

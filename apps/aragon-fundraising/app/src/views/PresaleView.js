@@ -81,7 +81,7 @@ export default () => {
           heading="Fundraising Presale"
           renderActions={
             <Button disabled={state !== PresaleConstants.state.FUNDING} mode="strong" label="Buy Presale Tokens" onClick={() => setPresalePanel(true)}>
-              Buy Presale Tokens
+              Buy presale shares
             </Button>
           }
         />

@@ -93,7 +93,7 @@ export default () => {
       <Total value={value} onError={validate} />
       <ButtonWrapper>
         <Button mode="strong" type="submit" disabled={!valid || !account} wide>
-          Place order
+          Buy presale shares
         </Button>
       </ButtonWrapper>
       {errorMessage && <ValidationError message={errorMessage} />}

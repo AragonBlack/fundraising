@@ -77,35 +77,29 @@ export default () => {
           <Box heading="Fundraising Timeline" padding={false}>
             <div className="timeline">
               <div>
-                <p className="title">Presale</p>
+                <p className="title">PRESALE OPEN</p>
                 <div className="dot" />
                 <div className="line" />
                 {openDate !== 0 && <DateBadge>{openDate}</DateBadge>}
-                <p className="text">Patreons can buy presale tokens</p>
+                <p className="text">Contributors can buy presale shares</p>
               </div>
               <div>
-                <p className="title">FUNDRAISING PERIOD ENDS</p>
+                <p className="title">PRESALE ENDS</p>
                 <div className="dot" />
                 {openDate !== 0 && <DateBadge>{endDate}</DateBadge>}
-                <p className="text">Fundraising app is inicialized</p>
-              </div>
-              <div>
-                <p className="title">OPEN TRADING</p>
-                <div className="dot" />
-                {openDate !== 0 && <DateBadge>{endDate}</DateBadge>}
-                <p className="text">The fundraising trading is open</p>
+                <p className="text">Trading can be open</p>
               </div>
               <div>
                 <p className="title">CLIFF PERIOD ENDS</p>
                 <div className="dot" />
                 {openDate !== 0 && <DateBadge>{vestingCliffDate}</DateBadge>}
-                <p className="text">Patreons can start claiming their vested tokens</p>
+                <p className="text">Presale contributors can start claiming part of their vested shares</p>
               </div>
               <div>
                 <p className="title">VESTING PERIOD ENDS</p>
                 <div className="dot" />
                 {openDate !== 0 && <DateBadge>{vestingCompleteDate}</DateBadge>}
-                <p className="text">Patreons can start claiming their vested tokens</p>
+                <p className="text">Presale contributors can claim all their vested shares</p>
               </div>
             </div>
           </Box>
