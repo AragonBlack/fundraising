@@ -76,7 +76,7 @@ export default () => {
           </li>
           <li>
             <div>
-              <p className="title">Token Supply</p>
+              <p className="title">Share Supply</p>
               <p className="number">{adjustedTokenSupply}</p>
             </div>
             {/* <p className="sub-number red">-$23.82 (0.5%)</p> */}
@@ -97,7 +97,7 @@ export default () => {
           </li>
         </ul>
         <Info css="margin: 1rem; margin-top: 0; width: auto; display: inline-block;">
-          <Text>Token address: {tokenAddress}</Text>
+          <Text>Share token address: {tokenAddress}</Text>
         </Info>
       </KeyMetrics>
       <Chart />

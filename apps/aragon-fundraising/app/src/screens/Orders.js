@@ -142,22 +142,22 @@ export default ({ myOrders }) => {
 
   const dataViewFields = myOrders
     ? [
-        <SortHeader key="date" label="Date" onClick={rotateSortByDate} sortBy={sortBy[0] === 'date' && sortBy[1]} />,
-        'Status',
-        <SortHeader key="amount" label="Order Amount" onClick={rotateSortByAmount} sortBy={sortBy[0] === 'amount' && sortBy[1]} />,
-        <SortHeader key="price" label="Token Price" onClick={rotateSortByPrice} sortBy={sortBy[0] === 'price' && sortBy[1]} />,
-        'Order Type',
-        <SortHeader key="token" label="Tokens" onClick={rotateSortByTokens} sortBy={sortBy[0] === 'tokens' && sortBy[1]} />,
+        <SortHeader key="date" label="DATE" onClick={rotateSortByDate} sortBy={sortBy[0] === 'date' && sortBy[1]} />,
+        'STATUS',
+        <SortHeader key="amount" label="VALUE" onClick={rotateSortByAmount} sortBy={sortBy[0] === 'amount' && sortBy[1]} />,
+        <SortHeader key="price" label="SHARE PRICE" onClick={rotateSortByPrice} sortBy={sortBy[0] === 'price' && sortBy[1]} />,
+        'ORDER TYPE',
+        <SortHeader key="token" label="SHARES" onClick={rotateSortByTokens} sortBy={sortBy[0] === 'tokens' && sortBy[1]} />,
         'Actions',
       ]
     : [
-        <SortHeader key="date" label="Date" onClick={rotateSortByDate} sortBy={sortBy[0] === 'date' && sortBy[1]} />,
-        'Holder',
-        'Status',
-        <SortHeader key="amount" label="Order Amount" onClick={rotateSortByAmount} sortBy={sortBy[0] === 'amount' && sortBy[1]} />,
-        <SortHeader key="price" label="Token Price" onClick={rotateSortByPrice} sortBy={sortBy[0] === 'price' && sortBy[1]} />,
-        'Order Type',
-        <SortHeader key="token" label="Tokens" onClick={rotateSortByTokens} sortBy={sortBy[0] === 'tokens' && sortBy[1]} />,
+        <SortHeader key="date" label="DATE" onClick={rotateSortByDate} sortBy={sortBy[0] === 'date' && sortBy[1]} />,
+        'HOLDER',
+        'STATUS',
+        <SortHeader key="amount" label="VALUE" onClick={rotateSortByAmount} sortBy={sortBy[0] === 'amount' && sortBy[1]} />,
+        <SortHeader key="price" label="SHARE PRICE" onClick={rotateSortByPrice} sortBy={sortBy[0] === 'price' && sortBy[1]} />,
+        'ORDER TYPE',
+        <SortHeader key="token" label="SHARES" onClick={rotateSortByTokens} sortBy={sortBy[0] === 'tokens' && sortBy[1]} />,
       ]
 
   // *****************************
@@ -240,7 +240,7 @@ export default ({ myOrders }) => {
       const tokens = fromDecimals(order.amount, tokenDecimals).toFixed(2)
       return `${date},${order.user},${order.state},${amount} ${order.symbol},${price},${order.type},${tokens}`
     })
-    const result = ['Date,Holder,Status,Order Amount,Token Price,Order Type,Tokens'].concat(mappedData).join('\n')
+    const result = ['Date,Holder,Status,Value,Share Price,Order Type,Shares'].concat(mappedData).join('\n')
     const today = format(Date.now(), 'yyyy-MM-dd')
     const filename = `fundraising_${today}.csv`
     saveAs(new Blob([result], { type: 'text/csv;charset=utf-8' }), filename)
