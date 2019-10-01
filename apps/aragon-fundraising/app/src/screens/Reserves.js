@@ -207,17 +207,19 @@ export default () => {
     // - or it's a regular decrease after at least one month since the previous update
     const validFloor = isFloorIncrease || (regularFloorDecrease && atLeastOneMonthOld)
 
+    // stack messages for each validation problem
+    const errorMessages = []
     if (validRate && validFloor) {
       setErrorMessages(null)
       setValid(true)
     } else if (!atLeastOneMonthOld) {
-      setErrorMessages(['You cannot increase the tap more than once per month'])
+      if (!validRate) errorMessages.push(`You cannot increase the tap rate more than once per month`)
+      if (!validFloor) errorMessages.push(`You cannot decrease the tap floor more than once per month`)
+      setErrorMessages(errorMessages)
       setValid(false)
     } else {
-      // stack messages for each validation problem
-      const errorMessages = []
-      if (!validRate) errorMessages.push(`You cannot increase the rate by more than ${displayRateIncrease}%`)
-      if (!validFloor) errorMessages.push(`You cannot decrease the floor by more than ${displayFloorIncrease}%`)
+      if (!validRate) errorMessages.push(`You cannot increase the tap rate by more than ${displayRateIncrease}%`)
+      if (!validFloor) errorMessages.push(`You cannot decrease the tap floor by more than ${displayFloorIncrease}%`)
       setErrorMessages(errorMessages)
       setValid(false)
     }
