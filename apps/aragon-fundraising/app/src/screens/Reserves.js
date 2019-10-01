@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Tag, Box, Button, DiscButton, Text, TextInput, theme, SidePanel, unselectable, Info } from '@aragon/ui'
+import { Tag, Box, Button, DiscButton, Text, TextInput, theme, SidePanel, unselectable, Info, IdentityBadge } from '@aragon/ui'
 import { useApi, useAppState } from '@aragon/api-react'
 import styled from 'styled-components'
 import { differenceInMonths } from 'date-fns'
@@ -36,6 +36,9 @@ const bondedTokenStyle = `
   }
 
   .item {
+    &:not(:first-child) {
+      margin-top: 1rem;
+    }
     display: flex;
     justify-content: space-between;
   }
@@ -123,7 +126,7 @@ export default () => {
       },
       ant: { reserveRatio: antReserveRatio, symbol: antSymbol },
     },
-    bondedToken: { name, symbol, decimals: tokenDecimals, realSupply },
+    bondedToken: { name, symbol, decimals: tokenDecimals, address, realSupply },
   } = useAppState()
 
   // *****************************
@@ -245,7 +248,6 @@ export default () => {
   return (
     <ContentWrapper>
       <div className="settings">
-        <h1 className="title bold">Edit reserve settings</h1>
         <div className="settings-content">
           <div css="margin-right: 4rem;">
             <div css="display: flex; flex-direction: column; margin-bottom: 1.5rem;">
@@ -284,7 +286,7 @@ export default () => {
           </div>
         </div>
       </div>
-      <Box heading="Bonded Token" css={bondedTokenStyle}>
+      <Box heading="Shares" css={bondedTokenStyle}>
         <div className="item">
           <p>Total Supply</p>
           <p className="bold">{adjustedTokenSupply}</p>
@@ -295,6 +297,10 @@ export default () => {
           <Tag css="height: 100%;" foreground="#4D22DF" background="rgba(204, 189, 244, 0.16)">
             {`${name} (${symbol})`}
           </Tag>
+        </div>
+        <div className="item">
+          <p>Address</p>
+          <IdentityBadge entity={address} />
         </div>
       </Box>
       <SidePanel opened={opened} onClose={() => setOpened(false)} title="Monthly allocation">
