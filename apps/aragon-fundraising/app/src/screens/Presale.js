@@ -52,9 +52,9 @@ export default () => {
                 Open the presale
               </Button>
             )}
-            {presaleEnded && <p css="color: #212B36; font-size: 16px; margin-bottom: 0.5rem;">Presale closed</p>}
-            {state === Presale.state.FUNDING && <p css="color: #637381; font-size: 16px; margin-bottom: 0.5rem;">Time remaining</p>}
-            {!noOpenDate && <Countdown end={endDate} />}
+            {presaleEnded && <p css="color: #212B36; font-size: 16px;">Presale closed</p>}
+            {state === Presale.state.FUNDING && <p css="color: #637381; font-size: 16px;">Time remaining</p>}
+            {!noOpenDate && !presaleEnded && <Countdown css="margin-top: 0.5rem;" end={endDate} />}
           </Box>
         </div>
         <div className="right">
