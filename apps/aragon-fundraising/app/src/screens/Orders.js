@@ -235,9 +235,9 @@ export default ({ myOrders }) => {
   const handleDownload = () => {
     const mappedData = filteredOrders.map(order => {
       const date = format(order.timestamp, 'MM/dd/yyyy - HH:mm:ss')
-      const amount = fromDecimals(order.value, order.symbol === 'DAI' ? daiDecimals : antDecimals).toFixed(2)
-      const price = `$${order.price.toFixed(2)}`
-      const tokens = fromDecimals(order.amount, tokenDecimals).toFixed(2)
+      const amount = fromDecimals(order.value, order.symbol === 'DAI' ? daiDecimals : antDecimals).toFixed(2, 1)
+      const price = `$${order.price.toFixed(2, 1)}`
+      const tokens = fromDecimals(order.amount, tokenDecimals).toFixed(2, 1)
       return `${date},${order.user},${order.state},${amount} ${order.symbol},${price},${order.type},${tokens}`
     })
     const result = ['Date,Holder,Status,Value,Share Price,Order Type,Shares'].concat(mappedData).join('\n')
