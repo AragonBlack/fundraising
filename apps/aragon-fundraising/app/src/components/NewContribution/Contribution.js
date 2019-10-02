@@ -29,7 +29,7 @@ export default () => {
   // *****************************
   // context state
   // *****************************
-  const { presalePanel, userDaiBalance } = useContext(PresaleViewContext)
+  const { presalePanel, setPresalePanel, userDaiBalance } = useContext(PresaleViewContext)
   // *****************************
   // internal state
   // *****************************
@@ -75,6 +75,7 @@ export default () => {
         .toPromise()
         .catch(console.error)
     }
+    setPresalePanel(false)
   }
 
   return (
