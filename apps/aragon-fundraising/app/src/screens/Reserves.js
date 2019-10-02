@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Box, Button, Field, GU, Help, Info, SidePanel, Split, TextInput, textStyle, TokenBadge, useLayout, useTheme } from '@aragon/ui'
+import { Box, Button, Field, GU, Help, IdentityBadge, Info, SidePanel, Split, TextInput, textStyle, TokenBadge, useLayout, useTheme } from '@aragon/ui'
 import { useApi, useAppState } from '@aragon/api-react'
 import { differenceInMonths } from 'date-fns'
 import EditIcon from '../assets/EditIcon.svg'
@@ -200,14 +200,6 @@ export default () => {
       <Split
         primary={
           <Box padding={layoutName === 'small' ? 2 * GU : 3 * GU}>
-            <h1
-              css={`
-                margin-bottom: ${3 * GU}px;
-                ${textStyle('body1')};
-              `}
-            >
-              Edit reserve settings
-            </h1>
             <div
               css={`
                 display: grid;
@@ -249,13 +241,14 @@ export default () => {
         }
         secondary={
           <DefinitionsBox
-            heading="Bonded Token"
+            heading="Shares"
             definitions={[
               { label: 'Total Supply', content: <strong>{adjustedTokenSupply}</strong> },
               {
                 label: 'Token',
                 content: <TokenBadge name={name} symbol={symbol} badgeOnly />,
               },
+              { label: 'Address', content: <IdentityBadge entity={address} /> },
             ]}
           />
         }
