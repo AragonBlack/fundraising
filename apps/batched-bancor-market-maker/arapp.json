@@ -24,6 +24,26 @@
   },
   "roles": [
     {
+      "name": "Open market making",
+      "id": "OPEN_ROLE",
+      "params": []
+    },
+    {
+      "name": "Update BancorFormula address",
+      "id": "UPDATE_FORMULA_ROLE",
+      "params": []
+    },
+    {
+      "name": "Update beneficiary address",
+      "id": "UPDATE_BENEFICIARY_ROLE",
+      "params": []
+    },
+    {
+      "name": "Update fees",
+      "id": "UPDATE_FEES_ROLE",
+      "params": []
+    },
+    {
       "name": "Add tokens as whitelisted collaterals",
       "id": "ADD_COLLATERAL_TOKEN_ROLE",
       "params": []
@@ -36,21 +56,6 @@
     {
       "name": "Update collateral tokens settings",
       "id": "UPDATE_COLLATERAL_TOKEN_ROLE",
-      "params": []
-    },
-    {
-      "name": "Update beneficiary address",
-      "id": "UPDATE_BENEFICIARY_ROLE",
-      "params": []
-    },
-    {
-      "name": "Update BancorFormula address",
-      "id": "UPDATE_FORMULA_ROLE",
-      "params": []
-    },
-    {
-      "name": "Update fees",
-      "id": "UPDATE_FEES_ROLE",
       "params": []
     },
     {

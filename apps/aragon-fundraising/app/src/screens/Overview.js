@@ -1,7 +1,7 @@
 import React, { useContext, useEffect, useState } from 'react'
 import styled from 'styled-components'
 import { useAppState } from '@aragon/api-react'
-import { Box, Info, Text } from '@aragon/ui'
+import { Box, Info, Text, useLayout } from '@aragon/ui'
 import BigNumber from 'bignumber.js'
 import subMonths from 'date-fns/subMonths'
 import Chart from '../components/Chart'
@@ -116,7 +116,18 @@ export default () => {
   return (
     <div>
       <KeyMetrics
-        heading={<span css="margin-left: 1rem;font-size: 12px;font-weight: 600;text-transform: uppercase;color: #637381;">Key Metrics</span>}
+        heading={
+          <span
+            css={`
+              font-size: 12px;
+              font-weight: 600;
+              text-transform: uppercase;
+              color: #637381;
+            `}
+          >
+            Key Metrics
+          </span>
+        }
         padding={false}
       >
         <ul>
@@ -149,7 +160,7 @@ export default () => {
           </li>
           <li>
             <div>
-              <p className="title">Token Supply</p>
+              <p className="title">Share Supply</p>
               <p className="number">{adjustedTokenSupply}</p>
             </div>
             <div>
@@ -176,7 +187,7 @@ export default () => {
           </li>
         </ul>
         <Info css="margin: 1rem; margin-top: 0; width: auto; display: inline-block;">
-          <Text>Token address: {tokenAddress}</Text>
+          <Text>Share token address: {tokenAddress}</Text>
         </Info>
       </KeyMetrics>
       <Chart />

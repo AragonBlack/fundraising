@@ -49,20 +49,6 @@
   {
     "constant": true,
     "inputs": [],
-    "name": "UPDATE_MAXIMUM_TAP_INCREASE_PCT_ROLE",
-    "outputs": [
-      {
-        "name": "",
-        "type": "bytes32"
-      }
-    ],
-    "payable": false,
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "constant": true,
-    "inputs": [],
     "name": "getRecoveryVault",
     "outputs": [
       {
@@ -104,13 +90,8 @@
   },
   {
     "constant": true,
-    "inputs": [
-      {
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "name": "taps",
+    "inputs": [],
+    "name": "maximumTapRateIncreasePct",
     "outputs": [
       {
         "name": "",
@@ -125,6 +106,20 @@
     "constant": true,
     "inputs": [],
     "name": "ADD_TAPPED_TOKEN_ROLE",
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes32"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [],
+    "name": "RESET_TAPPED_TOKEN_ROLE",
     "outputs": [
       {
         "name": "",
@@ -272,8 +267,41 @@
   },
   {
     "constant": true,
+    "inputs": [
+      {
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "rates",
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": true,
     "inputs": [],
     "name": "UPDATE_TAPPED_TOKEN_ROLE",
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes32"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [],
+    "name": "UPDATE_MAXIMUM_TAP_RATE_INCREASE_PCT_ROLE",
     "outputs": [
       {
         "name": "",
@@ -311,6 +339,20 @@
       {
         "name": "",
         "type": "uint256"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [],
+    "name": "UPDATE_MAXIMUM_TAP_FLOOR_DECREASE_PCT_ROLE",
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes32"
       }
     ],
     "payable": false,
@@ -409,7 +451,7 @@
   {
     "constant": true,
     "inputs": [],
-    "name": "maximumTapIncreasePct",
+    "name": "maximumTapFloorDecreasePct",
     "outputs": [
       {
         "name": "",
@@ -489,11 +531,23 @@
     "inputs": [
       {
         "indexed": false,
-        "name": "maximumTapIncreasePct",
+        "name": "maximumTapRateIncreasePct",
         "type": "uint256"
       }
     ],
-    "name": "UpdateMaximumTapIncreasePct",
+    "name": "UpdateMaximumTapRateIncreasePct",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "name": "maximumTapFloorDecreasePct",
+        "type": "uint256"
+      }
+    ],
+    "name": "UpdateMaximumTapFloorDecreasePct",
     "type": "event"
   },
   {
@@ -506,7 +560,7 @@
       },
       {
         "indexed": false,
-        "name": "tap",
+        "name": "rate",
         "type": "uint256"
       },
       {
@@ -540,7 +594,7 @@
       },
       {
         "indexed": false,
-        "name": "tap",
+        "name": "rate",
         "type": "uint256"
       },
       {
@@ -550,6 +604,18 @@
       }
     ],
     "name": "UpdateTappedToken",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "name": "token",
+        "type": "address"
+      }
+    ],
+    "name": "ResetTappedToken",
     "type": "event"
   },
   {
@@ -638,7 +704,11 @@
         "type": "uint256"
       },
       {
-        "name": "_maximumTapIncreasePct",
+        "name": "_maximumTapRateIncreasePct",
+        "type": "uint256"
+      },
+      {
+        "name": "_maximumTapFloorDecreasePct",
         "type": "uint256"
       }
     ],
@@ -694,11 +764,25 @@
     "constant": false,
     "inputs": [
       {
-        "name": "_maximumTapIncreasePct",
+        "name": "_maximumTapRateIncreasePct",
         "type": "uint256"
       }
     ],
-    "name": "updateMaximumTapIncreasePct",
+    "name": "updateMaximumTapRateIncreasePct",
+    "outputs": [],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "constant": false,
+    "inputs": [
+      {
+        "name": "_maximumTapFloorDecreasePct",
+        "type": "uint256"
+      }
+    ],
+    "name": "updateMaximumTapFloorDecreasePct",
     "outputs": [],
     "payable": false,
     "stateMutability": "nonpayable",
@@ -712,7 +796,7 @@
         "type": "address"
       },
       {
-        "name": "_tap",
+        "name": "_rate",
         "type": "uint256"
       },
       {
@@ -748,7 +832,7 @@
         "type": "address"
       },
       {
-        "name": "_tap",
+        "name": "_rate",
         "type": "uint256"
       },
       {
@@ -770,24 +854,24 @@
         "type": "address"
       }
     ],
-    "name": "withdraw",
+    "name": "resetTappedToken",
     "outputs": [],
     "payable": false,
     "stateMutability": "nonpayable",
     "type": "function"
   },
   {
-    "constant": true,
-    "inputs": [],
-    "name": "getCurrentBatchId",
-    "outputs": [
+    "constant": false,
+    "inputs": [
       {
-        "name": "",
-        "type": "uint256"
+        "name": "_token",
+        "type": "address"
       }
     ],
+    "name": "withdraw",
+    "outputs": [],
     "payable": false,
-    "stateMutability": "view",
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
