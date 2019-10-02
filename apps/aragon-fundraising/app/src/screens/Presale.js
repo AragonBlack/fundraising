@@ -48,20 +48,20 @@ export default () => {
           <PresaleGoal />
           <Box heading="Fundraising Period">
             {noOpenDate && (
-              <Button mode="strong" label="Open the presale" onClick={handleOpenPresale}>
-                Open the presale
+              <Button wide mode="strong" label="Open presale" onClick={handleOpenPresale}>
+                Open presale
               </Button>
             )}
-            {presaleEnded && <p css="color: #212B36; font-size: 16px; margin-bottom: 0.5rem;">Presale closed</p>}
-            {state === Presale.state.FUNDING && <p css="color: #637381; font-size: 16px; margin-bottom: 0.5rem;">Time remaining</p>}
-            {!noOpenDate && <Countdown end={endDate} />}
+            {presaleEnded && <p css="color: #212B36; font-size: 16px;">Presale closed</p>}
+            {state === Presale.state.FUNDING && <p css="color: #637381; font-size: 16px;">Time remaining</p>}
+            {!noOpenDate && !presaleEnded && <Countdown css="margin-top: 0.5rem;" end={endDate} />}
           </Box>
         </div>
         <div className="right">
           <Box heading="Fundraising Timeline" padding={false}>
             <div className="timeline">
               <div>
-                <p className="title">PRESALE OPEN</p>
+                <p className="title">PRESALE OPENS</p>
                 <div className="dot" />
                 <div className="line" />
                 {openDate !== 0 && <DateBadge>{openDate}</DateBadge>}
@@ -133,7 +133,7 @@ const Container = styled.div`
     padding: 2rem;
 
     & > div {
-      width: 20%;
+      width: 25%;
     }
 
     .title {
@@ -169,7 +169,7 @@ const Container = styled.div`
     .line {
       border: 1px solid rgba(96, 128, 156, 0.24);
       position: absolute;
-      width: 596px;
+      width: 556px;
       margin-left: 16px;
       bottom: 202px;
     }
@@ -177,7 +177,7 @@ const Container = styled.div`
     .text {
       margin-top: 1rem;
       font-size: 16px;
-      width: 124px;
+      width: 150px;
     }
   }
 
@@ -195,8 +195,12 @@ const Container = styled.div`
     }
 
     .timeline {
+      .title {
+        width: 8rem;
+      }
+
       .line {
-        width: 524px;
+        width: 492px;
       }
     }
   }
@@ -256,7 +260,7 @@ const Container = styled.div`
       .line {
         border: 1px solid rgba(96, 128, 156, 0.24);
         position: absolute;
-        height: 642px;
+        height: 382px;
         width: 1px;
         margin-top: -26px;
         margin-left: -36px;

@@ -19,7 +19,7 @@ const helpContent = [
   ['What is the floor?', 'The floor defines the amount of funds which must be kept in the market-maker reserve regardless of the tap rate.'],
 ]
 
-function ReserveSetting({ label, helpContent: [hint, help], value }) {
+const ReserveSetting = ({ label, helpContent: [hint, help], value }) => {
   const theme = useTheme()
   return (
     <div
@@ -74,7 +74,7 @@ export default () => {
       },
       ant: { reserveRatio: antReserveRatio, symbol: antSymbol },
     },
-    bondedToken: { name, symbol, decimals: tokenDecimals, realSupply },
+    bondedToken: { name, symbol, decimals: tokenDecimals, address, realSupply },
   } = useAppState()
 
   // *****************************
@@ -93,14 +93,14 @@ export default () => {
   const adjustedFloorDecrease = maximumTapFloorDecreasePct.div(PCT_BASE)
   const displayRateIncrease = formatBigNumber(adjustedRateIncrease.times(100), 0, 0)
   const displayFloorIncrease = formatBigNumber(adjustedFloorDecrease.times(100), 0, 0)
-  const daiRatio = formatBigNumber(daiReserveRatio.div(PPM), 0)
-  const antRatio = formatBigNumber(antReserveRatio.div(PPM), 0)
+  const daiRatio = formatBigNumber(daiReserveRatio.div(PPM).times(100), 0)
+  const antRatio = formatBigNumber(antReserveRatio.div(PPM).times(100), 0)
 
   // *****************************
   // internal state
   // *****************************
-  const [newRate, setNewRate] = useState(fromDecimals(adjustedRate, daiDecimals).toFixed())
-  const [newFloor, setNewFloor] = useState(fromDecimals(floor, daiDecimals).toFixed())
+  const [newRate, setNewRate] = useState(fromDecimals(adjustedRate, daiDecimals).toFixed(2, 1))
+  const [newFloor, setNewFloor] = useState(fromDecimals(floor, daiDecimals).toFixed(2, 1))
   const [errorMessages, setErrorMessages] = useState(null)
   const [valid, setValid] = useState(false)
   const [opened, setOpened] = useState(false)
@@ -112,8 +112,8 @@ export default () => {
   useEffect(() => {
     if (opened) {
       // reset to default values and validate them
-      setNewRate(fromDecimals(adjustedRate, daiDecimals).toFixed())
-      setNewFloor(fromDecimals(floor, daiDecimals).toFixed())
+      setNewRate(fromDecimals(adjustedRate, daiDecimals).toFixed(2, 1))
+      setNewFloor(fromDecimals(floor, daiDecimals).toFixed(2, 1))
       validate()
     }
   }, [opened])
@@ -158,17 +158,19 @@ export default () => {
     // - or it's a regular decrease after at least one month since the previous update
     const validFloor = isFloorIncrease || (regularFloorDecrease && atLeastOneMonthOld)
 
+    // stack messages for each validation problem
+    const errorMessages = []
     if (validRate && validFloor) {
       setErrorMessages(null)
       setValid(true)
     } else if (!atLeastOneMonthOld) {
-      setErrorMessages(['You cannot increase the tap more than once per month.'])
+      if (!validRate) errorMessages.push(`You cannot increase the tap rate more than once per month`)
+      if (!validFloor) errorMessages.push(`You cannot decrease the tap floor more than once per month`)
+      setErrorMessages(errorMessages)
       setValid(false)
     } else {
-      // stack messages for each validation problem
-      const errorMessages = []
-      if (!validRate) errorMessages.push(`You cannot increase the rate by more than ${displayRateIncrease}%.`)
-      if (!validFloor) errorMessages.push(`You cannot decrease the floor by more than ${displayFloorIncrease}%.`)
+      if (!validRate) errorMessages.push(`You cannot increase the tap rate by more than ${displayRateIncrease}%`)
+      if (!validFloor) errorMessages.push(`You cannot decrease the tap floor by more than ${displayFloorIncrease}%`)
       setErrorMessages(errorMessages)
       setValid(false)
     }
@@ -181,9 +183,6 @@ export default () => {
       // toFixed(0) returns rounded integers
       const rate = fromMonthlyAllocation(newRate, daiDecimals).toFixed(0)
       const floor = toDecimals(newFloor, daiDecimals).toFixed(0)
-      console.log(daiAddress)
-      console.log(rate)
-      console.log(floor)
       api
         .updateTokenTap(daiAddress, rate, floor)
         .toPromise()

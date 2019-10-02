@@ -98,10 +98,12 @@ const initialize = async (poolAddress, tapAddress, marketMakerAddress, presaleAd
       const nextState = {
         ...state,
       }
-      console.log('#########################')
-      console.log(evt.event)
-      console.log(evt)
-      console.log('#########################')
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('#########################')
+        console.log(evt.event)
+        console.log(evt)
+        console.log('#########################')
+      }
       const { event, returnValues, blockNumber, transactionHash, logIndex } = evt
       switch (event) {
         // app is syncing
@@ -141,6 +143,8 @@ const initialize = async (poolAddress, tapAddress, marketMakerAddress, presaleAd
           return setOpenDate(nextState, returnValues, settings)
         case 'Contribute':
           return addContribution(nextState, returnValues, settings, blockNumber)
+        case 'Close':
+          return closePresale(nextState)
         case 'Refund':
           return removeContribution(nextState, returnValues)
         default:
@@ -562,6 +566,14 @@ const addContribution = async (state, { contributor, value, amount, vestedPurcha
     contributions,
   }
 }
+
+const closePresale = state => ({
+  ...state,
+  presale: {
+    ...state.presale,
+    state: Presale.state.CLOSED,
+  },
+})
 
 const removeContribution = (state, { contributor, value, amount, vestedPurchaseId }) => {
   const contributions = cloneDeep(state.contributions)

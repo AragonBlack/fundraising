@@ -8,6 +8,7 @@ import { Presale as PresaleConstants, Polling } from '../constants'
 import Presale from '../screens/Presale'
 import NewContribution from '../components/NewContribution'
 import NewRefund from '../components/NewRefund'
+import Disclaimer from '../components/Disclaimer'
 import { PresaleViewContext } from '../context'
 import PresaleAbi from '../abi/Presale.json'
 
@@ -92,7 +93,7 @@ export default () => {
             <Button
               disabled={polledPresaleState !== PresaleConstants.state.FUNDING}
               mode="strong"
-              label="Buy Presale Shares"
+              label="Buy Presale shares"
               onClick={() => setPresalePanel(true)}
             />
           }
