@@ -107,7 +107,7 @@ const Order = ({ isBuyOrder }) => {
   const getUserBalance = () => {
     const balance = isBuyOrder ? [userDaiBalance, userAntBalance][selectedCollateral] : userBondedTokenBalance
     const decimals = isBuyOrder ? collateralItems[selectedCollateral].decimals : bondedDecimals
-    return formatBigNumber(balance, decimals, 4)
+    return formatBigNumber(balance, decimals)
   }
 
   return (
