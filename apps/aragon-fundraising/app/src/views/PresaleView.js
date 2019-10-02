@@ -87,6 +87,7 @@ export default () => {
   return (
     <PresaleViewContext.Provider value={context}>
       <Layout>
+        <Disclaimer />
         <Header
           primary="Fundraising Presale"
           secondary={
