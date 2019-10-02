@@ -9,7 +9,10 @@ const Information = ({ isBuyOrder, slippage }) => {
   const {
     constants: { PCT_BASE },
   } = useAppState()
-  const slippagePct = slippage.div(PCT_BASE).times(100).toFixed(2)
+  const slippagePct = slippage
+    .div(PCT_BASE)
+    .times(100)
+    .toFixed(2, 1)
 
   return (
     <div
@@ -19,8 +22,8 @@ const Information = ({ isBuyOrder, slippage }) => {
     >
       <Info.Action title="Slippage">
         <p>
-          The exact return of your order may differ from the one indicated if other users open buy or sell orders simultaneously. In any case you can be
-          assured that the price slippage won't exceed <b>{slippagePct}%</b>.
+          The exact return of your order may differ from the one indicated if other users open buy or sell orders simultaneously. In any case you can be assured
+          that the price slippage won't exceed <b>{slippagePct}%</b>.
         </p>
       </Info.Action>
     </div>
