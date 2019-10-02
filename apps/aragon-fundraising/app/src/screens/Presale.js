@@ -48,8 +48,8 @@ export default () => {
           <PresaleGoal />
           <Box heading="Fundraising Period">
             {noOpenDate && (
-              <Button wide mode="strong" label="Open the presale" onClick={handleOpenPresale}>
-                Open the presale
+              <Button wide mode="strong" label="Open presale" onClick={handleOpenPresale}>
+                Open presale
               </Button>
             )}
             {presaleEnded && <p css="color: #212B36; font-size: 16px;">Presale closed</p>}
