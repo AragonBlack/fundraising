@@ -11,7 +11,7 @@ export default () => {
         your feedback.
       </Text>
       <Text css="display: block;">
-        You might need some Rinkeby DAI or ANT which you can get by visiting the following site:{' '}
+        You might need some Rinkeby DAI or ANT which you can get by visting{' '}
         <a href="https://faucet.aragon.black/">https://faucet.aragon.black/</a>
       </Text>
       <Text css="display: block;">Expect daily frontend updates and future smart contract updates.</Text>
