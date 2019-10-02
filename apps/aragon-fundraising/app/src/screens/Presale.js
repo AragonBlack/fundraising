@@ -61,7 +61,7 @@ export default () => {
           <Box heading="Fundraising Timeline" padding={false}>
             <div className="timeline">
               <div>
-                <p className="title">PRESALE OPEN</p>
+                <p className="title">PRESALE OPENS</p>
                 <div className="dot" />
                 <div className="line" />
                 {openDate !== 0 && <DateBadge>{openDate}</DateBadge>}

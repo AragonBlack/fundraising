@@ -95,10 +95,10 @@ export default () => {
             <Button
               disabled={polledPresaleState !== PresaleConstants.state.FUNDING}
               mode="strong"
-              label="Buy Presale Tokens"
+              label="Buy presale shares"
               onClick={() => setPresalePanel(true)}
             >
-              Buy Presale shares
+              Buy presale shares
             </Button>
           }
         />
