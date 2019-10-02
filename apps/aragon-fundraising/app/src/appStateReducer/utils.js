@@ -149,7 +149,10 @@ export const computeBondedToken = (bondedToken, { dai, ant }) => {
 export const computeBatches = (batches, PPM) => {
   return batches.map(b => {
     const supply = new BigNumber(b.supply)
+    const realSupply = new BigNumber(b.realSupply)
     const balance = new BigNumber(b.balance)
+    const virtualBalance = new BigNumber(b.virtualBalance)
+    const realBalance = balance.minus(virtualBalance)
     const reserveRatio = new BigNumber(b.reserveRatio)
     const totalBuySpend = new BigNumber(b.totalBuySpend)
     const totalBuyReturn = new BigNumber(b.totalBuyReturn)
@@ -161,7 +164,10 @@ export const computeBatches = (batches, PPM) => {
     return {
       ...b,
       supply,
+      realSupply,
       balance,
+      virtualBalance,
+      realBalance,
       reserveRatio,
       totalBuySpend,
       totalBuyReturn,

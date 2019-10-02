@@ -1,19 +1,6 @@
 import BigNumber from 'bignumber.js'
 
 /**
- * Formats a big number to be a readable value
- * @see https://mikemcl.github.io/bignumber.js/#rounding-mode for roundingMode
- * @param {String|Number|BigNumber} value - value to format
- * @param {Number} decimals - decimals of the value to format
- * @param {Number} decimalPlaces - how many decimals do we keep on the formatted value
- * @param {Number} roundingMode - how to round value, default to ROUND_HALF_UP
- * @returns {String} the formatted value
- */
-export const formatBigNumber = (value, decimals, decimalPlaces = 2, roundingMode = 1) => {
-  return new BigNumber(value).shiftedBy(-decimals).toFormat(decimalPlaces, roundingMode)
-}
-
-/**
  * Converts a tap rate to its monthly rate
  * @param {String|Number|BigNumber} value - value to convert
  * @param {Number} decimals - decimals of the value to convert
@@ -51,4 +38,24 @@ export const toDecimals = (value, decimals) => {
  */
 export const fromDecimals = (value, decimals) => {
   return new BigNumber(value).shiftedBy(-decimals)
+}
+
+/**
+ * Formats a big number to be a readable value
+ * @see https://mikemcl.github.io/bignumber.js/#rounding-mode for rm
+ * @param {String|Number|BigNumber} value - value to format
+ * @param {Number} decimals - decimals of the value to format
+ * @param {Object} opts - configuration options
+ * @param {Number} opts.dp - how many decimals do we keep on the formatted value, default 2
+ * @param {Number} opts.rm - how to round value, default to ROUND_DOWN
+ * @param {Boolean} opts.keepSign - if false, only "-" sign will be kept, if true, "+" and "-" will be kept
+ * @param {String} opts.numberPrefix - prefix to put between sign (if kept) and number, default ''
+ * @param {String} opts.numberSuffix - suffix to put at the end, default ''
+ * @returns {String} the formatted value
+ */
+export const formatBigNumber = (value, decimals, { dp = 2, rm = 1, keepSign = false, numberPrefix = '', numberSuffix = '' } = {}) => {
+  const valueDecimals = fromDecimals(value, decimals)
+  const sign = valueDecimals.isPositive() ? '+' : '-'
+  const prefix = keepSign ? `${sign}${numberPrefix}` : `${numberPrefix}`
+  return `${prefix}${valueDecimals.abs().toFormat(dp, rm)}${numberSuffix}`
 }
