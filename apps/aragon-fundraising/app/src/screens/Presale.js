@@ -48,7 +48,7 @@ export default () => {
           <PresaleGoal />
           <Box heading="Fundraising Period">
             {noOpenDate && (
-              <Button mode="strong" label="Open the presale" onClick={handleOpenPresale}>
+              <Button wide mode="strong" label="Open the presale" onClick={handleOpenPresale}>
                 Open the presale
               </Button>
             )}
@@ -133,7 +133,7 @@ const Container = styled.div`
     padding: 2rem;
 
     & > div {
-      width: 20%;
+      width: 25%;
     }
 
     .title {
@@ -169,7 +169,7 @@ const Container = styled.div`
     .line {
       border: 1px solid rgba(96, 128, 156, 0.24);
       position: absolute;
-      width: 596px;
+      width: 556px;
       margin-left: 16px;
       bottom: 202px;
     }
@@ -177,7 +177,7 @@ const Container = styled.div`
     .text {
       margin-top: 1rem;
       font-size: 16px;
-      width: 124px;
+      width: 150px;
     }
   }
 
@@ -195,8 +195,12 @@ const Container = styled.div`
     }
 
     .timeline {
+      .title {
+        width: 8rem;
+      }
+
       .line {
-        width: 524px;
+        width: 492px;
       }
     }
   }
@@ -256,7 +260,7 @@ const Container = styled.div`
       .line {
         border: 1px solid rgba(96, 128, 156, 0.24);
         position: absolute;
-        height: 642px;
+        height: 382px;
         width: 1px;
         margin-top: -26px;
         margin-left: -36px;
