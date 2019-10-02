@@ -1,7 +1,7 @@
 import React, { useContext, useEffect, useState } from 'react'
 import styled from 'styled-components'
 import { useAppState } from '@aragon/api-react'
-import { Box, Info, Text, useLayout } from '@aragon/ui'
+import { Box, Info, Text } from '@aragon/ui'
 import BigNumber from 'bignumber.js'
 import subMonths from 'date-fns/subMonths'
 import Chart from '../components/Chart'
@@ -89,8 +89,7 @@ export default () => {
       .div(start)
       .times(100)
   }
-  const adjustedPriceTrend =
-    price && trendBatch?.startPrice ? formatBigNumber(price.minus(trendBatch.startPrice), 0, { keepSign: true, numberPrefix: '$' }) : null
+
   const adjustedPriceTrendPct =
     price && trendBatch?.startPrice ? formatBigNumber(variation(trendBatch.startPrice, price), 0, { keepSign: true, numberSuffix: '%' }) : null
   // if startPrice is here, realSupply too, since NewMetaBatch event occurs before NewBatch one
@@ -137,7 +136,7 @@ export default () => {
               <p className="number">{adjustedPrice}</p>
             </div>
             <div>
-              <Trend value={adjustedPriceTrend ? `${adjustedPriceTrend} / ${adjustedPriceTrendPct}` : null} suffix="M" />
+              <Trend value={adjustedPriceTrendPct} suffix="M" />
             </div>
           </li>
           <li>
