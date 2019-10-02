@@ -151,8 +151,8 @@ export default () => {
   // *****************************
   // internal state
   // *****************************
-  const [newRate, setNewRate] = useState(fromDecimals(adjustedRate, daiDecimals).toFixed())
-  const [newFloor, setNewFloor] = useState(fromDecimals(floor, daiDecimals).toFixed())
+  const [newRate, setNewRate] = useState(fromDecimals(adjustedRate, daiDecimals).toFixed(2, 1))
+  const [newFloor, setNewFloor] = useState(fromDecimals(floor, daiDecimals).toFixed(2, 1))
   const [errorMessages, setErrorMessages] = useState(null)
   const [valid, setValid] = useState(false)
   const [opened, setOpened] = useState(false)
@@ -164,8 +164,8 @@ export default () => {
   useEffect(() => {
     if (opened) {
       // reset to default values and validate them
-      setNewRate(fromDecimals(adjustedRate, daiDecimals).toFixed())
-      setNewFloor(fromDecimals(floor, daiDecimals).toFixed())
+      setNewRate(fromDecimals(adjustedRate, daiDecimals).toFixed(2, 1))
+      setNewFloor(fromDecimals(floor, daiDecimals).toFixed(2, 1))
       validate()
     }
   }, [opened])
@@ -235,9 +235,6 @@ export default () => {
       // toFixed(0) returns rounded integers
       const rate = fromMonthlyAllocation(newRate, daiDecimals).toFixed(0)
       const floor = toDecimals(newFloor, daiDecimals).toFixed(0)
-      console.log(daiAddress)
-      console.log(rate)
-      console.log(floor)
       api
         .updateTokenTap(daiAddress, rate, floor)
         .toPromise()
