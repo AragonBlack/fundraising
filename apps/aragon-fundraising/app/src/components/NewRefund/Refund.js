@@ -1,8 +1,7 @@
 import React from 'react'
-import styled from 'styled-components'
 import { useApi, useAppState, useConnectedAccount } from '@aragon/api-react'
-import { Button, Info, Text } from '@aragon/ui'
-import Information from './Info'
+import { Button, Info } from '@aragon/ui'
+import Information from './Information'
 import { formatBigNumber } from '../../utils/bn-utils'
 
 export default () => {
@@ -44,15 +43,8 @@ export default () => {
             </div>
           )
         })}
-      {account &&
-        contributions?.get(account)?.length > 0 &&
-        <Information />        
-      }
-      {(!account || !contributions?.get(account)?.length > 0) &&
-        <Info css="margin-top: 1rem;">
-          You don't have any contribution to refund.
-        </Info>
-      }
+      {account && contributions?.get(account)?.length > 0 && <Information />}
+      {(!account || !contributions?.get(account)?.length > 0) && <Info css="margin-top: 1rem;">You don't have any contribution to refund.</Info>}
     </div>
   )
 }
