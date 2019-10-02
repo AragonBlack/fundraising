@@ -39,7 +39,6 @@ const App = () => {
   useEffect(() => {
     const checkIsPresale = async () => {
       const newPresaleState = Object.values(Presale.state)[await presaleContract.state().toPromise()]
-      console.log(newPresaleState !== Presale.state.CLOSED)
       setIsPresale(newPresaleState !== Presale.state.CLOSED)
     }
     // once presale ended, no need to check anymore
