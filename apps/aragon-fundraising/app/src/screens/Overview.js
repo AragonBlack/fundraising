@@ -57,7 +57,6 @@ export default () => {
         heading={
           <span
             css={`
-              margin-left: ${layoutName === 'small' ? '16' : '24'}px;
               font-size: 12px;
               font-weight: 600;
               text-transform: uppercase;
