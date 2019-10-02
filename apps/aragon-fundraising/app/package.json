@@ -19,7 +19,7 @@
     "start": "npm run sync-assets && npm run build:script -- --no-minify && parcel serve index.html -p 3001 --out-dir build/",
     "build": "npm run sync-assets && npm run build:script:nosourcemap && parcel build index.html --out-dir build/ --public-url '.' --no-source-maps",
     "build:script": "parcel build src/script.js --out-dir build/",
-    "build:script:nosourcemap": "parcel build src/script.js --out-dir build/ --no-source-maps"
+    "build:script:nosourcemap": "cross-env NODE_ENV=production parcel build src/script.js --out-dir build/ --no-source-maps"
   },
   "dependencies": {
     "@aragon/api": "^2.0.0-beta.7",
@@ -47,6 +47,7 @@
     "babel-eslint": "^10.0.3",
     "babel-plugin-styled-components": "^1.10.6",
     "copyfiles": "^2.1.1",
+    "cross-env": "^6.0.2",
     "eslint": "^6.2.2",
     "eslint-config-prettier": "^6.1.0",
     "eslint-config-standard": "^14.1.0",
