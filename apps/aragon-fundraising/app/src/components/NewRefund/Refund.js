@@ -1,8 +1,8 @@
 import React from 'react'
 import styled from 'styled-components'
 import { useApi, useAppState, useConnectedAccount } from '@aragon/api-react'
-import { Button, Text } from '@aragon/ui'
-import Info from './Info'
+import { Button, Info, Text } from '@aragon/ui'
+import Information from './Info'
 import { formatBigNumber } from '../../utils/bn-utils'
 
 export default () => {
@@ -34,21 +34,25 @@ export default () => {
   return (
     <div>
       {account &&
-        contributions.get(account) &&
+        contributions?.get(account)?.length > 0 &&
         contributions.get(account).map(c => {
           return (
-            <div key={c.vestedPurchaseId}>
-              <Text css="margin: 1rem 0;">
-                Contribution of {formatBigNumber(c.value, decimals)} {symbol} the {new Date(c.timestamp).toLocaleDateString()}
-              </Text>
+            <div key={c.vestedPurchaseId} css="margin: 2rem 0;">
               <Button mode="strong" wide onClick={() => handleRefund(c.vestedPurchaseId)}>
-                Refund
+                Refund contribution of {formatBigNumber(c.value, decimals)} {symbol} made on {new Date(c.timestamp).toLocaleDateString()}
               </Button>
             </div>
           )
         })}
-      {(!account || !contributions.get(account)) && <p css="margin-top: 1rem;">You don't have any contributions</p>}
-      <Info />
+      {account &&
+        contributions?.get(account)?.length > 0 &&
+        <Information />        
+      }
+      {(!account || !contributions?.get(account)?.length > 0) &&
+        <Info css="margin-top: 1rem;">
+          You don't have any contribution to refund.
+        </Info>
+      }
     </div>
   )
 }
