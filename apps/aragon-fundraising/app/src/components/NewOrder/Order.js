@@ -51,7 +51,7 @@ const Order = ({ isBuyOrder }) => {
       setErrorMessage(null)
       // focus the right input, given the order type
       // timeout to avoid some flicker
-      amountInput && setTimeout(() => amountInput.current.focus(), 20)
+      amountInput && setTimeout(() => amountInput.current.focus(), 100)
     }
   }, [orderPanel, isBuyOrder])
 

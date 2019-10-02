@@ -56,14 +56,12 @@ const App = () => {
   }, Polling.DURATION)
 
   return (
-    <div css="min-width: 320px">
-      <Main assetsUrl="./">
-        <SyncIndicator visible={!isReady || isPresale === null} />
-        {isPresale && isReady && collateralsAreOk && <PresaleView />}
-        {!isPresale && isReady && collateralsAreOk && <MainView />}
-        {isReady && !collateralsAreOk && <CollateralError />}
-      </Main>
-    </div>
+    <Main assetsUrl="./">
+      <SyncIndicator visible={!isReady || isPresale === null} />
+      {isPresale && isReady && collateralsAreOk && <PresaleView />}
+      {!isPresale && isReady && collateralsAreOk && <MainView />}
+      {isReady && !collateralsAreOk && <CollateralError />}
+    </Main>
   )
 }
 
