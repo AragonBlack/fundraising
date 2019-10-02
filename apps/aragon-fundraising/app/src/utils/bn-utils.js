@@ -2,13 +2,15 @@ import BigNumber from 'bignumber.js'
 
 /**
  * Formats a big number to be a readable value
+ * @see https://mikemcl.github.io/bignumber.js/#rounding-mode for roundingMode
  * @param {String|Number|BigNumber} value - value to format
  * @param {Number} decimals - decimals of the value to format
  * @param {Number} decimalPlaces - how many decimals do we keep on the formatted value
+ * @param {Number} roundingMode - how to round value, default to ROUND_HALF_UP
  * @returns {String} the formatted value
  */
-export const formatBigNumber = (value, decimals, decimalPlaces = 2) => {
-  return new BigNumber(value).shiftedBy(-decimals).toFormat(decimalPlaces)
+export const formatBigNumber = (value, decimals, decimalPlaces = 2, roundingMode = 1) => {
+  return new BigNumber(value).shiftedBy(-decimals).toFormat(decimalPlaces, roundingMode)
 }
 
 /**
