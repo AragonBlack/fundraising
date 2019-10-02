@@ -320,7 +320,7 @@ contract AragonFundraisingController is EtherTokenConstant, IsContract, IAragonF
     }
 
     /**
-     * @notice Update tap for `_token.symbol(): string` with a rate of `@tokenAmount(_token, _rate)` per block and a floor of `@tokenAmount(_token, _floor)`
+     * @notice Update tap for `_token.symbol(): string` with a rate of about `@tokenAmount(_token, 4 * 60 * 24 * 30 * _rate)` per month and a floor of `@tokenAmount(_token, _floor)`
      * @param _token The address of the token whose tap is to be updated
      * @param _rate  The new rate at which that token is to be tapped [in wei / block]
      * @param _floor The new floor above which the reserve [pool] balance for that token is to be kept [in wei]
