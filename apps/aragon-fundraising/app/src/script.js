@@ -98,10 +98,12 @@ const initialize = async (poolAddress, tapAddress, marketMakerAddress, presaleAd
       const nextState = {
         ...state,
       }
-      console.log('#########################')
-      console.log(evt.event)
-      console.log(evt)
-      console.log('#########################')
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('#########################')
+        console.log(evt.event)
+        console.log(evt)
+        console.log('#########################')
+      }
       const { event, returnValues, blockNumber, transactionHash, logIndex } = evt
       switch (event) {
         // app is syncing
