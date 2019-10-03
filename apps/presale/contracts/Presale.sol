@@ -160,7 +160,7 @@ contract Presale is EtherTokenConstant, IsContract, AragonApp {
      * @param _contributor The address of the contributor
      * @param _value       The amount of contribution token to be spent
     */
-    function contribute(address _contributor, uint256 _value) external payable auth(CONTRIBUTE_ROLE) {
+    function contribute(address _contributor, uint256 _value) external payable nonReentrant auth(CONTRIBUTE_ROLE) {
         require(state() == State.Funding, ERROR_INVALID_STATE);
 
         if (contributionToken == ETH) {
@@ -177,7 +177,7 @@ contract Presale is EtherTokenConstant, IsContract, AragonApp {
      * @param _contributor      The address of the contributor whose presale contribution is to be refunded
      * @param _vestedPurchaseId The id of the contribution to be refunded
     */
-    function refund(address _contributor, uint256 _vestedPurchaseId) external isInitialized {
+    function refund(address _contributor, uint256 _vestedPurchaseId) external nonReentrant isInitialized {
         require(state() == State.Refunding, ERROR_INVALID_STATE);
 
         _refund(_contributor, _vestedPurchaseId);
@@ -186,7 +186,7 @@ contract Presale is EtherTokenConstant, IsContract, AragonApp {
     /**
      * @notice Close presale and open trading
     */
-    function close() external isInitialized {
+    function close() external nonReentrant isInitialized {
         require(state() == State.GoalReached, ERROR_INVALID_STATE);
 
         _close();
