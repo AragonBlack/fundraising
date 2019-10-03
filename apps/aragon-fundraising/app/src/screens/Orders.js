@@ -6,7 +6,6 @@ import {
   DataView,
   _DateRange as DateRange,
   DropDown,
-  IdentityBadge,
   SafeLink,
   shortenAddress,
   Text,
@@ -22,6 +21,7 @@ import { useApi, useAppState, useConnectedAccount } from '@aragon/api-react'
 import { format, subYears, endOfToday } from 'date-fns'
 import { saveAs } from 'file-saver'
 import styled from 'styled-components'
+import LocalIdentityBadge from '../components/LocalIdentityBadge'
 import ToggleFiltersButton from '../components/ToggleFiltersButton'
 import OrderTypeTag from '../components/Orders/OrderTypeTag'
 import OrderState from '../components/Orders/OrderState'
@@ -317,7 +317,7 @@ export default ({ myOrders }) => {
             // timestamp
             entry.push(<StyledText key="date">{format(data.timestamp, 'MM/dd/yyyy - HH:mm:ss', { awareOfUnicodeTokens: true })}</StyledText>)
             // user if not myOrders
-            if (!myOrders) entry.push(<IdentityBadge key="address" entity={data.user} />)
+            if (!myOrders) entry.push(<LocalIdentityBadge key="address" entity={data.user} />)
             // status
             entry.push(
               <div key="status" css="display: flex; align-items: center;">
