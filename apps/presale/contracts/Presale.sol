@@ -34,7 +34,7 @@ contract Presale is EtherTokenConstant, IsContract, AragonApp {
     string private constant ERROR_INVALID_TIME_PERIOD      = "PRESALE_INVALID_TIME_PERIOD";
     string private constant ERROR_INVALID_PCT              = "PRESALE_INVALID_PCT";
     string private constant ERROR_INVALID_STATE            = "PRESALE_INVALID_STATE";
-    string private constant ERROR_INCORRECT_ETH_VALUE      = "PRESALE_INCORRECT_ETH_VALUE";
+    string private constant ERROR_INVALID_CONTRIBUTE_VALUE = "PRESALE_INVALID_CONTRIBUTE_VALUE";
     string private constant ERROR_INSUFFICIENT_BALANCE     = "PRESALE_INSUFFICIENT_BALANCE";
     string private constant ERROR_INSUFFICIENT_ALLOWANCE   = "PRESALE_INSUFFICIENT_ALLOWANCE";
     string private constant ERROR_NOTHING_TO_REFUND        = "PRESALE_NOTHING_TO_REFUND";
@@ -164,9 +164,9 @@ contract Presale is EtherTokenConstant, IsContract, AragonApp {
         require(state() == State.Funding, ERROR_INVALID_STATE);
 
         if (contributionToken == ETH) {
-            require(msg.value == _value, ERROR_INCORRECT_ETH_VALUE);
+            require(msg.value == _value, ERROR_INVALID_CONTRIBUTE_VALUE);
         } else {
-            require(msg.value == 0,      ERROR_INCORRECT_ETH_VALUE);
+            require(msg.value == 0,      ERROR_INVALID_CONTRIBUTE_VALUE);
         }
 
         _contribute(_contributor, _value);

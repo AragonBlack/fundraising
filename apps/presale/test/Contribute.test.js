@@ -134,13 +134,13 @@ contract('Presale, contribute() functionality', ([anyone, appManager, buyer1, bu
 
         if (!useETH) {
           it("Reverts when sending ETH in a contribution that's supposed to use ERC20 tokens", async () => {
-            await assertRevert(contribute(buyer1, '10e18', true), 'PRESALE_INCORRECT_ETH_VALUE')
+            await assertRevert(contribute(buyer1, '10e18', true), 'PRESALE_INVALID_CONTRIBUTE_VALUE')
           })
         } else {
           it('Reverts if the ETH amount sent does not match the specified amount', async () => {
             const amount = 2
-            await assertRevert(this.presale.contribute(buyer1, amount, { value: amount - 1 }), 'PRESALE_INCORRECT_ETH_VALUE')
-            await assertRevert(this.presale.contribute(buyer1, amount, { value: amount + 1 }), 'PRESALE_INCORRECT_ETH_VALUE')
+            await assertRevert(this.presale.contribute(buyer1, amount, { value: amount - 1 }), 'PRESALE_INVALID_CONTRIBUTE_VALUE')
+            await assertRevert(this.presale.contribute(buyer1, amount, { value: amount + 1 }), 'PRESALE_INVALID_CONTRIBUTE_VALUE')
           })
         }
 
