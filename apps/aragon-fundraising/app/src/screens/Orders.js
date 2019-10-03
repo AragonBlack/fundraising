@@ -27,7 +27,7 @@ import OrderTypeTag from '../components/Orders/OrderTypeTag'
 import OrderState from '../components/Orders/OrderState'
 import NoData from '../components/NoData'
 import { Order } from '../constants'
-import { formatBigNumber } from '../utils/bn-utils'
+import { formatBigNumber, fromDecimals } from '../utils/bn-utils'
 import { MainViewContext } from '../context'
 
 /**
@@ -140,24 +140,40 @@ export default ({ myOrders }) => {
     rotateSortBy('date')
   }, [rotateSortBy])
 
+  // checking if just a single order has the `OVER` state
+  const hasOverState = filteredOrders.filter(order => order.state === Order.state.OVER).length
+
   const dataViewFields = myOrders
     ? [
-        <SortHeader label="Date" onClick={rotateSortByDate} sortBy={sortBy[0] === 'date' && sortBy[1]} />,
-        'Status',
-        <SortHeader label="Order Amount" onClick={rotateSortByAmount} sortBy={sortBy[0] === 'amount' && sortBy[1]} />,
-        <SortHeader label="Token Price" onClick={rotateSortByPrice} sortBy={sortBy[0] === 'price' && sortBy[1]} />,
-        'Order Type',
-        <SortHeader label="Tokens" onClick={rotateSortByTokens} sortBy={sortBy[0] === 'tokens' && sortBy[1]} />,
-        'Actions',
+        <SortHeader key="date" label="DATE" onClick={rotateSortByDate} sortBy={sortBy[0] === 'date' && sortBy[1]} />,
+        'STATUS',
+        <SortHeader key="amount" label="VALUE" onClick={rotateSortByAmount} sortBy={sortBy[0] === 'amount' && sortBy[1]} />,
+        <SortHeader key="price" label="SHARE PRICE" onClick={rotateSortByPrice} sortBy={sortBy[0] === 'price' && sortBy[1]} />,
+        'ORDER TYPE',
+        <SortHeader key="token" label="SHARES" onClick={rotateSortByTokens} sortBy={sortBy[0] === 'tokens' && sortBy[1]} />,
+        hasOverState ? (
+          <div key="actions">
+            <span
+              css={`
+                margin-right: 4rem;
+                margin-top: 2px;
+                font-size: 12px;
+                font-weight: 600;
+              `}
+            >
+              ACTIONS
+            </span>
+          </div>
+        ) : null,
       ]
     : [
-        <SortHeader label="Date" onClick={rotateSortByDate} sortBy={sortBy[0] === 'date' && sortBy[1]} />,
-        'Holder',
-        'Status',
-        <SortHeader label="Order Amount" onClick={rotateSortByAmount} sortBy={sortBy[0] === 'amount' && sortBy[1]} />,
-        <SortHeader label="Token Price" onClick={rotateSortByPrice} sortBy={sortBy[0] === 'price' && sortBy[1]} />,
-        'Order Type',
-        <SortHeader label="Tokens" onClick={rotateSortByTokens} sortBy={sortBy[0] === 'tokens' && sortBy[1]} />,
+        <SortHeader key="date" label="DATE" onClick={rotateSortByDate} sortBy={sortBy[0] === 'date' && sortBy[1]} />,
+        'HOLDER',
+        'STATUS',
+        <SortHeader key="amount" label="VALUE" onClick={rotateSortByAmount} sortBy={sortBy[0] === 'amount' && sortBy[1]} />,
+        <SortHeader key="price" label="SHARE PRICE" onClick={rotateSortByPrice} sortBy={sortBy[0] === 'price' && sortBy[1]} />,
+        'ORDER TYPE',
+        <SortHeader key="token" label="SHARES" onClick={rotateSortByTokens} sortBy={sortBy[0] === 'tokens' && sortBy[1]} />,
       ]
 
   // *****************************
@@ -234,12 +250,13 @@ export default ({ myOrders }) => {
 
   const handleDownload = () => {
     const mappedData = filteredOrders.map(order => {
-      return `${format(order.timestamp, 'MM/dd/yyyy - HH:mm:ss')},${order.user},${order.state},${formatBigNumber(
-        order.value,
-        order.symbol === 'DAI' ? daiDecimals : antDecimals
-      ) + ` ${order.symbol}`},${'$' + formatBigNumber(order.price, 0)},${order.type},${formatBigNumber(order.amount, tokenDecimals)}`
+      const date = format(order.timestamp, 'MM/dd/yyyy - HH:mm:ss')
+      const amount = fromDecimals(order.value, order.symbol === 'DAI' ? daiDecimals : antDecimals).toFixed(2, 1)
+      const price = `$${order.price.toFixed(2, 1)}`
+      const tokens = fromDecimals(order.amount, tokenDecimals).toFixed(2, 1)
+      return `${date},${order.user},${order.state},${amount} ${order.symbol},${price},${order.type},${tokens}`
     })
-    const result = ['Date,Holder,Status,Order Amount,Token Price,Order Type,Tokens'].concat(mappedData).join('\n')
+    const result = ['Date,Holder,Status,Value,Share Price,Order Type,Shares'].concat(mappedData).join('\n')
     const today = format(Date.now(), 'yyyy-MM-dd')
     const filename = `fundraising_${today}.csv`
     saveAs(new Blob([result], { type: 'text/csv;charset=utf-8' }), filename)
@@ -296,6 +313,7 @@ export default ({ myOrders }) => {
           }
           renderEntry={data => {
             const entry = []
+            const sign = data.type === Order.type.BUY ? '+' : '-'
             // timestamp
             entry.push(<StyledText key="date">{format(data.timestamp, 'MM/dd/yyyy - HH:mm:ss', { awareOfUnicodeTokens: true })}</StyledText>)
             // user if not myOrders
@@ -309,13 +327,13 @@ export default ({ myOrders }) => {
             // value
             entry.push(
               <p key="orderAmount" css={data.type === Order.type.BUY ? 'font-weight: 600; color: #2CC68F;' : 'font-weight: 600;'}>
-                {formatBigNumber(data.value, data.symbol === 'DAI' ? daiDecimals : antDecimals)} {data.symbol}
+                {formatBigNumber(data.value, data.symbol === 'DAI' ? daiDecimals : antDecimals, { numberPrefix: sign })} {data.symbol}
               </p>
             )
             // price
             entry.push(
               <p key="tokenPrice" css="font-weight: 600;">
-                ${formatBigNumber(data.price, 0)}
+                {formatBigNumber(data.price, 0, { numberPrefix: '$' })}
               </p>
             )
             // type
@@ -323,7 +341,7 @@ export default ({ myOrders }) => {
             // amount
             entry.push(
               <p key="tokens" css="font-weight: 600;">
-                {formatBigNumber(data.amount, tokenDecimals)}
+                {formatBigNumber(data.amount, tokenDecimals, { numberPrefix: sign })}
               </p>
             )
             // claim button if myOrders

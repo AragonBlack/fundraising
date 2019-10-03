@@ -1,6 +1,6 @@
 import { Order } from './order'
 import { Tokens } from './tokens'
-import { Presale } from './Presale'
-import { Polling } from './Polling'
+import { Presale } from './presale'
+import { Polling } from './polling'
 
 export { Order, Tokens, Presale, Polling }

@@ -1,3 +1,3 @@
 export const Polling = {
-  DURATION: 15000, // 15s
+  DURATION: 5000, // 5s
 }

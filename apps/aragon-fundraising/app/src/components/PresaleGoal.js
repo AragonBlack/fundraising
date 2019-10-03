@@ -72,9 +72,9 @@ export default () => {
         )}
         {state === Presale.state.REFUNDING && (
           <>
-            <p css="color: #212B36; font-weight: 300; font-size: 16px;">Unfortunately, the target goal for this project has not been reached.</p>
+            <p css="color: #212B36; font-weight: 300; font-size: 16px;">Unfortunately, the goal set for this presale has not been reached.</p>
             <Button wide mode="strong" label="Refund Presale Tokens" css="margin-top: 1rem; width: 100%;" onClick={() => setRefundPanel(true)}>
-              Refund Presale Tokens
+              Refund presale shares
             </Button>
           </>
         )}

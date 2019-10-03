@@ -51,7 +51,7 @@ const Order = ({ isBuyOrder }) => {
       setErrorMessage(null)
       // focus the right input, given the order type
       // timeout to avoid some flicker
-      amountInput && setTimeout(() => amountInput.current.focus(), 20)
+      amountInput && setTimeout(() => amountInput.current.focus(), 100)
     }
   }, [orderPanel, isBuyOrder])
 
@@ -107,7 +107,7 @@ const Order = ({ isBuyOrder }) => {
   const getUserBalance = () => {
     const balance = isBuyOrder ? [userDaiBalance, userAntBalance][selectedCollateral] : userBondedTokenBalance
     const decimals = isBuyOrder ? collateralItems[selectedCollateral].decimals : bondedDecimals
-    return formatBigNumber(balance, decimals, 4)
+    return formatBigNumber(balance, decimals)
   }
 
   return (

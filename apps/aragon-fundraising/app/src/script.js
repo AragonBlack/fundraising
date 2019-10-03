@@ -26,6 +26,9 @@ const tokenSymbols = new Map() // External contract -> symbol
 // bootstrap the Aragon API
 const app = new Aragon()
 
+// store metabatches to later set the realSupply to the batches
+const metabatches = new Map()
+
 // get the token address to initialize ourselves
 const externals = zip(app.call('reserve'), app.call('tap'), app.call('marketMaker'), app.call('presale'))
 retryEvery(() => {
@@ -98,10 +101,12 @@ const initialize = async (poolAddress, tapAddress, marketMakerAddress, presaleAd
       const nextState = {
         ...state,
       }
-      console.log('#########################')
-      console.log(evt.event)
-      console.log(evt)
-      console.log('#########################')
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('#########################')
+        console.log(evt.event)
+        console.log(evt)
+        console.log('#########################')
+      }
       const { event, returnValues, blockNumber, transactionHash, logIndex } = evt
       switch (event) {
         // app is syncing
@@ -131,6 +136,8 @@ const initialize = async (poolAddress, tapAddress, marketMakerAddress, presaleAd
           return newClaim(nextState, returnValues, settings)
         case 'NewBatch':
           return newBatch(nextState, returnValues, blockNumber)
+        case 'NewMetaBatch':
+          return newMetaBatch(nextState, returnValues)
         case 'UpdatePricing':
           return updatePricing(nextState, returnValues)
         case 'UpdateMaximumTapRateIncreasePct':
@@ -141,6 +148,8 @@ const initialize = async (poolAddress, tapAddress, marketMakerAddress, presaleAd
           return setOpenDate(nextState, returnValues, settings)
         case 'Contribute':
           return addContribution(nextState, returnValues, settings, blockNumber)
+        case 'Close':
+          return closePresale(nextState)
         case 'Refund':
           return removeContribution(nextState, returnValues)
         default:
@@ -454,17 +463,21 @@ const newClaim = async (state, { buyer, seller, collateral, batchId, value, amou
   }
 }
 
-const newBatch = async (state, { id, collateral, supply, balance, reserveRatio }, blockNumber) => {
+const newBatch = async (state, { id: batchId, collateral, supply, balance, reserveRatio }, blockNumber) => {
   const batches = cloneDeep(state.batches)
   const timestamp = await loadTimestamp(blockNumber)
+  const id = parseInt(batchId, 10)
+  const { virtualBalance } = state.collaterals.get(collateral)
   const newBatch = {
-    id: parseInt(id, 10),
+    id,
     timestamp,
     collateral,
     supply,
+    realSupply: metabatches.get(id),
     balance,
+    virtualBalance,
     reserveRatio,
-    // startPrice, buyPrice, sellPrice are calculated in the reducer
+    // realBalance, startPrice, buyPrice, sellPrice are calculated in the reducer
     // totalBuySpend, totalBuyReturn, totalSellReturn, totalSellSpend updated via updatePricing events
   }
   // because of chain re-orgs, events can be fired more than once
@@ -479,6 +492,11 @@ const newBatch = async (state, { id, collateral, supply, balance, reserveRatio }
     ...state,
     batches,
   }
+}
+
+const newMetaBatch = (state, { id, supply }) => {
+  metabatches.set(parseInt(id, 10), supply)
+  return state
 }
 
 const updatePricing = (state, { batchId, collateral, totalBuyReturn, totalBuySpend, totalSellReturn, totalSellSpend }) => {
@@ -562,6 +580,14 @@ const addContribution = async (state, { contributor, value, amount, vestedPurcha
     contributions,
   }
 }
+
+const closePresale = state => ({
+  ...state,
+  presale: {
+    ...state.presale,
+    state: Presale.state.CLOSED,
+  },
+})
 
 const removeContribution = (state, { contributor, value, amount, vestedPurchaseId }) => {
   const contributions = cloneDeep(state.contributions)
