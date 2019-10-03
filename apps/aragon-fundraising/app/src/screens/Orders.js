@@ -140,6 +140,9 @@ export default ({ myOrders }) => {
     rotateSortBy('date')
   }, [rotateSortBy])
 
+  // checking if just a single order has the `OVER` state
+  const hasOverState = filteredOrders.filter(order => order.state === Order.state.OVER).length
+
   const dataViewFields = myOrders
     ? [
         <SortHeader key="date" label="DATE" onClick={rotateSortByDate} sortBy={sortBy[0] === 'date' && sortBy[1]} />,
@@ -148,7 +151,20 @@ export default ({ myOrders }) => {
         <SortHeader key="price" label="SHARE PRICE" onClick={rotateSortByPrice} sortBy={sortBy[0] === 'price' && sortBy[1]} />,
         'ORDER TYPE',
         <SortHeader key="token" label="SHARES" onClick={rotateSortByTokens} sortBy={sortBy[0] === 'tokens' && sortBy[1]} />,
-        'Actions',
+        hasOverState ? (
+          <div key="actions">
+            <span
+              css={`
+                margin-right: 4rem;
+                margin-top: 2px;
+                font-size: 12px;
+                font-weight: 600;
+              `}
+            >
+              ACTIONS
+            </span>
+          </div>
+        ) : null,
       ]
     : [
         <SortHeader key="date" label="DATE" onClick={rotateSortByDate} sortBy={sortBy[0] === 'date' && sortBy[1]} />,
