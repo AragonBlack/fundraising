@@ -571,7 +571,7 @@ contract FundraisingMultisigTemplate is EtherTokenConstant, BaseTemplate {
     /***** internal check functions *****/
 
      function _ensureTokenIsContractOrETH(address _token) internal view returns (bool) {
-        return isContract(_token) || _token == ETH;
+        require(isContract(_token) || _token == ETH, ERROR_BAD_SETTINGS);
     }
 
     function _ensureBoardAppsCache() internal {
