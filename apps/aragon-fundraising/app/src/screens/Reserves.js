@@ -9,14 +9,14 @@ import { formatBigNumber, fromMonthlyAllocation, toMonthlyAllocation, toDecimals
 // In this copy we should display the user the percentage of max increase of the tap
 const helpContent = [
   [
-    'What is the tap?',
-    'The tap defines the amount of funds which can be released every month out of the market-maker reserve to the beneficiary of the fundraising campaign.',
+    'What is the tap rate?',
+    'The tap rate defines the amount of funds which can be released every month out of the market-maker reserve to the beneficiary of this fundraising campaign.',
   ],
   [
-    'What is the reserve ratio?',
-    'The reserve ratio defines the ratio between the amount of collateral in your market-maker reserve and the market cap of the fundraising campaign.',
+    'What is the collateralization ratio?',
+    'The collateralization ratio defines the ratio between the amount of collateral in your market-maker reserve and the market cap of this fundraising campaign.',
   ],
-  ['What is the floor?', 'The floor defines the amount of funds which must be kept in the market-maker reserve regardless of the tap rate.'],
+  ['What is the tap floor?', 'The tap floor defines the amount of funds which are kept in the market-maker reserve regardless of the tap rate.'],
 ]
 
 const ReserveSetting = ({ label, helpContent: [hint, help], value }) => {
