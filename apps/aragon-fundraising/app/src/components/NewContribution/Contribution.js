@@ -1,7 +1,7 @@
 import React, { useEffect, useContext, useRef, useState } from 'react'
 import styled from 'styled-components'
 import { useApi, useAppState, useConnectedAccount } from '@aragon/api-react'
-import { Button, Text, TextInput, theme, unselectable } from '@aragon/ui'
+import { Button, Text, TextInput, theme, unselectable, GU } from '@aragon/ui'
 import { PresaleViewContext } from '../../context'
 import Total from './Total'
 import Info from './Info'
@@ -81,7 +81,11 @@ export default () => {
   return (
     <form onSubmit={handleSubmit}>
       <InputsWrapper>
-        <p css="margin: 1rem 0;">
+        <p
+          css={`
+            margin: ${2 * GU}px 0;
+          `}
+        >
           Your balance: {formatBigNumber(userDaiBalance, contributionDecimals)} {contributionSymbol}
         </p>
         <ValueField key="collateral">

@@ -1,5 +1,5 @@
 import React from 'react'
-import { IconCheck, IconClock, IconEllipsis } from '@aragon/ui'
+import { IconCheck, IconClock, IconEllipsis, GU } from '@aragon/ui'
 import { Order } from '../../constants'
 
 export default ({ state }) => {
@@ -14,7 +14,14 @@ export default ({ state }) => {
   return (
     <>
       {icon}
-      <p css="margin-top: 0.20rem; margin-left: 0.25rem;">{state.charAt(0) + state.slice(1).toLowerCase()}</p>
+      <p
+        css={`
+          margin-top: ${0.4 * GU}px;
+          margin-left: ${0.5 * GU}px;
+        `}
+      >
+        {state.charAt(0) + state.slice(1).toLowerCase()}
+      </p>
     </>
   )
 }

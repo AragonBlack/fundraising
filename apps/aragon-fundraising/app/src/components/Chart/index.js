@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Box, _DateRange as DateRange, DropDown } from '@aragon/ui'
+import { Box, _DateRange as DateRange, DropDown, GU } from '@aragon/ui'
 import { useAppState } from '@aragon/api-react'
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, ReferenceDot, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import styled from 'styled-components'
@@ -119,9 +119,9 @@ const Chart = styled(Box)`
   .navbar {
     display: flex;
     justify-content: space-between;
-    margin-top: 2rem;
-    margin-right: 3rem;
-    margin-left: 4rem;
+    margin-top: ${4 * GU}px;
+    margin-right: ${6 * GU}px;
+    margin-left: ${8 * GU}px;
 
     .timeline {
       display: flex;
@@ -136,11 +136,11 @@ const Chart = styled(Box)`
       }
 
       .item {
-        margin-right: 1.5rem;
+        margin-right: ${3 * GU}px;
         color: rgba(109, 119, 123, 0.7);
       }
       .item:last-child {
-        margin-right: 2rem;
+        margin-right: ${4 * GU}px;
       }
       .item:hover {
         cursor: pointer;
@@ -151,7 +151,7 @@ const Chart = styled(Box)`
       }
 
       .item > span:nth-child(1) {
-        margin-right: 0.25rem;
+        margin-right: ${0.5 * GU}px;
         color: black;
       }
     }
@@ -165,7 +165,7 @@ const Chart = styled(Box)`
     .chart-view-text {
       font-size: 16px;
       color: #637381;
-      margin-right: 1rem;
+      margin-right: ${2 * GU}px;
       white-space: nowrap;
     }
   }
@@ -176,7 +176,7 @@ const Chart = styled(Box)`
       align-items: flex-end;
 
       .timeline {
-        margin-top: 2rem;
+        margin-top: ${4 * GU}px;
       }
 
       .chart-view {
@@ -190,7 +190,7 @@ const Chart = styled(Box)`
       flex-direction: column-reverse;
 
       & > div:nth-child(1) {
-        margin-top: 2rem;
+        margin-top: ${4 * GU}px;
       }
       .item:last-child {
         margin-right: 0;
