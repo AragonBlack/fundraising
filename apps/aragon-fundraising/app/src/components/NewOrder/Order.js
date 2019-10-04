@@ -1,7 +1,7 @@
 import React, { useEffect, useContext, useRef, useState } from 'react'
 import styled from 'styled-components'
 import { useApi, useAppState } from '@aragon/api-react'
-import { Button, DropDown, Text, TextInput, theme, unselectable } from '@aragon/ui'
+import { Button, DropDown, Text, TextInput, theme, unselectable, GU } from '@aragon/ui'
 import { MainViewContext } from '../../context'
 import Total from './Total'
 import Info from './Info'
@@ -113,7 +113,11 @@ const Order = ({ isBuyOrder }) => {
   return (
     <form onSubmit={handleSubmit}>
       <InputsWrapper>
-        <p css="margin: 1rem 0;">
+        <p
+          css={`
+            margin: ${2 * GU}px 0;
+          `}
+        >
           Your balance: {getUserBalance()} {getSymbol()}
         </p>
         <AmountField key="collateral">

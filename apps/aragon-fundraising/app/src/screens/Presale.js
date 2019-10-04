@@ -102,12 +102,11 @@ const Container = styled.div`
 
   .left {
     width: 25%;
-    margin-right: 1rem;
+    margin-right: ${2 * GU}px;
   }
 
   .right {
     width: 75%;
-
     font-size: 16px;
   }
 

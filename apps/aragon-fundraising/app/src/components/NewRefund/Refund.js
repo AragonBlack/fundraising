@@ -1,5 +1,5 @@
 import React from 'react'
-import { useApi, useAppState, useConnectedAccount } from '@aragon/api-react'
+import { useApi, useAppState, useConnectedAccount, GU } from '@aragon/api-react'
 import { Button, Info } from '@aragon/ui'
 import Information from './Information'
 import { formatBigNumber } from '../../utils/bn-utils'
@@ -36,7 +36,12 @@ export default () => {
         contributions?.get(account)?.length > 0 &&
         contributions.get(account).map(c => {
           return (
-            <div key={c.vestedPurchaseId} css="margin: 2rem 0;">
+            <div
+              key={c.vestedPurchaseId}
+              css={`
+                margin: ${4 * GU}px 0;
+              `}
+            >
               <Button mode="strong" wide onClick={() => handleRefund(c.vestedPurchaseId)}>
                 Refund contribution of {formatBigNumber(c.value, decimals)} {symbol} made on {new Date(c.timestamp).toLocaleDateString()}
               </Button>
@@ -44,7 +49,15 @@ export default () => {
           )
         })}
       {account && contributions?.get(account)?.length > 0 && <Information />}
-      {(!account || !contributions?.get(account)?.length > 0) && <Info css="margin-top: 1rem;">You don't have any contribution to refund.</Info>}
+      {(!account || !contributions?.get(account)?.length > 0) && (
+        <Info
+          css={`
+            margin-top: ${2 * GU}px;
+          `}
+        >
+          You don't have any contribution to refund.
+        </Info>
+      )}
     </div>
   )
 }

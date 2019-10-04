@@ -1,5 +1,5 @@
 import React from 'react'
-import { useAppState } from '@aragon/api-react'
+import { useAppState, GU } from '@aragon/api-react'
 import { Info } from '@aragon/ui'
 
 const Information = ({ isBuyOrder, slippage }) => {
@@ -17,7 +17,7 @@ const Information = ({ isBuyOrder, slippage }) => {
   return (
     <div
       css={`
-        margin-top: 2rem;
+        margin-top: ${4 * GU}px;
       `}
     >
       <Info.Action title="Slippage">

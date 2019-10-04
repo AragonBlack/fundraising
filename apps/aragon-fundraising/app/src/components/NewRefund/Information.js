@@ -1,11 +1,11 @@
 import React from 'react'
-import { Info } from '@aragon/ui'
+import { Info, GU } from '@aragon/ui'
 
 export default () => {
   return (
     <div
       css={`
-        margin-top: 2rem;
+        margin-top: ${4 * GU}px;
       `}
     >
       <Info.Action>
