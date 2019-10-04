@@ -1,11 +1,11 @@
 import React from 'react'
 import styled from 'styled-components'
 import { GU } from '@aragon/ui'
-import EmptyOrders from '../assets/EmptyOrders.svg'
+import EmptyOrders from '../assets/EmptyOrders.png'
 
 export default ({ message }) => (
   <EmptyState>
-    <img src={EmptyOrders} alt="" />
+    <img src={EmptyOrders} alt="" width="176" height="151" />
     <p
       css={`
         font-size: 24px;
