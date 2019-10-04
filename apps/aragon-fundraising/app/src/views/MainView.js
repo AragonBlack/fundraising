@@ -160,34 +160,32 @@ export default () => {
   return (
     <IdentityProvider onResolve={handleResolveLocalIdentity} onShowLocalIdentityModal={handleShowLocalIdentityModal}>
       <MainViewContext.Provider value={context}>
-        <Layout>
-          <Disclaimer />
-          <Header
-            primary="Fundraising"
-            secondary={
-              layoutName === 'small' ? (
-                <ContextMenu>
-                  <ContextMenuItem onClick={() => setOrderPanel(true)}>New Order</ContextMenuItem>
-                  <ContextMenuItem onClick={() => handleWithdraw()}>Withdraw</ContextMenuItem>
-                </ContextMenu>
-              ) : (
-                <>
-                  <Button mode="strong" label="Withdraw" onClick={() => handleWithdraw()}>
-                    Withdraw
-                  </Button>
-                  <Button mode="strong" label="New Order" css="margin-left: 20px;" onClick={() => setOrderPanel(true)}>
-                    New Order
-                  </Button>
-                </>
-              )
-            }
-          />
-          <Tabs selected={tabIndex} onChange={setTabindex} items={tabs} />
-          {tabIndex === 0 && <Overview />}
-          {tabIndex === 1 && <Orders />}
-          {tabIndex === 2 && <Orders myOrders />}
-          {tabIndex === 3 && <Reserves />}
-        </Layout>
+        <Header
+          primary="Fundraising"
+          secondary={
+            layoutName === 'small' ? (
+              <ContextMenu>
+                <ContextMenuItem onClick={() => setOrderPanel(true)}>New Order</ContextMenuItem>
+                <ContextMenuItem onClick={() => handleWithdraw()}>Withdraw</ContextMenuItem>
+              </ContextMenu>
+            ) : (
+              <>
+                <Button mode="strong" label="Withdraw" onClick={() => handleWithdraw()}>
+                  Withdraw
+                </Button>
+                <Button mode="strong" label="New Order" css="margin-left: 20px;" onClick={() => setOrderPanel(true)}>
+                  New Order
+                </Button>
+              </>
+            )
+          }
+        />
+        <Disclaimer />
+        <Tabs selected={tabIndex} onChange={setTabindex} items={tabs} />
+        {tabIndex === 0 && <Overview />}
+        {tabIndex === 1 && <Orders />}
+        {tabIndex === 2 && <Orders myOrders />}
+        {tabIndex === 3 && <Reserves />}
         <NewOrder />
       </MainViewContext.Provider>
     </IdentityProvider>

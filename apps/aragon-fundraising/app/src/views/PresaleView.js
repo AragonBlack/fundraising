@@ -86,21 +86,19 @@ export default () => {
 
   return (
     <PresaleViewContext.Provider value={context}>
-      <Layout>
-        <Disclaimer />
-        <Header
-          primary="Fundraising Presale"
-          secondary={
-            <Button
-              disabled={polledPresaleState !== PresaleConstants.state.FUNDING}
-              mode="strong"
-              label="Buy presale shares"
-              onClick={() => setPresalePanel(true)}
-            />
-          }
-        />
-        <Presale />
-      </Layout>
+      <Header
+        primary="Fundraising Presale"
+        secondary={
+          <Button
+            disabled={polledPresaleState !== PresaleConstants.state.FUNDING}
+            mode="strong"
+            label="Buy presale shares"
+            onClick={() => setPresalePanel(true)}
+          />
+        }
+      />
+      <Disclaimer />
+      <Presale />
       <NewContribution />
       <NewRefund />
     </PresaleViewContext.Provider>
