@@ -56,7 +56,7 @@ const App = () => {
   }, Polling.DURATION)
 
   return (
-    <Main assetsUrl="./">
+    <Main>
       <SyncIndicator visible={!isReady || isPresale === null} />
       {isPresale && isReady && collateralsAreOk && <PresaleView />}
       {!isPresale && isReady && collateralsAreOk && <MainView />}
