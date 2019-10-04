@@ -127,7 +127,13 @@ const Order = ({ isBuyOrder }) => {
           </label>
           <CombinedInput>
             <TextInput ref={amountInput} type="number" value={amount} onChange={handleAmountUpdate} min={0} placeholder="0" step="any" required wide />
-            {!isBuyOrder && (
+            {isBuyOrder ? (
+              <span
+                css={`
+                  width: ${2 * GU}px;
+                `}
+              />
+            ) : (
               <Text
                 as="span"
                 css={`
@@ -150,23 +156,29 @@ const Order = ({ isBuyOrder }) => {
         conversionSymbol={getConversionSymbol()}
         onError={validate}
       />
-      <ButtonWrapper>
+      <div
+        css={`
+          padding: ${2 * GU}px 0 0;
+        `}
+      >
         <Button mode="strong" type="submit" disabled={!valid} wide>
           Open {isBuyOrder ? 'buy' : 'sell'} order
         </Button>
-      </ButtonWrapper>
+      </div>
       {errorMessage && <ValidationError message={errorMessage} />}
-      <Info isBuyOrder={isBuyOrder} slippage={collateralItems[selectedCollateral].slippage} />
+      <div
+        css={`
+          padding-top: ${2 * GU}px;
+        `}
+      >
+        <Info isBuyOrder={isBuyOrder} slippage={collateralItems[selectedCollateral].slippage} />
+      </div>
     </form>
   )
 }
 
-const ButtonWrapper = styled.div`
-  padding-top: 10px;
-`
-
 const AmountField = styled.div`
-  margin-bottom: 20px;
+  margin-bottom: ${2.5 * GU}px;
 `
 
 const InputsWrapper = styled.div`
