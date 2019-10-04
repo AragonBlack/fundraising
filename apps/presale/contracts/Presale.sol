@@ -318,7 +318,7 @@ contract Presale is EtherTokenConstant, IsContract, AragonApp {
         uint256 tokensForReserve = contributionToken.balanceOf(address(this));
         _transfer(contributionToken, address(this), reserve, tokensForReserve);
         // (mint ✨) ~~~> project tokens ~~~> (beneficiary)
-        uint256 tokensForBeneficiary = PPM.sub(supplyOfferedPct).mul(token.totalSupply()).div(PPM);
+        uint256 tokensForBeneficiary = token.totalSupply().mul(PPM.sub(supplyOfferedPct)).div(supplyOfferedPct);
         tokenManager.issue(tokensForBeneficiary);
         tokenManager.assignVested(
             beneficiary,
