@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { unstable_batchedUpdates as batchedUpdates } from 'react-dom'
 import { useAppState, useApi, useConnectedAccount } from '@aragon/api-react'
-import { Header, Layout, Button } from '@aragon/ui'
+import { Header, Button } from '@aragon/ui'
 import BigNumber from 'bignumber.js'
 import { useInterval } from '../hooks/use-interval'
 import { Presale as PresaleConstants, Polling } from '../constants'
