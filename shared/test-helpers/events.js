@@ -11,12 +11,12 @@ const getNewBatchEvent = receipt => {
 }
 
 const getBuyOrderBatchId = receipt => {
-  const event = receipt.logs.find(l => l.event === 'NewBuyOrder')
+  const event = receipt.logs.find(l => l.event === 'OpenBuyOrder')
   return event.args.batchId
 }
 
 const getSellOrderBatchId = receipt => {
-  const event = receipt.logs.find(l => l.event === 'NewSellOrder')
+  const event = receipt.logs.find(l => l.event === 'OpenSellOrder')
   return event.args.batchId
 }
 

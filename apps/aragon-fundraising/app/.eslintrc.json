@@ -10,7 +10,7 @@
   },
   "extends": ["standard", "standard-react", "plugin:prettier/recommended", "prettier/react"],
   "parser": "babel-eslint",
-  "plugins": ["prettier", "react"],
+  "plugins": ["prettier", "react", "react-hooks"],
   "rules": {
     "valid-jsdoc": "error",
     "react/prop-types": 0,

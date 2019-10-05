@@ -1,5 +1,5 @@
 import React from 'react'
-import { IconFilter } from '@aragon/ui'
+import { IconFilter, GU } from '@aragon/ui'
 import styled from 'styled-components'
 
 export default props => (
@@ -16,8 +16,8 @@ const Button = styled.div`
   box-shadow: 0px 1px 3px rgba(0, 0, 0, 0.1);
   border: 1px solid rgba(223, 227, 232, 0.75);
   border-radius: 4px;
-  padding: 0.5rem 1rem;
-  padding-left: 0.5rem;
+  padding: ${1 * GU}px ${2 * GU}px;
+  padding-left: ${1 * GU}px;
   &:hover {
     cursor: pointer;
   }

@@ -1,12 +1,12 @@
 import React, { useEffect, useContext, useRef, useState } from 'react'
 import styled from 'styled-components'
 import { useApi, useAppState } from '@aragon/api-react'
-import { Button, DropDown, Text, TextInput, theme, unselectable } from '@aragon/ui'
+import { Button, DropDown, Text, TextInput, theme, unselectable, GU } from '@aragon/ui'
 import { MainViewContext } from '../../context'
 import Total from './Total'
 import Info from './Info'
 import ValidationError from '../ValidationError'
-import { toDecimals } from '../../utils/bn-utils'
+import { toDecimals, formatBigNumber } from '../../utils/bn-utils'
 
 const Order = ({ isBuyOrder }) => {
   // *****************************
@@ -27,7 +27,7 @@ const Order = ({ isBuyOrder }) => {
   // *****************************
   // context state
   // *****************************
-  const { orderPanel, setOrderPanel } = useContext(MainViewContext)
+  const { orderPanel, setOrderPanel, userBondedTokenBalance, userDaiBalance, userAntBalance } = useContext(MainViewContext)
 
   // *****************************
   // internal state
@@ -51,7 +51,7 @@ const Order = ({ isBuyOrder }) => {
       setErrorMessage(null)
       // focus the right input, given the order type
       // timeout to avoid some flicker
-      amountInput && setTimeout(() => amountInput.current.focus(), 20)
+      amountInput && setTimeout(() => amountInput.current.focus(), 100)
     }
   }, [orderPanel, isBuyOrder])
 
@@ -104,9 +104,22 @@ const Order = ({ isBuyOrder }) => {
     return collateralItems[selectedCollateral].reserveRatio
   }
 
+  const getUserBalance = () => {
+    const balance = isBuyOrder ? [userDaiBalance, userAntBalance][selectedCollateral] : userBondedTokenBalance
+    const decimals = isBuyOrder ? collateralItems[selectedCollateral].decimals : bondedDecimals
+    return formatBigNumber(balance, decimals)
+  }
+
   return (
     <form onSubmit={handleSubmit}>
       <InputsWrapper>
+        <p
+          css={`
+            margin: ${2 * GU}px 0;
+          `}
+        >
+          Your balance: {getUserBalance()} {getSymbol()}
+        </p>
         <AmountField key="collateral">
           <label>
             {isBuyOrder && <StyledTextBlock>{collateralItems[selectedCollateral].symbol} TO SPEND</StyledTextBlock>}
@@ -114,7 +127,13 @@ const Order = ({ isBuyOrder }) => {
           </label>
           <CombinedInput>
             <TextInput ref={amountInput} type="number" value={amount} onChange={handleAmountUpdate} min={0} placeholder="0" step="any" required wide />
-            {!isBuyOrder && (
+            {isBuyOrder ? (
+              <span
+                css={`
+                  width: ${2 * GU}px;
+                `}
+              />
+            ) : (
               <Text
                 as="span"
                 css={`
@@ -137,23 +156,29 @@ const Order = ({ isBuyOrder }) => {
         conversionSymbol={getConversionSymbol()}
         onError={validate}
       />
-      <ButtonWrapper>
+      <div
+        css={`
+          padding: ${2 * GU}px 0 0;
+        `}
+      >
         <Button mode="strong" type="submit" disabled={!valid} wide>
           Open {isBuyOrder ? 'buy' : 'sell'} order
         </Button>
-      </ButtonWrapper>
+      </div>
       {errorMessage && <ValidationError message={errorMessage} />}
-      <Info isBuyOrder={isBuyOrder} slippage={collateralItems[selectedCollateral].slippage} />
+      <div
+        css={`
+          padding-top: ${2 * GU}px;
+        `}
+      >
+        <Info isBuyOrder={isBuyOrder} slippage={collateralItems[selectedCollateral].slippage} />
+      </div>
     </form>
   )
 }
 
-const ButtonWrapper = styled.div`
-  padding-top: 10px;
-`
-
 const AmountField = styled.div`
-  margin-bottom: 20px;
+  margin-bottom: ${2.5 * GU}px;
 `
 
 const InputsWrapper = styled.div`

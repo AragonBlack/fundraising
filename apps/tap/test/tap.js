@@ -1,51 +1,61 @@
-/* eslint-disable no-undef */
+const Kernel = artifacts.require('Kernel')
+const ACL = artifacts.require('ACL')
+const EVMScriptRegistryFactory = artifacts.require('EVMScriptRegistryFactory')
+const DAOFactory = artifacts.require('DAOFactory')
+const Controller = artifacts.require('AragonFundraisingControllerMock')
+const Vault = artifacts.require('Vault')
+const Tap = artifacts.require('Tap')
+const TokenMock = artifacts.require('TokenMock')
+const ForceSendETH = artifacts.require('ForceSendETH')
+
 const { assertRevert } = require('@aragon/test-helpers/assertThrow')
 const blockNumber = require('@aragon/test-helpers/blockNumber')(web3)
 const getBalance = require('@aragon/test-helpers/balance')(web3)
 const assertEvent = require('@aragon/test-helpers/assertEvent')
 const timeTravel = require('@aragon/test-helpers/timeTravel')(web3)
 const { hash } = require('eth-ens-namehash')
+const { getEvent } = require('@ablack/fundraising-shared-test-helpers/events')
+const { NULL_ADDRESS } = require('@ablack/fundraising-shared-test-helpers/constants')
+const increaseBlocks = require('@ablack/fundraising-shared-test-helpers/increaseBlocks')(web3)
 
-const getEvent = (receipt, event, arg) => {
-  return receipt.logs.filter(l => l.event === event)[0].args[arg]
-}
+const { MAXIMUM_TAP_FLOOR_DECREASE_PCT } = require('@ablack/fundraising-shared-test-helpers/constants')
+
 const getTimestamp = receipt => {
   return web3.eth.getBlock(receipt.receipt.blockNumber).timestamp
 }
 
-const Kernel = artifacts.require('Kernel')
-const ACL = artifacts.require('ACL')
-const EVMScriptRegistryFactory = artifacts.require('EVMScriptRegistryFactory')
-const DAOFactory = artifacts.require('DAOFactory')
-const Controller = artifacts.require('SimpleMarketMakerController')
-const Vault = artifacts.require('Vault')
-const Tap = artifacts.require('Tap')
-const EtherTokenConstantMock = artifacts.require('EtherTokenConstantMock')
-const TokenMock = artifacts.require('TokenMock')
-const ForceSendETH = artifacts.require('ForceSendETH')
+const getBatchId = receipt => {
+  const blocknumber = web3.eth.getBlock(receipt.receipt.blockNumber).number
+
+  return Math.floor(blocknumber / BATCH_BLOCKS) * BATCH_BLOCKS
+}
+
+const VAULT_ID = hash('vault.aragonpm.eth')
+const TAP_ID = hash('tap.aragonpm.eth')
+
+const { ETH } = require('@ablack/fundraising-shared-test-helpers/constants')
+
+const BATCH_BLOCKS = 10
+const INITIAL_ETH_BALANCE = 100000000
+const INITIAL_TOKEN_BALANCE = 100000000
+const MAX_TAP_RATE_INCREASE_PCT = 50 * Math.pow(10, 16)
+
+const progressToNextBatch = require('@ablack/fundraising-shared-test-helpers/progressToNextBatch')(web3, BATCH_BLOCKS)
 
 contract('Tap app', accounts => {
   let factory, dao, acl, vBase, tBase, controller, reserve, beneficiary, tap, token1, token2
-  let NULL_ADDR,
-    ETH,
-    APP_MANAGER_ROLE,
+  let APP_MANAGER_ROLE,
     TRANSFER_ROLE,
     UPDATE_CONTROLLER_ROLE,
     UPDATE_RESERVE_ROLE,
     UPDATE_BENEFICIARY_ROLE,
-    UPDATE_MAXIMUM_TAP_INCREASE_PCT_ROLE,
+    UPDATE_MAXIMUM_TAP_RATE_INCREASE_PCT_ROLE,
+    UPDATE_MAXIMUM_TAP_FLOOR_DECREASE_PCT_ROLE,
     ADD_TAPPED_TOKEN_ROLE,
     REMOVE_TAPPED_TOKEN_ROLE,
     UPDATE_TAPPED_TOKEN_ROLE,
+    RESET_TAPPED_TOKEN_ROLE,
     WITHDRAW_ROLE
-
-  const VAULT_ID = hash('vault.aragonpm.eth')
-  const TAP_ID = hash('tap.aragonpm.eth')
-
-  const BATCH_BLOCKS = 10
-  const INITIAL_ETH_BALANCE = 100000000
-  const INITIAL_TOKEN_BALANCE = 100000000
-  const MAX_TAP_INCREASE_PCT = 50 * Math.pow(10, 16)
 
   const root = accounts[0]
   const authorized = accounts[1]
@@ -55,44 +65,6 @@ contract('Tap app', accounts => {
     // Using this contract ETH will be send by selfdestruct which always succeeds
     const forceSend = await ForceSendETH.new()
     return forceSend.sendByDying(to, { value })
-  }
-
-  const getBatchId = receipt => {
-    const blocknumber = web3.eth.getBlock(receipt.receipt.blockNumber).number
-
-    return Math.floor(blocknumber / BATCH_BLOCKS) * BATCH_BLOCKS
-  }
-
-  const progressToNextBatch = async () => {
-    let currentBlock = await blockNumber()
-    let currentBatch = await tap.getCurrentBatchId()
-    let blocksTillNextBatch = currentBatch.plus(BATCH_BLOCKS).sub(currentBlock)
-    await increaseBlocks(blocksTillNextBatch)
-  }
-
-  const increaseBlocks = blocks => {
-    if (typeof blocks === 'object') {
-      blocks = blocks.toNumber(10)
-    }
-    return new Promise((resolve, reject) => {
-      increaseBlock().then(() => {
-        blocks -= 1
-        if (blocks === 0) {
-          resolve()
-        } else {
-          increaseBlocks(blocks).then(resolve)
-        }
-      })
-    })
-  }
-
-  const increaseBlock = () => {
-    return new Promise((resolve, reject) => {
-      web3.currentProvider.sendAsync({ jsonrpc: '2.0', method: 'evm_mine', id: 12345 }, (err, result) => {
-        if (err) reject(err)
-        resolve(result)
-      })
-    })
   }
 
   const initialize = async _ => {
@@ -116,15 +88,17 @@ contract('Tap app', accounts => {
     await acl.createPermission(authorized, tap.address, UPDATE_CONTROLLER_ROLE, root, { from: root })
     await acl.createPermission(authorized, tap.address, UPDATE_RESERVE_ROLE, root, { from: root })
     await acl.createPermission(authorized, tap.address, UPDATE_BENEFICIARY_ROLE, root, { from: root })
-    await acl.createPermission(authorized, tap.address, UPDATE_MAXIMUM_TAP_INCREASE_PCT_ROLE, root, { from: root })
+    await acl.createPermission(authorized, tap.address, UPDATE_MAXIMUM_TAP_RATE_INCREASE_PCT_ROLE, root, { from: root })
+    await acl.createPermission(authorized, tap.address, UPDATE_MAXIMUM_TAP_FLOOR_DECREASE_PCT_ROLE, root, { from: root })
     await acl.createPermission(authorized, tap.address, ADD_TAPPED_TOKEN_ROLE, root, { from: root })
     await acl.createPermission(authorized, tap.address, REMOVE_TAPPED_TOKEN_ROLE, root, { from: root })
     await acl.createPermission(authorized, tap.address, UPDATE_TAPPED_TOKEN_ROLE, root, { from: root })
+    await acl.createPermission(authorized, tap.address, RESET_TAPPED_TOKEN_ROLE, root, { from: root })
     await acl.createPermission(authorized, tap.address, WITHDRAW_ROLE, root, { from: root })
     // initializations
     await reserve.initialize()
     await beneficiary.initialize()
-    await tap.initialize(controller.address, reserve.address, beneficiary.address, BATCH_BLOCKS, MAX_TAP_INCREASE_PCT)
+    await tap.initialize(controller.address, reserve.address, beneficiary.address, BATCH_BLOCKS, MAX_TAP_RATE_INCREASE_PCT, MAXIMUM_TAP_FLOOR_DECREASE_PCT)
     // balances
     await forceSendETH(reserve.address, INITIAL_ETH_BALANCE)
     token1 = await TokenMock.new(reserve.address, INITIAL_TOKEN_BALANCE)
@@ -142,17 +116,19 @@ contract('Tap app', accounts => {
     vBase = await Vault.new()
     tBase = await Tap.new()
     // constants
-    ETH = await (await EtherTokenConstantMock.new()).getETHConstant()
+    // ETH = await (await EtherTokenConstantMock.new()).getETHConstant()
     NULL_ADDR = ETH
     APP_MANAGER_ROLE = await kBase.APP_MANAGER_ROLE()
     TRANSFER_ROLE = await vBase.TRANSFER_ROLE()
     UPDATE_CONTROLLER_ROLE = await tBase.UPDATE_CONTROLLER_ROLE()
     UPDATE_RESERVE_ROLE = await tBase.UPDATE_RESERVE_ROLE()
     UPDATE_BENEFICIARY_ROLE = await tBase.UPDATE_BENEFICIARY_ROLE()
-    UPDATE_MAXIMUM_TAP_INCREASE_PCT_ROLE = await tBase.UPDATE_MAXIMUM_TAP_INCREASE_PCT_ROLE()
+    UPDATE_MAXIMUM_TAP_RATE_INCREASE_PCT_ROLE = await tBase.UPDATE_MAXIMUM_TAP_RATE_INCREASE_PCT_ROLE()
+    UPDATE_MAXIMUM_TAP_FLOOR_DECREASE_PCT_ROLE = await tBase.UPDATE_MAXIMUM_TAP_FLOOR_DECREASE_PCT_ROLE()
     ADD_TAPPED_TOKEN_ROLE = await tBase.ADD_TAPPED_TOKEN_ROLE()
     REMOVE_TAPPED_TOKEN_ROLE = await tBase.REMOVE_TAPPED_TOKEN_ROLE()
     UPDATE_TAPPED_TOKEN_ROLE = await tBase.UPDATE_TAPPED_TOKEN_ROLE()
+    RESET_TAPPED_TOKEN_ROLE = await tBase.RESET_TAPPED_TOKEN_ROLE()
     WITHDRAW_ROLE = await tBase.WITHDRAW_ROLE()
   })
 
@@ -167,17 +143,18 @@ contract('Tap app', accounts => {
   })
 
   context('> #initialize', () => {
-    context('> initialization parameters are correct', () => {
+    context('> initialization parameters valid', () => {
       it('it should initialize tap', async () => {
         assert.equal(await tap.controller(), controller.address)
         assert.equal(await tap.reserve(), reserve.address)
         assert.equal(await tap.beneficiary(), beneficiary.address)
         assert.equal(await tap.batchBlocks(), BATCH_BLOCKS)
-        assert.equal(await tap.maximumTapIncreasePct(), MAX_TAP_INCREASE_PCT)
+        assert.equal(await tap.maximumTapRateIncreasePct(), MAX_TAP_RATE_INCREASE_PCT)
+        assert.equal(await tap.maximumTapFloorDecreasePct(), MAXIMUM_TAP_FLOOR_DECREASE_PCT)
       })
     })
 
-    context('> initialization parameters are not correct', () => {
+    context('> initialization parameters are invalid', () => {
       it('it should revert', async () => {
         const dReceipt = await factory.newDAO(root)
         const dao = await Kernel.at(getEvent(dReceipt, 'DeployDAO', 'dao'))
@@ -187,15 +164,27 @@ contract('Tap app', accounts => {
         const _tReceipt = await dao.newAppInstance(TAP_ID, tBase.address, '0x', false)
         const _tap = await Tap.at(getEvent(_tReceipt, 'NewAppProxy', 'proxy'))
 
-        await assertRevert(() => _tap.initialize(root, reserve.address, beneficiary.address, BATCH_BLOCKS, MAX_TAP_INCREASE_PCT))
-        await assertRevert(() => _tap.initialize(controller.address, root, beneficiary.address, BATCH_BLOCKS, MAX_TAP_INCREASE_PCT))
-        await assertRevert(() => _tap.initialize(controller.address, reserve.address, NULL_ADDR, BATCH_BLOCKS, MAX_TAP_INCREASE_PCT))
-        await assertRevert(() => _tap.initialize(controller.address, reserve.address, beneficiary.address, 0, MAX_TAP_INCREASE_PCT))
+        await assertRevert(() =>
+          _tap.initialize(root, reserve.address, beneficiary.address, BATCH_BLOCKS, MAX_TAP_RATE_INCREASE_PCT, MAXIMUM_TAP_FLOOR_DECREASE_PCT)
+        )
+        await assertRevert(() =>
+          _tap.initialize(controller.address, root, beneficiary.address, BATCH_BLOCKS, MAX_TAP_RATE_INCREASE_PCT, MAXIMUM_TAP_FLOOR_DECREASE_PCT)
+        )
+        await assertRevert(() =>
+          _tap.initialize(controller.address, reserve.address, NULL_ADDR, BATCH_BLOCKS, MAX_TAP_RATE_INCREASE_PCT, MAXIMUM_TAP_FLOOR_DECREASE_PCT)
+        )
+        await assertRevert(() =>
+          _tap.initialize(controller.address, reserve.address, beneficiary.address, 0, MAX_TAP_RATE_INCREASE_PCT, MAXIMUM_TAP_FLOOR_DECREASE_PCT)
+        )
       })
     })
 
     it('it should revert on re-initialization', async () => {
-      await assertRevert(() => tap.initialize(controller.address, reserve.address, beneficiary.address, BATCH_BLOCKS, MAX_TAP_INCREASE_PCT, { from: root }))
+      await assertRevert(() =>
+        tap.initialize(controller.address, reserve.address, beneficiary.address, BATCH_BLOCKS, MAX_TAP_RATE_INCREASE_PCT, MAXIMUM_TAP_FLOOR_DECREASE_PCT, {
+          from: root,
+        })
+      )
     })
   })
 
@@ -280,26 +269,43 @@ contract('Tap app', accounts => {
     })
   })
 
-  context('> #updateMaximumTapIncreasePct', () => {
-    context('> sender has UPDATE_MAXIMUM_TAP_INCREASE_PCT_ROLE', () => {
-      it('it should update maximum tap increase percentage', async () => {
-        const receipt = await tap.updateMaximumTapIncreasePct(70 * Math.pow(10, 16), { from: authorized })
+  context('> #updateMaximumTapRateIncreasePct', () => {
+    context('> sender has UPDATE_MAXIMUM_TAP_RATE_INCREASE_PCT_ROLE', () => {
+      it('it should update maximum tap rate increase percentage', async () => {
+        const receipt = await tap.updateMaximumTapRateIncreasePct(70 * Math.pow(10, 16), { from: authorized })
 
-        assertEvent(receipt, 'UpdateMaximumTapIncreasePct')
-        assert.equal(await tap.maximumTapIncreasePct(), 70 * Math.pow(10, 16))
+        assertEvent(receipt, 'UpdateMaximumTapRateIncreasePct')
+        assert.equal(await tap.maximumTapRateIncreasePct(), 70 * Math.pow(10, 16))
       })
     })
 
-    context('> sender does not have UPDATE_MAXIMUM_TAP_INCREASE_PCT_ROLE', () => {
+    context('> sender does not have UPDATE_MAXIMUM_TAP_RATE_INCREASE_PCT_ROLE', () => {
       it('it should revert', async () => {
-        await assertRevert(() => tap.updateMaximumTapIncreasePct(70 * Math.pow(10, 16), { from: unauthorized }))
+        await assertRevert(() => tap.updateMaximumTapRateIncreasePct(70 * Math.pow(10, 16), { from: unauthorized }))
+      })
+    })
+  })
+
+  context('> #updateMaximumTapFloorDecreasePct', () => {
+    context('> sender has UPDATE_MAXIMUM_TAP_FLOOR_DECREASE_PCT_ROLE', () => {
+      it('it should update maximum tap floor decrease percentage', async () => {
+        const receipt = await tap.updateMaximumTapFloorDecreasePct(70 * Math.pow(10, 16), { from: authorized })
+
+        assertEvent(receipt, 'UpdateMaximumTapFloorDecreasePct')
+        assert.equal(await tap.maximumTapFloorDecreasePct(), 70 * Math.pow(10, 16))
+      })
+    })
+
+    context('> sender does not have UPDATE_MAXIMUM_TAP_FLOOR_DECREASE_PCT_ROLE', () => {
+      it('it should revert', async () => {
+        await assertRevert(() => tap.updateMaximumTapFloorDecreasePct(70 * Math.pow(10, 16), { from: unauthorized }))
       })
     })
   })
 
   context('> #addTappedToken', () => {
     context('> sender has ADD_TAPPED_TOKEN_ROLE', () => {
-      context('> and token is ETH or ERC20', () => {
+      context('> and token is ERC20 or ETH', () => {
         context('> and token is not yet tapped', () => {
           context('> and tap rate is above zero', () => {
             it('it should add tapped token', async () => {
@@ -319,9 +325,9 @@ contract('Tap app', accounts => {
               assertEvent(receipt2, 'AddTappedToken')
               assertEvent(receipt3, 'AddTappedToken')
 
-              assert.equal(await tap.taps(ETH), 10)
-              assert.equal(await tap.taps(token1.address), 50)
-              assert.equal(await tap.taps(token2.address), 100)
+              assert.equal(await tap.rates(ETH), 10)
+              assert.equal(await tap.rates(token1.address), 50)
+              assert.equal(await tap.rates(token2.address), 100)
 
               assert.equal(await tap.floors(ETH), 15)
               assert.equal(await tap.floors(token1.address), 25)
@@ -342,7 +348,7 @@ contract('Tap app', accounts => {
               const timestamp1 = getTimestamp(receipt1)
 
               assertEvent(receipt1, 'AddTappedToken')
-              assert.equal(await tap.taps(token1.address), 50)
+              assert.equal(await tap.rates(token1.address), 50)
               assert.equal(await tap.floors(token1.address), 30)
               assert.equal(await tap.lastWithdrawals(token1.address), batchId1)
               assert.equal(await tap.lastTapUpdates(token1.address), timestamp1)
@@ -353,7 +359,7 @@ contract('Tap app', accounts => {
               const timestamp2 = getTimestamp(receipt2)
 
               assertEvent(receipt2, 'AddTappedToken')
-              assert.equal(await tap.taps(token1.address), 100)
+              assert.equal(await tap.rates(token1.address), 100)
               assert.equal(await tap.floors(token1.address), 70)
               assert.equal(await tap.lastWithdrawals(token1.address), batchId2)
               assert.equal(await tap.lastTapUpdates(token1.address), timestamp2)
@@ -379,7 +385,7 @@ contract('Tap app', accounts => {
         })
       })
 
-      context('> but token is not ETH or ERC20', () => {
+      context('> but token is not ERC20 or ETH', () => {
         it('it should revert', async () => {
           await assertRevert(() => tap.addTappedToken(root, 50, 10, { from: authorized }))
         })
@@ -406,8 +412,8 @@ contract('Tap app', accounts => {
 
           assertEvent(receipt1, 'RemoveTappedToken')
           assertEvent(receipt2, 'RemoveTappedToken')
-          assert.equal(await tap.taps(ETH), 0)
-          assert.equal(await tap.taps(token1.address), 0)
+          assert.equal(await tap.rates(ETH), 0)
+          assert.equal(await tap.rates(token1.address), 0)
           assert.equal(await tap.floors(ETH), 0)
           assert.equal(await tap.floors(token1.address), 0)
           assert.equal(await tap.lastWithdrawals(ETH), 0)
@@ -440,45 +446,44 @@ contract('Tap app', accounts => {
     context('> sender has UPDATE_TAPPED_TOKEN_ROLE', () => {
       context('> and token is tapped', () => {
         context('> and new tap rate is above zero', () => {
-          context('> and new tap is lower than old tap', () => {
-            it('it should update tapped token', async () => {
-              await tap.addTappedToken(ETH, 10, 5, { from: authorized })
-              await tap.addTappedToken(token1.address, 5000, 5, { from: authorized })
+          context('> and tap has not been updated in the last 30 days', () => {
+            context('> and new tap rate is lower than old tap', () => {
+              context('> and new tap floor is higher than old tap', () => {
+                it('it should withdraw funds', async () => {
+                  await tap.addTappedToken(ETH, 10, 5, { from: authorized })
+                  await tap.addTappedToken(token1.address, 5000, 5, { from: authorized })
 
-              const receipt1 = await tap.updateTappedToken(ETH, 1, 10, { from: authorized })
-              const receipt2 = await tap.updateTappedToken(token1.address, 2, 7, { from: authorized })
+                  await progressToNextBatch()
 
-              assertEvent(receipt1, 'UpdateTappedToken')
-              assertEvent(receipt2, 'UpdateTappedToken')
+                  const withdrawalETH = await tap.getMaximumWithdrawal(ETH)
+                  const withdrawalERC20 = await tap.getMaximumWithdrawal(token1.address)
 
-              assert.equal(await tap.taps(ETH), 1)
-              assert.equal(await tap.taps(token1.address), 2)
+                  const receipt1 = await tap.updateTappedToken(ETH, 10, 10, { from: authorized })
+                  const receipt2 = await tap.updateTappedToken(token1.address, 5000, 7, { from: authorized })
 
-              assert.equal(await tap.floors(ETH), 10)
-              assert.equal(await tap.floors(token1.address), 7)
+                  assertEvent(receipt1, 'Withdraw')
+                  assert.equal(await tap.lastWithdrawals(ETH), getBatchId(receipt1))
+                  assert.equal((await getBalance(reserve.address)).toNumber(), INITIAL_ETH_BALANCE - withdrawalETH)
+                  assert.equal((await getBalance(beneficiary.address)).toNumber(), withdrawalETH)
 
-              assert.equal(await tap.lastTapUpdates(ETH), getTimestamp(receipt1))
-              assert.equal(await tap.lastTapUpdates(token1.address), getTimestamp(receipt2))
-            })
-          })
+                  assertEvent(receipt2, 'Withdraw')
+                  assert.equal(await tap.lastWithdrawals(token1.address), getBatchId(receipt2))
+                  assert.equal((await token1.balanceOf(reserve.address)).toNumber(), INITIAL_TOKEN_BALANCE - withdrawalERC20)
+                  assert.equal((await token1.balanceOf(beneficiary.address)).toNumber(), withdrawalERC20)
+                })
 
-          context('> and new tap is higher than old tap', () => {
-            context('> and tap has not been updated in the last 30 days', () => {
-              context('> and tap increase is below the allowed limit', () => {
                 it('it should update tapped token', async () => {
                   await tap.addTappedToken(ETH, 10, 5, { from: authorized })
                   await tap.addTappedToken(token1.address, 5000, 5, { from: authorized })
-                  // move forward of one month + 1 second [to avoid timeTravel inconsistency]
-                  await timeTravel(2592001)
 
-                  const receipt1 = await tap.updateTappedToken(ETH, 14, 10, { from: authorized })
-                  const receipt2 = await tap.updateTappedToken(token1.address, 7500, 7, { from: authorized })
+                  const receipt1 = await tap.updateTappedToken(ETH, 10, 10, { from: authorized })
+                  const receipt2 = await tap.updateTappedToken(token1.address, 5000, 7, { from: authorized })
 
                   assertEvent(receipt1, 'UpdateTappedToken')
                   assertEvent(receipt2, 'UpdateTappedToken')
 
-                  assert.equal(await tap.taps(ETH), 14)
-                  assert.equal(await tap.taps(token1.address), 7500)
+                  assert.equal(await tap.rates(ETH), 10)
+                  assert.equal(await tap.rates(token1.address), 5000)
 
                   assert.equal(await tap.floors(ETH), 10)
                   assert.equal(await tap.floors(token1.address), 7)
@@ -488,7 +493,121 @@ contract('Tap app', accounts => {
                 })
               })
 
-              context('> but tap increase is above the allowed limit', () => {
+              context('> and new tap floor is lower than old tap', () => {
+                context('> and tap floor decrease is below the allowed limit', () => {
+                  it('it should withdraw funds', async () => {
+                    await tap.addTappedToken(ETH, 10, 100, { from: authorized })
+                    await tap.addTappedToken(token1.address, 5000, 100, { from: authorized })
+
+                    // move forward of one month + 1 second [to avoid timeTravel inconsistency]
+                    await timeTravel(2592001)
+                    await progressToNextBatch()
+
+                    const withdrawalETH = await tap.getMaximumWithdrawal(ETH)
+                    const withdrawalERC20 = await tap.getMaximumWithdrawal(token1.address)
+
+                    const receipt1 = await tap.updateTappedToken(ETH, 10, 41, { from: authorized })
+                    const receipt2 = await tap.updateTappedToken(token1.address, 5000, 50, { from: authorized })
+
+                    assertEvent(receipt1, 'Withdraw')
+                    assert.equal(await tap.lastWithdrawals(ETH), getBatchId(receipt1))
+                    assert.equal((await getBalance(reserve.address)).toNumber(), INITIAL_ETH_BALANCE - withdrawalETH)
+                    assert.equal((await getBalance(beneficiary.address)).toNumber(), withdrawalETH)
+
+                    assertEvent(receipt2, 'Withdraw')
+                    assert.equal(await tap.lastWithdrawals(token1.address), getBatchId(receipt2))
+                    assert.equal((await token1.balanceOf(reserve.address)).toNumber(), INITIAL_TOKEN_BALANCE - withdrawalERC20)
+                    assert.equal((await token1.balanceOf(beneficiary.address)).toNumber(), withdrawalERC20)
+                  })
+
+                  it('it should update tapped token', async () => {
+                    await tap.addTappedToken(ETH, 10, 100, { from: authorized })
+                    await tap.addTappedToken(token1.address, 5000, 100, { from: authorized })
+                    // move forward of one month + 1 second [to avoid timeTravel inconsistency]
+                    await timeTravel(2592001)
+
+                    const receipt1 = await tap.updateTappedToken(ETH, 10, 40, { from: authorized })
+                    const receipt2 = await tap.updateTappedToken(token1.address, 5000, 50, { from: authorized })
+
+                    assertEvent(receipt1, 'UpdateTappedToken')
+                    assertEvent(receipt2, 'UpdateTappedToken')
+
+                    assert.equal(await tap.rates(ETH), 10)
+                    assert.equal(await tap.rates(token1.address), 5000)
+
+                    assert.equal(await tap.floors(ETH), 40)
+                    assert.equal(await tap.floors(token1.address), 50)
+
+                    assert.equal(await tap.lastTapUpdates(ETH), getTimestamp(receipt1))
+                    assert.equal(await tap.lastTapUpdates(token1.address), getTimestamp(receipt2))
+                  })
+                })
+
+                context('> but tap floor decrease is below the allowed limit', () => {
+                  it('it should revert', async () => {
+                    await tap.addTappedToken(ETH, 10, 100, { from: authorized })
+                    await tap.addTappedToken(token1.address, 5000, 100, { from: authorized })
+                    // move forward of one month + 1 second [to avoid timeTravel inconsistency]
+                    await timeTravel(2592001)
+
+                    await assertRevert(() => tap.updateTappedToken(ETH, 10, 39, { from: authorized }))
+                    await assertRevert(() => tap.updateTappedToken(token1.address, 5000, 20, { from: authorized }))
+                  })
+                })
+              })
+            })
+
+            context('> and new tap rate is higher than old tap', () => {
+              context('> and tap rate increase is below the allowed limit', () => {
+                it('it should withdraw funds', async () => {
+                  await tap.addTappedToken(ETH, 10, 5, { from: authorized })
+                  await tap.addTappedToken(token1.address, 5000, 5, { from: authorized })
+
+                  // move forward of one month + 1 second [to avoid timeTravel inconsistency]
+                  await timeTravel(2592001)
+                  await progressToNextBatch()
+
+                  const withdrawalETH = await tap.getMaximumWithdrawal(ETH)
+                  const withdrawalERC20 = await tap.getMaximumWithdrawal(token1.address)
+
+                  const receipt1 = await tap.updateTappedToken(ETH, 14, 5, { from: authorized })
+                  const receipt2 = await tap.updateTappedToken(token1.address, 7500, 5, { from: authorized })
+
+                  assertEvent(receipt1, 'Withdraw')
+                  assert.equal(await tap.lastWithdrawals(ETH), getBatchId(receipt1))
+                  assert.equal((await getBalance(reserve.address)).toNumber(), INITIAL_ETH_BALANCE - withdrawalETH)
+                  assert.equal((await getBalance(beneficiary.address)).toNumber(), withdrawalETH)
+
+                  assertEvent(receipt2, 'Withdraw')
+                  assert.equal(await tap.lastWithdrawals(token1.address), getBatchId(receipt2))
+                  assert.equal((await token1.balanceOf(reserve.address)).toNumber(), INITIAL_TOKEN_BALANCE - withdrawalERC20)
+                  assert.equal((await token1.balanceOf(beneficiary.address)).toNumber(), withdrawalERC20)
+                })
+
+                it('it should update tapped token', async () => {
+                  await tap.addTappedToken(ETH, 10, 5, { from: authorized })
+                  await tap.addTappedToken(token1.address, 5000, 5, { from: authorized })
+                  // move forward of one month + 1 second [to avoid timeTravel inconsistency]
+                  await timeTravel(2592001)
+
+                  const receipt1 = await tap.updateTappedToken(ETH, 14, 5, { from: authorized })
+                  const receipt2 = await tap.updateTappedToken(token1.address, 7500, 5, { from: authorized })
+
+                  assertEvent(receipt1, 'UpdateTappedToken')
+                  assertEvent(receipt2, 'UpdateTappedToken')
+
+                  assert.equal(await tap.rates(ETH), 14)
+                  assert.equal(await tap.rates(token1.address), 7500)
+
+                  assert.equal(await tap.floors(ETH), 5)
+                  assert.equal(await tap.floors(token1.address), 5)
+
+                  assert.equal(await tap.lastTapUpdates(ETH), getTimestamp(receipt1))
+                  assert.equal(await tap.lastTapUpdates(token1.address), getTimestamp(receipt2))
+                })
+              })
+
+              context('> but tap rate increase is above the allowed limit', () => {
                 it('it should revert', async () => {
                   await tap.addTappedToken(ETH, 10, 5, { from: authorized })
                   await tap.addTappedToken(token1.address, 5000, 5, { from: authorized })
@@ -500,17 +619,19 @@ contract('Tap app', accounts => {
                 })
               })
             })
+          })
 
-            context('> but tap has been updated in the last 30 days', () => {
-              it('it should revert', async () => {
-                await tap.addTappedToken(ETH, 10, 5, { from: authorized })
-                await tap.addTappedToken(token1.address, 50, 5, { from: authorized })
-                // move forward of one month - 2 seconds [to avoid timeTravel inconsistency]
-                await timeTravel(2591998)
+          context('> but tap has been updated in the last 30 days', () => {
+            it('it should revert', async () => {
+              await tap.addTappedToken(ETH, 10, 5, { from: authorized })
+              await tap.addTappedToken(token1.address, 50, 5, { from: authorized })
+              // move forward of one month - 2 seconds [to avoid timeTravel inconsistency]
+              await timeTravel(2591998)
 
-                await assertRevert(() => tap.updateTappedToken(ETH, 11, 5, { from: authorized }))
-                await assertRevert(() => tap.updateTappedToken(token1.address, 51, 5, { from: authorized }))
-              })
+              await assertRevert(() => tap.updateTappedToken(ETH, 11, 5, { from: authorized }))
+              await assertRevert(() => tap.updateTappedToken(token1.address, 51, 5, { from: authorized }))
+              await assertRevert(() => tap.updateTappedToken(ETH, 10, 4, { from: authorized }))
+              await assertRevert(() => tap.updateTappedToken(token1.address, 50, 4, { from: authorized }))
             })
           })
         })
@@ -543,8 +664,48 @@ contract('Tap app', accounts => {
         // move forward of one month + 1 second [to avoid timeTravel inconsistency]
         await timeTravel(2592001)
 
-        await assertRevert(() => tap.updateTappedToken(ETH, 9, 10, { from: unauthorized }))
-        await assertRevert(() => tap.updateTappedToken(token1.address, 49, 10, { from: unauthorized }))
+        await assertRevert(() => tap.updateTappedToken(ETH, 10, 5, { from: unauthorized }))
+        await assertRevert(() => tap.updateTappedToken(token1.address, 50, 5, { from: unauthorized }))
+      })
+    })
+  })
+
+  context('> #resetTappedToken', () => {
+    context('> sender has RESET_TAPPED_TOKEN_ROLE', () => {
+      context('> and token is tapped', () => {
+        it('it should reset tapped token', async () => {
+          await tap.addTappedToken(ETH, 10, 5, { from: authorized })
+          await tap.addTappedToken(token1.address, 5000, 7, { from: authorized })
+
+          await increaseBlocks(150)
+
+          const receipt1 = await tap.resetTappedToken(ETH, { from: authorized })
+          const receipt2 = await tap.resetTappedToken(token1.address, { from: authorized })
+
+          assertEvent(receipt1, 'ResetTappedToken')
+          assertEvent(receipt2, 'ResetTappedToken')
+          assert.equal(await tap.lastWithdrawals(ETH), getBatchId(receipt1))
+          assert.equal(await tap.lastWithdrawals(token1.address), getBatchId(receipt2))
+          assert.equal(await tap.lastTapUpdates(ETH), getTimestamp(receipt1))
+          assert.equal(await tap.lastTapUpdates(token1.address), getTimestamp(receipt2))
+        })
+      })
+
+      context('> but token is not tapped', () => {
+        it('it should revert', async () => {
+          await assertRevert(() => tap.resetTappedToken(ETH, { from: authorized }))
+          await assertRevert(() => tap.resetTappedToken(token1.address, { from: authorized }))
+        })
+      })
+    })
+
+    context('> sender does not have RESET_TAPPED_TOKEN_ROLE', () => {
+      it('it should revert', async () => {
+        await tap.addTappedToken(ETH, 10, 5, { from: authorized })
+        await tap.addTappedToken(token1.address, 5000, 7, { from: authorized })
+
+        await assertRevert(() => tap.resetTappedToken(ETH, { from: unauthorized }))
+        await assertRevert(() => tap.resetTappedToken(token1.address, { from: unauthorized }))
       })
     })
   })
@@ -614,6 +775,7 @@ contract('Tap app', accounts => {
       it('it should revert', async () => {
         await tap.addTappedToken(ETH, 2, 0, { from: authorized })
         await tap.addTappedToken(token1.address, 2, 0, { from: authorized })
+
         await progressToNextBatch()
 
         await assertRevert(() => tap.withdraw(ETH, { from: unauthorized }))
@@ -673,7 +835,7 @@ contract('Tap app', accounts => {
         // move funds out of the reserve
         // mock SimpleMarketMakerController enforces 5 ETH and 10 tokens to be hold
         await reserve.transfer(ETH, root, INITIAL_ETH_BALANCE - 1500 - 5)
-        await reserve.transfer(token1.address, root, INITIAL_TOKEN_BALANCE - 150 - 10)
+        await reserve.transfer(token1.address, root, INITIAL_TOKEN_BALANCE - 150 - 9)
         // start a new batch
         await progressToNextBatch()
         // add tapped tokens

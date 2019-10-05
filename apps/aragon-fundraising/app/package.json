@@ -5,8 +5,9 @@
   "author": "Aragon Black <contact@aragon.black>",
   "contributors": [
     "Olivier Sarrouy <olivier@pando.network>",
-    "Cory Dickson <cory@aragon.black>",
-    "Deam Hansen <deam@aragon.blackk>"
+    "Deam Hansen <deam@aragon.blackk>",
+    "Xavier Seignard <xavier@aragon.black>",
+    "Cory Dickson <cory@aragon.black>"
   ],
   "repository": "github:AragonBlack/fundraising",
   "homepage": "https://github.com/AragonBlack/fundraising",
@@ -18,16 +19,16 @@
     "start": "npm run sync-assets && npm run build:script -- --no-minify && parcel serve index.html -p 3001 --out-dir build/",
     "build": "npm run sync-assets && npm run build:script:nosourcemap && parcel build index.html --out-dir build/ --public-url '.' --no-source-maps",
     "build:script": "parcel build src/script.js --out-dir build/",
-    "build:script:nosourcemap": "parcel build src/script.js --out-dir build/ --no-source-maps"
+    "build:script:nosourcemap": "cross-env NODE_ENV=production parcel build src/script.js --out-dir build/ --no-source-maps"
   },
   "dependencies": {
-    "@aragon/api": "^2.0.0-beta.5",
-    "@aragon/api-react": "^2.0.0-beta.4",
-    "@aragon/ui": "^1.0.0-alpha.20",
+    "@aragon/api": "^2.0.0-beta.7",
+    "@aragon/api-react": "^2.0.0-beta.6",
+    "@aragon/ui": "^1.0.0-alpha.26",
     "bignumber.js": "^9.0.0",
-    "bn.js": "^5.0.0",
-    "date-fns": "^2.2.1",
-    "lodash": "^4.17.15",
+    "date-fns": "^2.0.1",
+    "file-saver": "^2.0.2",
+    "lodash.clonedeep": "^4.5.0",
     "perf_hooks": "0.0.1",
     "prop-types": "^15.7.2",
     "react": "^16.9.0",
@@ -39,14 +40,15 @@
     "web3-utils": "^1.2.1"
   },
   "devDependencies": {
-    "@babel/core": "^7.5.5",
+    "@babel/core": "^7.6.0",
     "@babel/plugin-proposal-class-properties": "^7.5.5",
     "@babel/plugin-proposal-nullish-coalescing-operator": "^7.4.4",
-    "@babel/plugin-proposal-optional-chaining": "^7.2.0",
-    "@babel/preset-env": "^7.5.5",
+    "@babel/plugin-proposal-optional-chaining": "^7.6.0",
+    "@babel/preset-env": "^7.6.0",
     "babel-eslint": "^10.0.3",
     "babel-plugin-styled-components": "^1.10.6",
     "copyfiles": "^2.1.1",
+    "cross-env": "^6.0.2",
     "eslint": "^6.2.2",
     "eslint-config-prettier": "^6.1.0",
     "eslint-config-standard": "^14.1.0",
@@ -56,6 +58,7 @@
     "eslint-plugin-prettier": "^3.1.0",
     "eslint-plugin-promise": "^4.2.1",
     "eslint-plugin-react": "^7.14.3",
+    "eslint-plugin-react-hooks": "^2.0.1",
     "eslint-plugin-standard": "^4.0.1",
     "parcel-bundler": "^1.12.3",
     "prettier": "^1.18.2"

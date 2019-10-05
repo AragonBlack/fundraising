@@ -169,6 +169,20 @@
   },
   {
     "constant": true,
+    "inputs": [],
+    "name": "isOpen",
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": true,
     "inputs": [
       {
         "name": "",
@@ -218,6 +232,20 @@
     "constant": true,
     "inputs": [],
     "name": "UPDATE_FEES_ROLE",
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes32"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [],
+    "name": "OPEN_ROLE",
     "outputs": [
       {
         "name": "",
@@ -538,82 +566,6 @@
     "inputs": [
       {
         "indexed": true,
-        "name": "collateral",
-        "type": "address"
-      },
-      {
-        "indexed": false,
-        "name": "virtualSupply",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "name": "virtualBalance",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "name": "reserveRatio",
-        "type": "uint32"
-      },
-      {
-        "indexed": false,
-        "name": "slippage",
-        "type": "uint256"
-      }
-    ],
-    "name": "AddCollateralToken",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "name": "collateral",
-        "type": "address"
-      }
-    ],
-    "name": "RemoveCollateralToken",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "name": "collateral",
-        "type": "address"
-      },
-      {
-        "indexed": false,
-        "name": "virtualSupply",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "name": "virtualBalance",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "name": "reserveRatio",
-        "type": "uint32"
-      },
-      {
-        "indexed": false,
-        "name": "slippage",
-        "type": "uint256"
-      }
-    ],
-    "name": "UpdateCollateralToken",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
         "name": "beneficiary",
         "type": "address"
       }
@@ -638,12 +590,12 @@
     "inputs": [
       {
         "indexed": false,
-        "name": "buyFee",
+        "name": "buyFeePct",
         "type": "uint256"
       },
       {
         "indexed": false,
-        "name": "sellFee",
+        "name": "sellFeePct",
         "type": "uint256"
       }
     ],
@@ -721,6 +673,88 @@
     "inputs": [
       {
         "indexed": true,
+        "name": "collateral",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "name": "virtualSupply",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "name": "virtualBalance",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "name": "reserveRatio",
+        "type": "uint32"
+      },
+      {
+        "indexed": false,
+        "name": "slippage",
+        "type": "uint256"
+      }
+    ],
+    "name": "AddCollateralToken",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "name": "collateral",
+        "type": "address"
+      }
+    ],
+    "name": "RemoveCollateralToken",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "name": "collateral",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "name": "virtualSupply",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "name": "virtualBalance",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "name": "reserveRatio",
+        "type": "uint32"
+      },
+      {
+        "indexed": false,
+        "name": "slippage",
+        "type": "uint256"
+      }
+    ],
+    "name": "UpdateCollateralToken",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [],
+    "name": "Open",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
         "name": "buyer",
         "type": "address"
       },
@@ -745,7 +779,7 @@
         "type": "uint256"
       }
     ],
-    "name": "NewBuyOrder",
+    "name": "OpenBuyOrder",
     "type": "event"
   },
   {
@@ -772,7 +806,7 @@
         "type": "uint256"
       }
     ],
-    "name": "NewSellOrder",
+    "name": "OpenSellOrder",
     "type": "event"
   },
   {
@@ -799,7 +833,7 @@
         "type": "uint256"
       }
     ],
-    "name": "ReturnBuyOrder",
+    "name": "ClaimBuyOrder",
     "type": "event"
   },
   {
@@ -831,7 +865,7 @@
         "type": "uint256"
       }
     ],
-    "name": "ReturnSellOrder",
+    "name": "ClaimSellOrder",
     "type": "event"
   },
   {
@@ -858,7 +892,7 @@
         "type": "uint256"
       }
     ],
-    "name": "ReturnCancelledBuyOrder",
+    "name": "ClaimCancelledBuyOrder",
     "type": "event"
   },
   {
@@ -885,7 +919,7 @@
         "type": "uint256"
       }
     ],
-    "name": "ReturnCancelledSellOrder",
+    "name": "ClaimCancelledSellOrder",
     "type": "event"
   },
   {
@@ -986,6 +1020,10 @@
         "type": "address"
       },
       {
+        "name": "_formula",
+        "type": "address"
+      },
+      {
         "name": "_reserve",
         "type": "address"
       },
@@ -994,23 +1032,74 @@
         "type": "address"
       },
       {
-        "name": "_formula",
-        "type": "address"
-      },
-      {
         "name": "_batchBlocks",
         "type": "uint256"
       },
       {
-        "name": "_buyFee",
+        "name": "_buyFeePct",
         "type": "uint256"
       },
       {
-        "name": "_sellFee",
+        "name": "_sellFeePct",
         "type": "uint256"
       }
     ],
     "name": "initialize",
+    "outputs": [],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "constant": false,
+    "inputs": [],
+    "name": "open",
+    "outputs": [],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "constant": false,
+    "inputs": [
+      {
+        "name": "_formula",
+        "type": "address"
+      }
+    ],
+    "name": "updateFormula",
+    "outputs": [],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "constant": false,
+    "inputs": [
+      {
+        "name": "_beneficiary",
+        "type": "address"
+      }
+    ],
+    "name": "updateBeneficiary",
+    "outputs": [],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "constant": false,
+    "inputs": [
+      {
+        "name": "_buyFeePct",
+        "type": "uint256"
+      },
+      {
+        "name": "_sellFeePct",
+        "type": "uint256"
+      }
+    ],
+    "name": "updateFees",
     "outputs": [],
     "payable": false,
     "stateMutability": "nonpayable",
@@ -1085,52 +1174,6 @@
       }
     ],
     "name": "updateCollateralToken",
-    "outputs": [],
-    "payable": false,
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "constant": false,
-    "inputs": [
-      {
-        "name": "_beneficiary",
-        "type": "address"
-      }
-    ],
-    "name": "updateBeneficiary",
-    "outputs": [],
-    "payable": false,
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "constant": false,
-    "inputs": [
-      {
-        "name": "_formula",
-        "type": "address"
-      }
-    ],
-    "name": "updateFormula",
-    "outputs": [],
-    "payable": false,
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "constant": false,
-    "inputs": [
-      {
-        "name": "_buyFee",
-        "type": "uint256"
-      },
-      {
-        "name": "_sellFee",
-        "type": "uint256"
-      }
-    ],
-    "name": "updateFees",
     "outputs": [],
     "payable": false,
     "stateMutability": "nonpayable",
@@ -1286,6 +1329,41 @@
     "constant": true,
     "inputs": [
       {
+        "name": "_collateral",
+        "type": "address"
+      }
+    ],
+    "name": "getCollateralToken",
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool"
+      },
+      {
+        "name": "",
+        "type": "uint256"
+      },
+      {
+        "name": "",
+        "type": "uint256"
+      },
+      {
+        "name": "",
+        "type": "uint32"
+      },
+      {
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [
+      {
         "name": "_batchId",
         "type": "uint256"
       },
@@ -1355,68 +1433,6 @@
     ],
     "name": "getStaticPricePPM",
     "outputs": [
-      {
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "payable": false,
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "constant": true,
-    "inputs": [
-      {
-        "name": "_supply",
-        "type": "uint256"
-      },
-      {
-        "name": "_balance",
-        "type": "uint256"
-      },
-      {
-        "name": "_reserveRatio",
-        "type": "uint32"
-      }
-    ],
-    "name": "getStaticPrice",
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "payable": false,
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "constant": true,
-    "inputs": [
-      {
-        "name": "_collateral",
-        "type": "address"
-      }
-    ],
-    "name": "getCollateralToken",
-    "outputs": [
-      {
-        "name": "",
-        "type": "bool"
-      },
-      {
-        "name": "",
-        "type": "uint256"
-      },
-      {
-        "name": "",
-        "type": "uint256"
-      },
-      {
-        "name": "",
-        "type": "uint32"
-      },
       {
         "name": "",
         "type": "uint256"

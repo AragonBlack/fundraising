@@ -1,11 +1,19 @@
 import React from 'react'
 import styled from 'styled-components'
-import EmptyOrders from '../assets/EmptyOrders.svg'
+import { GU } from '@aragon/ui'
+import EmptyOrders from '../assets/EmptyOrders.png'
 
 export default ({ message }) => (
   <EmptyState>
-    <img src={EmptyOrders} />
-    <p css="font-size: 24px; margin-top: 1rem;">{message}</p>
+    <img src={EmptyOrders} alt="" width="176" height="151" />
+    <p
+      css={`
+        font-size: 24px;
+        margin-top: ${2 * GU}px;
+      `}
+    >
+      {message}
+    </p>
   </EmptyState>
 )
 

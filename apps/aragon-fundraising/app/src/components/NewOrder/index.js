@@ -1,6 +1,6 @@
 import React, { useEffect, useContext, useState } from 'react'
 import styled from 'styled-components'
-import { SidePanel, TabBar } from '@aragon/ui'
+import { SidePanel, Tabs, GU } from '@aragon/ui'
 import { MainViewContext } from '../../context'
 import Order from './Order'
 
@@ -28,18 +28,18 @@ const NewOrder = () => {
 
   return (
     <SidePanel opened={orderPanel} onClose={() => setOrderPanel(false)} title="New Order">
-      <TabBarWrapper>
-        <TabBar items={['Buy', 'Sell']} selected={screenIndex} onChange={setScreenIndex} />
-      </TabBarWrapper>
+      <div
+        css={`
+          margin: 0 -${3 * GU}px;
+        `}
+      >
+        <Tabs items={['Buy', 'Sell']} selected={screenIndex} onChange={setScreenIndex} />
+      </div>
 
       {screenIndex === 0 && <Order isBuyOrder />}
       {screenIndex === 1 && <Order />}
     </SidePanel>
   )
 }
-
-const TabBarWrapper = styled.div`
-  margin: 0 -30px 30px;
-`
 
 export default NewOrder

@@ -14,7 +14,7 @@
   "homepage": "https://github.com/AragonBlack/fundraising",
   "scripts": {
     "install": "npm run bootstrap",
-    "bootstrap": "lerna bootstrap --hoist --nohoist=@aragon/os --nohoist=@aragon/apps-* --nohoist=@aragon/ppf-contracts --nohoist=@aragon/test-helpers --nohoist=@aragon/templates-shared --nohoist=@ablack/fundraising-*",
+    "bootstrap": "lerna bootstrap --concurrency 1 --hoist --nohoist=@aragon/os --nohoist=@aragon/apps-* --nohoist=@aragon/ppf-contracts --nohoist=@aragon/test-helpers --nohoist=@aragon/templates-shared --nohoist=@ablack/fundraising-*",
     "fix": "rm -rfv **/websocket/.git",
     "update": "lernaupdate",
     "clean": "lerna clean",
@@ -24,11 +24,20 @@
     "test:all:gas": "lerna run --scope=@ablack/fundraising-* --concurrency=1 --stream test:gas",
     "test:aragon-fundraising": "lerna run --scope=@ablack/fundraising-aragon-fundraising --stream test",
     "test:batched-bancor-market-maker": "lerna run --scope=@ablack/fundraising-batched-bancor-market-maker --stream test",
+    "test:presale": "lerna run --scope=@ablack/fundraising-presale --stream test",
     "test:tap": "lerna run --scope=@ablack/fundraising-tap --stream test",
-    "test:multisig-template": "lerna run --scope=@ablack/fundraising-multisig-template --stream test",
+    "test:multisig-template": "lerna run --scope=@ablack/fundraising-templates-multisig --stream test",
+    "coverage": "npm run coverage:all",
+    "coverage:all": "lerna run --scope=@ablack/fundraising-* --concurrency=1 --stream test:coverage",
+    "coverage:aragon-fundraising": "lerna run --scope=@ablack/fundraising-aragon-fundraising --stream test:coverage",
+    "coverage:batched-bancor-market-maker": "lerna run --scope=@ablack/fundraising-batched-bancor-market-maker --stream test:coverage",
+    "coverage:presale": "lerna run --scope=@ablack/fundraising-presale --stream test:coverage",
+    "coverage:tap": "lerna run --scope=@ablack/fundraising-tap --stream test:coverage",
     "publish": "lerna run --scope=@ablack/fundraising-* --concurrency=1 --stream publish"
   },
   "devDependencies": {
+    "coveralls": "^3.0.1",
+    "lcov-result-merger": "^3.1.0",
     "lerna": "^3.10.3",
     "lerna-update-wizard": "^0.16.0",
     "prettier": "^1.16.4"

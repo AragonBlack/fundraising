@@ -6,8 +6,10 @@ cache:
     - fundraising/apps/aragon-fundraising/node_modules
     - fundraising/apps/bancor-formula/node_modules
     - fundraising/apps/batched-bancor-market-maker/node_modules
+    - fundraising/apps/presale/node_modules
     - fundraising/apps/tap/node_modules
     - fundraising/shared/interfaces/node_modules
+    - fundraising/shared/test-helpers/node_modules
     - fundraising/templates/multisig/node_modules
 notifications:
   email: false
@@ -17,25 +19,28 @@ install:
   - travis_wait 60 npm install
 jobs:
   include:
-    - stage: tests
+    - stage: linting
       script: npm run lint
-      name: 'Lint'
-    - script: npm run test:aragon-fundraising
+      name: 'All'
+    - stage: tests
+      script: npm run test:aragon-fundraising
       name: 'Aragon Fundraising'
     - script: npm run test:batched-bancor-market-maker
       name: 'Batched Bancor Market Maker'
+    - script: npm run test:presale
+      name: 'Presale'
     - script: npm run test:tap
       name: 'Tap'
-    # - script: npm run test:multisig-template
-    #   name: 'Multisig Template'
-    # - stage: coverage
-    #   script: npm run coverage:aragon-fundraising
-    #   name: 'Aragon Fundraising'
-    # - script: npm run coverage:batched-bancor-market-maker
-    #   name: 'Batched Bancor Market Maker'
-    # - script: npm run coverage:tap
-    #   name: 'Tap'
-    # - script: npm run coverage:multisig-template
-    #   name: 'Multisig Template'
-# after_success:
-#   - ./node_modules/.bin/lcov-result-merger 'apps/*/coverage/lcov.info' | ./node_modules/.bin/coveralls
+    - script: npm run test:multisig-template
+      name: 'Multisig Template'
+    - stage: coverage
+      script: npm run coverage:aragon-fundraising
+      name: 'Aragon Fundraising'
+    - script: npm run coverage:batched-bancor-market-maker
+      name: 'Batched Bancor Market Maker'
+    # - script: npm run coverage:presale
+    #   name: 'Presale'
+    - script: npm run coverage:tap
+      name: 'Tap'
+after_success:
+  - ./node_modules/.bin/lcov-result-merger 'apps/*/coverage/lcov.info' | ./node_modules/.bin/coveralls
