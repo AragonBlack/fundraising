@@ -1,6 +1,6 @@
 import React, { useContext } from 'react'
 import { useAppState, useApi, useConnectedAccount } from '@aragon/api-react'
-import { Box, Button } from '@aragon/ui'
+import { Box, Button, GU } from '@aragon/ui'
 import CircleGraph from '../components/CircleGraph'
 import { PresaleViewContext } from '../context'
 import { Presale } from '../constants'
@@ -64,8 +64,17 @@ export default () => {
         </div>
         {state === Presale.state.GOAL_REACHED && (
           <>
-            <p>Presale goal completed! 🎉</p>
-            <Button wide mode="strong" label="Open trading" css="margin-top: 1rem; width: 100%;" onClick={handleOpenTrading}>
+            <p>Presale goal completed!</p>
+            <Button
+              wide
+              mode="strong"
+              label="Open trading"
+              css={`
+                margin-top: ${2 * GU}px;
+                width: 100%;
+              `}
+              onClick={handleOpenTrading}
+            >
               Open trading
             </Button>
           </>
@@ -73,7 +82,16 @@ export default () => {
         {state === Presale.state.REFUNDING && (
           <>
             <p css="color: #212B36; font-weight: 300; font-size: 16px;">Unfortunately, the goal set for this presale has not been reached.</p>
-            <Button wide mode="strong" label="Refund Presale Tokens" css="margin-top: 1rem; width: 100%;" onClick={() => setRefundPanel(true)}>
+            <Button
+              wide
+              mode="strong"
+              label="Refund Presale Tokens"
+              css={`
+                margin-top: ${2 * GU}px;
+                width: 100%;
+              `}
+              onClick={() => setRefundPanel(true)}
+            >
               Refund presale shares
             </Button>
           </>

@@ -1,4 +1,10 @@
-const { PRESALE_GOAL, PRESALE_STATE, PERCENT_FUNDING_FOR_BENEFICIARY, PPM } = require('@ablack/fundraising-shared-test-helpers/constants')
+const {
+  PRESALE_GOAL,
+  PRESALE_STATE,
+  PERCENT_FUNDING_FOR_BENEFICIARY,
+  PERCENT_SUPPLY_OFFERED,
+  PPM,
+} = require('@ablack/fundraising-shared-test-helpers/constants')
 const { prepareDefaultSetup, defaultDeployParams, initializePresale } = require('./common/deploy')
 const { getEvent, now } = require('./common/utils')
 const { assertRevert } = require('@aragon/test-helpers/assertThrow')
@@ -57,7 +63,7 @@ contract('Presale, close() functionality', ([anyone, appManager, buyer1]) => {
           const supply = await this.projectToken.totalSupply()
           const balanceOfBeneficiary = await this.projectToken.balanceOf(appManager)
 
-          expect(balanceOfBeneficiary.toNumber(), Math.floor((supply * (PPM - PERCENT_FUNDING_FOR_BENEFICIARY)) / PPM))
+          expect(parseInt(balanceOfBeneficiary.toNumber())).to.equal(parseInt(Math.floor(supply.toNumber() * (1 - PERCENT_SUPPLY_OFFERED / PPM))))
         })
 
         it('Continuous fundraising campaign is started', async () => {
