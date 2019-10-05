@@ -25,6 +25,7 @@
         "printWidth": 160
       }
     ],
+    "func-style": ["error", "expression"],
     "linebreak-style": ["error", "unix"]
   }
 }

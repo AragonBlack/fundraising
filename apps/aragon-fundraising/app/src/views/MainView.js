@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { unstable_batchedUpdates as batchedUpdates } from 'react-dom'
 import { useApi, useAppState, useConnectedAccount } from '@aragon/api-react'
-import { Header, Layout, Tabs, Button, useLayout, ContextMenu, ContextMenuItem } from '@aragon/ui'
+import { Header, Tabs, Button, useLayout, ContextMenu, ContextMenuItem } from '@aragon/ui'
 import BigNumber from 'bignumber.js'
 import { useInterval } from '../hooks/use-interval'
 import NewOrder from '../components/NewOrder'
