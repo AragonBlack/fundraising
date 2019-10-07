@@ -4,8 +4,8 @@ import getTime from 'date-fns/getTime'
 import set from 'date-fns/set'
 import setDay from 'date-fns/setDay'
 import groupBy from 'lodash/groupBy'
-import minBy from 'lodash/minBy'
-import maxBy from 'lodash/maxBy'
+import minBy from 'lodash.minBy'
+import maxBy from 'lodash.maxBy'
 
 /**
  * Returns the nearest and lower quarter hour of a given timestamp
@@ -74,10 +74,10 @@ const getOCHL = orders => {
     const price = orders[0].price.toFixed(2)
     return { open: price, close: price, high: price, low: price }
   } else {
-    const open = minBy(orders, o => o.timestamp).price.toFixed(2)
-    const close = maxBy(orders, o => o.timestamp).price.toFixed(2)
-    const high = maxBy(orders, o => o.price.toFixed()).price.toFixed(2)
-    const low = minBy(orders, o => o.price.toFixed()).price.toFixed(2)
+    const open = parseFloat(minBy(orders, o => o.timestamp).price.toFixed(2, 1))
+    const close = parseFloat(maxBy(orders, o => o.timestamp).price.toFixed(2, 1))
+    const high = parseFloat(maxBy(orders, o => o.price.toFixed()).price.toFixed(2, 1))
+    const low = parseFloat(minBy(orders, o => o.price.toFixed()).price.toFixed(2, 1))
     return { open, close, high, low }
   }
 }
