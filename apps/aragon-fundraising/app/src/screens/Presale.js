@@ -1,10 +1,11 @@
 import React, { useContext } from 'react'
 import { useAppState, useApi } from '@aragon/api-react'
 import styled from 'styled-components'
-import { Badge, Box, Button, Countdown, BREAKPOINTS } from '@aragon/ui'
+import { Box, Button, Countdown, BREAKPOINTS, GU } from '@aragon/ui'
 import addMilliseconds from 'date-fns/addMilliseconds'
 import { PresaleViewContext } from '../context'
 import PresaleGoal from '../components/PresaleGoal'
+import Timeline from '../components/Timeline'
 import { Presale } from '../constants'
 
 export default () => {
@@ -52,41 +53,46 @@ export default () => {
                 Open presale
               </Button>
             )}
-            {presaleEnded && <p css="color: #212B36; font-size: 16px;">Presale closed</p>}
-            {state === Presale.state.FUNDING && <p css="color: #637381; font-size: 16px;">Time remaining</p>}
-            {!noOpenDate && !presaleEnded && <Countdown css="margin-top: 0.5rem;" end={endDate} />}
+            {presaleEnded && (
+              <p
+                css={`
+                  color: #212b36;
+                  font-size: 16px;
+                `}
+              >
+                Presale closed
+              </p>
+            )}
+            {state === Presale.state.FUNDING && (
+              <p
+                css={`
+                  color: #637381;
+                  font-size: 16px;
+                `}
+              >
+                Time remaining
+              </p>
+            )}
+            {!noOpenDate && !presaleEnded && (
+              <Countdown
+                css={`
+                  margin-top: ${1 * GU}px;
+                `}
+                end={endDate}
+              />
+            )}
           </Box>
         </div>
         <div className="right">
-          <Box heading="Fundraising Timeline" padding={false}>
-            <div className="timeline">
-              <div>
-                <p className="title">PRESALE OPENS</p>
-                <div className="dot" />
-                <div className="line" />
-                {openDate !== 0 && <DateBadge>{openDate}</DateBadge>}
-                <p className="text">Contributors can buy presale shares</p>
-              </div>
-              <div>
-                <p className="title">PRESALE ENDS</p>
-                <div className="dot" />
-                {openDate !== 0 && <DateBadge>{endDate}</DateBadge>}
-                <p className="text">Trading can be open</p>
-              </div>
-              <div>
-                <p className="title">CLIFF PERIOD ENDS</p>
-                <div className="dot" />
-                {openDate !== 0 && <DateBadge>{vestingCliffDate}</DateBadge>}
-                <p className="text">Presale contributors can start claiming part of their vested shares</p>
-              </div>
-              <div>
-                <p className="title">VESTING PERIOD ENDS</p>
-                <div className="dot" />
-                {openDate !== 0 && <DateBadge>{vestingCompleteDate}</DateBadge>}
-                <p className="text">Presale contributors can claim all their vested shares</p>
-              </div>
-            </div>
-          </Box>
+          <Timeline
+            title="Fundraising Timeline"
+            steps={[
+              ['Presale opens', openDate, 'Contributors can buy presale shares'],
+              ['Presale ends', openDate === 0 ? 0 : endDate, 'Trading can be open'],
+              ['Cliff period ends', openDate === 0 ? 0 : vestingCliffDate, 'Presale contributors can start claiming part of their vested shares'],
+              ['Vesting period ends', openDate === 0 ? 0 : vestingCompleteDate, 'Presale contributors can claim all their vested shares'],
+            ]}
+          />
         </div>
       </Container>
     </>
@@ -102,12 +108,11 @@ const Container = styled.div`
 
   .left {
     width: 25%;
-    margin-right: 1rem;
+    margin-right: ${2 * GU}px;
   }
 
   .right {
     width: 75%;
-
     font-size: 16px;
   }
 
@@ -124,60 +129,7 @@ const Container = styled.div`
     }
 
     & > div {
-      margin-bottom: 1rem;
-    }
-  }
-
-  .timeline {
-    display: flex;
-    padding: 2rem;
-
-    & > div {
-      width: 25%;
-    }
-
-    .title {
-      height: 8rem;
-      color: #637381;
-      font-weight: 600;
-      text-transform: uppercase;
-    }
-
-    .dot::before {
-      content: '';
-      height: 26px;
-      border-radius: 30px;
-      background: rgba(0, 0, 0, 0) linear-gradient(44.28deg, rgb(0, 219, 226) 0%, rgb(1, 191, 227) 101.29%) repeat scroll 0% 0%;
-      mix-blend-mode: normal;
-      opacity: 0.18;
-      position: absolute;
-      width: 26px;
-      bottom: 190px;
-    }
-
-    .dot::after {
-      content: '';
-      position: absolute;
-      width: 12px;
-      height: 12px;
-      border-radius: 12px;
-      background: rgba(0, 0, 0, 0) linear-gradient(44.28deg, rgb(0, 219, 226) 0%, rgb(1, 191, 227) 101.29%) repeat scroll 0% 0%;
-      bottom: 198px;
-      margin-left: 7px;
-    }
-
-    .line {
-      border: 1px solid rgba(96, 128, 156, 0.24);
-      position: absolute;
-      width: 556px;
-      margin-left: 16px;
-      bottom: 202px;
-    }
-
-    .text {
-      margin-top: 1rem;
-      font-size: 16px;
-      width: 150px;
+      margin-bottom: ${2 * GU}px;
     }
   }
 
@@ -187,91 +139,11 @@ const Container = styled.div`
     .left {
       width: 100%;
       margin-right: 0;
-      margin-bottom: 1rem;
+      margin-bottom: ${1 * GU}px;
     }
 
     .right {
       width: 100%;
     }
-
-    .timeline {
-      .title {
-        width: 8rem;
-      }
-
-      .line {
-        width: 492px;
-      }
-    }
-  }
-
-  @media only screen and (max-width: ${BREAKPOINTS.medium}px) {
-    .timeline {
-      padding-top: 3rem;
-      padding-left: 6rem;
-      flex-direction: column;
-
-      & > div {
-        width: 100%;
-      }
-
-      & > div + div {
-        margin-top: 4rem;
-      }
-
-      .title {
-        height: auto;
-        width: 100%;
-        margin-bottom: 1rem;
-      }
-
-      .text {
-        width: 100%;
-        margin-top: 0.5rem;
-      }
-
-      .dot::before {
-        content: '';
-        height: 26px;
-        border-radius: 30px;
-        background: rgba(0, 0, 0, 0) linear-gradient(44.28deg, rgb(0, 219, 226) 0%, rgb(1, 191, 227) 101.29%) repeat scroll 0% 0%;
-        mix-blend-mode: normal;
-        opacity: 0.18;
-        position: absolute;
-        width: 26px;
-        bottom: auto;
-        margin-left: -3rem;
-        margin-top: -2.75rem;
-      }
-
-      .dot::after {
-        content: '';
-        position: absolute;
-        width: 12px;
-        height: 12px;
-        border-radius: 12px;
-        background: rgba(0, 0, 0, 0) linear-gradient(44.28deg, rgb(0, 219, 226) 0%, rgb(1, 191, 227) 101.29%) repeat scroll 0% 0%;
-        margin-left: 7px;
-        bottom: auto;
-        margin-left: -41px;
-        margin-top: -37px;
-      }
-
-      .line {
-        border: 1px solid rgba(96, 128, 156, 0.24);
-        position: absolute;
-        height: 382px;
-        width: 1px;
-        margin-top: -26px;
-        margin-left: -36px;
-        bottom: auto;
-      }
-    }
   }
 `
-
-const DateBadge = ({ children }) => (
-  <Badge foreground="#4D22DF" background="rgba(204, 189, 244, 0.16)">
-    {new Date(children).toLocaleDateString()}
-  </Badge>
-)

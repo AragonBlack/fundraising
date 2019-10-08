@@ -1,7 +1,7 @@
 import React, { useContext, useEffect, useState } from 'react'
 import styled from 'styled-components'
 import { useAppState } from '@aragon/api-react'
-import { Box, Info, Text } from '@aragon/ui'
+import { Box, Info, Text, GU } from '@aragon/ui'
 import BigNumber from 'bignumber.js'
 import subMonths from 'date-fns/subMonths'
 import Chart from '../components/Chart'
@@ -185,7 +185,14 @@ export default () => {
             </div>
           </li>
         </ul>
-        <Info css="margin: 1rem; margin-top: 0; width: auto; display: inline-block;">
+        <Info
+          css={`
+            margin: ${2 * GU}px;
+            margin-top: 0;
+            width: auto;
+            display: inline-block;
+          `}
+        >
           <Text>Share token address: {tokenAddress}</Text>
         </Info>
       </KeyMetrics>
@@ -195,7 +202,7 @@ export default () => {
 }
 
 const KeyMetrics = styled(Box)`
-  margin-bottom: 1rem;
+  margin-bottom: ${2 * GU}px;
 
   .green {
     color: #2cc68f;
@@ -210,7 +217,7 @@ const KeyMetrics = styled(Box)`
   }
 
   .title {
-    margin-bottom: 1rem;
+    margin-bottom: ${2 * GU}px;
     font-weight: 600;
   }
 
@@ -220,7 +227,7 @@ const KeyMetrics = styled(Box)`
     background: #fff;
     box-sizing: border-box;
     border-radius: 3px;
-    padding: 1rem;
+    padding: ${2 * GU}px;
   }
 
   li {
@@ -229,7 +236,7 @@ const KeyMetrics = styled(Box)`
     img {
       display: inline-block;
       height: 16px;
-      margin-right: 0.5rem;
+      margin-right: ${1 * GU}px;
     }
 
     div:last-child {
@@ -242,11 +249,11 @@ const KeyMetrics = styled(Box)`
       font-weight: 300;
       color: #637381;
       white-space: nowrap;
-      margin-bottom: 0.75rem;
+      margin-bottom: ${1.5 * GU}px;
     }
 
     .number {
-      margin-bottom: 1rem;
+      margin-bottom: ${2 * GU}px;
       font-size: 26px;
       line-height: 24px;
     }
@@ -271,7 +278,7 @@ const KeyMetrics = styled(Box)`
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 1rem;
+      padding: ${2 * GU}px;
       border-bottom: 1px solid #dde4e9;
 
       div:last-child {

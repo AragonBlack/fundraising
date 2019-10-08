@@ -16,6 +16,7 @@ import {
   IconDown,
   IconUp,
   IconExternal,
+  GU,
 } from '@aragon/ui'
 import { useApi, useAppState, useConnectedAccount } from '@aragon/api-react'
 import { format, subYears, endOfToday } from 'date-fns'
@@ -155,7 +156,7 @@ export default ({ myOrders }) => {
           <div key="actions">
             <span
               css={`
-                margin-right: 4rem;
+                margin-right: ${8 * GU}px;
                 margin-top: 2px;
                 font-size: 12px;
                 font-weight: 600;
@@ -369,8 +370,8 @@ export default ({ myOrders }) => {
 }
 
 const ContentWrapper = styled.div`
-  margin-top: 1rem;
-  margin-bottom: 2rem;
+  margin-top: ${2 * GU}px;
+  margin-bottom: ${4 * GU}px;
 
   .hide {
     overflow: hidden;
@@ -380,14 +381,14 @@ const ContentWrapper = styled.div`
   .filter-nav {
     display: flex;
     justify-content: flex-end;
-    margin-top: 1rem;
-    margin-bottom: 1rem;
+    margin-top: ${2 * GU}px;
+    margin-bottom: ${2 * GU}px;
   }
 
   .filter-item {
     display: flex;
     align-items: center;
-    margin-left: 2rem;
+    margin-left: ${4 * GU}px;
   }
 
   .filter-label {
@@ -404,16 +405,16 @@ const ContentWrapper = styled.div`
   @media only screen and (max-width: 1152px) {
     .filter-nav {
       flex-direction: column;
-      margin-bottom: 1rem;
+      margin-bottom: ${2 * GU}px;
     }
 
     .filter-item {
       margin-left: 0;
-      margin-bottom: 1rem;
+      margin-bottom: ${2 * GU}px;
     }
 
     .filter-item:last-child {
-      margin-right: 2rem;
+      margin-right: ${4 * GU}px;
     }
   }
 `

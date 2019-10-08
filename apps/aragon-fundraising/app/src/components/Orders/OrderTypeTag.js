@@ -1,4 +1,5 @@
 import React from 'react'
+import { GU } from '@aragon/ui'
 import { Order } from '../../constants'
 
 export default ({ type }) => {
@@ -10,7 +11,7 @@ export default ({ type }) => {
         display: inline-block;
         border-radius: 100px;
         background-color: ${bgColor};
-        padding: 2px 2rem;
+        padding: 2px ${4 * GU}px;
         text-transform: uppercase;
         color: ${color};
         font-size: 12px;
