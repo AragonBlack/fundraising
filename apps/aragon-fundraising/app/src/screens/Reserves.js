@@ -6,6 +6,7 @@ import EditIcon from '../assets/EditIcon.svg'
 import DefinitionsBox from '../components/DefinitionsBox'
 import LocalIdentityBadge from '../components/LocalIdentityBadge'
 import { formatBigNumber, fromMonthlyAllocation, toMonthlyAllocation, toDecimals, fromDecimals } from '../utils/bn-utils'
+import ValidationError from '../components/ValidationError'
 
 // In this copy we should display the user the percentage of max increase of the tap
 const helpContent = [
@@ -270,19 +271,7 @@ export default () => {
           <Button mode="strong" type="submit" disabled={!valid} wide>
             Save monthly allocation
           </Button>
-
-          {errorMessages && errorMessages.length > 0 && (
-            <Info
-              mode="error"
-              css={`
-                margin-top: ${2 * GU}px;
-              `}
-            >
-              {errorMessages.map((message, i) => (
-                <p key={i}>{message}</p>
-              ))}
-            </Info>
-          )}
+          {errorMessages?.length > 0 && <ValidationError messages={errorMessages} />}
 
           <Info
             title="Info"

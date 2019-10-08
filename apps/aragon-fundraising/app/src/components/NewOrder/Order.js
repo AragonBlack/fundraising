@@ -165,7 +165,7 @@ const Order = ({ isBuyOrder }) => {
           Open {isBuyOrder ? 'buy' : 'sell'} order
         </Button>
       </div>
-      {errorMessage && <ValidationError message={errorMessage} />}
+      {errorMessage && <ValidationError messages={[errorMessage]} />}
       <div
         css={`
           padding-top: ${2 * GU}px;
