@@ -6,7 +6,7 @@ const DAYS = 24 * 3600
 const WEEKS = 7 * DAYS
 const PPM = 1e6
 
-const BOARD_MEMBERS = ['0xb4124cEB3451635DAcedd11767f004d8a28c6eE7', '0x8401Eb5ff34cc943f096A32EF3d5113FEbE8D4Eb ']
+const BOARD_MEMBERS = ['0xb4124cEB3451635DAcedd11767f004d8a28c6eE7']
 
 const BOARD_TOKEN_NAME = 'Board Token'
 const BOARD_TOKEN_SYMBOL = 'BOARD'
@@ -26,7 +26,7 @@ const SHARE_VOTING_SETTINGS = [SHARE_SUPPORT_REQUIRED, SHARE_MIN_ACCEPTANCE_QUOR
 
 const PRESALE_GOAL = 100e18
 const PRESALE_PERIOD = 14 * DAYS
-const PRESALE_EXCHANGE_RATE = PPM
+const PRESALE_EXCHANGE_RATE = 2 * PPM
 const VESTING_CLIFF_PERIOD = 90 * DAYS
 const VESTING_COMPLETE_PERIOD = 360 * DAYS
 const PERCENT_SUPPLY_OFFERED = 0.9 * PPM // 90%
@@ -50,14 +50,8 @@ module.exports = async callback => {
     if (process.argv[4] === 'rpc') {
       const template = await Template.at(process.argv[7])
 
-      const receipt = await template.prepareInstance(
-        BOARD_TOKEN_NAME,
-        BOARD_TOKEN_SYMBOL,
-        BOARD_MEMBERS,
-        [BOARD_SUPPORT_REQUIRED, BOARD_MIN_ACCEPTANCE_QUORUM, 60],
-        0
-      )
-      await template.installShareApps(ID, SHARE_TOKEN_NAME, SHARE_TOKEN_SYMBOL, SHARE_VOTING_SETTINGS)
+      const receipt = await template.prepareInstance(BOARD_TOKEN_NAME, BOARD_TOKEN_SYMBOL, BOARD_MEMBERS, BOARD_VOTING_SETTINGS, 0)
+      await template.installShareApps(SHARE_TOKEN_NAME, SHARE_TOKEN_SYMBOL, SHARE_VOTING_SETTINGS)
       await template.installFundraisingApps(
         PRESALE_GOAL,
         PRESALE_PERIOD,
@@ -71,7 +65,7 @@ module.exports = async callback => {
         MAXIMUM_TAP_RATE_INCREASE_PCT,
         MAXIMUM_TAP_FLOOR_DECREASE_PCT
       )
-      await template.finalizeInstance(VIRTUAL_SUPPLIES, VIRTUAL_BALANCES, SLIPPAGES, RATE, FLOOR)
+      await template.finalizeInstance(ID, VIRTUAL_SUPPLIES, VIRTUAL_BALANCES, SLIPPAGES, RATE, FLOOR)
 
       const dao = getEventArgument(receipt, 'DeployDao', 'dao')
       console.log('DAO deployed at ' + dao)
