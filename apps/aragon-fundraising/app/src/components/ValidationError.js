@@ -1,31 +1,25 @@
 import React from 'react'
-import { GU, IconCross, useTheme, textStyle } from '@aragon/ui'
+import { GU, Info } from '@aragon/ui'
 
-const ValidationError = ({ message }) => {
-  const theme = useTheme()
+const ValidationError = ({ messages }) => {
   return (
-    <div
+    <Info
+      mode="error"
       css={`
-        display: flex;
-        align-items: center;
         margin-top: ${2 * GU}px;
       `}
     >
-      <IconCross
-        size="tiny"
-        css={`
-          color: ${theme.negative};
-          margin-right: ${1 * GU}px;
-        `}
-      />
-      <span
-        css={`
-          ${textStyle('body3')}
-        `}
-      >
-        {message}
-      </span>
-    </div>
+      {messages.map((message, i) => (
+        <p
+          key={i}
+          css={`
+            margin-top: ${i !== 0 ? `${2 * GU}px;` : '0'};
+          `}
+        >
+          {message}
+        </p>
+      ))}
+    </Info>
   )
 }
 

@@ -151,7 +151,7 @@ const Order = ({ isBuyOrder }) => {
           Open {isBuyOrder ? 'buy' : 'sell'} order
         </Button>
       </ButtonWrapper>
-      {errorMessage && <ValidationError message={errorMessage} />}
+      {errorMessage && <ValidationError messages={[errorMessage]} />}
       <Info isBuyOrder={isBuyOrder} slippage={collateralItems[selectedCollateral].slippage} />
     </form>
   )

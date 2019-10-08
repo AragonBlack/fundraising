@@ -97,7 +97,7 @@ export default () => {
           Buy presale shares
         </Button>
       </ButtonWrapper>
-      {errorMessage && <ValidationError message={errorMessage} />}
+      {errorMessage && <ValidationError messages={[errorMessage]} />}
       <Info />
     </form>
   )
