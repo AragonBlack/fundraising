@@ -1,7 +1,7 @@
 import React from 'react'
 import { IconCheck, IconEllipsis, GU } from '@aragon/ui'
 import { Order } from '../../constants'
-import overIcon from '../../assets/overIcon.svg'
+import overIcon from '../../assets/OverIcon.svg'
 
 export default ({ state }) => {
   let icon
