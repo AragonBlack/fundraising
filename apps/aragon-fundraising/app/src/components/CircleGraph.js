@@ -40,6 +40,7 @@ const CircleGraph = ({ value, label, size, color, width }) => {
               cy={size / 2}
               r={radius}
               color={color}
+              strokeLinecap="round"
               style={{
                 strokeDasharray: length,
                 strokeDashoffset: progressValue.interpolate(t => length - (length * t) / 2),
