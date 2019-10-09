@@ -110,7 +110,8 @@ export default ({ myOrders }) => {
   const [typeFilter, setTypeFilter] = useState({ active: 0, payload: ['All', 'Buy', 'Sell'], type: 'type' })
   const [symbolFilter, setSymbolFilter] = useState({ active: 0, payload: symbols, type: 'symbol' })
   const [userFilter, setUserFilter] = useState({ active: 0, payload: users, type: 'user' })
-  const [dateFilter, setDateFilter] = useState({ payload: { start: subYears(new Date(), 1).getTime(), end: endOfToday().getTime() }, type: 'date' })
+  const initialDateFilterState = { payload: { start: subYears(new Date(), 1).getTime(), end: endOfToday().getTime() }, type: 'date' }
+  const [dateFilter, setDateFilter] = useState(initialDateFilterState)
   const [showFilters, setShowFilters] = useState(false)
   const [page, setPage] = useState(0)
   const { name: layoutName } = useLayout()
@@ -263,11 +264,28 @@ export default ({ myOrders }) => {
     saveAs(new Blob([result], { type: 'text/csv;charset=utf-8' }), filename)
   }
 
+  const handleClearFilters = () => {
+    setTypeFilter({ active: 0, ...typeFilter })
+    setSymbolFilter({ active: 0, ...symbolFilter })
+    setUserFilter({ active: 0, ...userFilter })
+    setDateFilter(initialDateFilterState)
+  }
+
+  const setDataViewStatus = () => {
+    if (!updatedOrders.length) {
+      return 'default'
+    } else if (!filteredOrders.length) {
+      return 'empty-filters'
+    }
+  }
+
   return (
     <ContentWrapper>
       {updatedOrders.length === 0 && <NoData message="There are no orders to show." />}
       {updatedOrders.length > 0 && (
         <DataView
+          status={setDataViewStatus()}
+          onStatusEmptyClear={handleClearFilters}
           page={page}
           onPageChange={setPage}
           fields={dataViewFields}
@@ -305,7 +323,7 @@ export default ({ myOrders }) => {
                   <DropDown items={typeFilter.payload} selected={typeFilter.active} onChange={idx => setTypeFilter({ ...typeFilter, active: idx })} />
                 </div>
                 <div className="filter-item">
-                  <Button onClick={handleDownload}>
+                  <Button disabled={!filteredOrders.length} onClick={handleDownload}>
                     <IconExternal /> Export
                   </Button>
                 </div>
