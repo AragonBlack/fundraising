@@ -47,43 +47,27 @@ const ID = 'fundraising' + Math.random()
 
 module.exports = async callback => {
   try {
-    if (process.argv[4] === 'rpc') {
-      const template = await Template.at(process.argv[7])
+    const template = await Template.at(process.argv[6])
 
-      const receipt = await template.prepareInstance(BOARD_TOKEN_NAME, BOARD_TOKEN_SYMBOL, BOARD_MEMBERS, BOARD_VOTING_SETTINGS, 0)
-      await template.installShareApps(SHARE_TOKEN_NAME, SHARE_TOKEN_SYMBOL, SHARE_VOTING_SETTINGS)
-      await template.installFundraisingApps(
-        PRESALE_GOAL,
-        PRESALE_PERIOD,
-        PRESALE_EXCHANGE_RATE,
-        VESTING_CLIFF_PERIOD,
-        VESTING_COMPLETE_PERIOD,
-        PERCENT_SUPPLY_OFFERED,
-        PERCENT_FUNDING_FOR_BENEFICIARY,
-        0,
-        BATCH_BLOCKS,
-        MAXIMUM_TAP_RATE_INCREASE_PCT,
-        MAXIMUM_TAP_FLOOR_DECREASE_PCT
-      )
-      await template.finalizeInstance(ID, VIRTUAL_SUPPLIES, VIRTUAL_BALANCES, SLIPPAGES, RATE, FLOOR)
-
-      const dao = getEventArgument(receipt, 'DeployDao', 'dao')
-      console.log('DAO deployed at ' + dao)
-    } else if (process.argv[4] === 'hatch') {
-      /**
-       * TODO
-       */
-      // const COLLATERALS = ['0x0527e400502d0cb4f214dd0d2f2a323fc88ff924', '0x0d5263b7969144a852d58505602f630f9b20239d']
-      // const owner = '0xb71d2d88030a00830c3d45f84c12cc8aaf6857a5'
-      // const template = await Template.at(process.argv[7])
-      // const receipt = await template.deployBaseInstance(BOARD_TOKEN_NAME, BOARD_TOKEN_SYMBOL, BOARD_MEMBERS, BOARD_VOTING_SETTINGS, 0, { from: owner })
-      // await template.installFundraisingApps(ID, SHARE_TOKEN_NAME, SHARE_TOKEN_SYMBOL, SHARE_VOTING_SETTINGS, MAX_TAP_INCREASE_PCT, { from: owner })
-      // await template.finalizeInstance(COLLATERALS, VIRTUAL_SUPPLIES, VIRTUAL_BALANCES, SLIPPAGES, TAPS, FLOORS, { from: owner })
-      // const dao = getEventArgument(receipt, 'DeployDao', 'dao')
-      // console.log('DAO deployed at ' + dao)
-    } else {
-      throw new Error('Unknown network: pick rpc or hatch')
-    }
+    const receipt = await template.prepareInstance(BOARD_TOKEN_NAME, BOARD_TOKEN_SYMBOL, BOARD_MEMBERS, BOARD_VOTING_SETTINGS, 0, { gasPrice: 60000000001 })
+    await template.installShareApps(SHARE_TOKEN_NAME, SHARE_TOKEN_SYMBOL, SHARE_VOTING_SETTINGS, { gasPrice: 60000000001 })
+    await template.installFundraisingApps(
+      PRESALE_GOAL,
+      PRESALE_PERIOD,
+      PRESALE_EXCHANGE_RATE,
+      VESTING_CLIFF_PERIOD,
+      VESTING_COMPLETE_PERIOD,
+      PERCENT_SUPPLY_OFFERED,
+      PERCENT_FUNDING_FOR_BENEFICIARY,
+      0,
+      BATCH_BLOCKS,
+      MAXIMUM_TAP_RATE_INCREASE_PCT,
+      MAXIMUM_TAP_FLOOR_DECREASE_PCT,
+      { gasPrice: 60000000001 }
+    )
+    await template.finalizeInstance(ID, VIRTUAL_SUPPLIES, VIRTUAL_BALANCES, SLIPPAGES, RATE, FLOOR, { gasPrice: 60000000001 })
+    const dao = getEventArgument(receipt, 'DeployDao', 'dao')
+    console.log('DAO deployed at ' + dao)
   } catch (err) {
     console.log(err)
   }
