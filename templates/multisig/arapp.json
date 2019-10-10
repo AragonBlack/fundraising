@@ -6,6 +6,11 @@
       "appName": "fundraising-multisig-template.aragonpm.eth",
       "network": "rpc"
     },
+    "rinkeby": {
+      "registry": "0x98Df287B6C145399Aaa709692c8D308357bC085D",
+      "appName": "fundraising-multisig-template.aragonpm.eth",
+      "network": "rinkeby"
+    },
     "hatch": {
       "registry": "0x98Df287B6C145399Aaa709692c8D308357bC085D",
       "appName": "fundraising-multisig-template.hatch.aragonpm.eth",
