@@ -1,6 +1,6 @@
 import React, { useContext } from 'react'
 import { useAppState, useApi, useConnectedAccount } from '@aragon/api-react'
-import { Box, Button, GU } from '@aragon/ui'
+import { Box, Button, useTheme, GU, textStyle } from '@aragon/ui'
 import CircleGraph from '../components/CircleGraph'
 import { PresaleViewContext } from '../context'
 import { Presale } from '../constants'
@@ -54,17 +54,50 @@ export default () => {
     }
   }
 
+  const theme = useTheme()
+
   return (
     <Box heading="Presale Goal">
       <div className="circle">
-        <CircleGraph value={totalRaised.div(goal).toNumber()} size={224} width={6} color={circleColor[state]} />
-        <div>
-          <p css="color: #212B36; display: inline;">{formatBigNumber(totalRaised, decimals)}</p> {symbol} of{' '}
-          <p css="color: #212B36; display: inline;">{formatBigNumber(goal, decimals)}</p> {symbol}
-        </div>
+        <CircleGraph value={totalRaised.div(goal).toNumber()} size={20.5 * GU} width={6} color={circleColor[state]} />
+        <p
+          title={`${formatBigNumber(totalRaised, decimals)} ${symbol} of ${formatBigNumber(goal, decimals)} ${symbol}`}
+          css={`
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            color: ${theme.surfaceContentSecondary};
+          `}
+        >
+          <span
+            css={`
+              color: ${theme.surfaceContent};
+            `}
+          >
+            {formatBigNumber(totalRaised, decimals)}
+          </span>{' '}
+          {symbol} of{' '}
+          <span
+            css={`
+              color: ${theme.surfaceContent};
+            `}
+          >
+            {formatBigNumber(goal, decimals)}
+          </span>{' '}
+          {symbol}
+        </p>
         {state === Presale.state.GOAL_REACHED && (
           <>
-            <p>Presale goal completed!</p>
+            <p
+              css={`
+                white-space: nowrap;
+                margin-top: ${2 * GU}px;
+                color: ${theme.surfaceContent};
+              `}
+            >
+              <strong>Presale goal completed! 🎉</strong>
+            </p>
             <Button
               wide
               mode="strong"
@@ -81,7 +114,13 @@ export default () => {
         )}
         {state === Presale.state.REFUNDING && (
           <>
-            <p css="color: #212B36; font-weight: 300; font-size: 16px;">Unfortunately, the goal set for this presale has not been reached.</p>
+            <p
+              css={`
+                margin-top: ${2 * GU}px;
+              `}
+            >
+              Unfortunately, the goal set for this presale has not been reached.
+            </p>
             <Button
               wide
               mode="strong"
