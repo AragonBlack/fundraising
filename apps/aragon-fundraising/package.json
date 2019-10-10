@@ -29,6 +29,7 @@
     "apm:publish:hatch:patch": "aragon apm publish patch --files app/build --environment hatch --use-frame --prepublish false",
     "apm:publish:hatch:minor": "aragon apm publish minor --files app/build --environment hatch --use-frame --prepublish false",
     "apm:publish:hatch:major": "aragon apm publish major --files app/build --environment hatch --use-frame",
+    "apm:publish:rinkeby:patch": "aragon apm publish patch --files app/build --environment rinkeby --use-frame  --prepublish false",
     "apm:publish:rinkeby:major": "aragon apm publish major --files app/build --environment rinkeby --use-frame",
     "publish": "npm run apm:publish:rpc:major"
   },
