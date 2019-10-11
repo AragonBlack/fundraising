@@ -16,7 +16,6 @@
 * [Placing an order](overview/placing-an-order.md)
 * [Orders Status and Orders Claiming](overview/orders-status-and-orders-claiming.md)
 * [Orders Tab](overview/orders-tab.md)
-* [My Orders Tab](overview/my-orders-tab.md)
 * [Reserves Tab and providing Accountability with the Tap](overview/reserves-tab.md)
 * [Curve exit: the withdraw feature](overview/curve-exit-the-withdraw-feature.md)
 * [Permissions Settings](overview/permissions-settings.md)

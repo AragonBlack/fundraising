@@ -1,8 +1,6 @@
 # Orders Tab
 
-
-
-![](https://lh4.googleusercontent.com/FDQPH3XT0u4Vvm8z4YzwltoBpmS5bB5Fekve64H3UuqaIQFWO3fkrMJH8-3ELoL7lbhxRlIArKgyCYYZsDmDatErnj3-W7BLUqhgEbNppOwglhwG5fbo0zrXXXHqbN24Fz_0qkpZ)
+![](../.gitbook/assets/screenshot-2019-10-11-at-14.07.53.png)
 
 The orders tab displays currently pending orders as well as historical orders the following information:
 
@@ -15,6 +13,6 @@ The orders tab displays currently pending orders as well as historical orders th
 * **“Tokens”** displays the amount of tokens ordered
 * **“...”** can be clicked to reveal the etherscan address of the transaction
 
-On the top several filters can be used for faster search of orders: Holder \(address or name\),  Collateral Token type, Order Type, and Ascending vs Descending price sorting.  
+On the top several filters can be used for faster search of orders: Holder \(address or name\),  Collateral Token type, Order Type, and Ascending vs Descending price sorting. The export button enables downloading of a CSV file with all  orders.  
 ****
 
