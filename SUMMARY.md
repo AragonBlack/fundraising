@@ -10,11 +10,11 @@
 ## User Guide - Basic <a id="overview"></a>
 
 * [Setting up a Fundraising DAO](overview/setting-up.md)
-* [Configuring the Pre-Sale campaign](overview/pre-sale.md)
-* [Initiating and participating in a Pre-Sale](overview/untitled.md)
+* [Configuring the Presale campaign](overview/pre-sale.md)
+* [Initiating and participating in the Presale campaign](overview/untitled.md)
+* [Fundraising DAO information in one glance - The Overview Tab](overview/overview-tab.md)
 * [Providing accountability - The Tap](overview/tap/README.md)
   * [Voting to update the tap](overview/tap/voting-to-update-the-tap.md)
-* [Fundraising DAO information in one glance - The Overview Tab](overview/overview-tab.md)
 * [Placing an order](overview/placing-an-order.md)
 * [Orders Status and Orders Claiming](overview/orders-status-and-orders-claiming.md)
 * [Orders Tab](overview/orders-tab.md)
