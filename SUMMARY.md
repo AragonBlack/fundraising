@@ -13,13 +13,11 @@
 * [Configuring the Presale campaign](overview/pre-sale.md)
 * [Initiating and participating in the Presale campaign](overview/untitled.md)
 * [Fundraising DAO information in one glance - The Overview Tab](overview/overview-tab.md)
-* [Providing accountability - The Tap](overview/tap/README.md)
-  * [Voting to update the tap](overview/tap/voting-to-update-the-tap.md)
 * [Placing an order](overview/placing-an-order.md)
 * [Orders Status and Orders Claiming](overview/orders-status-and-orders-claiming.md)
 * [Orders Tab](overview/orders-tab.md)
 * [My Orders Tab](overview/my-orders-tab.md)
-* [Reserves Tab](overview/reserves-tab.md)
+* [Reserves Tab and providing Accountability with the Tap](overview/reserves-tab.md)
 * [Curve exit: the withdraw feature](overview/curve-exit-the-withdraw-feature.md)
 * [Permissions Settings](overview/permissions-settings.md)
 * [Email Notifications](overview/email-notifications.md)
@@ -32,6 +30,7 @@
 
 ## User Guide - Advanced <a id="how-to"></a>
 
+* [Advanced Trading Settings \(whitelisting, collaterals, fees\)](how-to/advanced-trading-settings-whitelisting-collaterals-fees.md)
 * [Market Maker](how-to/market-maker.md)
 * [Controller](how-to/controller.md)
 * [Installing and Deploying a Fundraising DAO from the CLI](how-to/cli.md)

@@ -1,10 +1,14 @@
 # Placing an order
 
-**\(UPDATE W SCREENS\)**
+All tabs in the Fundraising app contain an over-arching "New order" button which can be clicked to initiate a buy or sell order by any user! 
 
-By clicking the cross-tab “New Order” button a side panel appears with options to place buy and sell orders. 
+By default there is no white/black list but this can be configured in the permissions which are explained in the advanced guide.
 
-Price is given for each collateral type, which can be toggled between by clicking the token symbol icon. An estimation of price for that batch is given with a maximum slippage rate applied \(by default 20%\) where the batched order is not filled if the difference between the order price and the execution price exceed this limit.
+Once the "New Order" button is clicked a side-panel appears with options to place buy and sell orders:
+
+![](../.gitbook/assets/screenshot-2019-10-11-at-11.07.16.png)
+
+Price is given for each supported collateral token, which can be toggled by clicking the token symbol icon. An estimation of the price for that batch is given with the slippage guard that was previously configured.
 
 To switch between buying orders and selling orders toggle between "Buy" and "Sell" screens.
 
