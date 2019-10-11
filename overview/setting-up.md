@@ -17,17 +17,41 @@ The following screen displays basic information about the Fundraising template a
 
 The next step is to claim a domain for the organization:
 
-![](https://lh5.googleusercontent.com/s-ou4rGU2cnz-sMV-JbhkYqnkXFbz5gMmSOtqxE2d6CYkXJ8tRHz4_Wwr1MDAh4YjNba32KmJFKRxpMQ49z-OTMPoYj_57VD89pUIn4LetwUR1yXZf_SdZMkM3D4lpCVp6ecr_b8)
-
-This allows access to the DAO \(via the Ethereum Name Service\) where any user can input that URL address in their browser.
 
 
+This allows access to the DAO \(via the Ethereum Name Service\) where any user can input that URL address in their browser. A green checkmark shows DAO name availability.
+
+![](../.gitbook/assets/screenshot-2019-10-11-at-09.30.05%20%281%29.png)
+
+Some info about the functioning of the organization's board:
+
+![](../.gitbook/assets/screenshot-2019-10-11-at-09.30.13.png)
+
+Which can be configured here:
+
+![](../.gitbook/assets/screenshot-2019-10-11-at-09.48.33.png)
+
+The board token name and symbol can be chosen as well as the list of initial board member token holders with 1 token per member. Members can be added \(with a flexible number of issued tokens\) and removed later on by a vote of existing board token holder. To note that this token is non-transferable.
 
 
 
+![](../.gitbook/assets/screenshot-2019-10-11-at-09.48.40.png)
 
+This screen allows for configuring the voting app of board tokenholders:
 
+* Support denotes the percent of expressed votes for a vote to pass. 
+* Minimum approval is the minimum % of positive votes in terms of the total supply of tokens for a vote to be considered valid.
+* Vote duration is the amount of time a vote remains open.
 
+Next up some info about the organization's shareholder governance.
+
+![](../.gitbook/assets/screenshot-2019-10-11-at-09.49.12.png)
+
+Shareholder token name and symbol is configured: 
+
+![](../.gitbook/assets/screenshot-2019-10-11-at-09.50.28.png)
+
+![](../.gitbook/assets/screenshot-2019-10-11-at-09.50.41.png)
 
 
 

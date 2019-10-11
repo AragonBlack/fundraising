@@ -1,4 +1,4 @@
-# Configuring a Pre-Sale campaign
+# Configuring the Pre-Sale campaign
 
 Fundraising allows for projects to fund a pre-sale as a way to:
 

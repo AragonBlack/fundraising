@@ -10,7 +10,7 @@
 ## User Guide - Basic <a id="overview"></a>
 
 * [Setting up a Fundraising DAO](overview/setting-up.md)
-* [Configuring a Pre-Sale campaign](overview/pre-sale.md)
+* [Configuring the Pre-Sale campaign](overview/pre-sale.md)
 * [Initiating and participating in a Pre-Sale](overview/untitled.md)
 * [Providing accountability - The Tap](overview/tap/README.md)
   * [Voting to update the tap](overview/tap/voting-to-update-the-tap.md)
