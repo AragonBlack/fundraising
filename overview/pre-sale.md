@@ -1,16 +1,18 @@
 # Configuring the Pre-Sale campaign
 
-Fundraising allows for projects to fund a pre-sale as a way to:
+Fundraising allows  projects to setup an initial pre-sale campaign as this:
 
-a\) Guarantee a minimum reserve and tap amount
+ a\) Guarantees a minimum reserve and tap amount
 
-b\) Level the playing field between stakers 
+b\) Levels the playing field between initial entrants and stakeholders 
 
-c\) Offer transparency and equal opportunity for fundraising campaigns
+c\) Offers transparency and equal opportunity for fundraising campaigns
 
-d\) Automate curve initialisation by testing campaign metrics against minimum terms
+d\) Automates curve initialisation by testing campaign metrics against minimum terms
 
-The pre-sale screens enables an individual/DAO to configure it's pre-sale terms, launch and communicate around it. 
+The pre-sale screens allow for configure of pre-sale terms.
+
+![](../.gitbook/assets/screenshot-2019-10-11-at-09.51.06.png)
 
 
 
