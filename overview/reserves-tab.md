@@ -14,7 +14,7 @@ The floor is also displayed in DAI per month.
 
 The various collateralization ratios corresponding to the different supported collateral tokens are also displayed.
 
-Updating the Monthly Allocation can be made by clicking on Editing  monthly allocation which then triggers an action according to permissions , by default board members can propose an update and a vote of shareholders is required to ratify this. This provides alignement of interest between stakeholders. 
+Updating the Monthly Allocation can be made by clicking on Editing  monthly allocation and signing a transaction ,by default a positive vote of shareholders is required to ratify this. 
 
 Before signing the transaction triggering the vote the side panel shows the max % change supported for the monthly allocation and floor.
 
