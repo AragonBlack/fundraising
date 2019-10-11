@@ -51,7 +51,9 @@ Shareholder token name and symbol is configured:
 
 ![](../.gitbook/assets/screenshot-2019-10-11-at-09.50.28.png)
 
+And similarly we configure the shareholder's voting app:
+
 ![](../.gitbook/assets/screenshot-2019-10-11-at-09.50.41.png)
 
-
+The next section will detail the rest of the setup with the pre-sale configuration.
 
