@@ -12,7 +12,7 @@ d\) Automate curve initialisation by testing campaign metrics against minimum te
 
 The pre-sale screens enables an individual/DAO to configure it's pre-sale terms, launch and communicate around it. 
 
-![](https://lh5.googleusercontent.com/9JBm_pBTeCZTv6QGd7iYANr0XU5Kbh9CslIQkCGLjrOJHP0UX9IT6BOODpE2roDbxCz1F9kz14GR1apt-TN-lj5hERQXIdBAouBLkuSzBYa_CYN0JAiZqIu1GGWzAUjmTc3pr9jB)
+
 
 **The terms covered  are fields to be completed to configure a fundraising campaign:**
 

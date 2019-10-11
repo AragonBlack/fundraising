@@ -1,20 +1,33 @@
 # Setting up a Fundraising DAO
 
-To set up a fundraising type DAO go to [https://mainnet.aragon.org/\#/](https://mainnet.aragon.org/#/) and click on the “Create a new organization” button.
+To set up a fundraising type DAO go to [https://nightly.aragon.org/\#/](https://nightly.aragon.org/#/) 
 
-You can then select the Fundraising Template.  
-****
+![](../.gitbook/assets/screenshot-2019-10-11-at-09.26.59.png)
 
-![](https://lh6.googleusercontent.com/A1pR718mIjn5Ud_eAv2q9LARkzGkTdgT9mKshUGzfc0AcAG1_BQW8rdrLDzsAqhxFwqH6PUWhOm1TpnxUNuFGt1N1fZSZE120-eipLcT9CY7aKh4IjMYeNpHzOi9mgdAByrd-YKX)
+Click on the “Create a new organization” button while connected to the Rinkeby network.
 
-![](https://lh5.googleusercontent.com/SrVB9nZV23XTnnyAsDiHtAb3PY8Ikd7xwRRj7zDKNch8gVwkdRhXapVpeMCMyo9zym8HvDfUVQcdbgAOXcHSvwYxiMytGBARm7LcPRHQmYw1r3KXaktxZTqnZFNwoR6t7NrSo8IC)
+![](../.gitbook/assets/screenshot-2019-10-11-at-09.27.07%20%281%29.png)
 
-The above screen helps visualize information about the Fundraising template and the apps that come bundled with it.  
+You can then select the Fundraising Template.
 
+The following screen displays basic information about the Fundraising template and lists the default apps.  
+
+
+![](../.gitbook/assets/screenshot-2019-10-11-at-09.27.17.png)
+
+The next step is to claim a domain for the organization:
 
 ![](https://lh5.googleusercontent.com/s-ou4rGU2cnz-sMV-JbhkYqnkXFbz5gMmSOtqxE2d6CYkXJ8tRHz4_Wwr1MDAh4YjNba32KmJFKRxpMQ49z-OTMPoYj_57VD89pUIn4LetwUR1yXZf_SdZMkM3D4lpCVp6ecr_b8)
 
-The next step is to claim a domain for the organization. This means that throught the Ethereum Name Service any user can access the DAO throught it’s claimed URL.
+This allows access to the DAO \(via the Ethereum Name Service\) where any user can input that URL address in their browser.
+
+
+
+
+
+
+
+
 
 
 
