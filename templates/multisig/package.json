@@ -33,7 +33,7 @@
     "publish:rinkeby": "aragon apm publish major $(npm run deploy:rinkeby | tail -n 1) --environment rinkeby",
     "publish:ropsten": "aragon apm publish major $(npm run deploy:ropsten | tail -n 1) --environment ropsten",
     "publish:mainnet": "aragon apm publish major $(npm run deploy:mainnet | tail -n 1) --environment mainnet",
-    "deploy:dao:rpc": "truffle exec scripts/deploy_dao.js rpc --network rpc $(aragon apm versions | tail -n 1 | cut -d ' ' -f 3)",
+    "deploy:dao:rpc": "truffle exec scripts/deploy_dao.js --network rpc $(aragon apm versions | tail -n 1 | cut -d ' ' -f 3)",
     "deploy:dao:rinkeby": "truffle exec scripts/deploy_dao.js --network frame $(aragon apm versions --env rinkeby | tail -n 1 | cut -d ' ' -f 3)",
     "publish": "npm run publish:arachain"
   },
