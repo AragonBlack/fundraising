@@ -20,7 +20,7 @@ const Navbar = styled.div`
   justify-content: space-between;
   margin-top: ${4 * GU}px;
   margin-right: ${6 * GU}px;
-  margin-left: ${8 * GU}px;
+  margin-left: ${2 * GU}px;
 
   .timeline {
     display: flex;

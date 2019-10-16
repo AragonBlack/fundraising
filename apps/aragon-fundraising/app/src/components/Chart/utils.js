@@ -71,7 +71,7 @@ const getYear = timestamp => getTime(set(timestamp, { month: 0, date: 1, hours: 
  */
 const getOCHL = orders => {
   if (orders.length === 1) {
-    const price = orders[0].price.toFixed(2)
+    const price = parseFloat(orders[0].price.toFixed(2, 1))
     return { open: price, close: price, high: price, low: price }
   } else {
     const open = parseFloat(minBy(orders, o => o.timestamp).price.toFixed(2, 1))
@@ -92,5 +92,18 @@ const getOCHL = orders => {
 export const computeOCHL = (orders, functionIndex) => {
   const functionToCall = [getQuarterHour, getHour, get4Hour, getDay, getWeek, getMonth, getYear][functionIndex]
   const range = groupBy(orders, o => functionToCall(o.timestamp))
-  return Object.keys(range).map(x => ({ x: parseInt(x, 10), ...getOCHL(range[x]) }))
+  const x = []
+  const open = []
+  const close = []
+  const high = []
+  const low = []
+  Object.keys(range).forEach(i => {
+    x.push(parseInt(i, 10))
+    const ohcl = getOCHL(range[i])
+    open.push(ohcl.open)
+    close.push(ohcl.close)
+    high.push(ohcl.high)
+    low.push(ohcl.low)
+  })
+  return { x, open, close, high, low }
 }
