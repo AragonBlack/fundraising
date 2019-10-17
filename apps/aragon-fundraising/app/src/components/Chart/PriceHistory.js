@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react'
 import { useAppState } from '@aragon/api-react'
-import { theme, GU } from '@aragon/ui'
+import { theme } from '@aragon/ui'
 import subHours from 'date-fns/subHours'
 import subDays from 'date-fns/subDays'
 import subWeeks from 'date-fns/subWeeks'
@@ -8,24 +8,37 @@ import subMonths from 'date-fns/subMonths'
 import subYears from 'date-fns/subYears'
 import Plotly from 'plotly.js-finance-dist'
 import createPlotlyComponent from 'react-plotly.js/factory'
-import { layout, config } from './setup'
+import { layout, config, style } from './setup'
 import Navbar, { Filter } from './Navbar'
 import Tooltip from './Tooltip'
 
 const Plot = createPlotlyComponent(Plotly)
 
 export default ({ activeChart, setActiveChart }) => {
+  // *****************************
+  // context state
+  // *****************************
   const { orders } = useAppState()
   const timestamps = orders.map(o => o.timestamp)
   const firstOrder = Math.min(...timestamps)
   const lastOrder = Math.max(...timestamps)
   const range = [firstOrder, lastOrder]
+
+  // *****************************
+  // internal state
+  // *****************************
   const [activeItem, setActiveItem] = useState(5)
   const [tooltipData, setTooltipData] = useState(null)
+
   const plot = useRef(null)
 
+  // *****************************
+  // effects
+  // *****************************
+  // relayout when the activeItem filter is changed
   useEffect(() => {
     if (plot?.current?.el) {
+      // only relayout if the chart is mounted (by updating the range)
       const functionToCall = [subHours, subDays, subWeeks, subMonths, subYears, x => firstOrder][activeItem]
       const start = functionToCall(lastOrder, 1)
       const range = [start, lastOrder]
@@ -35,6 +48,7 @@ export default ({ activeChart, setActiveChart }) => {
     }
   }, [activeItem])
 
+  // computed trace
   const trace = {
     mode: 'lines+markers',
     line: { color: theme.accent },
@@ -55,11 +69,7 @@ export default ({ activeChart, setActiveChart }) => {
       </Navbar>
       <Plot
         ref={plot}
-        css={`
-          margin-top: ${3 * GU}px;
-          width: 100%;
-          height: 450px;
-        `}
+        css={style}
         data={[trace]}
         layout={layout(range)}
         config={config}

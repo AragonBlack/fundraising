@@ -6,17 +6,24 @@ import PriceHistory from './PriceHistory'
 import PriceVariation from './PriceVariation'
 
 export default () => {
+  // *****************************
+  // context state
+  // *****************************
   const { orders } = useAppState()
-  const [activeChart, setActiveChart] = useState(1)
+
+  // *****************************
+  // internal state
+  // *****************************
+  const [activeChart, setActiveChart] = useState(0)
+
   return (
     <>
       {orders.length === 0 ? (
         <NoData message="No data to show." />
       ) : (
         <ChartWrapper>
-          {/* {activeChart === 0 && <PriceLine activeChart={activeChart} setActiveChart={setActiveChart} />} */}
-          {activeChart === 1 && <PriceHistory activeChart={activeChart} setActiveChart={setActiveChart} />}
-          {activeChart === 2 && <PriceVariation activeChart={activeChart} setActiveChart={setActiveChart} />}
+          {activeChart === 0 && <PriceHistory activeChart={activeChart} setActiveChart={setActiveChart} />}
+          {activeChart === 1 && <PriceVariation activeChart={activeChart} setActiveChart={setActiveChart} />}
         </ChartWrapper>
       )}
     </>

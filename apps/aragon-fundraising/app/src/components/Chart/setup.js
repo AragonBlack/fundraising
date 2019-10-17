@@ -1,3 +1,5 @@
+import { GU } from '@aragon/ui'
+
 export const layout = range => ({
   dragmode: 'zoom',
   margin: {
@@ -22,3 +24,9 @@ export const config = {
   displayModeBar: false,
   responsive: true,
 }
+
+export const style = `
+  margin-top: ${3 * GU}px;
+  width: 100%;
+  height: 450px;
+`

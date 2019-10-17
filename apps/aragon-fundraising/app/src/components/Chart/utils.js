@@ -87,7 +87,7 @@ const getOCHL = orders => {
  * This timerange function is picked by index, this index coming from the PriceSticks chart
  * @param {Array<Object>} orders - background script orders
  * @param {Number} functionIndex - index of the timerange fuction to pick
- * @returns {Array<Object>} an array of object with timerange timestamp and OCHL prices
+ * @returns {Object} an object containing the arrays of OHCL values computed with the given timerange function
  */
 export const computeOCHL = (orders, functionIndex) => {
   const functionToCall = [getQuarterHour, getHour, get4Hour, getDay, getWeek, getMonth, getYear][functionIndex]

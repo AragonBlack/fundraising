@@ -9,9 +9,7 @@ export default styled(Box)`
   justify-content: center;
   font-family: aragon-ui, sans-serif;
   & > div {
-    width: 80%;
-    @media only screen and (max-width: 700px) {
-      width: 100%;
+    width: 100%;
     }
   }
 
