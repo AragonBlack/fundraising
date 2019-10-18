@@ -32,7 +32,7 @@ export default ({ point }) => {
         <>
           <h1>{point.x}</h1>
           <p>Open: {point.open}</p>
-          <p>Close:{point.close}</p>
+          <p>Close: {point.close}</p>
           <p>High: {point.high}</p>
           <p>Low: {point.low}</p>
         </>

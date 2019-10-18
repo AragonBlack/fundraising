@@ -51,7 +51,7 @@ export default styled(Box)`
   .xtick {
     text {
       font-family: aragon-ui, sans-serif !important;
-      font-size: 13px;
+      font-size: 13px !important;
     }
   }
 
