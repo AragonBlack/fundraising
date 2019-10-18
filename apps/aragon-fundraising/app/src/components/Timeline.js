@@ -1,11 +1,11 @@
 import React from 'react'
 import PropTypes from 'prop-types'
-import { BREAKPOINTS, Box, GU, Tag, textStyle, useLayout, useTheme } from '@aragon/ui'
+import { Box, GU, Tag, textStyle, useLayout, useTheme } from '@aragon/ui'
 
 const DOT_SIZE = 3.5 * GU
 const DOT_VERTICAL_SHIFT = 0.5 * GU
 
-function Timeline({ title, steps }) {
+const Timeline = ({ title, steps }) => {
   const { layoutName } = useLayout()
   return (
     <Box heading={title} padding={0}>
@@ -42,7 +42,7 @@ Timeline.defaultProps = {
   title: 'Timeline',
 }
 
-function TimelineStep({ title, date, description, first, last, direction, ...props }) {
+const TimelineStep = ({ title, date, description, first, last, direction, ...props }) => {
   const theme = useTheme()
   const { layoutName } = useLayout()
   return (
@@ -85,7 +85,7 @@ function TimelineStep({ title, date, description, first, last, direction, ...pro
   )
 }
 
-function TimelineSegment({ first, last, direction }) {
+const TimelineSegment = ({ first, last, direction }) => {
   const theme = useTheme()
 
   return direction === 'vertical' ? (
@@ -143,7 +143,7 @@ function TimelineSegment({ first, last, direction }) {
   )
 }
 
-function TimelineDot() {
+const TimelineDot = () => {
   const theme = useTheme()
   return (
     <div

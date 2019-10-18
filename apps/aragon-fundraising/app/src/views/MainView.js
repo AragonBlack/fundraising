@@ -165,7 +165,9 @@ export default () => {
           secondary={
             layoutName === 'small' ? (
               <ContextMenu>
-                <ContextMenuItem onClick={() => setOrderPanel(true)}>New Order</ContextMenuItem>
+                <ContextMenuItem disabled={polledPrice === 0} onClick={() => setOrderPanel(true)}>
+                    New Order
+                </ContextMenuItem>
                 <ContextMenuItem onClick={() => handleWithdraw()}>Withdraw</ContextMenuItem>
               </ContextMenu>
             ) : (
@@ -173,7 +175,7 @@ export default () => {
                 <Button mode="strong" label="Withdraw" onClick={() => handleWithdraw()}>
                   Withdraw
                 </Button>
-                <Button mode="strong" label="New Order" css="margin-left: 20px;" onClick={() => setOrderPanel(true)}>
+                <Button disabled={polledPrice === 0} mode="strong" label="New Order" css="margin-left: 20px;" onClick={() => setOrderPanel(true)}>
                   New Order
                 </Button>
               </>

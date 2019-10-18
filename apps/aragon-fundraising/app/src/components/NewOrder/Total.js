@@ -2,6 +2,7 @@ import React, { useContext, useState, useEffect } from 'react'
 import { Text } from '@aragon/ui'
 import { useApi, useAppState } from '@aragon/api-react'
 import styled from 'styled-components'
+import BigNumber from 'bignumber.js'
 import { MainViewContext } from '../../context'
 import BancorFormulaAbi from '../../abi/BancorFormula.json'
 import { formatBigNumber, toDecimals } from '../../utils/bn-utils'
@@ -12,9 +13,16 @@ const Total = ({ isBuyOrder, amount, conversionSymbol, onError }) => {
   // background script state
   // *****************************
   const {
+    constants: { PCT_BASE },
     addresses: { formula: formulaAddress },
     bondedToken: { overallSupply },
+    collaterals: {
+      dai: { slippage: daiSlippage },
+      ant: { slippage: antSlippage },
+    },
   } = useAppState()
+  const daiSlippageDec = daiSlippage.div(PCT_BASE)
+  const antSlippageDec = antSlippage.div(PCT_BASE)
 
   // *****************************
   // aragon api
@@ -25,7 +33,7 @@ const Total = ({ isBuyOrder, amount, conversionSymbol, onError }) => {
   // *****************************
   // context state
   // *****************************
-  const { daiBalance, antBalance, userDaiBalance, userAntBalance } = useContext(MainViewContext)
+  const { price, daiBalance, antBalance, userDaiBalance, userAntBalance, userBondedTokenBalance } = useContext(MainViewContext)
 
   // *****************************
   // internal state
@@ -57,15 +65,26 @@ const Total = ({ isBuyOrder, amount, conversionSymbol, onError }) => {
       const currentSymbol = isBuyOrder ? symbol : conversionSymbol
       const supply = currentSymbol === 'DAI' ? overallSupply.dai : overallSupply.ant
       const balance = currentSymbol === 'DAI' ? daiBalance : antBalance
+      // slippage
+      const currentSlippage = currentSymbol === 'DAI' ? daiSlippageDec : antSlippageDec
+      // unit prices
+      const maxPrice = new BigNumber(price).times(new BigNumber(1).plus(currentSlippage))
+      const minPrice = new BigNumber(price).times(new BigNumber(1).minus(currentSlippage))
 
       if (balance) {
         const result = await formula[functionToCall](supply.toFixed(), balance.toFixed(), reserveRatio.toFixed(), valueBn.toFixed())
           .toPromise()
           .catch(() => errorCb('The amount is out of range of the supply'))
         if (!didCancel && result) {
-          okCb()
-          const price = formatBigNumber(result, decimals)
+          // check if the evaluated price don't break the slippage
+          const resultBn = new BigNumber(result)
+          const price = formatBigNumber(resultBn, decimals)
           setEvaluatedPrice(price)
+          if (isBuyOrder && resultBn.lte(valueBn.div(maxPrice))) {
+            errorCb('This buy order will break the price slippage')
+          } else if (!isBuyOrder && resultBn.lte(valueBn.times(minPrice))) {
+            errorCb('This sell order will break the price slippage')
+          } else okCb()
         }
       } else {
         errorCb(null)
@@ -73,8 +92,13 @@ const Total = ({ isBuyOrder, amount, conversionSymbol, onError }) => {
     }
 
     const userBalance = symbol === 'DAI' ? userDaiBalance : userAntBalance
-    if (userBalance.lt(toDecimals(value, decimals))) {
+    if (isBuyOrder && userBalance.lt(toDecimals(value, decimals))) {
       // cannot buy more than your own balance
+      setFormattedAmount(formatBigNumber(value, 0))
+      setEvaluatedPrice(null)
+      onError(false, `Your ${symbol} balance is not sufficient`)
+    } else if (!isBuyOrder && userBondedTokenBalance.lt(toDecimals(value, decimals))) {
+      // cannot sell more than your own balance
       setFormattedAmount(formatBigNumber(value, 0))
       setEvaluatedPrice(null)
       onError(false, `Your ${symbol} balance is not sufficient`)

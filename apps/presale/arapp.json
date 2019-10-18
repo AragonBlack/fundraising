@@ -6,6 +6,11 @@
       "appName": "presale.aragonpm.eth",
       "network": "rpc"
     },
+    "rinkeby": {
+      "registry": "0x98Df287B6C145399Aaa709692c8D308357bC085D",
+      "appName": "presale.aragonpm.eth",
+      "network": "rinkeby"
+    },
     "hatch": {
       "registry": "0x98Df287B6C145399Aaa709692c8D308357bC085D",
       "appName": "presale.hatch.aragonpm.eth",

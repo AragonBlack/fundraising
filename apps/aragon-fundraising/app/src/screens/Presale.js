@@ -1,7 +1,7 @@
 import React, { useContext } from 'react'
 import { useAppState, useApi } from '@aragon/api-react'
 import styled from 'styled-components'
-import { Box, Button, Countdown, BREAKPOINTS, GU } from '@aragon/ui'
+import { Box, Button, Countdown, BREAKPOINTS, GU, Split, useLayout } from '@aragon/ui'
 import addMilliseconds from 'date-fns/addMilliseconds'
 import { PresaleViewContext } from '../context'
 import PresaleGoal from '../components/PresaleGoal'
@@ -10,11 +10,12 @@ import { Presale } from '../constants'
 
 export default () => {
   // *****************************
-  // background script state
+  // background script state and layout
   // *****************************
   const {
     presale: { period, vestingCliffPeriod, vestingCompletePeriod },
   } = useAppState()
+  const { layoutName } = useLayout()
 
   // *****************************
   // aragon api
@@ -45,55 +46,62 @@ export default () => {
   return (
     <>
       <Container>
-        <div className="left">
-          <PresaleGoal />
-          <Box heading="Fundraising Period">
-            {noOpenDate && (
-              <Button wide mode="strong" label="Open presale" onClick={handleOpenPresale}>
-                Open presale
-              </Button>
-            )}
-            {presaleEnded && (
-              <p
-                css={`
-                  color: #212b36;
-                  font-size: 16px;
-                `}
-              >
-                Presale closed
-              </p>
-            )}
-            {state === Presale.state.FUNDING && (
-              <p
-                css={`
-                  color: #637381;
-                  font-size: 16px;
-                `}
-              >
-                Time remaining
-              </p>
-            )}
-            {!noOpenDate && !presaleEnded && (
-              <Countdown
-                css={`
-                  margin-top: ${1 * GU}px;
-                `}
-                end={endDate}
+        <Split
+          invert={layoutName !== 'large' ? 'vertical' : 'horizontal'}
+          secondary={
+            <div>
+              <PresaleGoal />
+              <Box heading="Fundraising Period">
+                {noOpenDate && (
+                  <Button wide mode="strong" label="Open presale" onClick={handleOpenPresale}>
+                    Open presale
+                  </Button>
+                )}
+                {presaleEnded && (
+                  <p
+                    css={`
+                      color: #212b36;
+                      font-size: 16px;
+                    `}
+                  >
+                    Presale closed
+                  </p>
+                )}
+                {state === Presale.state.FUNDING && (
+                  <p
+                    css={`
+                      color: #637381;
+                      font-size: 16px;
+                    `}
+                  >
+                    Time remaining
+                  </p>
+                )}
+                {!noOpenDate && !presaleEnded && (
+                  <Countdown
+                    css={`
+                      margin-top: ${1 * GU}px;
+                    `}
+                    end={endDate}
+                  />
+                )}
+              </Box>
+            </div>
+          }
+          primary={
+            <div>
+              <Timeline
+                title="Fundraising Timeline"
+                steps={[
+                  ['Presale opens', openDate, 'Contributors can buy presale shares'],
+                  ['Presale ends', openDate === 0 ? 0 : endDate, 'Trading can be open'],
+                  ['Cliff period ends', openDate === 0 ? 0 : vestingCliffDate, 'Presale contributors can start claiming part of their vested shares'],
+                  ['Vesting period ends', openDate === 0 ? 0 : vestingCompleteDate, 'Presale contributors can claim all their vested shares'],
+                ]}
               />
-            )}
-          </Box>
-        </div>
-        <div className="right">
-          <Timeline
-            title="Fundraising Timeline"
-            steps={[
-              ['Presale opens', openDate, 'Contributors can buy presale shares'],
-              ['Presale ends', openDate === 0 ? 0 : endDate, 'Trading can be open'],
-              ['Cliff period ends', openDate === 0 ? 0 : vestingCliffDate, 'Presale contributors can start claiming part of their vested shares'],
-              ['Vesting period ends', openDate === 0 ? 0 : vestingCompleteDate, 'Presale contributors can claim all their vested shares'],
-            ]}
-          />
-        </div>
+            </div>
+          }
+        />
       </Container>
     </>
   )
@@ -104,16 +112,6 @@ const Container = styled.div`
 
   a {
     color: #3e7bf6;
-  }
-
-  .left {
-    width: 25%;
-    margin-right: ${2 * GU}px;
-  }
-
-  .right {
-    width: 75%;
-    font-size: 16px;
   }
 
   .circle {
@@ -135,15 +133,5 @@ const Container = styled.div`
 
   @media only screen and (max-width: ${BREAKPOINTS.large}px) {
     flex-direction: column;
-
-    .left {
-      width: 100%;
-      margin-right: 0;
-      margin-bottom: ${1 * GU}px;
-    }
-
-    .right {
-      width: 100%;
-    }
   }
 `

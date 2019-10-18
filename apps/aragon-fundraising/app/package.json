@@ -24,7 +24,7 @@
   "dependencies": {
     "@aragon/api": "^2.0.0-beta.7",
     "@aragon/api-react": "^2.0.0-beta.6",
-    "@aragon/ui": "^1.0.0-alpha.27",
+    "@aragon/ui": "^1.0.0-alpha.28",
     "bignumber.js": "^9.0.0",
     "date-fns": "^2.0.1",
     "file-saver": "^2.0.2",

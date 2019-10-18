@@ -1,5 +1,5 @@
 import React from 'react'
-import { Info, useLayout, GU } from '@aragon/ui'
+import { Info, useLayout, GU, Link } from '@aragon/ui'
 
 export default () => {
   const { layoutName } = useLayout()
@@ -12,11 +12,11 @@ export default () => {
       `}
     >
       <p>
-        This demo of Aragon Fundraising is still in the experimental phase. It's a peek into the capabilities of the final version and we are looking forward to
+        This demo of Aragon Fundraising is still in the experimental phase. It’s a peek into the capabilities of the final version and we are looking forward to
         your feedback.
       </p>
       <p>
-        You might need some Rinkeby DAI or ANT which you can get by visting <a href="https://faucet.aragon.black/">https://faucet.aragon.black/</a>
+        You might need some Rinkeby DAI or ANT which you can get by visting <Link href="https://faucet.aragon.black/">https://faucet.aragon.black/</Link>
       </p>
       <p>Expect daily frontend updates and future smart contract updates.</p>
     </Info>

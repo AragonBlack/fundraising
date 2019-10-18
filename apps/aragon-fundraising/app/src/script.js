@@ -149,7 +149,7 @@ const initialize = async (poolAddress, tapAddress, marketMakerAddress, presaleAd
         case 'Contribute':
           return addContribution(nextState, returnValues, settings, blockNumber)
         case 'Close':
-          return closePresale(nextState)
+          return closePresale(nextState, settings)
         case 'Refund':
           return removeContribution(nextState, returnValues)
         default:
@@ -581,13 +581,17 @@ const addContribution = async (state, { contributor, value, amount, vestedPurcha
   }
 }
 
-const closePresale = state => ({
-  ...state,
-  presale: {
-    ...state.presale,
-    state: Presale.state.CLOSED,
-  },
-})
+const closePresale = async (state, settings) => {
+  const bondedToken = await updateBondedToken(state.bondedToken, settings)
+  return {
+    ...state,
+    presale: {
+      ...state.presale,
+      state: Presale.state.CLOSED,
+    },
+    bondedToken,
+  }
+}
 
 const removeContribution = (state, { contributor, value, amount, vestedPurchaseId }) => {
   const contributions = cloneDeep(state.contributions)

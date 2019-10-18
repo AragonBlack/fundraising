@@ -29,8 +29,8 @@ export const checkCollaterals = (collaterals, { type }) => {
     const realAntAddress = Tokens[type].ANT.toLowerCase()
     // get DAI and ANT addresses from the fundraising app
     const currentCollaterals = Array.from(collaterals).map(([address, { symbol }]) => ({ address, symbol }))
-    const daiAddress = currentCollaterals.find(c => c.symbol === 'DAI')
-    const antAddress = currentCollaterals.find(c => c.symbol === 'ANT')
+    const daiAddress = currentCollaterals.find(c => c.symbol === 'DAI').address
+    const antAddress = currentCollaterals.find(c => c.symbol === 'ANT').address
     // check they are the same
     const sameDai = daiAddress?.toLowerCase() === realDaiAddress
     const sameAnt = antAddress?.toLowerCase() === realAntAddress

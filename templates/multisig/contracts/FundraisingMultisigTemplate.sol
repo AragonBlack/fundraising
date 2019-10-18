@@ -102,14 +102,12 @@ contract FundraisingMultisigTemplate is EtherTokenConstant, BaseTemplate {
     }
 
     function installShareApps(
-        string    _id,
         string    _shareTokenName,
         string    _shareTokenSymbol,
         uint64[3] _shareVotingSettings
     )
         external
     {
-        require(bytes(_id).length > 0,            ERROR_BAD_SETTINGS);
         require(_shareVotingSettings.length == 3, ERROR_BAD_SETTINGS);
         _ensureBoardAppsCache();
 
@@ -120,8 +118,6 @@ contract FundraisingMultisigTemplate is EtherTokenConstant, BaseTemplate {
         _installShareApps(dao, shareToken, _shareVotingSettings);
         // setup board apps permissions [now that share apps have been installed]
         _setupBoardPermissions(dao);
-        // register id
-        _registerID(_id, address(dao));
     }
 
     function installFundraisingApps(
@@ -164,6 +160,7 @@ contract FundraisingMultisigTemplate is EtherTokenConstant, BaseTemplate {
     }
 
     function finalizeInstance(
+        string     _id,
         uint256[2] _virtualSupplies,
         uint256[2] _virtualBalances,
         uint256[2] _slippages,
@@ -172,6 +169,7 @@ contract FundraisingMultisigTemplate is EtherTokenConstant, BaseTemplate {
     )
         external
     {
+        require(bytes(_id).length > 0,        ERROR_BAD_SETTINGS);
         require(_virtualSupplies.length == 2, ERROR_BAD_SETTINGS);
         require(_virtualBalances.length == 2, ERROR_BAD_SETTINGS);
         require(_slippages.length == 2,       ERROR_BAD_SETTINGS);
@@ -187,6 +185,8 @@ contract FundraisingMultisigTemplate is EtherTokenConstant, BaseTemplate {
         _createEvmScriptsRegistryPermissions(acl, shareVoting, shareVoting);
         // clear DAO permissions
         _transferRootPermissionsFromTemplateAndFinalizeDAO(dao, shareVoting, shareVoting);
+        // register id
+        _registerID(_id, address(dao));
         // clear cache
         _clearCache();
     }

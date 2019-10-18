@@ -100,23 +100,7 @@ contract('Fundraising with multisig', ([_, owner, boardMember1, boardMember2]) =
       context('when there is no prepared instance deployed', () => {
         it('should revert', async () => {
           await assertRevert(() =>
-            template.installShareApps(daoID, SHARE_TOKEN_NAME, SHARE_TOKEN_SYMBOL, SHARE_VOTING_SETTINGS, {
-              from: owner,
-            })
-          )
-        })
-      })
-
-      context('when there is a prepared instance deployed', () => {
-        beforeEach('deploy prepared instance', async () => {
-          await template.prepareInstance(BOARD_TOKEN_NAME, BOARD_TOKEN_SYMBOL, BOARD_MEMBERS, BOARD_VOTING_SETTINGS, FINANCE_PERIOD, {
-            from: owner,
-          })
-        })
-
-        it('should revert when an empty id is provided', async () => {
-          await assertRevert(() =>
-            template.installShareApps('', SHARE_TOKEN_NAME, SHARE_TOKEN_SYMBOL, SHARE_VOTING_SETTINGS, {
+            template.installShareApps(SHARE_TOKEN_NAME, SHARE_TOKEN_SYMBOL, SHARE_VOTING_SETTINGS, {
               from: owner,
             })
           )
@@ -160,7 +144,7 @@ contract('Fundraising with multisig', ([_, owner, boardMember1, boardMember2]) =
         await template.prepareInstance(BOARD_TOKEN_NAME, BOARD_TOKEN_SYMBOL, BOARD_MEMBERS, BOARD_VOTING_SETTINGS, FINANCE_PERIOD, {
           from: owner,
         })
-        await template.installShareApps(daoID, SHARE_TOKEN_NAME, SHARE_TOKEN_SYMBOL, SHARE_VOTING_SETTINGS, {
+        await template.installShareApps(SHARE_TOKEN_NAME, SHARE_TOKEN_SYMBOL, SHARE_VOTING_SETTINGS, {
           from: owner,
         })
       })
@@ -168,7 +152,36 @@ contract('Fundraising with multisig', ([_, owner, boardMember1, boardMember2]) =
       context('when there is no fundraising instance deployed', () => {
         it('should revert', async () => {
           await assertRevert(() =>
-            template.finalizeInstance(VIRTUAL_SUPPLIES, VIRTUAL_BALANCES, SLIPPAGES, RATES[0], FLOORS[0], {
+            template.finalizeInstance(daoID, VIRTUAL_SUPPLIES, VIRTUAL_BALANCES, SLIPPAGES, RATES[0], FLOORS[0], {
+              from: owner,
+            })
+          )
+        })
+      })
+
+      context('when there is a fundraising instance deployed', () => {
+        beforeEach('deploy fundraising instance', async () => {
+          await template.installFundraisingApps(
+            PRESALE_GOAL,
+            PRESALE_PERIOD,
+            PRESALE_EXCHANGE_RATE,
+            VESTING_CLIFF_PERIOD,
+            VESTING_COMPLETE_PERIOD,
+            PERCENT_SUPPLY_OFFERED,
+            PERCENT_FUNDING_FOR_BENEFICIARY,
+            START_DATE,
+            BATCH_BLOCKS,
+            MAXIMUM_TAP_RATE_INCREASE_PCT,
+            MAXIMUM_TAP_FLOOR_DECREASE_PCT,
+            {
+              from: owner,
+            }
+          )
+        })
+
+        it('should revert when an empty id is provided', async () => {
+          await assertRevert(() =>
+            template.finalizeInstance('', VIRTUAL_SUPPLIES, VIRTUAL_BALANCES, SLIPPAGES, RATES[0], FLOORS[0], {
               from: owner,
             })
           )
@@ -500,7 +513,7 @@ contract('Fundraising with multisig', ([_, owner, boardMember1, boardMember2]) =
         prepareReceipt = await template.prepareInstance(BOARD_TOKEN_NAME, BOARD_TOKEN_SYMBOL, BOARD_MEMBERS, BOARD_VOTING_SETTINGS, financePeriod, {
           from: owner,
         })
-        shareReceipt = await template.installShareApps(daoID, SHARE_TOKEN_NAME, SHARE_TOKEN_SYMBOL, SHARE_VOTING_SETTINGS, {
+        shareReceipt = await template.installShareApps(SHARE_TOKEN_NAME, SHARE_TOKEN_SYMBOL, SHARE_VOTING_SETTINGS, {
           from: owner,
         })
         fundraisingReceipt = await template.installFundraisingApps(
@@ -519,7 +532,7 @@ contract('Fundraising with multisig', ([_, owner, boardMember1, boardMember2]) =
             from: owner,
           }
         )
-        finalizationReceipt = await template.finalizeInstance(VIRTUAL_SUPPLIES, VIRTUAL_BALANCES, SLIPPAGES, RATES[0], FLOORS[0], {
+        finalizationReceipt = await template.finalizeInstance(daoID, VIRTUAL_SUPPLIES, VIRTUAL_BALANCES, SLIPPAGES, RATES[0], FLOORS[0], {
           from: owner,
         })
 

@@ -48,9 +48,10 @@ export default () => {
       setValue('')
       setValid(false)
       setErrorMessage(null)
-      // focus the right input, given the order type
-      // timeout to avoid some flicker
-      valueInput && setTimeout(() => valueInput.current.focus(), 20)
+
+      // Focus the right input after some time to avoid the panel transition to
+      // be skipped by the browser.
+      valueInput && setTimeout(() => valueInput.current.focus(), 100)
     }
   }, [presalePanel])
 
@@ -101,7 +102,7 @@ export default () => {
           Buy presale shares
         </Button>
       </ButtonWrapper>
-      {errorMessage && <ValidationError message={errorMessage} />}
+      {errorMessage && <ValidationError messages={[errorMessage]} />}
       <Info />
     </form>
   )
