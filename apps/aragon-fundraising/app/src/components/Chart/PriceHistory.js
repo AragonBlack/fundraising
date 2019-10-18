@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { useAppState } from '@aragon/api-react'
-import { useLayout } from '@aragon/ui'
+import { theme } from '@aragon/ui'
 import subHours from 'date-fns/subHours'
 import subDays from 'date-fns/subDays'
 import subWeeks from 'date-fns/subWeeks'
