@@ -352,7 +352,7 @@ contract FundraisingMultisigTemplate is EtherTokenConstant, BaseTemplate {
             0,
             0
         );
-        // transfer ADD_PROTECTED_TOKEN_ROLE
+        // transfer ADD_COLLATERAL_TOKEN_ROLE
         _transferPermissionFromTemplate(acl, controller, shareVoting, controller.ADD_COLLATERAL_TOKEN_ROLE(), shareVoting);
     }
 
