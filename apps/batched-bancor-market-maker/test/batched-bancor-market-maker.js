@@ -860,6 +860,7 @@ contract('BatchedBancorMarketMaker app', accounts => {
                         assert.equal(metaBatch2.supply.toNumber(), supply.toNumber())
                         assert.equal(metaBatch2.buyFeePct.toNumber(), BUY_FEE_PERCENT)
                         assert.equal(metaBatch2.sellFeePct.toNumber(), SELL_FEE_PERCENT)
+                        assert.equal(metaBatch2.formula, formula.address)
                       })
 
                       it('it should initialize new batch [if needed]', async () => {
