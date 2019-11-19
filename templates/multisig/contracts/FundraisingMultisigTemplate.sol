@@ -1,7 +1,6 @@
 pragma solidity 0.4.24;
 
 import "@aragon/os/contracts/common/EtherTokenConstant.sol";
-import "@aragon/os/contracts/lib/token/ERC20.sol";
 import "@aragon/templates-shared/contracts/BaseTemplate.sol";
 import "@aragon/apps-agent/contracts/Agent.sol";
 import "@ablack/fundraising-bancor-formula/contracts/BancorFormula.sol";
