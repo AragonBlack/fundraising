@@ -67,8 +67,9 @@ contract FundraisingMultisigTemplate is EtherTokenConstant, BaseTemplate {
     {
         _ensureAragonIdIsValid(_aragonID);
         _ensureMiniMeFactoryIsValid(_miniMeFactory);
-        _ensureTokenIsContractOrETH(_dai);
-        _ensureTokenIsContractOrETH(_ant);
+        require(isContract(_dai), ERROR_BAD_SETTINGS);
+        require(isContract(_ant), ERROR_BAD_SETTINGS);
+        require(_dai != _ant,     ERROR_BAD_SETTINGS);
 
         collaterals.push(_dai);
         collaterals.push(_ant);
@@ -575,10 +576,6 @@ contract FundraisingMultisigTemplate is EtherTokenConstant, BaseTemplate {
     }
 
     /***** internal check functions *****/
-
-     function _ensureTokenIsContractOrETH(address _token) internal view {
-        require(isContract(_token) || _token == ETH, ERROR_BAD_SETTINGS);
-    }
 
     function _ensureBoardAppsCache() internal view {
         Cache storage c = cache[msg.sender];
