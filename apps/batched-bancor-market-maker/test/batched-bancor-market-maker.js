@@ -849,6 +849,8 @@ contract('BatchedBancorMarketMaker app', accounts => {
                         // let's check the new meta-batch is properly initialized
                         assert.isAbove(metaBatch2.id.toNumber(), metaBatch1.id.toNumber())
                         assert.equal(metaBatch2.supply.toNumber(), supply.toNumber())
+                        assert.equal(metaBatch2.buyFeePct.toNumber(), BUY_FEE_PERCENT)
+                        assert.equal(metaBatch2.sellFeePct.toNumber(), SELL_FEE_PERCENT)
                       })
 
                       it('it should initialize new batch [if needed]', async () => {
