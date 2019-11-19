@@ -71,8 +71,8 @@ contract FundraisingMultisigTemplate is EtherTokenConstant, BaseTemplate {
         _ensureTokenIsContractOrETH(_dai);
         _ensureTokenIsContractOrETH(_ant);
 
-        collaterals.push(address(_dai));
-        collaterals.push(address(_ant));
+        collaterals.push(_dai);
+        collaterals.push(_ant);
     }
 
     /***** external functions *****/
