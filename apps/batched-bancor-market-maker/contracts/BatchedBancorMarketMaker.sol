@@ -84,6 +84,7 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
         uint256 supply;
         uint256 balance;
         uint32  reserveRatio;
+        uint256 slippage;
         uint256 totalBuySpend;
         uint256 totalBuyReturn;
         uint256 totalSellSpend;
@@ -113,7 +114,14 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
     event UpdateFormula          (address indexed formula);
     event UpdateFees             (uint256 buyFeePct, uint256 sellFeePct);
     event NewMetaBatch           (uint256 indexed id, uint256 supply, uint256 buyFeePct, uint256 sellFeePct);
-    event NewBatch               (uint256 indexed id, address indexed collateral, uint256 supply, uint256 balance, uint32 reserveRatio);
+    event NewBatch               (
+        uint256 indexed id,
+        address indexed collateral,
+        uint256 supply,
+        uint256 balance,
+        uint32  reserveRatio,
+        uint256 slippage)
+    ;
     event CancelBatch            (uint256 indexed id, address indexed collateral);
     event AddCollateralToken     (
         address indexed collateral,
@@ -388,7 +396,7 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
 
     function getBatch(uint256 _batchId, address _collateral)
         public view isInitialized
-        returns (bool, bool, uint256, uint256, uint32, uint256, uint256, uint256, uint256)
+        returns (bool, bool, uint256, uint256, uint32, uint256, uint256, uint256, uint256, uint256)
     {
         Batch storage batch = metaBatches[_batchId].batches[_collateral];
 
@@ -398,6 +406,7 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
             batch.supply,
             batch.balance,
             batch.reserveRatio,
+            batch.slippage,
             batch.totalBuySpend,
             batch.totalBuyReturn,
             batch.totalSellSpend,
@@ -487,7 +496,7 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
 
     function _slippageIsValid(Batch storage _batch, address _collateral) internal view returns (bool) {
         uint256 staticPricePPM = _staticPricePPM(_batch.supply, _batch.balance, _batch.reserveRatio);
-        uint256 maximumSlippage = collaterals[_collateral].slippage;
+        uint256 maximumSlippage = _batch.slippage;
 
         // if static price is zero let's consider that every slippage is valid
         if (staticPricePPM == 0) {
@@ -611,9 +620,10 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
             batch.supply = metaBatch.realSupply.add(collaterals[_collateral].virtualSupply);
             batch.balance = controller.balanceOf(address(reserve), _collateral).add(collaterals[_collateral].virtualBalance).sub(collateralsToBeClaimed[_collateral]);
             batch.reserveRatio = collaterals[_collateral].reserveRatio;
+            batch.slippage = collaterals[_collateral].slippage;
             batch.initialized = true;
 
-            emit NewBatch(batchId, _collateral, batch.supply, batch.balance, batch.reserveRatio);
+            emit NewBatch(batchId, _collateral, batch.supply, batch.balance, batch.reserveRatio, batch.slippage);
         }
 
         return (batchId, batch);
