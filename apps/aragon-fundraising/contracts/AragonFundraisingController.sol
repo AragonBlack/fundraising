@@ -162,7 +162,9 @@ contract AragonFundraisingController is EtherTokenConstant, IsContract, IAragonF
     */
     function openTrading() external auth(OPEN_TRADING_ROLE) {
         for (uint256 i = 0; i < toReset.length; i++) {
-            tap.resetTappedToken(toReset[i]);
+            if (tap.rates(toReset[i]) != uint256(0)) {
+                tap.resetTappedToken(toReset[i]);
+            }
         }
 
         marketMaker.open();
