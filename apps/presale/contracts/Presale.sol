@@ -151,6 +151,7 @@ contract Presale is EtherTokenConstant, IsContract, AragonApp {
     */
     function open() external auth(OPEN_ROLE) {
         require(state() == State.Pending, ERROR_INVALID_STATE);
+        require(openDate == 0,            ERROR_INVALID_STATE);
 
         _open();
     }
