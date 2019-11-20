@@ -163,6 +163,7 @@ contract Presale is EtherTokenConstant, IsContract, AragonApp {
     */
     function contribute(address _contributor, uint256 _value) external payable nonReentrant auth(CONTRIBUTE_ROLE) {
         require(state() == State.Funding, ERROR_INVALID_STATE);
+        require(_value != 0,              ERROR_INVALID_CONTRIBUTE_VALUE);
 
         if (contributionToken == ETH) {
             require(msg.value == _value, ERROR_INVALID_CONTRIBUTE_VALUE);
