@@ -315,7 +315,8 @@ contract Presale is EtherTokenConstant, IsContract, AragonApp {
             _transfer(contributionToken, address(this), beneficiary, fundsForBeneficiary);
         }
         // (presale) ~~~> contribution tokens ~~~> (reserve)
-        uint256 tokensForReserve = ERC20(contributionToken).balanceOf(address(this));
+        uint256 tokensForReserve = contributionToken == ETH ? address(this).balance : ERC20(contributionToken).balanceOf(address(this));
+
         _transfer(contributionToken, address(this), reserve, tokensForReserve);
         // (mint ✨) ~~~> project tokens ~~~> (beneficiary)
         uint256 tokensForBeneficiary = token.totalSupply().mul(PPM.sub(supplyOfferedPct)).div(supplyOfferedPct);
