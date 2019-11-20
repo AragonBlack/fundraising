@@ -710,17 +710,20 @@ contract('Tap app', accounts => {
     })
   })
 
-  context('> #withdraw', () => {
+  context.only('> #withdraw', () => {
     context('> sender has WITHDRAW_ROLE', () => {
       context('> and token is tapped', () => {
         context('> and maximum withdrawal is not zero', () => {
+          beforeEach(async () => {
+            await tap.addTappedToken(ETH, 10, 0, { from: authorized })
+            await tap.addTappedToken(token1.address, 10, 0, { from: authorized })
+
+            await progressToNextBatch()
+            await progressToNextBatch()
+          })
+
           context('> ETH', () => {
             it('it should transfer a tapped amount of ETH from reserve to beneficiary', async () => {
-              await tap.addTappedToken(ETH, 10, 0, { from: authorized })
-
-              await progressToNextBatch()
-              await progressToNextBatch()
-
               const withdrawal = await tap.getMaximumWithdrawal(ETH)
               const receipt = await tap.withdraw(ETH, { from: authorized })
               const batchId = getBatchId(receipt)
@@ -734,11 +737,6 @@ contract('Tap app', accounts => {
 
           context('> ERC20', () => {
             it('it should transfer a tapped amount of ERC20 from reserve to beneficiary', async () => {
-              await tap.addTappedToken(token1.address, 10, 0, { from: authorized })
-
-              await progressToNextBatch()
-              await progressToNextBatch()
-
               const withdrawal = await tap.getMaximumWithdrawal(token1.address)
               const receipt = await tap.withdraw(token1.address, { from: authorized })
               const batchId = getBatchId(receipt)
@@ -784,7 +782,7 @@ contract('Tap app', accounts => {
     })
   })
 
-  context('> #getMaximumWithdrawal', () => {
+  context.only('> #getMaximumWithdrawal', () => {
     context('tokens to hold + floor is inferior to balance', () => {
       context('> tapped amount + tokens to hold + floor is inferior to balance', () => {
         it('it should return a batched tapped amount', async () => {
