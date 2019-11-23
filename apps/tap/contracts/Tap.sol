@@ -115,16 +115,6 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
     }
 
     /**
-     * @notice Update reserve to `_reserve`
-     * @param _reserve The address of the new reserve [pool] contract
-    */
-    function updateReserve(Vault _reserve) external auth(UPDATE_RESERVE_ROLE) {
-        require(isContract(_reserve), ERROR_CONTRACT_IS_EOA);
-
-        _updateReserve(_reserve);
-    }
-
-    /**
      * @notice Update beneficiary to `_beneficiary`
      * @param _beneficiary The address of the new beneficiary [to whom funds are to be withdrawn]
     */

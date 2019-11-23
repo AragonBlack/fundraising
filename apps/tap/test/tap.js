@@ -188,33 +188,6 @@ contract('Tap app', accounts => {
     })
   })
 
-  context('> #updateReserve', () => {
-    context('> sender has UPDATE_RESERVE_ROLE', () => {
-      context('> and new reserve is a contract', () => {
-        it('it should update reserve', async () => {
-          const newReserve = await Vault.new()
-          const receipt = await tap.updateReserve(newReserve.address, { from: authorized })
-
-          assertEvent(receipt, 'UpdateReserve')
-          assert.equal(await tap.reserve(), newReserve.address)
-        })
-      })
-
-      context('> but new reserve is not a contract', () => {
-        it('it should revert', async () => {
-          await assertRevert(() => tap.updateReserve(root, { from: authorized }))
-        })
-      })
-    })
-
-    context('> sender does not have UPDATE_RESERVE_ROLE', () => {
-      it('it should revert', async () => {
-        const newReserve = await Vault.new()
-        await assertRevert(() => tap.updateReserve(newReserve.address, { from: unauthorized }))
-      })
-    })
-  })
-
   context('> #updateBeneficiary', () => {
     context('> sender has UPDATE_BENEFICIARY_ROLE', () => {
       context('> and new beneficiary is valid', () => {
