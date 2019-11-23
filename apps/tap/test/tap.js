@@ -188,33 +188,6 @@ contract('Tap app', accounts => {
     })
   })
 
-  context('> #updateController', () => {
-    context('> sender has UPDATE_CONTROLLER_ROLE', () => {
-      context('> and new controller is a contract', () => {
-        it('it should update controller', async () => {
-          const newController = await Controller.new()
-          const receipt = await tap.updateController(newController.address, { from: authorized })
-
-          assertEvent(receipt, 'UpdateController')
-          assert.equal(await tap.controller(), newController.address)
-        })
-      })
-
-      context('> but new controller is not a contract', () => {
-        it('it should revert', async () => {
-          await assertRevert(() => tap.updateController(root, { from: authorized }))
-        })
-      })
-    })
-
-    context('> sender does not have UPDATE_CONTROLLER_ROLE', () => {
-      it('it should revert', async () => {
-        const newController = await Controller.new()
-        await assertRevert(() => tap.updateController(newController.address, { from: unauthorized }))
-      })
-    })
-  })
-
   context('> #updateReserve', () => {
     context('> sender has UPDATE_RESERVE_ROLE', () => {
       context('> and new reserve is a contract', () => {

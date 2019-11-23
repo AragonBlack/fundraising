@@ -115,16 +115,6 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
     }
 
     /**
-     * @notice Update controller to `_controller`
-     * @param _controller The address of the new controller contract
-    */
-    function updateController(IAragonFundraisingController _controller) external auth(UPDATE_CONTROLLER_ROLE) {
-        require(isContract(_controller), ERROR_CONTRACT_IS_EOA);
-
-        _updateController(_controller);
-    }
-
-    /**
      * @notice Update reserve to `_reserve`
      * @param _reserve The address of the new reserve [pool] contract
     */
