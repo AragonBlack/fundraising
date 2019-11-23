@@ -302,18 +302,6 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
 
     /* state modifying functions */
 
-    function _updateController(IAragonFundraisingController _controller) internal {
-        controller = _controller;
-
-        emit UpdateController(address(_controller));
-    }
-
-    function _updateReserve(Vault _reserve) internal {
-        reserve = _reserve;
-
-        emit UpdateReserve(address(_reserve));
-    }
-
     function _updateBeneficiary(address _beneficiary) internal {
         beneficiary = _beneficiary;
 
