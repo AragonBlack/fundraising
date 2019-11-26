@@ -1,21 +1,41 @@
-import React, { useContext } from 'react'
-import { useAppState, useApi } from '@aragon/api-react'
+import React, { useContext, useState } from 'react'
+import { useAppState, useApi, useConnectedAccount } from '@aragon/api-react'
 import styled from 'styled-components'
-import { Box, Button, Countdown, BREAKPOINTS, GU, Split, useLayout } from '@aragon/ui'
+import {
+  Box,
+  Button,
+  Countdown,
+  BREAKPOINTS,
+  GU,
+  Split,
+  useLayout,
+  DataView,
+  IdentityBadge,
+  Text,
+  DropDown,
+  shortenAddress,
+  theme,
+  unselectable,
+} from '@aragon/ui'
+import BigNumber from 'bignumber.js'
 import addMilliseconds from 'date-fns/addMilliseconds'
 import { PresaleViewContext } from '../context'
 import PresaleGoal from '../components/PresaleGoal'
 import Timeline from '../components/Timeline'
 import { Presale } from '../constants'
+import { formatBigNumber } from '../utils/bn-utils'
 
 export default () => {
   // *****************************
-  // background script state and layout
+  // background script, layout, connected account and dropdown states
   // *****************************
   const {
-    presale: { period, vestingCliffPeriod, vestingCompletePeriod },
+    presale: { period, vestingCliffPeriod, vestingCompletePeriod, contributionToken, token },
+    contributions,
   } = useAppState()
   const { layoutName } = useLayout()
+  const connectedAccount = useConnectedAccount()
+  const [selected, setSelection] = useState(0)
 
   // *****************************
   // aragon api
@@ -41,6 +61,38 @@ export default () => {
       .openPresale()
       .toPromise()
       .catch(console.error)
+  }
+
+  let contributionList = [...contributions.entries()]
+    .map(item => {
+      const reducedValues = item[1].reduce((prev, current) => {
+        return {
+          amount: new BigNumber(prev.amount).plus(new BigNumber(current.amount)),
+          value: new BigNumber(prev.value).plus(new BigNumber(current.value)),
+        }
+      })
+
+      item[1] = reducedValues
+
+      return item
+    })
+    .sort((a, b) => b[1].value - a[1].value)
+
+  contributionList = contributionList.map(item => ({
+    account: item[0],
+    contributions: formatBigNumber(item[1].value, contributionToken.decimals) + ' ' + contributionToken.symbol,
+    shares: formatBigNumber(item[1].amount, token.decimals),
+  }))
+
+  const myContributions = contributionList.filter(item => {
+    return item.account === connectedAccount
+  })[0]
+
+  const contributionAccounts = contributionList.map(item => item.account)
+  contributionAccounts.unshift('All')
+
+  if (selected !== 0) {
+    contributionList = contributionList.filter(item => item.account === contributionAccounts[selected])
   }
 
   return (
@@ -86,6 +138,42 @@ export default () => {
                   />
                 )}
               </Box>
+              {myContributions && (
+                <Box heading="My Contribution Info">
+                  <div
+                    css={`
+                      display: flex;
+                      justify-content: space-between;
+                    `}
+                  >
+                    <p
+                      css={`
+                        color: #637381;
+                        font-size: 16px;
+                      `}
+                    >
+                      Contributions
+                    </p>
+                    <Text>{myContributions.contributions}</Text>
+                  </div>
+                  <div
+                    css={`
+                      display: flex;
+                      justify-content: space-between;
+                    `}
+                  >
+                    <p
+                      css={`
+                        color: #637381;
+                        font-size: 16px;
+                      `}
+                    >
+                      Shares
+                    </p>
+                    <Text>{myContributions.shares}</Text>
+                  </div>
+                </Box>
+              )}
             </div>
           }
           primary={
@@ -98,6 +186,29 @@ export default () => {
                   ['Cliff period ends', openDate === 0 ? 0 : vestingCliffDate, 'Presale contributors can start claiming part of their vested shares'],
                   ['Vesting period ends', openDate === 0 ? 0 : vestingCompleteDate, 'Presale contributors can claim all their vested shares'],
                 ]}
+              />
+              <DataView
+                fields={['Account', 'Contributions', 'Shares']}
+                entries={contributionList}
+                renderEntry={({ account, contributions, shares }) => {
+                  return [
+                    <IdentityBadge key="account" entity={account} />,
+                    <Text key="contributions">{contributions}</Text>,
+                    <Text key="shares">{shares}</Text>,
+                  ]
+                }}
+                heading={
+                  <div className="filter-item">
+                    <span className="filter-label">Filter Account</span>
+                    <DropDown
+                      items={contributionAccounts}
+                      selected={selected}
+                      renderLabel={() => shortenAddress(contributionAccounts[selected])}
+                      onChange={idx => setSelection(idx)}
+                      css="min-width: auto;"
+                    />
+                  </div>
+                }
               />
             </div>
           }
@@ -129,6 +240,22 @@ const Container = styled.div`
     & > div {
       margin-bottom: ${2 * GU}px;
     }
+  }
+
+  .filter-item {
+    display: flex;
+    align-items: center;
+  }
+
+  .filter-label {
+    display: block;
+    margin-right: 8px;
+    font-variant: small-caps;
+    text-transform: lowercase;
+    color: ${theme.textSecondary};
+    font-weight: 600;
+    white-space: nowrap;
+    ${unselectable};
   }
 
   @media only screen and (max-width: ${BREAKPOINTS.large}px) {
