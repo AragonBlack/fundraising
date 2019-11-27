@@ -11,6 +11,7 @@ const BancorMarketMaker = artifacts.require('BatchedBancorMarketMaker')
 const TokenMock = artifacts.require('TokenMock')
 
 const assertEvent = require('@aragon/test-helpers/assertEvent')
+const assertExternalEvent = require('@ablack/fundraising-shared-test-helpers/assertExternalEvent')
 const { assertRevert } = require('@aragon/test-helpers/assertThrow')
 const getBalance = require('@ablack/fundraising-shared-test-helpers/getBalance')(web3, TokenMock)
 const { ZERO_ADDRESS } = require('@ablack/fundraising-shared-test-helpers/constants')
@@ -865,6 +866,7 @@ contract('BatchedBancorMarketMaker app', accounts => {
                         // let's initialize a second batch
                         const receipt2 = await openBuyOrder(authorized, collaterals[index], random.amount(), { from: authorized })
                         assertEvent(receipt2, 'NewBatch')
+                        assertExternalEvent(receipt2, 'UpdateTappedAmount()')
                         const batchId = getBuyOrderBatchId(receipt2)
                         const batch2 = await getBatch(batchId, collaterals[index])
                         // let's check the new batch is properly initialized
