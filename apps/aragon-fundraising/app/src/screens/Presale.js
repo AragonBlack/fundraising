@@ -1,27 +1,13 @@
 import React, { useContext, useState } from 'react'
 import { useAppState, useApi, useConnectedAccount } from '@aragon/api-react'
 import styled from 'styled-components'
-import {
-  Box,
-  Button,
-  Countdown,
-  BREAKPOINTS,
-  GU,
-  Split,
-  useLayout,
-  DataView,
-  IdentityBadge,
-  Text,
-  DropDown,
-  shortenAddress,
-  theme,
-  unselectable,
-} from '@aragon/ui'
+import { Box, Button, Countdown, BREAKPOINTS, GU, Split, useLayout, DataView, Text, DropDown, shortenAddress, theme, unselectable } from '@aragon/ui'
 import BigNumber from 'bignumber.js'
 import addMilliseconds from 'date-fns/addMilliseconds'
 import { PresaleViewContext } from '../context'
 import PresaleGoal from '../components/PresaleGoal'
 import Timeline from '../components/Timeline'
+import LocalIdentityBadge from '../components/LocalIdentityBadge'
 import { Presale } from '../constants'
 import { formatBigNumber } from '../utils/bn-utils'
 
@@ -182,9 +168,9 @@ export default () => {
                 title="Fundraising Timeline"
                 steps={[
                   ['Presale opens', openDate, 'Contributors can buy presale shares'],
-                  ['Presale ends', openDate === 0 ? 0 : endDate, 'Trading can be open'],
-                  ['Cliff period ends', openDate === 0 ? 0 : vestingCliffDate, 'Presale contributors can start claiming part of their vested shares'],
-                  ['Vesting period ends', openDate === 0 ? 0 : vestingCompleteDate, 'Presale contributors can claim all their vested shares'],
+                  ['Presale ends', openDate === 0 ? 0 : endDate, 'Trading can be opened'],
+                  ['Cliff period ends', openDate === 0 ? 0 : vestingCliffDate, 'Your shares will start being unvested'],
+                  ['Vesting period ends', openDate === 0 ? 0 : vestingCompleteDate, 'All your shares will be invested'],
                 ]}
               />
               <DataView
@@ -192,7 +178,7 @@ export default () => {
                 entries={contributionList}
                 renderEntry={({ account, contributions, shares }) => {
                   return [
-                    <IdentityBadge key="account" entity={account} />,
+                    <LocalIdentityBadge key="account" entity={account} />,
                     <Text key="contributions">{contributions}</Text>,
                     <Text key="shares">{shares}</Text>,
                   ]

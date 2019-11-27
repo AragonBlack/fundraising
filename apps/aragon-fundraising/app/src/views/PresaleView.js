@@ -9,6 +9,7 @@ import Presale from '../screens/Presale'
 import NewContribution from '../components/NewContribution'
 import NewRefund from '../components/NewRefund'
 import Disclaimer from '../components/Disclaimer'
+import { IdentityProvider } from '../components/IdentityManager'
 import { PresaleViewContext } from '../context'
 import PresaleAbi from '../abi/Presale.json'
 
@@ -54,6 +55,16 @@ export default () => {
     setRefundPanel,
   }
 
+  // *****************************
+  // identity handlers
+  // *****************************
+  const handleResolveLocalIdentity = address => {
+    return api.resolveAddressIdentity(address).toPromise()
+  }
+  const handleShowLocalIdentityModal = address => {
+    return api.requestAddressIdentityModification(address).toPromise()
+  }
+
   // watch for a connected user and get its balances
   useEffect(() => {
     const getUserDaiBalance = async () => {
@@ -86,21 +97,23 @@ export default () => {
 
   return (
     <PresaleViewContext.Provider value={context}>
-      <Header
-        primary="Fundraising Presale"
-        secondary={
-          <Button
-            disabled={polledPresaleState !== PresaleConstants.state.FUNDING}
-            mode="strong"
-            label="Buy presale shares"
-            onClick={() => setPresalePanel(true)}
-          />
-        }
-      />
-      <Disclaimer />
-      <Presale />
-      <NewContribution />
-      <NewRefund />
+      <IdentityProvider onResolve={handleResolveLocalIdentity} onShowLocalIdentityModal={handleShowLocalIdentityModal}>
+        <Header
+          primary="Fundraising Presale"
+          secondary={
+            <Button
+              disabled={polledPresaleState !== PresaleConstants.state.FUNDING}
+              mode="strong"
+              label="Buy presale shares"
+              onClick={() => setPresalePanel(true)}
+            />
+          }
+        />
+        <Disclaimer />
+        <Presale />
+        <NewContribution />
+        <NewRefund />
+      </IdentityProvider>
     </PresaleViewContext.Provider>
   )
 }
