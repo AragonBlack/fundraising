@@ -330,6 +330,14 @@ contract AragonFundraisingController is EtherTokenConstant, IsContract, IAragonF
     }
 
     /**
+     * @notice Update tapped amount for `_token.symbol(): string`
+     * @param _token The address of the token whose tapped amount is to be updated
+    */
+    function updateTappedAmount(address _token) external {
+        tap.updateTappedAmount(_token);
+    }
+
+    /**
      * @notice Transfer about `@tokenAmount(_token, self.getMaximumWithdrawal(_token): uint256)` from the reserve to the beneficiary
      * @param _token The address of the token to be transfered from the reserve to the beneficiary
     */
