@@ -59,9 +59,10 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
     uint256                      public maximumTapRateIncreasePct;
     uint256                      public maximumTapFloorDecreasePct;
 
+    mapping (address => uint256) public tappedAmounts;
     mapping (address => uint256) public rates;
     mapping (address => uint256) public floors;
-    mapping (address => uint256) public lastWithdrawals; // batch ids [block numbers]
+    mapping (address => uint256) public lastTappedAmountUpdates; // batch ids [block numbers]
     mapping (address => uint256) public lastTapUpdates;  // timestamps
 
     event UpdateController                (address indexed controller);
@@ -73,6 +74,7 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
     event RemoveTappedToken               (address indexed token);
     event UpdateTappedToken               (address indexed token, uint256 rate, uint256 floor);
     event ResetTappedToken                (address indexed token);
+    event UpdateTappedAmount              (address indexed token, uint256 tappedAmount);
     event Withdraw                        (address indexed token, uint256 amount);
 
 
@@ -191,12 +193,22 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
     }
 
     /**
+     * @notice Update tapped amount for `_token.symbol(): string`
+     * @param _token The address of the token whose tapped amount is to be updated
+    */
+    function updateTappedAmount(address _token) external {
+        require(_tokenIsTapped(_token), ERROR_TOKEN_NOT_TAPPED);
+
+        _updateTappedAmount(_token);
+    }
+
+    /**
      * @notice Transfer about `@tokenAmount(_token, self.getMaximalWithdrawal(_token): uint256)` from `self.reserve()` to `self.beneficiary()`
      * @param _token The address of the token to be transfered
     */
     function withdraw(address _token) external auth(WITHDRAW_ROLE) {
         require(_tokenIsTapped(_token), ERROR_TOKEN_NOT_TAPPED);
-        uint256 amount = _maximumWithdrawal(_token);
+        uint256 amount = _updateTappedAmount(_token);
         require(amount > 0, ERROR_WITHDRAWAL_AMOUNT_ZERO);
 
         _withdraw(_token, amount);
@@ -205,7 +217,7 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
     /***** public view functions *****/
 
     function getMaximumWithdrawal(address _token) public view isInitialized returns (uint256) {
-        return _maximumWithdrawal(_token);
+        return _tappedAmount(_token);
     }
 
     /***** internal functions *****/
@@ -216,22 +228,39 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
         return (block.number.div(batchBlocks)).mul(batchBlocks);
     }
 
-    function _maximumWithdrawal(address _token) internal view returns (uint256) {
-        uint256 toBeClaimed = controller.collateralsToBeClaimed(_token);
-        uint256 floor = floors[_token];
-        uint256 minimum = toBeClaimed.add(floor);
+    function _tappedAmount(address _token) internal view returns (uint256) {
+        uint256 toBeKept = controller.collateralsToBeClaimed(_token).add(floors[_token]);
         uint256 balance = _token == ETH ? address(reserve).balance : ERC20(_token).staticBalanceOf(reserve);
-        uint256 tapped = (_currentBatchId().sub(lastWithdrawals[_token])).mul(rates[_token]);
+        uint256 flow = (_currentBatchId().sub(lastTappedAmountUpdates[_token])).mul(rates[_token]);
+        uint256 tappedAmount = tappedAmounts[_token].add(flow);
+        /**
+         * whatever happens enough collateral should be
+         * kept in the reserve pool to guarantee that
+         * its balance is kept above the floor once
+         * all pending sell orders are claimed
+        */
 
-        if (minimum >= balance) {
+        /**
+         * the reserve's balance is already below the balance to be kept
+         * the tapped amount should be reset to zero
+        */
+        if (balance <= toBeKept) {
             return 0;
         }
 
-        if (balance >= tapped.add(minimum)) {
-            return tapped;
+        /**
+         * the reserve's balance minus the upcoming tap flow would be below the balance to be kept
+         * the flow should be reduced to balance - toBeKept
+        */
+        if (balance <= toBeKept.add(tappedAmount)) {
+            return balance.sub(toBeKept);
         }
 
-        return balance.sub(minimum);
+        /**
+         * the reserve's balance minus the upcoming flow is above the balance to be kept
+         * the flow can be added to the tapped amount
+        */
+        return tappedAmount;
     }
 
     /* check functions */
@@ -302,6 +331,16 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
 
     /* state modifying functions */
 
+    function _updateTappedAmount(address _token) internal returns (uint256) {
+        uint256 tappedAmount = _tappedAmount(_token);
+        lastTappedAmountUpdates[_token] = _currentBatchId();
+        tappedAmounts[_token] = tappedAmount;
+
+        emit UpdateTappedAmount(_token, tappedAmount);
+
+        return tappedAmount;
+    }
+
     function _updateBeneficiary(address _beneficiary) internal {
         beneficiary = _beneficiary;
 
@@ -334,16 +373,17 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
         */
         rates[_token] = _rate;
         floors[_token] = _floor;
-        lastWithdrawals[_token] = _currentBatchId();
+        lastTappedAmountUpdates[_token] = _currentBatchId();
         lastTapUpdates[_token] = getTimestamp();
 
         emit AddTappedToken(_token, _rate, _floor);
     }
 
     function _removeTappedToken(address _token) internal {
+        delete tappedAmounts[_token];
         delete rates[_token];
         delete floors[_token];
-        delete lastWithdrawals[_token];
+        delete lastTappedAmountUpdates[_token];
         delete lastTapUpdates[_token];
 
         emit RemoveTappedToken(_token);
@@ -357,7 +397,7 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
          * continuous in time [though a floor update can
          * still break this continuity]
         */
-        uint256 amount = _maximumWithdrawal(_token);
+        uint256 amount = _updateTappedAmount(_token);
         if (amount > 0) {
             _withdraw(_token, amount);
         }
@@ -370,14 +410,16 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
     }
 
     function _resetTappedToken(address _token) internal {
-        lastWithdrawals[_token] = _currentBatchId();
+        tappedAmounts[_token] = 0;
+        lastTappedAmountUpdates[_token] = _currentBatchId();
         lastTapUpdates[_token] = getTimestamp();
 
         emit ResetTappedToken(_token);
     }
 
     function _withdraw(address _token, uint256 _amount) internal {
-        lastWithdrawals[_token] = _currentBatchId();
+        tappedAmounts[_token] = tappedAmounts[_token].sub(_amount);
+        lastTappedAmountUpdates[_token] = _currentBatchId();
         reserve.transfer(_token, beneficiary, _amount); // vault contract's transfer method already reverts on error
 
         emit Withdraw(_token, _amount);
