@@ -330,7 +330,7 @@ contract FundraisingMultisigTemplate is EtherTokenConstant, BaseTemplate {
         (, Voting shareVoting) = _shareAppsCache();
         (,,,, Controller controller) = _fundraisingAppsCache();
 
-        // create and grant ADD_PROTECTED_TOKEN_ROLE to this template
+        // create and grant ADD_COLLATERAL_TOKEN_ROLE to this template
         _createPermissionForTemplate(acl, address(controller), controller.ADD_COLLATERAL_TOKEN_ROLE());
         // add DAI both as a protected collateral and a tapped token
         controller.addCollateralToken(
