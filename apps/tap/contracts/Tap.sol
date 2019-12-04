@@ -419,7 +419,6 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
 
     function _withdraw(address _token, uint256 _amount) internal {
         tappedAmounts[_token] = tappedAmounts[_token].sub(_amount);
-        lastTappedAmountUpdates[_token] = _currentBatchId();
         reserve.transfer(_token, beneficiary, _amount); // vault contract's transfer method already reverts on error
 
         emit Withdraw(_token, _amount);
