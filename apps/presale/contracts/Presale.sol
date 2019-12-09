@@ -53,7 +53,7 @@ contract Presale is EtherTokenConstant, IsContract, AragonApp {
     ERC20                                           public token;
     address                                         public reserve;
     address                                         public beneficiary;
-    ERC20                                           public contributionToken;
+    address                                         public contributionToken;
 
     uint256                                         public goal;
     uint64                                          public period;
@@ -132,7 +132,7 @@ contract Presale is EtherTokenConstant, IsContract, AragonApp {
         token = ERC20(_tokenManager.token());
         reserve = _reserve;
         beneficiary = _beneficiary;
-        contributionToken = ERC20(_contributionToken);
+        contributionToken = _contributionToken;
         goal = _goal;
         period = _period;
         exchangeRate = _exchangeRate;
@@ -151,6 +151,7 @@ contract Presale is EtherTokenConstant, IsContract, AragonApp {
     */
     function open() external auth(OPEN_ROLE) {
         require(state() == State.Pending, ERROR_INVALID_STATE);
+        require(openDate == 0,            ERROR_INVALID_STATE);
 
         _open();
     }
@@ -162,6 +163,7 @@ contract Presale is EtherTokenConstant, IsContract, AragonApp {
     */
     function contribute(address _contributor, uint256 _value) external payable nonReentrant auth(CONTRIBUTE_ROLE) {
         require(state() == State.Funding, ERROR_INVALID_STATE);
+        require(_value != 0,              ERROR_INVALID_CONTRIBUTE_VALUE);
 
         if (contributionToken == ETH) {
             require(msg.value == _value, ERROR_INVALID_CONTRIBUTE_VALUE);
@@ -261,8 +263,8 @@ contract Presale is EtherTokenConstant, IsContract, AragonApp {
 
         // (contributor) ~~~> contribution tokens ~~~> (presale)
         if (contributionToken != ETH) {
-            require(contributionToken.balanceOf(_contributor) >= value,                ERROR_INSUFFICIENT_BALANCE);
-            require(contributionToken.allowance(_contributor, address(this)) >= value, ERROR_INSUFFICIENT_ALLOWANCE);
+            require(ERC20(contributionToken).balanceOf(_contributor) >= value,                ERROR_INSUFFICIENT_BALANCE);
+            require(ERC20(contributionToken).allowance(_contributor, address(this)) >= value, ERROR_INSUFFICIENT_ALLOWANCE);
             _transfer(contributionToken, _contributor, address(this), value);
         }
         // (mint ✨) ~~~> project tokens ~~~> (contributor)
@@ -315,7 +317,8 @@ contract Presale is EtherTokenConstant, IsContract, AragonApp {
             _transfer(contributionToken, address(this), beneficiary, fundsForBeneficiary);
         }
         // (presale) ~~~> contribution tokens ~~~> (reserve)
-        uint256 tokensForReserve = contributionToken.balanceOf(address(this));
+        uint256 tokensForReserve = contributionToken == ETH ? address(this).balance : ERC20(contributionToken).balanceOf(address(this));
+
         _transfer(contributionToken, address(this), reserve, tokensForReserve);
         // (mint ✨) ~~~> project tokens ~~~> (beneficiary)
         uint256 tokensForBeneficiary = token.totalSupply().mul(PPM.sub(supplyOfferedPct)).div(supplyOfferedPct);
