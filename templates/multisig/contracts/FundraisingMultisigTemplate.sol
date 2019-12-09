@@ -1,7 +1,6 @@
 pragma solidity 0.4.24;
 
 import "@aragon/os/contracts/common/EtherTokenConstant.sol";
-import "@aragon/os/contracts/lib/token/ERC20.sol";
 import "@aragon/templates-shared/contracts/BaseTemplate.sol";
 import "@aragon/apps-agent/contracts/Agent.sol";
 import "@ablack/fundraising-bancor-formula/contracts/BancorFormula.sol";
@@ -68,11 +67,12 @@ contract FundraisingMultisigTemplate is EtherTokenConstant, BaseTemplate {
     {
         _ensureAragonIdIsValid(_aragonID);
         _ensureMiniMeFactoryIsValid(_miniMeFactory);
-        _ensureTokenIsContractOrETH(_dai);
-        _ensureTokenIsContractOrETH(_ant);
+        require(isContract(_dai), ERROR_BAD_SETTINGS);
+        require(isContract(_ant), ERROR_BAD_SETTINGS);
+        require(_dai != _ant,     ERROR_BAD_SETTINGS);
 
-        collaterals.push(address(_dai));
-        collaterals.push(address(_ant));
+        collaterals.push(_dai);
+        collaterals.push(_ant);
     }
 
     /***** external functions *****/
@@ -330,8 +330,8 @@ contract FundraisingMultisigTemplate is EtherTokenConstant, BaseTemplate {
         (, Voting shareVoting) = _shareAppsCache();
         (,,,, Controller controller) = _fundraisingAppsCache();
 
-        // create and grant ADD_PROTECTED_TOKEN_ROLE to this template
-        acl.createPermission(this, controller, controller.ADD_COLLATERAL_TOKEN_ROLE(), this);
+        // create and grant ADD_COLLATERAL_TOKEN_ROLE to this template
+        _createPermissionForTemplate(acl, address(controller), controller.ADD_COLLATERAL_TOKEN_ROLE());
         // add DAI both as a protected collateral and a tapped token
         controller.addCollateralToken(
             collaterals[0],
@@ -352,7 +352,7 @@ contract FundraisingMultisigTemplate is EtherTokenConstant, BaseTemplate {
             0,
             0
         );
-        // transfer ADD_PROTECTED_TOKEN_ROLE
+        // transfer ADD_COLLATERAL_TOKEN_ROLE
         _transferPermissionFromTemplate(acl, controller, shareVoting, controller.ADD_COLLATERAL_TOKEN_ROLE(), shareVoting);
     }
 
@@ -482,13 +482,13 @@ contract FundraisingMultisigTemplate is EtherTokenConstant, BaseTemplate {
         c.controller = address(_controller);
     }
 
-    function _daoCache() internal returns (Kernel dao) {
+    function _daoCache() internal view returns (Kernel dao) {
         Cache storage c = cache[msg.sender];
 
         dao = Kernel(c.dao);
     }
 
-    function _boardAppsCache() internal returns (TokenManager boardTM, Voting boardVoting, Vault vault, Finance finance) {
+    function _boardAppsCache() internal view returns (TokenManager boardTM, Voting boardVoting, Vault vault, Finance finance) {
         Cache storage c = cache[msg.sender];
 
         boardTM = TokenManager(c.boardTokenManager);
@@ -497,14 +497,21 @@ contract FundraisingMultisigTemplate is EtherTokenConstant, BaseTemplate {
         finance = Finance(c.finance);
     }
 
-    function _shareAppsCache() internal returns (TokenManager shareTM, Voting shareVoting) {
+    function _shareAppsCache() internal view returns (TokenManager shareTM, Voting shareVoting) {
         Cache storage c = cache[msg.sender];
 
         shareTM = TokenManager(c.shareTokenManager);
         shareVoting = Voting(c.shareVoting);
     }
 
-    function _fundraisingAppsCache() internal returns (Agent reserve, Presale presale, MarketMaker marketMaker, Tap tap, Controller controller) {
+    function _fundraisingAppsCache() internal view returns (
+        Agent reserve,
+        Presale presale,
+        MarketMaker marketMaker,
+        Tap tap,
+        Controller controller
+    )
+    {
         Cache storage c = cache[msg.sender];
 
         reserve = Agent(c.reserve);
@@ -538,31 +545,31 @@ contract FundraisingMultisigTemplate is EtherTokenConstant, BaseTemplate {
      * because of a `stack too deep` error]
     */
 
-    function _vaultCache() internal returns (Vault vault) {
+    function _vaultCache() internal view returns (Vault vault) {
         Cache storage c = cache[msg.sender];
 
         vault = Vault(c.vault);
     }
 
-    function _shareTMCache() internal returns (TokenManager shareTM) {
+    function _shareTMCache() internal view returns (TokenManager shareTM) {
         Cache storage c = cache[msg.sender];
 
         shareTM = TokenManager(c.shareTokenManager);
     }
 
-    function _reserveCache() internal returns (Agent reserve) {
+    function _reserveCache() internal view returns (Agent reserve) {
         Cache storage c = cache[msg.sender];
 
         reserve = Agent(c.reserve);
     }
 
-    function _presaleCache() internal returns (Presale presale) {
+    function _presaleCache() internal view returns (Presale presale) {
         Cache storage c = cache[msg.sender];
 
         presale = Presale(c.presale);
     }
 
-    function _controllerCache() internal returns (Controller controller) {
+    function _controllerCache() internal view returns (Controller controller) {
         Cache storage c = cache[msg.sender];
 
         controller = Controller(c.controller);
@@ -570,11 +577,7 @@ contract FundraisingMultisigTemplate is EtherTokenConstant, BaseTemplate {
 
     /***** internal check functions *****/
 
-     function _ensureTokenIsContractOrETH(address _token) internal view returns (bool) {
-        require(isContract(_token) || _token == ETH, ERROR_BAD_SETTINGS);
-    }
-
-    function _ensureBoardAppsCache() internal {
+    function _ensureBoardAppsCache() internal view {
         Cache storage c = cache[msg.sender];
         require(
             c.boardTokenManager != address(0) &&
@@ -585,7 +588,7 @@ contract FundraisingMultisigTemplate is EtherTokenConstant, BaseTemplate {
         );
     }
 
-    function _ensureShareAppsCache() internal {
+    function _ensureShareAppsCache() internal view {
         Cache storage c = cache[msg.sender];
         require(
             c.shareTokenManager != address(0) &&
@@ -594,7 +597,7 @@ contract FundraisingMultisigTemplate is EtherTokenConstant, BaseTemplate {
         );
     }
 
-    function _ensureFundraisingAppsCache() internal {
+    function _ensureFundraisingAppsCache() internal view {
         Cache storage c = cache[msg.sender];
         require(
             c.reserve != address(0) &&
