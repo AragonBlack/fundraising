@@ -337,6 +337,7 @@ const handleCollateralToken = async (state, { collateral, reserveRatio, slippage
     loadCollateralsToBeClaimed(collateral, settings),
   ])
   collaterals.set(collateral, {
+    ...collaterals.get(collateral),
     symbol,
     name,
     decimals: parseInt(decimals, 10),
