@@ -125,7 +125,7 @@ export default () => {
                 )}
               </Box>
               {myContributions && (
-                <Box heading="My Contribution Info">
+                <Box heading="My Contributions Info">
                   <div
                     css={`
                       display: flex;
@@ -168,9 +168,9 @@ export default () => {
                 title="Fundraising Timeline"
                 steps={[
                   ['Presale opens', openDate, 'Contributors can buy presale shares'],
-                  ['Presale ends', openDate === 0 ? 0 : endDate, 'Trading can be opened'],
-                  ['Cliff period ends', openDate === 0 ? 0 : vestingCliffDate, 'Your shares will start being unvested'],
-                  ['Vesting period ends', openDate === 0 ? 0 : vestingCompleteDate, 'All your shares will be invested'],
+                  ['Presale ends', openDate === 0 ? 0 : endDate, 'Contributors can ask for refund if presale has failed'],
+                  ['Cliff period ends', openDate === 0 ? 0 : vestingCliffDate, 'Presale shares start being unvested'],
+                  ['Vesting period ends', openDate === 0 ? 0 : vestingCompleteDate, 'Presale shares are totally unvested'],
                 ]}
               />
               <DataView
