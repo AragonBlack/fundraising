@@ -71,8 +71,11 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
     }
 
     struct MetaBatch {
-        bool    initialized;
-        uint256 realSupply;
+        bool           initialized;
+        uint256        realSupply;
+        uint256        buyFeePct;
+        uint256        sellFeePct;
+        IBancorFormula formula;
         mapping(address => Batch) batches;
     }
 
@@ -82,6 +85,7 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
         uint256 supply;
         uint256 balance;
         uint32  reserveRatio;
+        uint256 slippage;
         uint256 totalBuySpend;
         uint256 totalBuyReturn;
         uint256 totalSellSpend;
@@ -110,8 +114,15 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
     event UpdateBeneficiary      (address indexed beneficiary);
     event UpdateFormula          (address indexed formula);
     event UpdateFees             (uint256 buyFeePct, uint256 sellFeePct);
-    event NewMetaBatch           (uint256 indexed id, uint256 supply);
-    event NewBatch               (uint256 indexed id, address indexed collateral, uint256 supply, uint256 balance, uint32 reserveRatio);
+    event NewMetaBatch           (uint256 indexed id, uint256 supply, uint256 buyFeePct, uint256 sellFeePct, address formula);
+    event NewBatch               (
+        uint256 indexed id,
+        address indexed collateral,
+        uint256 supply,
+        uint256 balance,
+        uint32  reserveRatio,
+        uint256 slippage)
+    ;
     event CancelBatch            (uint256 indexed id, address indexed collateral);
     event AddCollateralToken     (
         address indexed collateral,
@@ -157,7 +168,6 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
      * @param _batchBlocks  The number of blocks batches are to last
      * @param _buyFeePct    The fee to be deducted from buy orders [in PCT_BASE]
      * @param _sellFeePct   The fee to be deducted from sell orders [in PCT_BASE]
-
     */
     function initialize(
         IAragonFundraisingController _controller,
@@ -387,7 +397,7 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
 
     function getBatch(uint256 _batchId, address _collateral)
         public view isInitialized
-        returns (bool, bool, uint256, uint256, uint32, uint256, uint256, uint256, uint256)
+        returns (bool, bool, uint256, uint256, uint32, uint256, uint256, uint256, uint256, uint256)
     {
         Batch storage batch = metaBatches[_batchId].batches[_collateral];
 
@@ -397,6 +407,7 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
             batch.supply,
             batch.balance,
             batch.reserveRatio,
+            batch.slippage,
             batch.totalBuySpend,
             batch.totalBuyReturn,
             batch.totalSellSpend,
@@ -486,7 +497,7 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
 
     function _slippageIsValid(Batch storage _batch, address _collateral) internal view returns (bool) {
         uint256 staticPricePPM = _staticPricePPM(_batch.supply, _batch.balance, _batch.reserveRatio);
-        uint256 maximumSlippage = collaterals[_collateral].slippage;
+        uint256 maximumSlippage = _batch.slippage;
 
         // if static price is zero let's consider that every slippage is valid
         if (staticPricePPM == 0) {
@@ -581,9 +592,12 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
              * as such totalSupply(metaBatch) + tokenToBeMinted(metaBatch) will always equal totalSupply(metaBatchInitialization) + tokenToBeMinted(metaBatchInitialization)
             */
             metaBatch.realSupply = token.totalSupply().add(tokensToBeMinted);
+            metaBatch.buyFeePct = buyFeePct;
+            metaBatch.sellFeePct = sellFeePct;
+            metaBatch.formula = formula;
             metaBatch.initialized = true;
 
-            emit NewMetaBatch(batchId, metaBatch.realSupply);
+            emit NewMetaBatch(batchId, metaBatch.realSupply, metaBatch.buyFeePct, metaBatch.sellFeePct, metaBatch.formula);
         }
 
         if (!batch.initialized) {
@@ -608,9 +622,10 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
             batch.supply = metaBatch.realSupply.add(collaterals[_collateral].virtualSupply);
             batch.balance = controller.balanceOf(address(reserve), _collateral).add(collaterals[_collateral].virtualBalance).sub(collateralsToBeClaimed[_collateral]);
             batch.reserveRatio = collaterals[_collateral].reserveRatio;
+            batch.slippage = collaterals[_collateral].slippage;
             batch.initialized = true;
 
-            emit NewBatch(batchId, _collateral, batch.supply, batch.balance, batch.reserveRatio);
+            emit NewBatch(batchId, _collateral, batch.supply, batch.balance, batch.reserveRatio, batch.slippage);
         }
 
         return (batchId, batch);
@@ -703,7 +718,7 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
         (uint256 batchId, Batch storage batch) = _currentBatch(_collateral);
 
         // deduct fee
-        uint256 fee = _value.mul(buyFeePct).div(PCT_BASE);
+        uint256 fee = _value.mul(metaBatches[batchId].buyFeePct).div(PCT_BASE);
         uint256 value = _value.sub(fee);
 
         // collect fee and collateral
@@ -778,7 +793,7 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
     function _claimSellOrder(address _seller, uint256 _batchId, address _collateral) internal {
         Batch storage batch = metaBatches[_batchId].batches[_collateral];
         uint256 saleReturn = (batch.sellers[_seller].mul(batch.totalSellReturn)).div(batch.totalSellSpend);
-        uint256 fee = saleReturn.mul(sellFeePct).div(PCT_BASE);
+        uint256 fee = saleReturn.mul(metaBatches[_batchId].sellFeePct).div(PCT_BASE);
         uint256 value = saleReturn.sub(fee);
 
         batch.sellers[_seller] = 0;
@@ -861,7 +876,7 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
             // the amount of collateral generated by selling tokens left over to be sold
             // along the bonding curve in the batch initial state [as if the buy orders
             // never existed and the sell order was just smaller than originally thought]
-            uint256 remainingSellReturn = formula.calculateSaleReturn(batch.supply, batch.balance, batch.reserveRatio, remainingSell);
+            uint256 remainingSellReturn = metaBatches[_batchId].formula.calculateSaleReturn(batch.supply, batch.balance, batch.reserveRatio, remainingSell);
             // the total result of all sells is the original amount of buys which were matched
             // plus the remaining sells which were executed along the bonding curve
             batch.totalSellReturn = batch.totalBuySpend.add(remainingSellReturn);
@@ -882,7 +897,7 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
             // the amount of tokens generated by selling collaterals left over to be spent
             // along the bonding curve in the batch initial state [as if the sell orders
             // never existed and the buy order was just smaller than originally thought]
-            uint256 remainingBuyReturn = formula.calculatePurchaseReturn(batch.supply, batch.balance, batch.reserveRatio, remainingBuy);
+            uint256 remainingBuyReturn = metaBatches[_batchId].formula.calculatePurchaseReturn(batch.supply, batch.balance, batch.reserveRatio, remainingBuy);
             // the total result of all buys is the original amount of buys which were matched
             // plus the remaining buys which were executed along the bonding curve
             batch.totalBuyReturn = batch.totalSellSpend.add(remainingBuyReturn);

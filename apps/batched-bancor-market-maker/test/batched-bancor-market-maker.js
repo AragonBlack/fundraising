@@ -178,16 +178,25 @@ contract('BatchedBancorMarketMaker app', accounts => {
   }
 
   const getBatch = async (batchNumber, collateralToken) => {
-    let [initialized, cancelled, supply, balance, reserveRatio, totalBuySpend, totalBuyReturn, totalSellSpend, totalSellReturn] = await marketMaker.getBatch(
-      batchNumber,
-      collateralToken
-    )
+    let [
+      initialized,
+      cancelled,
+      supply,
+      balance,
+      reserveRatio,
+      slippage,
+      totalBuySpend,
+      totalBuyReturn,
+      totalSellSpend,
+      totalSellReturn,
+    ] = await marketMaker.getBatch(batchNumber, collateralToken)
     return {
       initialized,
       cancelled,
       supply,
       balance,
       reserveRatio,
+      slippage,
       totalBuySpend,
       totalBuyReturn,
       totalSellSpend,
@@ -849,6 +858,9 @@ contract('BatchedBancorMarketMaker app', accounts => {
                         // let's check the new meta-batch is properly initialized
                         assert.isAbove(metaBatch2.id.toNumber(), metaBatch1.id.toNumber())
                         assert.equal(metaBatch2.supply.toNumber(), supply.toNumber())
+                        assert.equal(metaBatch2.buyFeePct.toNumber(), BUY_FEE_PERCENT)
+                        assert.equal(metaBatch2.sellFeePct.toNumber(), SELL_FEE_PERCENT)
+                        assert.equal(metaBatch2.formula, formula.address)
                       })
 
                       it('it should initialize new batch [if needed]', async () => {
@@ -874,6 +886,7 @@ contract('BatchedBancorMarketMaker app', accounts => {
                         assert.equal(batch2.supply.toNumber(), VIRTUAL_SUPPLIES[index].add(supply).toNumber())
                         assert.equal(batch2.balance.toNumber(), VIRTUAL_BALANCES[index].add(amountAfterFee).toNumber())
                         assert.equal(batch2.reserveRatio.toNumber(), RESERVE_RATIOS[index])
+                        assert.equal(batch2.slippage.toNumber(), MAXIMUM_SLIPPAGE)
                       })
 
                       it('it should register buy order', async () => {
