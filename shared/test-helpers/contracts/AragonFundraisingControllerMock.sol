@@ -11,6 +11,7 @@ contract AragonFundraisingControllerMock is IAragonFundraisingController, Aragon
 
     event OpenTrading();
     event ResetTokenTap();
+    event UpdateTappedAmount();
 
     function initialize() external onlyInit {
         initialized();
@@ -22,6 +23,10 @@ contract AragonFundraisingControllerMock is IAragonFundraisingController, Aragon
 
     function resetTokenTap(address _token) external {
         emit ResetTokenTap();
+    }
+
+    function updateTappedAmount(address _token) external {
+        emit UpdateTappedAmount();
     }
 
     function collateralsToBeClaimed(address _collateral) public view returns (uint256) {

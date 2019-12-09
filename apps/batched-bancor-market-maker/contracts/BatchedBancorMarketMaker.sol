@@ -619,6 +619,7 @@ contract BatchedBancorMarketMaker is EtherTokenConstant, IsContract, AragonApp {
              * 3. virtualBalance can technically be updated during a batch: the on-going batch will still use
              * its value at the time of initialization [it's up to the updater to act wisely]
             */
+            controller.updateTappedAmount(_collateral);
             batch.supply = metaBatch.realSupply.add(collaterals[_collateral].virtualSupply);
             batch.balance = controller.balanceOf(address(reserve), _collateral).add(collaterals[_collateral].virtualBalance).sub(collateralsToBeClaimed[_collateral]);
             batch.reserveRatio = collaterals[_collateral].reserveRatio;

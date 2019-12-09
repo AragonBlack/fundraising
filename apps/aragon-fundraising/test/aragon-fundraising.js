@@ -601,6 +601,20 @@ contract('AragonFundraisingController app', ([root, authorized, unauthorized]) =
   })
   // #endregion
 
+  // #region updateTappedAmount
+  context('> #updateTappedAmount', () => {
+    beforeEach(async () => {
+      await timeTravel(2592001) // 1 month = 2592000 seconds
+    })
+
+    it('it should update tapped amount', async () => {
+      const receipt = await this.controller.updateTappedAmount(this.collaterals.dai.address)
+
+      assertExternalEvent(receipt, 'UpdateTappedAmount(address,uint256)')
+    })
+  })
+  // #endregion
+
   // #region withdraw
   context('> #withdraw', () => {
     beforeEach(async () => {
