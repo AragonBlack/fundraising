@@ -9,6 +9,8 @@ import CollateralError from './screens/CollateralError'
 import { Presale, Polling } from './constants'
 import PresaleAbi from './abi/Presale.json'
 
+import './assets/global.css'
+
 const App = () => {
   // *****************************
   // background script state

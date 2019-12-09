@@ -1,147 +1,109 @@
-import { differenceInDays, format, startOfMinute, startOfMonth, startOfWeek } from 'date-fns'
+import getMinutes from 'date-fns/getMinutes'
+import getHours from 'date-fns/getHours'
+import getTime from 'date-fns/getTime'
+import set from 'date-fns/set'
+import setDay from 'date-fns/setDay'
+import groupBy from 'lodash/groupBy'
+import minBy from 'lodash.minBy'
+import maxBy from 'lodash.maxBy'
 
-// TODO: filter DAI orders
-
-const roundTimeHalfAnHour = time => {
-  const timeToReturn = new Date(time)
-  timeToReturn.setMilliseconds(Math.round(time.getMilliseconds() / 1000) * 1000)
-  timeToReturn.setSeconds(Math.round(timeToReturn.getSeconds() / 60) * 60)
-  timeToReturn.setMinutes(Math.round(timeToReturn.getMinutes() / 30) * 30)
-  return timeToReturn
+/**
+ * Returns the nearest and lower quarter hour of a given timestamp
+ * @param {Number} timestamp - a date in a timestamp format
+ * @returns {Number} a timestamp of the nearest and lower quarter hour
+ */
+const getQuarterHour = timestamp => {
+  const minutes = getMinutes(timestamp)
+  const quarter = Math.floor(minutes / 15) * 15
+  return getTime(set(timestamp, { minutes: quarter, seconds: 0, milliseconds: 0 }))
 }
 
-const roundTime6Hours = time => {
-  const timeToReturn = new Date(time)
-  timeToReturn.setMilliseconds(Math.round(time.getMilliseconds() / 1000) * 1000)
-  timeToReturn.setSeconds(Math.round(timeToReturn.getSeconds() / 60) * 60)
-  timeToReturn.setMinutes(Math.round(timeToReturn.getMinutes() / 60) * 60)
-  timeToReturn.setHours(Math.round(timeToReturn.getHours() / 6) * 6)
-  return timeToReturn
+/**
+ * Returns the floored hour of a given timestamp
+ * @param {Number} timestamp - a date in a timestamp format
+ * @returns {Number} a timestamp of the floored hour
+ */
+const getHour = timestamp => getTime(set(timestamp, { minutes: 0, seconds: 0, milliseconds: 0 }))
+
+/**
+ * Returns the nearest and lower 4 hours range of a given timestamp
+ * @param {Number} timestamp - a date in a timestamp format
+ * @returns {Number} a timestamp of the nearest and lower 4 hours range
+ */
+const get4Hour = timestamp => {
+  const hours = getHours(timestamp)
+  const fourHour = Math.floor(hours / 4) * 4
+  return getTime(set(timestamp, { hours: fourHour, minutes: 0, seconds: 0, milliseconds: 0 }))
 }
 
-const roundTime12Hours = time => {
-  const timeToReturn = new Date(time)
-  timeToReturn.setMilliseconds(Math.round(time.getMilliseconds() / 1000) * 1000)
-  timeToReturn.setSeconds(Math.round(timeToReturn.getSeconds() / 60) * 60)
-  timeToReturn.setMinutes(Math.round(timeToReturn.getMinutes() / 60) * 60)
-  timeToReturn.setHours(Math.round(timeToReturn.getHours() / 12) * 12)
-  return timeToReturn
+/**
+ * Returns the floored day of a given timestamp
+ * @param {Number} timestamp - a date in a timestamp format
+ * @returns {Number} a timestamp of the floored day
+ */
+const getDay = timestamp => getTime(set(timestamp, { hours: 0, minutes: 0, seconds: 0, milliseconds: 0 }))
+
+/**
+ * Returns the floored week of a given timestamp
+ * @param {Number} timestamp - a date in a timestamp format
+ * @returns {Number} a timestamp of the floored week
+ */
+const getWeek = timestamp => getTime(set(setDay(timestamp, 1, { weekStartsOn: 1 }), { hours: 0, minutes: 0, seconds: 0, milliseconds: 0 }))
+
+/**
+ * Returns the floored month of a given timestamp
+ * @param {Number} timestamp - a date in a timestamp format
+ * @returns {Number} a timestamp of the floored month
+ */
+const getMonth = timestamp => getTime(set(timestamp, { date: 1, hours: 0, minutes: 0, seconds: 0, milliseconds: 0 }))
+
+/**
+ * Returns the floored year of a given timestamp
+ * @param {Number} timestamp - a date in a timestamp format
+ * @returns {Number} a timestamp of the floored year
+ */
+const getYear = timestamp => getTime(set(timestamp, { month: 0, date: 1, hours: 0, minutes: 0, seconds: 0, milliseconds: 0 }))
+
+/**
+ * Get the OCHL (open, close, high, low) prices from an array of orders
+ * @param {Array<Object>} orders - background script orders
+ * @returns {Object} an object with the computed open, close, high, low prices
+ */
+const getOCHL = orders => {
+  if (orders.length === 1) {
+    const price = parseFloat(orders[0].price.toFixed(2, 1))
+    return { open: price, close: price, high: price, low: price }
+  } else {
+    const open = parseFloat(minBy(orders, o => o.timestamp).price.toFixed(2, 1))
+    const close = parseFloat(maxBy(orders, o => o.timestamp).price.toFixed(2, 1))
+    const high = parseFloat(maxBy(orders, o => o.price.toFixed()).price.toFixed(2, 1))
+    const low = parseFloat(minBy(orders, o => o.price.toFixed()).price.toFixed(2, 1))
+    return { open, close, high, low }
+  }
 }
 
-const getFilteredData = (data, timestampFilter) => {
-  const cache = {}
-  data.forEach(item => {
-    const timestamp = timestampFilter(item.timestamp).getTime()
-    const current = cache[timestamp]
-    let avg, iteration
-    if (current) {
-      avg = item.startPrice.plus(current.avg.times(current.iteration)).div(current.iteration + 1)
-      iteration = current.iteration + 1
-    } else {
-      avg = item.startPrice
-      iteration = 1
-    }
-    cache[timestamp] = {
-      avg,
-      iteration,
-    }
+/**
+ * Compute OCHL prices for the given orders, according to the timerange function
+ * This timerange function is picked by index, this index coming from the PriceSticks chart
+ * @param {Array<Object>} orders - background script orders
+ * @param {Number} functionIndex - index of the timerange fuction to pick
+ * @returns {Object} an object containing the arrays of OHCL values computed with the given timerange function
+ */
+export const computeOCHL = (orders, functionIndex) => {
+  const functionToCall = [getQuarterHour, getHour, get4Hour, getDay, getWeek, getMonth, getYear][functionIndex]
+  const range = groupBy(orders, o => functionToCall(o.timestamp))
+  const x = []
+  const open = []
+  const close = []
+  const high = []
+  const low = []
+  Object.keys(range).forEach(i => {
+    x.push(parseInt(i, 10))
+    const ohcl = getOCHL(range[i])
+    open.push(ohcl.open)
+    close.push(ohcl.close)
+    high.push(ohcl.high)
+    low.push(ohcl.low)
   })
-  return cache
-}
-
-export const filter = (batches, period, interval) => {
-  if (!batches) return []
-  if (period === 0) {
-    const cache = getFilteredData(batches, startOfMinute)
-
-    return Object.keys(cache)
-      .slice(-60)
-      .map(key => ({
-        price: cache[key].avg.toFixed(2),
-        date: format(Number(key), 'HH:mm'),
-      }))
-  }
-
-  if (period === 1) {
-    const cache = getFilteredData(batches, timestamp => roundTimeHalfAnHour(new Date(timestamp)))
-
-    return Object.keys(cache)
-      .slice(-48)
-      .map(key => ({
-        price: cache[key].avg.toFixed(2),
-        date: format(Number(key), 'MMM dd HH:mm'),
-      }))
-  }
-
-  if (period === 2) {
-    const cache = getFilteredData(batches, timestamp => roundTime12Hours(new Date(timestamp)))
-
-    return Object.keys(cache)
-      .slice(-60)
-      .map(key => ({
-        price: cache[key].avg.toFixed(2),
-        date: format(Number(key), 'MMM dd HH:mm'),
-      }))
-  }
-
-  if (period === 3) {
-    const cache = getFilteredData(batches, startOfWeek)
-
-    return Object.keys(cache)
-      .slice(-56)
-      .map(key => ({
-        price: cache[key].avg.toFixed(2),
-        date: format(Number(key), 'y MMM dd'),
-      }))
-  }
-
-  if (period === 4) {
-    const cache = getFilteredData(batches, startOfMonth)
-
-    return Object.keys(cache).map(key => ({
-      price: cache[key].avg.toFixed(2),
-      date: format(Number(key), 'y MMM dd'),
-    }))
-  }
-
-  if (period === 5) {
-    const difference = differenceInDays(interval.end, interval.start)
-    if (difference < 2) {
-      const cache = getFilteredData(batches, timestamp => roundTimeHalfAnHour(new Date(timestamp)))
-
-      return Object.keys(cache)
-        .filter(key => Number(key) > interval.start && Number(key) < interval.end)
-        .map(key => ({
-          price: cache[key].avg.toFixed(2),
-          date: format(Number(key), 'MMM dd HH:mm'),
-        }))
-    } else if (difference < 31) {
-      const cache = getFilteredData(batches, timestamp => roundTime6Hours(new Date(timestamp)))
-
-      return Object.keys(cache)
-        .filter(key => Number(key) > interval.start && Number(key) < interval.end)
-        .map(key => ({
-          price: cache[key].avg.toFixed(2),
-          date: format(Number(key), 'MMM dd HH:mm'),
-        }))
-    } else if (difference < 365) {
-      const cache = getFilteredData(batches, startOfWeek)
-
-      return Object.keys(cache)
-        .filter(key => Number(key) > interval.start && Number(key) < interval.end)
-        .map(key => ({
-          price: cache[key].avg.toFixed(2),
-          date: format(Number(key), 'y MMM dd'),
-        }))
-    } else {
-      const cache = getFilteredData(batches, startOfMonth)
-
-      return Object.keys(cache)
-        .filter(key => Number(key) > interval.start && Number(key) < interval.end)
-        .map(key => ({
-          price: cache[key].avg.toFixed(2),
-          date: format(Number(key), 'y MMM dd'),
-        }))
-    }
-  }
+  return { x, open, close, high, low }
 }

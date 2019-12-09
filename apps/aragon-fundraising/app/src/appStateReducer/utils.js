@@ -1,4 +1,4 @@
-import cloneDeep from 'lodash.clonedeep'
+import cloneDeep from 'lodash.cloneDeep'
 import BigNumber from 'bignumber.js'
 import { Order, Tokens } from '../constants'
 
