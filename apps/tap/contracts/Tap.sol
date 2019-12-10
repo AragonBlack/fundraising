@@ -65,8 +65,6 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
     mapping (address => uint256) public lastTappedAmountUpdates; // batch ids [block numbers]
     mapping (address => uint256) public lastTapUpdates;  // timestamps
 
-    event UpdateController                (address indexed controller);
-    event UpdateReserve                   (address indexed reserve);
     event UpdateBeneficiary               (address indexed beneficiary);
     event UpdateMaximumTapRateIncreasePct (uint256 maximumTapRateIncreasePct);
     event UpdateMaximumTapFloorDecreasePct(uint256 maximumTapFloorDecreasePct);
