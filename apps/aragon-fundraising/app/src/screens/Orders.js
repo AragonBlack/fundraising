@@ -4,7 +4,7 @@ import {
   ContextMenu,
   ContextMenuItem,
   DataView,
-  _DateRange as DateRange,
+  DateRangePicker,
   DropDown,
   SafeLink,
   shortenAddress,
@@ -17,12 +17,12 @@ import {
   IconUp,
   IconExternal,
   GU,
+  IdentityBadge,
 } from '@aragon/ui'
 import { useApi, useAppState, useConnectedAccount } from '@aragon/api-react'
 import { format, subYears, endOfToday } from 'date-fns'
 import { saveAs } from 'file-saver'
 import styled from 'styled-components'
-import LocalIdentityBadge from '../components/LocalIdentityBadge'
 import ToggleFiltersButton from '../components/ToggleFiltersButton'
 import OrderTypeTag from '../components/Orders/OrderTypeTag'
 import OrderState from '../components/Orders/OrderState'
@@ -296,7 +296,7 @@ export default ({ myOrders }) => {
               {layoutName !== 'large' && <ToggleFiltersButton onClick={() => setShowFilters(!showFilters)} active={showFilters} />}
               <div className={layoutName !== 'large' ? (showFilters ? 'filter-nav' : ' filter-nav hide') : 'filter-nav'}>
                 <div className="filter-item">
-                  <DateRange
+                  <DateRangePicker
                     startDate={new Date(dateFilter.payload.start)}
                     endDate={new Date(dateFilter.payload.end)}
                     onChange={data => setDateFilter({ ...dateFilter, payload: { start: data.start.getTime(), end: data.end.getTime() } })}
@@ -336,7 +336,7 @@ export default ({ myOrders }) => {
             // timestamp
             entry.push(<StyledText key="date">{format(data.timestamp, 'MM/dd/yyyy - HH:mm:ss', { awareOfUnicodeTokens: true })}</StyledText>)
             // user if not myOrders
-            if (!myOrders) entry.push(<LocalIdentityBadge key="address" entity={data.user} />)
+            if (!myOrders) entry.push(<IdentityBadge key="address" entity={data.user} />)
             // status
             entry.push(
               <div key="status" css="display: flex; align-items: center;">

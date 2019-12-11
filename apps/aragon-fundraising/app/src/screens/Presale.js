@@ -1,13 +1,27 @@
 import React, { useContext, useState } from 'react'
 import { useAppState, useApi, useConnectedAccount } from '@aragon/api-react'
 import styled from 'styled-components'
-import { Box, Button, Countdown, BREAKPOINTS, GU, Split, useLayout, DataView, Text, DropDown, shortenAddress, theme, unselectable } from '@aragon/ui'
+import {
+  Box,
+  Button,
+  Countdown,
+  BREAKPOINTS,
+  GU,
+  Split,
+  useLayout,
+  DataView,
+  Text,
+  DropDown,
+  shortenAddress,
+  theme,
+  unselectable,
+  IdentityBadge,
+} from '@aragon/ui'
 import BigNumber from 'bignumber.js'
 import addMilliseconds from 'date-fns/addMilliseconds'
 import { PresaleViewContext } from '../context'
 import PresaleGoal from '../components/PresaleGoal'
 import Timeline from '../components/Timeline'
-import LocalIdentityBadge from '../components/LocalIdentityBadge'
 import { Presale } from '../constants'
 import { formatBigNumber } from '../utils/bn-utils'
 
@@ -178,7 +192,7 @@ export default () => {
                 entries={contributionList}
                 renderEntry={({ account, contributions, shares }) => {
                   return [
-                    <LocalIdentityBadge key="account" entity={account} />,
+                    <IdentityBadge key="account" entity={account} />,
                     <Text key="contributions">{contributions}</Text>,
                     <Text key="shares">{shares}</Text>,
                   ]

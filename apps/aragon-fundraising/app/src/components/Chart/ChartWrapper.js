@@ -67,11 +67,13 @@ export default styled(Box)`
     fill-opacity: 0.7 !important;
   }
 
-  .xy {
-    & > rect {
-      display: none;
-      &.nsewdrag {
-        display: inline;
+  .draglayer {
+    .xy {
+      & > rect {
+        display: none;
+        &.nsewdrag {
+          display: inline;
+        }
       }
     }
   }

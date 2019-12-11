@@ -1,7 +1,7 @@
 import React from 'react'
 import { Box, GU, useTheme } from '@aragon/ui'
 
-function DefinitionsBox({ heading, definitions }) {
+const DefinitionsBox = ({ heading, definitions }) => {
   const theme = useTheme()
   return (
     <Box heading={heading}>
