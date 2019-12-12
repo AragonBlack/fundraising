@@ -22,7 +22,6 @@ export default ({ activeChart, setActiveChart }) => {
   const timestamps = orders.map(o => o.timestamp)
   const firstOrder = Math.min(...timestamps)
   const lastOrder = Math.max(...timestamps)
-  const range = [firstOrder, lastOrder]
 
   // *****************************
   // internal state
@@ -35,17 +34,27 @@ export default ({ activeChart, setActiveChart }) => {
   // *****************************
   // effects
   // *****************************
-  // relayout when the activeItem filter is changed
-  useEffect(() => {
+  const relayout = () => {
     if (plot?.current?.el) {
+      const MIN = 1000 * 60
+      const HOUR = MIN * 60
+      const DAY = HOUR * 24
+      const WEEK = DAY * 7
+      const MONTH = DAY * 30
+      const YEAR = DAY * 365
       // only relayout if the chart is mounted (by updating the range)
       const functionToCall = [subHours, subDays, subWeeks, subMonths, subYears, x => firstOrder][activeItem]
       const start = functionToCall(lastOrder, 1)
-      const range = [start, lastOrder]
+      const offset = [HOUR / 20, DAY / 20, WEEK / 20, MONTH / 20, YEAR / 20, (lastOrder - start) / 20][activeItem]
+      const range = [start - offset, lastOrder + offset]
       try {
-        Plotly.relayout(plot.current.el, { 'xaxis.range': range })
+        Plotly.relayout(plot.current.el, { 'xaxis.range': range, 'xaxis.rangeslider': { range } })
       } catch {}
     }
+  }
+  // relayout when the activeItem filter is changed
+  useEffect(() => {
+    relayout()
   }, [activeItem])
 
   // computed trace
@@ -71,10 +80,11 @@ export default ({ activeChart, setActiveChart }) => {
         ref={plot}
         css={style}
         data={[trace]}
-        layout={layout(range)}
+        layout={layout}
         config={config}
         onHover={data => setTooltipData(data.points[0])}
         onUnhover={() => setTooltipData(null)}
+        onInitialized={() => relayout()}
       />
       {tooltipData && <Tooltip point={tooltipData} />}
     </>

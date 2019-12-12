@@ -1,6 +1,6 @@
 import { GU } from '@aragon/ui'
 
-export const layout = range => ({
+export const layout = {
   dragmode: 'zoom',
   margin: {
     r: 50,
@@ -11,14 +11,12 @@ export const layout = range => ({
   showlegend: false,
   xaxis: {
     autorange: true,
-    range,
-    rangeslider: { range },
     type: 'date',
   },
   yaxis: {
     autorange: true,
   },
-})
+}
 
 export const config = {
   displayModeBar: false,
