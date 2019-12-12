@@ -1,10 +1,9 @@
 import React, { useEffect, useState } from 'react'
-import { Box, Button, Field, GU, Help, Info, SidePanel, Split, TextInput, textStyle, TokenBadge, useLayout, useTheme } from '@aragon/ui'
+import { Box, Button, Field, GU, Help, Info, SidePanel, Split, TextInput, textStyle, TokenBadge, useLayout, useTheme, IdentityBadge } from '@aragon/ui'
 import { useApi, useAppState } from '@aragon/api-react'
 import { differenceInMonths } from 'date-fns'
 import EditIcon from '../assets/EditIcon.svg'
 import DefinitionsBox from '../components/DefinitionsBox'
-import LocalIdentityBadge from '../components/LocalIdentityBadge'
 import { formatBigNumber, fromMonthlyAllocation, toMonthlyAllocation, toDecimals, fromDecimals } from '../utils/bn-utils'
 import ValidationError from '../components/ValidationError'
 
@@ -250,7 +249,7 @@ export default () => {
                 label: 'Token',
                 content: <TokenBadge name={name} symbol={symbol} badgeOnly />,
               },
-              { label: 'Address', content: <LocalIdentityBadge entity={address} /> },
+              { label: 'Address', content: <IdentityBadge entity={address} /> },
             ]}
           />
         }

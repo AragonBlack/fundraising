@@ -58,6 +58,18 @@
       {
         "name": "realSupply",
         "type": "uint256"
+      },
+      {
+        "name": "buyFeePct",
+        "type": "uint256"
+      },
+      {
+        "name": "sellFeePct",
+        "type": "uint256"
+      },
+      {
+        "name": "formula",
+        "type": "address"
       }
     ],
     "payable": false,
@@ -614,6 +626,21 @@
         "indexed": false,
         "name": "supply",
         "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "name": "buyFeePct",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "name": "sellFeePct",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "name": "formula",
+        "type": "address"
       }
     ],
     "name": "NewMetaBatch",
@@ -646,6 +673,11 @@
         "indexed": false,
         "name": "reserveRatio",
         "type": "uint32"
+      },
+      {
+        "indexed": false,
+        "name": "slippage",
+        "type": "uint256"
       }
     ],
     "name": "NewBatch",
@@ -1393,6 +1425,10 @@
       {
         "name": "",
         "type": "uint32"
+      },
+      {
+        "name": "",
+        "type": "uint256"
       },
       {
         "name": "",

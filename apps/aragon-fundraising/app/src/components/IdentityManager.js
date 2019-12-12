@@ -8,7 +8,7 @@ const IdentityContext = React.createContext({
   resolve: () => Promise.reject(Error('Please set resolve using IdentityProvider')),
 })
 
-function useIdentity(address) {
+const useIdentity = address => {
   const [name, setName] = useState(null)
   const { resolve, updates$, showLocalIdentityModal } = useContext(IdentityContext)
 

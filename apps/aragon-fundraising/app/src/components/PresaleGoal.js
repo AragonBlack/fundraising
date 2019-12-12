@@ -1,6 +1,6 @@
 import React, { useContext } from 'react'
 import { useAppState, useApi, useConnectedAccount } from '@aragon/api-react'
-import { Box, Button, useTheme, GU, textStyle } from '@aragon/ui'
+import { Box, Button, useTheme, GU } from '@aragon/ui'
 import CircleGraph from '../components/CircleGraph'
 import { PresaleViewContext } from '../context'
 import { Presale } from '../constants'

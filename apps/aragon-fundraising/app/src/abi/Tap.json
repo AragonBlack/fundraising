@@ -104,6 +104,44 @@
   },
   {
     "constant": true,
+    "inputs": [
+      {
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "lastTappedAmountUpdates",
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [
+      {
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "tappedAmounts",
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": true,
     "inputs": [],
     "name": "ADD_TAPPED_TOKEN_ROLE",
     "outputs": [
@@ -167,25 +205,6 @@
     "constant": true,
     "inputs": [],
     "name": "getInitializationBlock",
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "payable": false,
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "constant": true,
-    "inputs": [
-      {
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "name": "lastWithdrawals",
     "outputs": [
       {
         "name": "",
@@ -495,30 +514,6 @@
     "inputs": [
       {
         "indexed": true,
-        "name": "controller",
-        "type": "address"
-      }
-    ],
-    "name": "UpdateController",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "name": "reserve",
-        "type": "address"
-      }
-    ],
-    "name": "UpdateReserve",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
         "name": "beneficiary",
         "type": "address"
       }
@@ -628,6 +623,23 @@
       },
       {
         "indexed": false,
+        "name": "tappedAmount",
+        "type": "uint256"
+      }
+    ],
+    "name": "UpdateTappedAmount",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "indexed": false,
         "name": "amount",
         "type": "uint256"
       }
@@ -713,34 +725,6 @@
       }
     ],
     "name": "initialize",
-    "outputs": [],
-    "payable": false,
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "constant": false,
-    "inputs": [
-      {
-        "name": "_controller",
-        "type": "address"
-      }
-    ],
-    "name": "updateController",
-    "outputs": [],
-    "payable": false,
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "constant": false,
-    "inputs": [
-      {
-        "name": "_reserve",
-        "type": "address"
-      }
-    ],
-    "name": "updateReserve",
     "outputs": [],
     "payable": false,
     "stateMutability": "nonpayable",
@@ -855,6 +839,20 @@
       }
     ],
     "name": "resetTappedToken",
+    "outputs": [],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "constant": false,
+    "inputs": [
+      {
+        "name": "_token",
+        "type": "address"
+      }
+    ],
+    "name": "updateTappedAmount",
     "outputs": [],
     "payable": false,
     "stateMutability": "nonpayable",
