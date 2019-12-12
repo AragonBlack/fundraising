@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { unstable_batchedUpdates as batchedUpdates } from 'react-dom'
-import { useApi, useAppState, useConnectedAccount } from '@aragon/api-react'
+import { useApi, useAppState, useConnectedAccount, useNetwork } from '@aragon/api-react'
 import { Header, Tabs, Button, useLayout, ContextMenu, ContextMenuItem } from '@aragon/ui'
 import BigNumber from 'bignumber.js'
 import { useInterval } from '../hooks/use-interval'
@@ -44,6 +44,7 @@ export default () => {
   // *****************************
   const { name: layoutName } = useLayout()
   const connectedUser = useConnectedAccount()
+  const { type: networkType } = useNetwork()
 
   // *****************************
   // internal state, also shared through context
@@ -166,7 +167,7 @@ export default () => {
             layoutName === 'small' ? (
               <ContextMenu>
                 <ContextMenuItem disabled={polledPrice === 0} onClick={() => setOrderPanel(true)}>
-                    New Order
+                  New Order
                 </ContextMenuItem>
                 <ContextMenuItem onClick={() => handleWithdraw()}>Withdraw</ContextMenuItem>
               </ContextMenu>
@@ -182,7 +183,7 @@ export default () => {
             )
           }
         />
-        <Disclaimer />
+        {networkType !== 'main' && <Disclaimer />}
         <Tabs selected={tabIndex} onChange={setTabindex} items={tabs} />
         {tabIndex === 0 && <Overview />}
         {tabIndex === 1 && <Orders />}
