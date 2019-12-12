@@ -21,13 +21,13 @@ npx aragon ipfs
 ```
 
 
-Then go to the `src` folder in the aragon client project and change the `environment.js` file to the following: https://gist.github.com/xseignard/e1952e53e62faa52b4f625344f5fba07
+Then go to the `src` folder in the aragon client project and change the `environment.js` file to the following: https://gist.github.com/osarrouy/507014c4d8a4a4dbcb7f55745d58054b
 
 Start a third terminal process and install all dependencies by running: `npm install`
 
 We now need to start the Aragon client by running:
 ```
-env REACT_APP_ASSET_BRIDGE=fundraising npm run start:local
+env ARAGON_APP_LOCATOR=fundraising npm run start:local
 ```
 
 Start a fourth terminal process and go to your fundraising project and do `npm install`. Then run the following commands after each other only once:
