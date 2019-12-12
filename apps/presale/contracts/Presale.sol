@@ -9,9 +9,10 @@ import "@aragon/os/contracts/lib/math/SafeMath64.sol";
 import "@aragon/os/contracts/lib/token/ERC20.sol";
 import "@aragon/apps-token-manager/contracts/TokenManager.sol";
 import "@ablack/fundraising-shared-interfaces/contracts/IAragonFundraisingController.sol";
+import "@ablack/fundraising-shared-interfaces/contracts/IPresale.sol";
 
 
-contract Presale is EtherTokenConstant, IsContract, AragonApp {
+contract Presale is EtherTokenConstant, IsContract, AragonApp, IPresale {
     using SafeERC20  for ERC20;
     using SafeMath   for uint256;
     using SafeMath64 for uint64;
@@ -48,27 +49,27 @@ contract Presale is EtherTokenConstant, IsContract, AragonApp {
         Closed       // presale has reached goal within period, has been closed and trading has been open
     }
 
-    IAragonFundraisingController                    public controller;
-    TokenManager                                    public tokenManager;
-    ERC20                                           public token;
-    address                                         public reserve;
-    address                                         public beneficiary;
-    address                                         public contributionToken;
+    IAragonFundraisingController                    public   controller;
+    TokenManager                                    public   tokenManager;
+    ERC20                                           public   token;
+    address                                         public   reserve;
+    address                                         public   beneficiary;
+    address                                         internal contributionToken;
 
-    uint256                                         public goal;
-    uint64                                          public period;
-    uint256                                         public exchangeRate;
-    uint64                                          public vestingCliffPeriod;
-    uint64                                          public vestingCompletePeriod;
-    uint256                                         public supplyOfferedPct;
-    uint256                                         public fundingForBeneficiaryPct;
-    uint64                                          public openDate;
+    uint256                                         public   goal;
+    uint64                                          public   period;
+    uint256                                         public   exchangeRate;
+    uint64                                          public   vestingCliffPeriod;
+    uint64                                          public   vestingCompletePeriod;
+    uint256                                         public   supplyOfferedPct;
+    uint256                                         public   fundingForBeneficiaryPct;
+    uint64                                          public   openDate;
 
-    bool                                            public isClosed;
-    uint64                                          public vestingCliffDate;
-    uint64                                          public vestingCompleteDate;
-    uint256                                         public totalRaised;
-    mapping(address => mapping(uint256 => uint256)) public contributions; // contributor => (vestedPurchaseId => tokensSpent)
+    bool                                            public   isClosed;
+    uint64                                          public   vestingCliffDate;
+    uint64                                          public   vestingCompleteDate;
+    uint256                                         public   totalRaised;
+    mapping(address => mapping(uint256 => uint256)) public   contributions; // contributor => (vestedPurchaseId => tokensSpent)
 
     event SetOpenDate (uint64 date);
     event Close       ();
@@ -192,6 +193,10 @@ contract Presale is EtherTokenConstant, IsContract, AragonApp {
         require(state() == State.GoalReached, ERROR_INVALID_STATE);
 
         _close();
+    }
+
+    function getContributionToken() external view returns (address) {
+        return contributionToken;
     }
 
     /***** public view functions *****/

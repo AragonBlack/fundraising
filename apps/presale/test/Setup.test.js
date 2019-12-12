@@ -67,7 +67,7 @@ contract('Presale, setup', ([anyone, appManager, someEOA]) => {
 
       it('Contribution token is deployed and set in the app', async () => {
         expect(web3.isAddress(this.contributionToken.address)).to.equal(true)
-        expect(await this.presale.contributionToken()).to.equal(this.contributionToken.address)
+        expect(await this.presale.getContributionToken()).to.equal(this.contributionToken.address)
       })
 
       it('TokenManager is deployed, set in the app, and controls the project token', async () => {

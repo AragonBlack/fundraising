@@ -8,8 +8,8 @@ import "@aragon/os/contracts/lib/math/SafeMath.sol";
 import "@aragon/os/contracts/lib/token/ERC20.sol";
 import "@aragon/apps-agent/contracts/Agent.sol";
 import "@ablack/fundraising-batched-bancor-market-maker/contracts/BatchedBancorMarketMaker.sol";
-import "@ablack/fundraising-presale/contracts/Presale.sol";
-import "@ablack/fundraising-tap/contracts/Tap.sol";
+import "@ablack/fundraising-shared-interfaces/contracts/IPresale.sol";
+import "@ablack/fundraising-shared-interfaces/contracts/ITap.sol";
 import "@ablack/fundraising-shared-interfaces/contracts/IAragonFundraisingController.sol";
 
 
@@ -56,10 +56,10 @@ contract AragonFundraisingController is EtherTokenConstant, IsContract, IAragonF
     string private constant ERROR_CONTRACT_IS_EOA = "FUNDRAISING_CONTRACT_IS_EOA";
     string private constant ERROR_INVALID_TOKENS  = "FUNDRAISING_INVALID_TOKENS";
 
-    Presale                  public presale;
+    IPresale                 public presale;
     BatchedBancorMarketMaker public marketMaker;
     Agent                    public reserve;
-    Tap                      public tap;
+    ITap                     public tap;
     address[]                public toReset;
 
 
@@ -74,10 +74,10 @@ contract AragonFundraisingController is EtherTokenConstant, IsContract, IAragonF
      * @param _toReset     The addresses of the tokens whose tap timestamps are to be reset [when presale is closed and trading is open]
     */
     function initialize(
-        Presale                  _presale,
+        IPresale                 _presale,
         BatchedBancorMarketMaker _marketMaker,
         Agent                    _reserve,
-        Tap                      _tap,
+        ITap                     _tap,
         address[]                _toReset
     )
         external
@@ -162,7 +162,7 @@ contract AragonFundraisingController is EtherTokenConstant, IsContract, IAragonF
     */
     function openTrading() external auth(OPEN_TRADING_ROLE) {
         for (uint256 i = 0; i < toReset.length; i++) {
-            if (tap.rates(toReset[i]) != uint256(0)) {
+            if (tap.getRates(toReset[i]) != uint256(0)) {
                 tap.resetTappedToken(toReset[i]);
             }
         }
@@ -354,7 +354,7 @@ contract AragonFundraisingController is EtherTokenConstant, IsContract, IAragonF
     }
 
     function contributionToken() public view isInitialized returns (address) {
-        return presale.contributionToken();
+        return presale.getContributionToken();
     }
 
     function getMaximumWithdrawal(address _token) public view isInitialized returns (uint256) {

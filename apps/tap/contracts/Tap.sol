@@ -9,9 +9,10 @@ import "@aragon/os/contracts/lib/math/SafeMath.sol";
 import "@aragon/os/contracts/lib/token/ERC20.sol";
 import "@aragon/apps-vault/contracts/Vault.sol";
 import "@ablack/fundraising-shared-interfaces/contracts/IAragonFundraisingController.sol";
+import "@ablack/fundraising-shared-interfaces/contracts/ITap.sol";
 
 
-contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
+contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp, ITap {
     using SafeERC20 for ERC20;
     using SafeMath  for uint256;
 
@@ -59,10 +60,10 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
     uint256                      public maximumTapRateIncreasePct;
     uint256                      public maximumTapFloorDecreasePct;
 
-    mapping (address => uint256) public tappedAmounts;
-    mapping (address => uint256) public rates;
-    mapping (address => uint256) public floors;
-    mapping (address => uint256) public lastTappedAmountUpdates; // batch ids [block numbers]
+    mapping (address => uint256) public   tappedAmounts;
+    mapping (address => uint256) internal rates;
+    mapping (address => uint256) public   floors;
+    mapping (address => uint256) public   lastTappedAmountUpdates; // batch ids [block numbers]
     mapping (address => uint256) public lastTapUpdates;  // timestamps
 
     event UpdateBeneficiary               (address indexed beneficiary);
@@ -210,6 +211,10 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
         require(amount > 0, ERROR_WITHDRAWAL_AMOUNT_ZERO);
 
         _withdraw(_token, amount);
+    }
+
+    function getRates(address _token) external view returns (uint256) {
+        return rates[_token];
     }
 
     /***** public view functions *****/

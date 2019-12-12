@@ -271,9 +271,9 @@ contract('Tap app', accounts => {
               assertEvent(receipt2, 'AddTappedToken')
               assertEvent(receipt3, 'AddTappedToken')
 
-              assert.equal(await tap.rates(ETH), 10)
-              assert.equal(await tap.rates(token1.address), 50)
-              assert.equal(await tap.rates(token2.address), 100)
+              assert.equal(await tap.getRates(ETH), 10)
+              assert.equal(await tap.getRates(token1.address), 50)
+              assert.equal(await tap.getRates(token2.address), 100)
 
               assert.equal(await tap.floors(ETH), 15)
               assert.equal(await tap.floors(token1.address), 25)
@@ -294,7 +294,7 @@ contract('Tap app', accounts => {
               const timestamp1 = getTimestamp(receipt1)
 
               assertEvent(receipt1, 'AddTappedToken')
-              assert.equal(await tap.rates(token1.address), 50)
+              assert.equal(await tap.getRates(token1.address), 50)
               assert.equal(await tap.floors(token1.address), 30)
               assert.equal(await tap.lastTappedAmountUpdates(token1.address), batchId1)
               assert.equal(await tap.lastTapUpdates(token1.address), timestamp1)
@@ -305,7 +305,7 @@ contract('Tap app', accounts => {
               const timestamp2 = getTimestamp(receipt2)
 
               assertEvent(receipt2, 'AddTappedToken')
-              assert.equal(await tap.rates(token1.address), 100)
+              assert.equal(await tap.getRates(token1.address), 100)
               assert.equal(await tap.floors(token1.address), 70)
               assert.equal(await tap.lastTappedAmountUpdates(token1.address), batchId2)
               assert.equal(await tap.lastTapUpdates(token1.address), timestamp2)
@@ -360,8 +360,8 @@ contract('Tap app', accounts => {
           assertEvent(receipt2, 'RemoveTappedToken')
           assert.equal(await tap.tappedAmounts(ETH), 0)
           assert.equal(await tap.tappedAmounts(token1.address), 0)
-          assert.equal(await tap.rates(ETH), 0)
-          assert.equal(await tap.rates(token1.address), 0)
+          assert.equal(await tap.getRates(ETH), 0)
+          assert.equal(await tap.getRates(token1.address), 0)
           assert.equal(await tap.floors(ETH), 0)
           assert.equal(await tap.floors(token1.address), 0)
           assert.equal(await tap.lastTappedAmountUpdates(ETH), 0)
@@ -430,8 +430,8 @@ contract('Tap app', accounts => {
                   assertEvent(receipt1, 'UpdateTappedToken')
                   assertEvent(receipt2, 'UpdateTappedToken')
 
-                  assert.equal(await tap.rates(ETH), 10)
-                  assert.equal(await tap.rates(token1.address), 5000)
+                  assert.equal(await tap.getRates(ETH), 10)
+                  assert.equal(await tap.getRates(token1.address), 5000)
 
                   assert.equal(await tap.floors(ETH), 10)
                   assert.equal(await tap.floors(token1.address), 7)
@@ -480,8 +480,8 @@ contract('Tap app', accounts => {
                     assertEvent(receipt1, 'UpdateTappedToken')
                     assertEvent(receipt2, 'UpdateTappedToken')
 
-                    assert.equal(await tap.rates(ETH), 10)
-                    assert.equal(await tap.rates(token1.address), 5000)
+                    assert.equal(await tap.getRates(ETH), 10)
+                    assert.equal(await tap.getRates(token1.address), 5000)
 
                     assert.equal(await tap.floors(ETH), 40)
                     assert.equal(await tap.floors(token1.address), 50)
@@ -544,8 +544,8 @@ contract('Tap app', accounts => {
                   assertEvent(receipt1, 'UpdateTappedToken')
                   assertEvent(receipt2, 'UpdateTappedToken')
 
-                  assert.equal(await tap.rates(ETH), 14)
-                  assert.equal(await tap.rates(token1.address), 7500)
+                  assert.equal(await tap.getRates(ETH), 14)
+                  assert.equal(await tap.getRates(token1.address), 7500)
 
                   assert.equal(await tap.floors(ETH), 5)
                   assert.equal(await tap.floors(token1.address), 5)
