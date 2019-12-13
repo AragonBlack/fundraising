@@ -1,6 +1,6 @@
 {
   "name": "@ablack/fundraising-shared-test-helpers",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "author": "Aragon Assocation <legal@aragon.org>",
   "contributors": [
     "Olivier Sarrouy <olivier@aragon.black>"
@@ -13,10 +13,9 @@
     "*.js"
   ],
   "dependencies": {
-    "@ablack/fundraising-shared-interfaces": "^0.1.0",
+    "@ablack/fundraising-shared-interfaces": "^1.0.0",
     "@aragon/os": "4.2.1",
     "@aragon/test-helpers": "^2.0.0",
     "js-sha3": "^0.8.0"
-  },
-  "devDependencies": {}
+  }
 }

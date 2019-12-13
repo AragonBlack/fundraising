@@ -1,6 +1,6 @@
 {
   "name": "@ablack/fundraising-presale",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "author": "Aragon Black <contact@aragon.black>",
   "contributors": [
     "Alejandro Santander <palebluedot@gmail.com>",
@@ -31,12 +31,12 @@
     "/test"
   ],
   "dependencies": {
-    "@ablack/fundraising-shared-interfaces": "^0.1.0",
+    "@ablack/fundraising-shared-interfaces": "^1.0.0",
     "@aragon/apps-token-manager": "^2.1.0",
     "@aragon/os": "4.2.1"
   },
   "devDependencies": {
-    "@ablack/fundraising-shared-test-helpers": "^0.1.0",
+    "@ablack/fundraising-shared-test-helpers": "^1.0.0",
     "@aragon/apps-shared-migrations": "^1.0.0",
     "@aragon/apps-shared-minime": "^1.0.0",
     "@aragon/apps-vault": "^4.1.0",

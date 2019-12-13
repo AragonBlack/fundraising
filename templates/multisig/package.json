@@ -1,6 +1,6 @@
 {
   "name": "@ablack/fundraising-templates-multisig",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "author": "Aragon Assocation <legal@aragon.org>",
   "contributors": [
     "Olivier Sarrouy <olivier@aragon.black>"
@@ -47,11 +47,11 @@
     "/test"
   ],
   "dependencies": {
-    "@ablack/fundraising-aragon-fundraising": "^0.1.0",
-    "@ablack/fundraising-bancor-formula": "^0.1.0",
-    "@ablack/fundraising-batched-bancor-market-maker": "^0.1.0",
-    "@ablack/fundraising-presale": "^0.1.0",
-    "@ablack/fundraising-tap": "^0.1.0",
+    "@ablack/fundraising-aragon-fundraising": "^1.0.0",
+    "@ablack/fundraising-bancor-formula": "^1.0.0",
+    "@ablack/fundraising-batched-bancor-market-maker": "^1.0.0",
+    "@ablack/fundraising-presale": "^1.0.0",
+    "@ablack/fundraising-tap": "^1.0.0",
     "@aragon/apps-agent": "^2.0.0-rc.1",
     "@aragon/apps-finance": "^3.0.0",
     "@aragon/apps-shared-minime": "^1.0.0",
@@ -63,8 +63,8 @@
     "@aragon/templates-shared": "1.0.0"
   },
   "devDependencies": {
-    "@ablack/fundraising-shared-interfaces": "^0.1.0",
-    "@ablack/fundraising-shared-test-helpers": "^0.1.0",
+    "@ablack/fundraising-shared-interfaces": "^1.0.0",
+    "@ablack/fundraising-shared-test-helpers": "^1.0.0",
     "@aragon/apps-payroll": "^1.0.0-rc.1",
     "@aragon/apps-survey": "^1.0.0",
     "@aragon/cli": "^6.2.5",

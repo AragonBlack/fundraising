@@ -1,6 +1,6 @@
 {
   "name": "@ablack/fundraising-bancor-formula",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "author": "Aragon Assocation <legal@aragon.org>",
   "contributors": [
     "Olivier Sarrouy <olivier@aragon.black>",
@@ -24,7 +24,6 @@
     "/build",
     "/contracts"
   ],
-  "dependencies": {},
   "devDependencies": {
     "@aragon/cli": "^6.2.5",
     "@aragon/os": "4.2.1",

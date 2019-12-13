@@ -1,6 +1,6 @@
 {
   "name": "@ablack/fundraising-aragon-fundraising",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "author": "Aragon Assocation <legal@aragon.org>",
   "contributors": [
     "Olivier Sarrouy <olivier@aragon.black>",
@@ -41,16 +41,16 @@
     "/test"
   ],
   "dependencies": {
-    "@ablack/fundraising-batched-bancor-market-maker": "^0.1.0",
-    "@ablack/fundraising-presale": "^0.1.0",
-    "@ablack/fundraising-shared-interfaces": "^0.1.0",
-    "@ablack/fundraising-tap": "^0.1.0",
+    "@ablack/fundraising-batched-bancor-market-maker": "^1.0.0",
+    "@ablack/fundraising-presale": "^1.0.0",
+    "@ablack/fundraising-shared-interfaces": "^1.0.0",
+    "@ablack/fundraising-tap": "^1.0.0",
     "@aragon/apps-agent": "^2.0.0-rc.1",
     "@aragon/os": "4.2.1"
   },
   "devDependencies": {
-    "@ablack/fundraising-bancor-formula": "^0.1.0",
-    "@ablack/fundraising-shared-test-helpers": "^0.1.0",
+    "@ablack/fundraising-bancor-formula": "^1.0.0",
+    "@ablack/fundraising-shared-test-helpers": "^1.0.0",
     "@aragon/apps-shared-migrations": "^1.0.0",
     "@aragon/apps-shared-minime": "^1.0.0",
     "@aragon/apps-token-manager": "^2.1.0",
