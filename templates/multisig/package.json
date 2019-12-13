@@ -42,6 +42,7 @@
     "/arapp.json",
     "/build",
     "/contracts",
+    "/lib",
     "/scripts",
     "/test"
   ],
