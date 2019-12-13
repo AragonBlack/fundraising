@@ -1,6 +1,6 @@
 {
   "name": "@ablack/fundraising-aragon-fundraising",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "author": "Aragon Assocation <legal@aragon.org>",
   "contributors": [
     "Olivier Sarrouy <olivier@aragon.black>",
@@ -35,6 +35,7 @@
   },
   "files": [
     "/abi",
+    "/app",
     "/arapp.json",
     "/build",
     "/contracts",
