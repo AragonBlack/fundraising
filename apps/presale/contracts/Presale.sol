@@ -8,10 +8,10 @@ import "@aragon/os/contracts/lib/math/SafeMath.sol";
 import "@aragon/os/contracts/lib/math/SafeMath64.sol";
 import "@aragon/os/contracts/lib/token/ERC20.sol";
 import "@aragon/apps-token-manager/contracts/TokenManager.sol";
+import "@ablack/fundraising-shared-interfaces/contracts/IPresale.sol";
 import "@ablack/fundraising-shared-interfaces/contracts/IAragonFundraisingController.sol";
 
-
-contract Presale is EtherTokenConstant, IsContract, AragonApp {
+contract Presale is IPresale, EtherTokenConstant, IsContract, AragonApp {
     using SafeERC20  for ERC20;
     using SafeMath   for uint256;
     using SafeMath64 for uint64;
@@ -202,6 +202,10 @@ contract Presale is EtherTokenConstant, IsContract, AragonApp {
     */
     function contributionToTokens(uint256 _value) public view isInitialized returns (uint256) {
         return _value.mul(exchangeRate).div(PPM);
+    }
+
+    function contributionToken() public view isInitialized returns (address) {
+        return contributionToken;
     }
 
     /**

@@ -8,10 +8,11 @@ import "@aragon/os/contracts/common/SafeERC20.sol";
 import "@aragon/os/contracts/lib/math/SafeMath.sol";
 import "@aragon/os/contracts/lib/token/ERC20.sol";
 import "@aragon/apps-vault/contracts/Vault.sol";
+import "@ablack/fundraising-shared-interfaces/contracts/ITap.sol";
 import "@ablack/fundraising-shared-interfaces/contracts/IAragonFundraisingController.sol";
 
 
-contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
+contract Tap is ITap, TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
     using SafeERC20 for ERC20;
     using SafeMath  for uint256;
 
@@ -216,6 +217,10 @@ contract Tap is TimeHelpers, EtherTokenConstant, IsContract, AragonApp {
 
     function getMaximumWithdrawal(address _token) public view isInitialized returns (uint256) {
         return _tappedAmount(_token);
+    }
+
+    function rates(address _token) public view isInitialized returns (uint256) {
+        return rates[_token];
     }
 
     /***** internal functions *****/
