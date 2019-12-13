@@ -21,6 +21,7 @@ export default ({ point }) => {
         top: ${top}px;
         left: ${left}px;
         pointer-events: none;
+        width: 200px;
       `}
     >
       {point.y ? (

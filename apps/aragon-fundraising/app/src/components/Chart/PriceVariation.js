@@ -19,7 +19,18 @@ export default ({ activeChart, setActiveChart }) => {
   const firstOrder = Math.min(...timestamps)
   const lastOrder = Math.max(...timestamps)
   const range = [firstOrder, lastOrder]
-
+  const rangeLayout = {
+    ...layout,
+    xaxis: {
+      ...layout.xaxis,
+      autorange: false,
+      range,
+      rangeslider: {
+        ...layout.xaxis.rangeslider,
+        range,
+      },
+    },
+  }
   // *****************************
   // internal state
   // *****************************
@@ -77,7 +88,7 @@ export default ({ activeChart, setActiveChart }) => {
         ref={plot}
         css={style}
         data={[trace]}
-        layout={layout(range)}
+        layout={rangeLayout}
         config={config}
         onHover={data => setTooltipData(data.points[0])}
         onUnhover={() => setTooltipData(null)}
