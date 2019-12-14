@@ -16,6 +16,7 @@
     "apm:publish:rpc:major": "aragon apm publish major --environment default --skip-confirmation true --propagate-content false",
     "apm:publish:hatch:major": "aragon apm publish major --environment hatch --use-frame",
     "apm:publish:rinkeby:major": "aragon apm publish major --environment rinkeby --use-frame",
+    "apm:publish:mainnet:major": "aragon apm publish major --environment mainnet --use-frame",
     "publish": "npm run apm:publish:rpc:major"
   },
   "files": [

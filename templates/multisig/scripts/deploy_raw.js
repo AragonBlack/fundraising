@@ -30,6 +30,16 @@ module.exports = async callback => {
       const DAI = '0x0527e400502d0cb4f214dd0d2f2a323fc88ff924'
       const template = await FundraisingMultisigTemplate.new(daoFactory, ens, miniMeFactory, aragonId, DAI, ANT, { from: owner })
       console.log(template.address)
+    } else if (process.argv[4] === 'mainnet') {
+      const owner = '0x17d38262cEb5317aF645a246B0Ce6FC4cC3088f6' // OK
+      const ens = '0x314159265dd8dbb310642f98f50c066173c1259b' // OK
+      const daoFactory = '0xb9da44c051c6cc9e04b7e0f95e95d69c6a6d8031' // OK
+      const miniMeFactory = '0x909d05f384d0663ed4be59863815ab43b4f347ec' // OK
+      const aragonId = '0x546aa2eae2514494eeadb7bbb35243348983c59d' // OK
+      const ANT = '0x960b236A07cf122663c4303350609A66A7B288C0' // OK
+      const DAI = '0x6b175474e89094c44da98b954eedeac495271d0f' // OK
+      const template = await FundraisingMultisigTemplate.new(daoFactory, ens, miniMeFactory, aragonId, DAI, ANT, { from: owner })
+      console.log(template.address)
     } else {
       throw new Error('Unknown network: pick rpc or rinkeby')
     }
