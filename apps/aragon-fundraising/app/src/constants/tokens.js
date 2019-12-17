@@ -3,7 +3,7 @@
  */
 export const Tokens = {
   main: {
-    DAI: '0x89d24a6b4ccb1b6faa2625fe562bdd9a23260359',
+    DAI: '0x6b175474e89094c44da98b954eedeac495271d0f',
     ANT: '0x960b236a07cf122663c4303350609a66a7b288c0',
   },
   rinkeby: {
