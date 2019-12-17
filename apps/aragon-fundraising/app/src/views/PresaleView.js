@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { unstable_batchedUpdates as batchedUpdates } from 'react-dom'
-import { useAppState, useApi, useConnectedAccount } from '@aragon/api-react'
+import { useAppState, useApi, useConnectedAccount, useNetwork } from '@aragon/api-react'
 import { Header, Button } from '@aragon/ui'
 import BigNumber from 'bignumber.js'
 import { useInterval } from '../hooks/use-interval'
@@ -32,6 +32,7 @@ export default () => {
   const api = useApi()
   const presale = api.external(presaleAddress, PresaleAbi)
   const connectedUser = useConnectedAccount()
+  const { type: networkType } = useNetwork()
 
   // *****************************
   // internal state, also shared through context
@@ -109,7 +110,7 @@ export default () => {
             />
           }
         />
-        <Disclaimer />
+        {networkType !== 'main' && <Disclaimer />}
         <Presale />
         <NewContribution />
         <NewRefund />
