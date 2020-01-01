@@ -22,9 +22,9 @@
     "build:script:nosourcemap": "cross-env NODE_ENV=production parcel build src/script.js --out-dir build/ --no-source-maps"
   },
   "dependencies": {
-    "@aragon/api": "^2.0.0-beta.7",
-    "@aragon/api-react": "^2.0.0-beta.6",
-    "@aragon/ui": "^1.0.0",
+    "@aragon/api": "^2.0.0-beta.9",
+    "@aragon/api-react": "^2.0.0-beta.9",
+    "@aragon/ui": "^1.2.1",
     "bignumber.js": "^9.0.0",
     "date-fns": "^2.0.1",
     "file-saver": "^2.0.2",
