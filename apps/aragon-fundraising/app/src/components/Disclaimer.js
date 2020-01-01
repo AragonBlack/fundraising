@@ -12,13 +12,8 @@ export default () => {
       `}
     >
       <p>
-        This demo of Aragon Fundraising is still in the experimental phase. It’s a peek into the capabilities of the final version and we are looking forward to
-        your feedback.
+        You might need some Rinkeby DAI or ANT which you can get by visting <Link href="https://faucet.aragon.black/">https://faucet.aragon.black/</Link>.
       </p>
-      <p>
-        You might need some Rinkeby DAI or ANT which you can get by visting <Link href="https://faucet.aragon.black/">https://faucet.aragon.black/</Link>
-      </p>
-      <p>Expect daily frontend updates and future smart contract updates.</p>
     </Info>
   )
 }
