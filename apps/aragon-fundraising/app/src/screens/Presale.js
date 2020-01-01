@@ -183,8 +183,8 @@ export default () => {
                 steps={[
                   ['Presale opens', openDate, 'Contributors can buy presale shares'],
                   ['Presale ends', openDate === 0 ? 0 : endDate, 'Contributors can ask for refund if presale has failed'],
-                  ['Cliff period ends', openDate === 0 ? 0 : vestingCliffDate, 'Presale shares start being unvested'],
-                  ['Vesting period ends', openDate === 0 ? 0 : vestingCompleteDate, 'Presale shares are totally unvested'],
+                  ['Cliff period ends', openDate === 0 ? 0 : vestingCliffDate, 'Presale shares start vesting'],
+                  ['Vesting period ends', openDate === 0 ? 0 : vestingCompleteDate, 'Presale shares are totally vested'],
                 ]}
               />
               <DataView
