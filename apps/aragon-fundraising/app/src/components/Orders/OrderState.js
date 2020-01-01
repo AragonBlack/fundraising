@@ -39,7 +39,7 @@ export default ({ state }) => {
           margin-left: ${0.5 * GU}px;
         `}
       >
-        <Help>{help}</Help>
+        <Help hint="What is this state?">{help}</Help>
       </p>
     </>
   )
