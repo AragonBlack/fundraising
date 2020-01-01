@@ -185,16 +185,6 @@ export default () => {
             </div>
           </li>
         </ul>
-        <Info
-          css={`
-            margin: ${2 * GU}px;
-            margin-top: 0;
-            width: auto;
-            display: inline-block;
-          `}
-        >
-          <Text>Share token address: {tokenAddress}</Text>
-        </Info>
       </KeyMetrics>
       <Chart />
     </div>
