@@ -1,7 +1,7 @@
 import React from 'react'
 import styled from 'styled-components'
 import { useTheme, GU } from '@aragon/ui'
-// import ChartMenu from './ChartMenu'
+import ChartMenu from './ChartMenu'
 import Filter from './Filter'
 
 export { Filter }
@@ -11,7 +11,7 @@ export default ({ activeChart, setActiveChart, children }) => {
   return (
     <Navbar theme={theme}>
       <div className="timeline">{children}</div>
-      {/* <ChartMenu activeChart={activeChart} setActiveChart={setActiveChart} /> */}
+      <ChartMenu activeChart={activeChart} setActiveChart={setActiveChart} />
     </Navbar>
   )
 }

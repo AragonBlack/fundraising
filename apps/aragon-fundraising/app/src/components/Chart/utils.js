@@ -1,21 +1,30 @@
 import getMinutes from 'date-fns/getMinutes'
-import getHours from 'date-fns/getHours'
 import getTime from 'date-fns/getTime'
 import set from 'date-fns/set'
-import setDay from 'date-fns/setDay'
 import groupBy from 'lodash/groupBy'
 import minBy from 'lodash.minBy'
 import maxBy from 'lodash.maxBy'
 
 /**
- * Returns the nearest and lower quarter hour of a given timestamp
+ * Returns the nearest and lower ten minute of a given timestamp
  * @param {Number} timestamp - a date in a timestamp format
- * @returns {Number} a timestamp of the nearest and lower quarter hour
+ * @returns {Number} a timestamp of the nearest and lowest ten minute
  */
-const getQuarterHour = timestamp => {
+const getTenMinutes = timestamp => {
   const minutes = getMinutes(timestamp)
-  const quarter = Math.floor(minutes / 15) * 15
-  return getTime(set(timestamp, { minutes: quarter, seconds: 0, milliseconds: 0 }))
+  const ten = Math.floor(minutes / 10) * 10
+  return getTime(set(timestamp, { minutes: ten, seconds: 0, milliseconds: 0 }))
+}
+
+/**
+ * Returns the nearest and lower twenty minute of a given timestamp
+ * @param {Number} timestamp - a date in a timestamp format
+ * @returns {Number} a timestamp of the nearest and lowest twenty minute
+ */
+const getTwentyMinutes = timestamp => {
+  const minutes = getMinutes(timestamp)
+  const twenty = Math.floor(minutes / 20) * 20
+  return getTime(set(timestamp, { minutes: twenty, seconds: 0, milliseconds: 0 }))
 }
 
 /**
@@ -26,43 +35,11 @@ const getQuarterHour = timestamp => {
 const getHour = timestamp => getTime(set(timestamp, { minutes: 0, seconds: 0, milliseconds: 0 }))
 
 /**
- * Returns the nearest and lower 4 hours range of a given timestamp
- * @param {Number} timestamp - a date in a timestamp format
- * @returns {Number} a timestamp of the nearest and lower 4 hours range
- */
-const get4Hour = timestamp => {
-  const hours = getHours(timestamp)
-  const fourHour = Math.floor(hours / 4) * 4
-  return getTime(set(timestamp, { hours: fourHour, minutes: 0, seconds: 0, milliseconds: 0 }))
-}
-
-/**
  * Returns the floored day of a given timestamp
  * @param {Number} timestamp - a date in a timestamp format
  * @returns {Number} a timestamp of the floored day
  */
-const getDay = timestamp => getTime(set(timestamp, { hours: 0, minutes: 0, seconds: 0, milliseconds: 0 }))
-
-/**
- * Returns the floored week of a given timestamp
- * @param {Number} timestamp - a date in a timestamp format
- * @returns {Number} a timestamp of the floored week
- */
-const getWeek = timestamp => getTime(set(setDay(timestamp, 1, { weekStartsOn: 1 }), { hours: 0, minutes: 0, seconds: 0, milliseconds: 0 }))
-
-/**
- * Returns the floored month of a given timestamp
- * @param {Number} timestamp - a date in a timestamp format
- * @returns {Number} a timestamp of the floored month
- */
-const getMonth = timestamp => getTime(set(timestamp, { date: 1, hours: 0, minutes: 0, seconds: 0, milliseconds: 0 }))
-
-/**
- * Returns the floored year of a given timestamp
- * @param {Number} timestamp - a date in a timestamp format
- * @returns {Number} a timestamp of the floored year
- */
-const getYear = timestamp => getTime(set(timestamp, { month: 0, date: 1, hours: 0, minutes: 0, seconds: 0, milliseconds: 0 }))
+export const getDay = timestamp => getTime(set(timestamp, { hours: 0, minutes: 0, seconds: 0, milliseconds: 0 }))
 
 /**
  * Get the OCHL (open, close, high, low) prices from an array of orders
@@ -90,7 +67,7 @@ const getOCHL = orders => {
  * @returns {Object} an object containing the arrays of OHCL values computed with the given timerange function
  */
 export const computeOCHL = (orders, functionIndex) => {
-  const functionToCall = [getQuarterHour, getHour, get4Hour, getDay, getWeek, getMonth, getYear][functionIndex]
+  const functionToCall = [getTenMinutes, getTwentyMinutes, getHour, getDay][functionIndex]
   const range = groupBy(orders, o => functionToCall(o.timestamp))
   const x = []
   const open = []
@@ -99,11 +76,11 @@ export const computeOCHL = (orders, functionIndex) => {
   const low = []
   Object.keys(range).forEach(i => {
     x.push(parseInt(i, 10))
-    const ohcl = getOCHL(range[i])
-    open.push(ohcl.open)
-    close.push(ohcl.close)
-    high.push(ohcl.high)
-    low.push(ohcl.low)
+    const ochl = getOCHL(range[i])
+    open.push(ochl.open)
+    close.push(ochl.close)
+    high.push(ochl.high)
+    low.push(ochl.low)
   })
   return { x, open, close, high, low }
 }
