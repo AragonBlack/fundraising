@@ -96,6 +96,8 @@ export default () => {
   const displayFloorIncrease = formatBigNumber(adjustedFloorDecrease.times(100), 0, 0)
   const daiRatio = formatBigNumber(daiReserveRatio.div(PPM).times(100), 0)
   const antRatio = formatBigNumber(antReserveRatio.div(PPM).times(100), 0)
+  const adjustedMaxRate = formatBigNumber(adjustedRate.plus(adjustedRate.times(maximumTapRateIncreasePct).div(PCT_BASE)), daiDecimals)
+  const adjustedMinFloor = formatBigNumber(floor.minus(floor.times(maximumTapFloorDecreasePct).div(PCT_BASE)), daiDecimals)
 
   // *****************************
   // internal state
@@ -177,6 +179,17 @@ export default () => {
     }
   }
 
+  /**
+   * Calls the `controller.withdraw` smart contarct function on button click
+   * @returns {void}
+   */
+  const handleWithdraw = () => {
+    api
+      .withdraw(daiAddress)
+      .toPromise()
+      .catch(console.error)
+  }
+
   const handleSubmit = event => {
     event.preventDefault()
     if (valid) {
@@ -200,21 +213,16 @@ export default () => {
     <>
       <Split
         primary={
-          <Box padding={layoutName === 'small' ? 2 * GU : 3 * GU}>
-            <div
-              css={`
-                display: grid;
-                grid-column-gap: ${3 * GU}px;
-                grid-template-columns: repeat(${layoutName === 'small' ? '1' : '2'}, 1fr);
-                width: 100%;
-              `}
-            >
-              <div>
-                <ReserveSetting label="Rate" helpContent={helpContent[0]} value={`${displayRate} DAI / month`} />
-                <ReserveSetting label="Floor" helpContent={helpContent[2]} value={`${displayFloor} DAI`} />
-                <div>{layoutName !== 'small' && editMonthlyAllocationButton}</div>
-              </div>
-              <div>
+          <>
+            <Box heading="Collateralization ratios">
+              <div
+                css={`
+                  display: grid;
+                  grid-column-gap: ${3 * GU}px;
+                  grid-template-columns: repeat(${layoutName === 'small' ? '1' : '2'}, 1fr);
+                  width: 100%;
+                `}
+              >
                 {[[daiSymbol, daiRatio], [antSymbol, antRatio]].map(([symbol, ratio], i) => (
                   <ReserveSetting
                     key={i}
@@ -236,9 +244,30 @@ export default () => {
                   />
                 ))}
               </div>
-              {layoutName === 'small' && editMonthlyAllocationButton}
-            </div>
-          </Box>
+            </Box>
+            <Box heading="Tapped Monthly Allocation">
+              <div
+                css={`
+                  display: grid;
+                  grid-column-gap: ${3 * GU}px;
+                  grid-template-columns: repeat(${layoutName === 'small' ? '1' : '2'}, 1fr);
+                  width: 100%;
+                `}
+              >
+                <ReserveSetting label="Rate" helpContent={helpContent[0]} value={`${displayRate} DAI / month`} />
+                <ReserveSetting label="Floor" helpContent={helpContent[2]} value={`${displayFloor} DAI`} />
+                <Button
+                  icon={<img src={EditIcon} />}
+                  label="Enact tap"
+                  onClick={() => handleWithdraw()}
+                  css={`
+                    margin-bottom: ${3 * GU}px;
+                  `}
+                />
+                {editMonthlyAllocationButton}
+              </div>
+            </Box>
+          </>
         }
         secondary={
           <DefinitionsBox
@@ -278,10 +307,22 @@ export default () => {
               margin-top: ${2 * GU}px;
             `}
           >
-            <p>You can increase the rate by {displayRateIncrease}%.</p>
-            <p>You can decrease the floor by {displayFloorIncrease}%.</p>
-            <p>Current monthly allocation: {displayRate} DAI.</p>
-            <p>Current floor: {displayFloor} DAI.</p>
+            <p>
+              You can increase the rate by <b>{displayRateIncrease}%</b> up to <b>{adjustedMaxRate} DAI</b>.
+            </p>
+            <p>
+              You can decrease the floor by <b>{displayFloorIncrease}%</b> down to <b>{adjustedMinFloor} DAI</b>.
+            </p>
+          </Info>
+          <Info
+            mode="warning"
+            title="Warning"
+            css={`
+              margin-top: ${2 * GU}px;
+            `}
+          >
+            You can update either the tap rate or floor only once a month. If you do update the tap rate or floor now{' '}
+            <b>you will not be able to update either of them again a month</b>. Act wisely.
           </Info>
         </form>
       </SidePanel>

@@ -1,14 +1,15 @@
 import React from 'react'
 import styled from 'styled-components'
-import { GU } from '@aragon/ui'
+import { useTheme, GU } from '@aragon/ui'
 import ChartMenu from './ChartMenu'
 import Filter from './Filter'
 
 export { Filter }
 
 export default ({ activeChart, setActiveChart, children }) => {
+  const theme = useTheme()
   return (
-    <Navbar>
+    <Navbar theme={theme}>
       <div className="timeline">{children}</div>
       <ChartMenu activeChart={activeChart} setActiveChart={setActiveChart} />
     </Navbar>
@@ -31,17 +32,17 @@ const Navbar = styled.div`
       font-weight: bold;
       font-size: 16px;
       margin-right: ${3 * GU}px;
-      color: rgba(109, 119, 123, 0.7);
+      color: ${props => props.theme.contentSecondary};
       &:hover {
         cursor: pointer;
-        border-bottom: 2px solid #08bee5;
+        border-bottom: 2px solid ${props => props.theme.accent};
       }
       &.active {
-        border-bottom: 2px solid #08bee5;
+        border-bottom: 2px solid ${props => props.theme.accent};
       }
       & > span:nth-child(1) {
         margin-right: ${0.5 * GU}px;
-        color: black;
+        color: ${props => props.theme.content};
       }
     }
   }

@@ -1,10 +1,10 @@
 import React, { useEffect, useContext, useRef, useState } from 'react'
 import styled from 'styled-components'
 import { useApi, useAppState } from '@aragon/api-react'
-import { Button, DropDown, Text, TextInput, theme, unselectable, GU } from '@aragon/ui'
+import { Button, DropDown, Info, Text, TextInput, theme, unselectable, GU } from '@aragon/ui'
 import { MainViewContext } from '../../context'
 import Total from './Total'
-import Info from './Info'
+import Info_ from './Info'
 import ValidationError from '../ValidationError'
 import { toDecimals, formatBigNumber } from '../../utils/bn-utils'
 
@@ -113,13 +113,6 @@ const Order = ({ isBuyOrder }) => {
   return (
     <form onSubmit={handleSubmit}>
       <InputsWrapper>
-        <p
-          css={`
-            margin: ${2 * GU}px 0;
-          `}
-        >
-          Your balance: {getUserBalance()} {getSymbol()}
-        </p>
         <AmountField key="collateral">
           <label>
             {isBuyOrder && <StyledTextBlock>{collateralItems[selectedCollateral].symbol} TO SPEND</StyledTextBlock>}
@@ -171,7 +164,15 @@ const Order = ({ isBuyOrder }) => {
           padding-top: ${2 * GU}px;
         `}
       >
-        <Info isBuyOrder={isBuyOrder} slippage={collateralItems[selectedCollateral].slippage} />
+        <Info
+          title="Your balance"
+          css={`
+            margin-bottom: ${2 * GU}px;
+          `}
+        >
+          {getUserBalance()} {getSymbol()}
+        </Info>
+        <Info_ isBuyOrder={isBuyOrder} slippage={collateralItems[selectedCollateral].slippage} />
       </div>
     </form>
   )

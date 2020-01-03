@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { AragonApi, useAppState, useApi } from '@aragon/api-react'
+import { AragonApi, useAppState, useApi, useGuiStyle } from '@aragon/api-react'
 import { Main, SyncIndicator } from '@aragon/ui'
 import appStateReducer from './appStateReducer'
 import { useInterval } from './hooks/use-interval'
@@ -21,7 +21,7 @@ const App = () => {
   // aragon api
   // *****************************
   const api = useApi()
-
+  const { appearance } = useGuiStyle()
   // *****************************
   // internal state
   // *****************************
@@ -58,7 +58,7 @@ const App = () => {
   }, Polling.DURATION)
 
   return (
-    <Main>
+    <Main theme={appearance} assetsUrl="./aragon-ui">
       <SyncIndicator visible={!isReady || isPresale === null} />
       {isPresale && isReady && collateralsAreOk && <PresaleView />}
       {!isPresale && isReady && collateralsAreOk && <MainView />}

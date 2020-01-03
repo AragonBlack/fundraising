@@ -21,6 +21,8 @@ export default () => {
   // *****************************
   // aragon api
   // *****************************
+  const theme = useTheme()
+  console.log(theme)
   const api = useApi()
   const account = useConnectedAccount()
 
@@ -34,9 +36,9 @@ export default () => {
   // *****************************
   const circleColor = {
     [Presale.state.PENDING]: '#ecedf1',
-    [Presale.state.FUNDING]: '#21c1e7',
-    [Presale.state.GOAL_REACHED]: '#2CC68F',
-    [Presale.state.REFUNDING]: '#FF6969',
+    [Presale.state.FUNDING]: theme.accent,
+    [Presale.state.GOAL_REACHED]: theme.positive,
+    [Presale.state.REFUNDING]: theme.negative,
   }
 
   /**
@@ -53,8 +55,6 @@ export default () => {
         .catch(console.error)
     }
   }
-
-  const theme = useTheme()
 
   return (
     <Box heading="Presale Goal">

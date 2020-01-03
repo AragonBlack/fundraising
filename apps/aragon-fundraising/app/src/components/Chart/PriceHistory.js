@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { useAppState } from '@aragon/api-react'
-import { theme } from '@aragon/ui'
 import subHours from 'date-fns/subHours'
 import subDays from 'date-fns/subDays'
 import subWeeks from 'date-fns/subWeeks'
@@ -14,7 +13,7 @@ import Tooltip from './Tooltip'
 
 const Plot = createPlotlyComponent(Plotly)
 
-export default ({ activeChart, setActiveChart }) => {
+export default ({ activeChart, setActiveChart, theme }) => {
   // *****************************
   // context state
   // *****************************
@@ -30,7 +29,7 @@ export default ({ activeChart, setActiveChart }) => {
   const [tooltipData, setTooltipData] = useState(null)
 
   const plot = useRef(null)
-
+  // const themedLayout = layout(theme)
   // *****************************
   // effects
   // *****************************
@@ -48,14 +47,14 @@ export default ({ activeChart, setActiveChart }) => {
       const offset = [HOUR / 20, DAY / 20, WEEK / 20, MONTH / 20, YEAR / 20, (lastOrder - start) / 20][activeItem]
       const range = [start - offset, lastOrder + offset]
       try {
-        Plotly.relayout(plot.current.el, { 'xaxis.range': range, 'xaxis.rangeslider': { range } })
+        Plotly.relayout(plot.current.el, { 'xaxis.range': range, 'xaxis.rangeslider': { range }, plot_bgcolor: theme.surface, paper_bgcolor: theme.surface })
       } catch {}
     }
   }
-  // relayout when the activeItem filter is changed
+  // relayout when the activeItem filter is changed, or when the theme is changed
   useEffect(() => {
     relayout()
-  }, [activeItem])
+  }, [activeItem, theme])
 
   // computed trace
   const trace = {

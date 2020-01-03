@@ -13,7 +13,7 @@ import {
   Text,
   DropDown,
   shortenAddress,
-  theme,
+  useTheme,
   unselectable,
   IdentityBadge,
 } from '@aragon/ui'
@@ -26,6 +26,7 @@ import { Presale } from '../constants'
 import { formatBigNumber } from '../utils/bn-utils'
 
 export default () => {
+  const theme = useTheme()
   // *****************************
   // background script, layout, connected account and dropdown states
   // *****************************
@@ -97,7 +98,7 @@ export default () => {
 
   return (
     <>
-      <Container>
+      <Container theme={theme}>
         <Split
           invert={layoutName !== 'large' ? 'vertical' : 'horizontal'}
           secondary={
@@ -112,7 +113,6 @@ export default () => {
                 {presaleEnded && (
                   <p
                     css={`
-                      color: #212b36;
                       font-size: 16px;
                     `}
                   >
@@ -122,7 +122,6 @@ export default () => {
                 {state === Presale.state.FUNDING && (
                   <p
                     css={`
-                      color: #637381;
                       font-size: 16px;
                     `}
                   >
@@ -148,7 +147,6 @@ export default () => {
                   >
                     <p
                       css={`
-                        color: #637381;
                         font-size: 16px;
                       `}
                     >
@@ -164,7 +162,6 @@ export default () => {
                   >
                     <p
                       css={`
-                        color: #637381;
                         font-size: 16px;
                       `}
                     >
@@ -183,8 +180,8 @@ export default () => {
                 steps={[
                   ['Presale opens', openDate, 'Contributors can buy presale shares'],
                   ['Presale ends', openDate === 0 ? 0 : endDate, 'Contributors can ask for refund if presale has failed'],
-                  ['Cliff period ends', openDate === 0 ? 0 : vestingCliffDate, 'Presale shares start being unvested'],
-                  ['Vesting period ends', openDate === 0 ? 0 : vestingCompleteDate, 'Presale shares are totally unvested'],
+                  ['Cliff period ends', openDate === 0 ? 0 : vestingCliffDate, 'Presale shares start vesting'],
+                  ['Vesting period ends', openDate === 0 ? 0 : vestingCompleteDate, 'Presale shares are totally vested'],
                 ]}
               />
               <DataView
@@ -231,7 +228,7 @@ const Container = styled.div`
     justify-content: center;
     align-items: center;
     font-size: 18px;
-    color: #637381;
+    color: red;
 
     .progress-text {
       display: inherit;
@@ -252,7 +249,7 @@ const Container = styled.div`
     margin-right: 8px;
     font-variant: small-caps;
     text-transform: lowercase;
-    color: ${theme.textSecondary};
+    color: ${props => props.theme.contentSecondary};
     font-weight: 600;
     white-space: nowrap;
     ${unselectable};

@@ -14,7 +14,7 @@ import { MainViewContext } from '../context'
 import { Polling } from '../constants'
 import { IdentityProvider } from '../components/IdentityManager'
 
-const tabs = ['Overview', 'Orders', 'My Orders', 'Reserve Settings']
+const tabs = ['Overview', 'Orders', 'My Orders', 'Settings']
 
 export default () => {
   // *****************************
@@ -137,17 +137,6 @@ export default () => {
     })
   }, Polling.DURATION)
 
-  /**
-   * Calls the `controller.withdraw` smart contarct function on button click
-   * @returns {void}
-   */
-  const handleWithdraw = () => {
-    api
-      .withdraw(daiAddress)
-      .toPromise()
-      .catch(console.error)
-  }
-
   // *****************************
   // identity handlers
   // *****************************
@@ -173,9 +162,6 @@ export default () => {
               </ContextMenu>
             ) : (
               <>
-                <Button mode="strong" label="Withdraw" onClick={() => handleWithdraw()}>
-                  Withdraw
-                </Button>
                 <Button disabled={polledPrice === 0} mode="strong" label="New Order" css="margin-left: 20px;" onClick={() => setOrderPanel(true)}>
                   New Order
                 </Button>

@@ -1,7 +1,7 @@
 import React, { useContext, useEffect, useState } from 'react'
 import styled from 'styled-components'
 import { useAppState } from '@aragon/api-react'
-import { Box, Info, Text, GU } from '@aragon/ui'
+import { Box, useTheme, GU } from '@aragon/ui'
 import BigNumber from 'bignumber.js'
 import subMonths from 'date-fns/subMonths'
 import Chart from '../components/Chart'
@@ -13,7 +13,7 @@ export default () => {
   // background script state
   // *****************************
   const {
-    bondedToken: { address: tokenAddress, decimals: tokenDecimals, realSupply },
+    bondedToken: { decimals: tokenDecimals, realSupply },
     collaterals: {
       dai: {
         address: daiAddress,
@@ -25,6 +25,8 @@ export default () => {
     batches,
     orders,
   } = useAppState()
+
+  const theme = useTheme()
 
   // *****************************
   // context state
@@ -121,13 +123,13 @@ export default () => {
               font-size: 12px;
               font-weight: 600;
               text-transform: uppercase;
-              color: #637381;
             `}
           >
             Key Metrics
           </span>
         }
         padding={false}
+        theme={theme}
       >
         <ul>
           <li>
@@ -185,16 +187,6 @@ export default () => {
             </div>
           </li>
         </ul>
-        <Info
-          css={`
-            margin: ${2 * GU}px;
-            margin-top: 0;
-            width: auto;
-            display: inline-block;
-          `}
-        >
-          <Text>Share token address: {tokenAddress}</Text>
-        </Info>
       </KeyMetrics>
       <Chart />
     </div>
@@ -205,11 +197,11 @@ const KeyMetrics = styled(Box)`
   margin-bottom: ${2 * GU}px;
 
   .green {
-    color: #2cc68f;
+    color: ${props => props.theme.positive};
   }
 
   .red {
-    color: #fb7777;
+    color: ${props => props.theme.negative};
   }
 
   .none {
@@ -224,7 +216,6 @@ const KeyMetrics = styled(Box)`
   ul {
     display: flex;
     justify-content: space-between;
-    background: #fff;
     box-sizing: border-box;
     border-radius: 3px;
     padding: ${2 * GU}px;
@@ -247,7 +238,7 @@ const KeyMetrics = styled(Box)`
       display: flex;
       font-size: 16px;
       font-weight: 300;
-      color: #637381;
+      color: ${props => props.theme.content};
       white-space: nowrap;
       margin-bottom: ${1.5 * GU}px;
     }
@@ -262,7 +253,7 @@ const KeyMetrics = styled(Box)`
       font-size: 16px;
       span {
         font-weight: 300;
-        color: #dadada;
+        color: ${props => props.theme.contentSecondary};
       }
     }
   }
@@ -279,7 +270,7 @@ const KeyMetrics = styled(Box)`
       justify-content: space-between;
       align-items: center;
       padding: ${2 * GU}px;
-      border-bottom: 1px solid #dde4e9;
+      border-bottom: 1px solid ${props => props.theme.border};
 
       div:last-child {
         align-self: flex-end;
