@@ -22,7 +22,6 @@ export default () => {
   // aragon api
   // *****************************
   const theme = useTheme()
-  console.log(theme)
   const api = useApi()
   const account = useConnectedAccount()
 
