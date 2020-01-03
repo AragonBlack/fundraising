@@ -1,5 +1,5 @@
 import styled from 'styled-components'
-import { Box, theme } from '@aragon/ui'
+import { Box } from '@aragon/ui'
 
 const grey = 'rgb(204, 204, 204)'
 
@@ -15,7 +15,7 @@ export default styled(Box)`
 
   /** Plotly chart **/
   .rangeslider-slidebox {
-    fill: ${theme.accent};
+    fill: ${props => props.theme.accent};
     stroke: none;
     fill-opacity: 0.2;
   }
@@ -35,12 +35,12 @@ export default styled(Box)`
   }
 
   .ygrid {
-    stroke: ${grey};
+    stroke: ${props => props.theme.border} !important;
     stroke-dasharray: 10 5;
   }
 
   .yzl {
-    stroke: ${grey} !important;
+    stroke: ${props => props.theme.border} !important;
   }
 
   .yaxislayer-above {
@@ -52,11 +52,12 @@ export default styled(Box)`
     text {
       font-family: aragon-ui, sans-serif !important;
       font-size: 13px !important;
+      fill: ${props => props.theme.content} !important;
     }
   }
 
   .zoombox {
-    fill: ${theme.accent} !important;
+    fill: ${props => props.theme.accent} !important;
     stroke: none !important;
     fill-opacity: 0.2 !important;
   }

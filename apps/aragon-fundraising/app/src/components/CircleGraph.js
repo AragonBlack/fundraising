@@ -1,5 +1,6 @@
 import React from 'react'
 import PropTypes from 'prop-types'
+import { useTheme } from '@aragon/ui'
 import styled from 'styled-components'
 import { Spring, animated } from 'react-spring'
 
@@ -11,6 +12,7 @@ const LABEL_DEFAULT = value => `${Math.round(value * 100)}`
 const COLOR_DEFAULT = '#21c1e7'
 
 const CircleGraph = ({ value, label, size, color, width }) => {
+  const theme = useTheme()
   const length = Math.PI * 2 * (size - width)
   const radius = (size - width) / 2
   return (
@@ -30,7 +32,6 @@ const CircleGraph = ({ value, label, size, color, width }) => {
               cx={size / 2}
               cy={size / 2}
               r={radius}
-              color={color}
               style={{
                 strokeWidth: width,
               }}
@@ -48,8 +49,11 @@ const CircleGraph = ({ value, label, size, color, width }) => {
               }}
             />
           </CircleSvg>
-          <Label size={size / 3}>{progressValue.interpolate(t => label(Math.min(1, Math.max(0, t))))}</Label>
+          <Label theme={theme} size={size / 3}>
+            {progressValue.interpolate(t => label(Math.min(1, Math.max(0, t))))}
+          </Label>
           <Label
+            theme={theme}
             size={size / 6}
             css={`
               margin-top: ${size / 10}px;
@@ -67,7 +71,7 @@ CircleGraph.propTypes = {
   value: PropTypes.number,
   size: PropTypes.number,
   label: PropTypes.func,
-  color: PropTypes.string,
+  color: PropTypes.object,
   width: PropTypes.number,
 }
 
@@ -98,13 +102,13 @@ const CircleValue = styled(animated.circle)`
   fill: none;
   transform: rotate(270deg);
   transform-origin: 50% 50%;
-  stroke: ${({ color }) => color};
+  stroke: ${props => props.color};
 `
 
 const Label = styled(animated.div)`
   font-size: ${({ size }) => size}px;
   font-weight: 400;
-  color: #25314d;
+  color: ${props => props.theme.content};
 `
 
 export default CircleGraph
