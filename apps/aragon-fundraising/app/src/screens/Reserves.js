@@ -223,10 +223,7 @@ export default () => {
                   width: 100%;
                 `}
               >
-                {[
-                  [daiSymbol, daiRatio],
-                  [antSymbol, antRatio],
-                ].map(([symbol, ratio], i) => (
+                {[[daiSymbol, daiRatio], [antSymbol, antRatio]].map(([symbol, ratio], i) => (
                   <ReserveSetting
                     key={i}
                     label={`${symbol} collateralization ratio`}
