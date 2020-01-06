@@ -63,16 +63,16 @@ export default ({ activeChart, setActiveChart, theme }) => {
     }
   }
 
-  const computeRange = activeItem => {
+  const computeRange = () => {
     // calculate the range according to the selected filter
     let start, end
     switch (activeItem) {
       case 0:
-      default:
         start = subMinutes(lastOrder, 90)
         end = addMinutes(lastOrder, 10)
         break
       case 1:
+      default:
         start = subMinutes(lastOrder, 180)
         end = addMinutes(lastOrder, 20)
         break
@@ -103,7 +103,7 @@ export default ({ activeChart, setActiveChart, theme }) => {
         [activeItem]: computeOCHL(orders, activeItem),
       })
     }
-    computeRange(activeItem)
+    computeRange()
     relayout(false)
   }, [activeItem])
 
