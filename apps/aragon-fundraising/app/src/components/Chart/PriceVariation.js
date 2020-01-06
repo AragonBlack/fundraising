@@ -1,33 +1,28 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useAppState } from '@aragon/api-react'
-import { theme } from '@aragon/ui'
 import Plotly from 'plotly.js-finance-dist'
 import createPlotlyComponent from 'react-plotly.js/factory'
-import { computeOCHL, getDay } from './utils'
-import { layout, config, style } from './setup'
+import { computeOCHL } from './utils'
+import { layout as defaultLayout, config, style } from './setup'
 import Navbar, { Filter } from './Navbar'
 import Tooltip from './Tooltip'
+import addMinutes from 'date-fns/addMinutes'
+import subMinutes from 'date-fns/subMinutes'
+import addHours from 'date-fns/addHours'
+import subHours from 'date-fns/subHours'
 import addDays from 'date-fns/addDays'
 import subDays from 'date-fns/subDays'
-import subMonths from 'date-fns/subMonths'
 
 const Plot = createPlotlyComponent(Plotly)
 
-export default ({ activeChart, setActiveChart }) => {
+export default ({ activeChart, setActiveChart, theme }) => {
   // *****************************
   // context state
   // *****************************
   const { orders } = useAppState()
   const timestamps = orders.map(o => o.timestamp)
   const firstOrder = Math.min(...timestamps)
-  const today = getDay(new Date())
-  const oneMonthAgo = subMonths(today, 1)
-  // start of the range is the lowest between the following
-  // - first order minus one day
-  // - one month before today
-  const start = Math.min(subDays(getDay(firstOrder), 1), oneMonthAgo)
-  // end of the range is today plus one day
-  const end = addDays(getDay(today), 1)
+  const lastOrder = Math.max(...timestamps)
 
   // *****************************
   // internal state
@@ -37,35 +32,67 @@ export default ({ activeChart, setActiveChart }) => {
   const [data, setData] = useState({
     [activeItem]: computeOCHL(orders, activeItem), // initial values
   })
-  // with the start/end calculation, we are sure to have at least a one month range
-  const [range, setRange] = useState([start, end])
-  const rangeLayout = () => ({
-    ...layout,
+  // initial layout, according to the activeItem
+  const initialLayout = {
+    ...defaultLayout,
     xaxis: {
-      ...layout.xaxis,
+      ...defaultLayout.xaxis,
       autorange: false,
-      range,
+      range: [subMinutes(lastOrder, 180), addMinutes(lastOrder, 20)],
       rangeslider: {
-        ...layout.xaxis.rangeslider,
-        range,
+        ...defaultLayout.xaxis.rangeslider,
+        range: [subDays(firstOrder, 1), addDays(lastOrder, 1)],
       },
     },
-  })
-
+    plot_bgcolor: theme.surface,
+    paper_bgcolor: theme.surface,
+  }
+  const [layout, setLayout] = useState(initialLayout)
   const plot = useRef(null)
 
   // *****************************
   // effects
   // *****************************
-  const update = ({ layout }) => {
-    setRange(layout.xaxis.range)
-  }
-  const relayout = () => {
+  const relayout = first => {
     if (plot?.current?.el) {
       try {
-        Plotly.relayout(plot.current.el, rangeLayout())
+        // hacky, if we don't delete the traces, there is still some artefacts of the previous trace
+        if (!first) Plotly.deleteTraces(plot.current.el, 0)
+        Plotly.relayout(plot.current.el, layout)
       } catch {}
     }
+  }
+
+  const computeRange = activeItem => {
+    // calculate the range according to the selected filter
+    let start, end
+    switch (activeItem) {
+      case 0:
+      default:
+        start = subMinutes(lastOrder, 90)
+        end = addMinutes(lastOrder, 10)
+        break
+      case 1:
+        start = subMinutes(lastOrder, 180)
+        end = addMinutes(lastOrder, 20)
+        break
+      case 2:
+        start = subHours(lastOrder, 9)
+        end = addHours(lastOrder, 1)
+        break
+      case 3:
+        start = subDays(lastOrder, 9)
+        end = addDays(lastOrder, 1)
+        break
+    }
+    // update the layout with the new range
+    setLayout({
+      ...layout,
+      xaxis: {
+        ...layout.xaxis,
+        range: [start, end],
+      },
+    })
   }
   // compute OHCL when activeItem filter changes
   useEffect(() => {
@@ -76,8 +103,8 @@ export default ({ activeChart, setActiveChart }) => {
         [activeItem]: computeOCHL(orders, activeItem),
       })
     }
-    setRange([start, end])
-    relayout()
+    computeRange(activeItem)
+    relayout(false)
   }, [activeItem])
 
   // when orders are loaded and/or updated, compute the OCHL of the selected filter
@@ -88,6 +115,11 @@ export default ({ activeChart, setActiveChart }) => {
     })
   }, [orders])
 
+  // update graph color when theme is changed
+  useEffect(() => {
+    setLayout({ ...layout, plot_bgcolor: theme.surface, paper_bgcolor: theme.surface })
+  }, [theme])
+
   // computed trace
   const trace = {
     type: 'candlestick',
@@ -95,6 +127,8 @@ export default ({ activeChart, setActiveChart }) => {
     decreasing: { line: { color: theme.negative } },
     ...data[activeItem],
     hoverinfo: 'none',
+    line: { width: 3 },
+    whiskerwidth: 0.3,
   }
 
   return (
@@ -109,12 +143,11 @@ export default ({ activeChart, setActiveChart }) => {
         ref={plot}
         css={style}
         data={[trace]}
-        layout={rangeLayout()}
+        layout={layout}
         config={config}
         onHover={data => setTooltipData(data.points[0])}
         onUnhover={() => setTooltipData(null)}
-        onInitialized={() => relayout()}
-        onUpdate={data => update(data)}
+        onInitialized={() => relayout(true)}
       />
       {tooltipData && <Tooltip point={tooltipData} />}
     </>
