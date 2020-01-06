@@ -265,9 +265,9 @@ export default ({ myOrders }) => {
   }
 
   const handleClearFilters = () => {
-    setTypeFilter({ active: 0, ...typeFilter })
-    setSymbolFilter({ active: 0, ...symbolFilter })
-    setUserFilter({ active: 0, ...userFilter })
+    setTypeFilter({ ...typeFilter, active: 0 })
+    setSymbolFilter({ ...symbolFilter, active: 0 })
+    setUserFilter({ ...userFilter, active: 0 })
     setDateFilter(initialDateFilterState)
   }
 
