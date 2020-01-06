@@ -11,13 +11,13 @@ import ValidationError from '../components/ValidationError'
 const helpContent = [
   [
     'What is the tap rate?',
-    'The tap rate defines the amount of funds which can be released every month out of the market-maker reserve to the beneficiary of this fundraising campaign.',
+    'The tap rate defines the amount of DAI which can be released every month out of the market-maker reserve to the beneficiary of this fundraising campaign.',
   ],
   [
     'What is the collateralization ratio?',
     'The collateralization ratio defines the ratio between the amount of collateral in your market-maker reserve and the market cap of this fundraising campaign.',
   ],
-  ['What is the tap floor?', 'The tap floor defines the amount of funds which are kept in the market-maker reserve regardless of the tap rate.'],
+  ['What is the tap floor?', 'The tap floor defines the amount of DAI which are kept in the market-maker reserve regardless of the tap rate.'],
 ]
 
 const ReserveSetting = ({ label, helpContent: [hint, help], value }) => {
@@ -223,7 +223,10 @@ export default () => {
                   width: 100%;
                 `}
               >
-                {[[daiSymbol, daiRatio], [antSymbol, antRatio]].map(([symbol, ratio], i) => (
+                {[
+                  [daiSymbol, daiRatio],
+                  [antSymbol, antRatio],
+                ].map(([symbol, ratio], i) => (
                   <ReserveSetting
                     key={i}
                     label={`${symbol} collateralization ratio`}
@@ -322,7 +325,7 @@ export default () => {
             `}
           >
             You can update either the tap rate or floor only once a month. If you do update the tap rate or floor now{' '}
-            <b>you will not be able to update either of them again a month</b>. Act wisely.
+            <b>you will not be able to update either of them again before a month</b>. Act wisely.
           </Info>
         </form>
       </SidePanel>
