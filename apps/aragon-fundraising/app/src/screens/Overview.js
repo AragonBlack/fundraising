@@ -128,7 +128,7 @@ export default () => {
             Key Metrics
           </span>
         }
-        padding={false}
+        padding={0}
         theme={theme}
       >
         <ul>

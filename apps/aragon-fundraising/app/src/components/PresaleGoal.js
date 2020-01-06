@@ -1,6 +1,6 @@
 import React, { useContext } from 'react'
 import { useAppState, useApi, useConnectedAccount } from '@aragon/api-react'
-import { Box, Button, useTheme, GU } from '@aragon/ui'
+import { Box, Button, useTheme, GU, color } from '@aragon/ui'
 import CircleGraph from '../components/CircleGraph'
 import { PresaleViewContext } from '../context'
 import { Presale } from '../constants'
@@ -34,7 +34,7 @@ export default () => {
   // misc
   // *****************************
   const circleColor = {
-    [Presale.state.PENDING]: '#ecedf1',
+    [Presale.state.PENDING]: color('#ecedf1'),
     [Presale.state.FUNDING]: theme.accent,
     [Presale.state.GOAL_REACHED]: theme.positive,
     [Presale.state.REFUNDING]: theme.negative,
