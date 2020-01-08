@@ -708,8 +708,16 @@ const loadTokenSymbol = async (tokenContract, tokenAddress, { network }) => {
  * @returns {Number} the timestamp of the given block in ms
  */
 const loadTimestamp = async blockNumber => {
-  const block = await app.web3Eth('getBlock', blockNumber).toPromise()
-  return parseInt(block.timestamp, 10) * 1000 // in ms
+  return retryEvery(() =>
+    app
+      .web3Eth('getBlock', blockNumber)
+      .toPromise()
+      .then(block => parseInt(block.timestamp, 10) * 1000) // in ms
+      .catch(err => {
+        console.error('Error fetching block timestamp', err)
+        throw err
+      })
+  )
 }
 
 /**
