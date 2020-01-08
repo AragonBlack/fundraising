@@ -714,7 +714,6 @@ const loadTimestamp = async blockNumber => {
       .toPromise()
       .then(block => parseInt(block.timestamp, 10) * 1000) // in ms
       .catch(err => {
-        console.error('Error fetching block timestamp', err)
         throw err
       })
   )
