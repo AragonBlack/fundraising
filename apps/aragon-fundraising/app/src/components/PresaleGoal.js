@@ -38,6 +38,7 @@ export default () => {
     [Presale.state.FUNDING]: theme.accent,
     [Presale.state.GOAL_REACHED]: theme.positive,
     [Presale.state.REFUNDING]: theme.negative,
+    [Presale.state.CLOSED]: color('#21c1e7'),
   }
 
   /**
