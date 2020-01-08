@@ -1,6 +1,6 @@
 import React from 'react'
 import PropTypes from 'prop-types'
-import { useTheme } from '@aragon/ui'
+import { useTheme, color } from '@aragon/ui'
 import styled from 'styled-components'
 import { Spring, animated } from 'react-spring'
 
@@ -9,7 +9,7 @@ const BORDER_WIDTH = 4
 const VALUE_DEFAULT = 1
 const SIZE_DEFAULT = 80
 const LABEL_DEFAULT = value => `${Math.round(value * 100)}`
-const COLOR_DEFAULT = '#21c1e7'
+const COLOR_DEFAULT = color('#21c1e7')
 
 const CircleGraph = ({ value, label, size, color, width }) => {
   const theme = useTheme()
