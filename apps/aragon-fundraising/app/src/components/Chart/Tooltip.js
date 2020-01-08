@@ -1,9 +1,9 @@
 import React from 'react'
-import { Box } from '@aragon/ui'
+import { Box, useTheme } from '@aragon/ui'
 
 export default ({ point }) => {
+  const theme = useTheme()
   // calculate position of the tooltip, thanks to plotly utils
-
   // l2p stands for linear to pixel
   let top = 250 // default value
   // it's a linear chart (e.g. price history)
@@ -22,6 +22,7 @@ export default ({ point }) => {
         left: ${left}px;
         pointer-events: none;
         width: 200px;
+        box-shadow: 2px 2px 2px ${theme.surface};
       `}
     >
       {point.y ? (
