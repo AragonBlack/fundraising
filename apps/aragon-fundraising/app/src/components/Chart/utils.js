@@ -86,11 +86,19 @@ export const computeOCHL = (orders, functionIndex) => {
   // select the quantity to add to fill empty groups
   const range = ranges[functionIndex]
   // create a filled range
+  // e.g. fill the empty groups
   const filledRange = [min]
   let next = min + range
-  while (next <= max) {
+  if (next > max) {
+    // only one group, add a second one anyway
+    // so plotly will size the candlestick accordingly
     filledRange.push(next)
-    next += range
+  } else {
+    // regular case, fill between the min and max
+    while (next <= max) {
+      filledRange.push(next)
+      next += range
+    }
   }
   const x = []
   const open = []
@@ -114,5 +122,7 @@ export const computeOCHL = (orders, functionIndex) => {
       low.push(null)
     }
   })
-  return { x, open, close, high, low }
+  const result = { x, open, close, high, low }
+  console.log(result)
+  return result
 }
