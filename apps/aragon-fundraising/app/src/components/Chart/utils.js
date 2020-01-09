@@ -122,7 +122,5 @@ export const computeOCHL = (orders, functionIndex) => {
       low.push(null)
     }
   })
-  const result = { x, open, close, high, low }
-  console.log(result)
-  return result
+  return { x, open, close, high, low }
 }
