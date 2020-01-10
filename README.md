@@ -1,10 +1,8 @@
 # Aragon Fundraising
 
-The following pages are dedicated to a preface covering the notions of DAOs, continuous organizations/DAICOs and bonding curves. 
+Aragon Fundraising is a suite of **Aragon** apps providing Aragon organizations continuous fundraising capabilities.
 
-If you are already familiar with these feel free to skip to the theoritical overview part covering Aragon Fundraising's specific implementation and governance or to the How To for setting up your own Fundraising DAO.
+It enables users to buy and redeem one organization's token through an automated **market maker** automatically matching orders according to a **bonding curve** tied to the **Bancor** formula. The funds held by this market maker **reserve pool** are controlled by a **tap** and released over time into a **discretionary pool** controlled by the organization's board to sustain the project. This architecture provides smart-contract enforced **accountability** between investors and board members throughout the lifecycle of a project while simultaneously ensuring **sufficient liquidity** to support the emergence of a **long-tail of micro-organizations**.
 
-You can setup your test org by connecting to [https://rinkeby.aragon.org/](https://rinkeby.aragon.org/) and switching  your web3 provider to the Rinkeby test network.
-
-You can also browser this test org on Rinkeby  and buy share tokens as well as request board token [here](https://nightly-rinkeby.aragon.org/#/paxmongolia/).
+You can test the Aragon Fundraising app suite - with fake money - at  [https://rinkeby.aragon.org/](https://rinkeby.aragon.org/) or launch a real fundraising campaign at [https://mainnet.aragon.org/](https://mainnet.aragon.org/%20).
 

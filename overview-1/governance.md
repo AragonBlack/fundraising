@@ -1,26 +1,40 @@
-# Governance overview
+# Governance
 
 The flexibility of aragonOS allows fundraising-enabled organizations to endorse a wide variety of governance structures: from a personal DAO where an individual manages a continuously funded organization supported by patrons \[similar to patreon\], to a community project where token holders are expected to actively participate in key governance decisions. Though, to streamline the use of Aragon Fundraising, we implemented a default governance template.
 
 ## Groups
 
-Aragon Fundraising default governance template identifies two set actors: the board and the share holders.
+Aragon Fundraising default governance template identifies two set actors: the **board** and the **shareholders**.
 
-The board token holders are the ones being funded by the fundraising campaign. They are represented through a custom `BOARD` token and a dedicated voting app set to be used as a multisig. 
+### Board
 
-As you can check in the following default permissions `BOARD`oken holders can:
+The board token holders are the ones being funded by the fundraising campaign. They are represented through a custom `BOARD` token and a dedicated voting app set to be used as a multisig. Their privileges are intentionnaly limited to protect shareholders. Thus, they only have the following rights.
+
+**Handling board members.** The board decides on who is to be included / excluded from the board \[through its `TokenManager`\].
+
+**Opening presale.** The board decides on when the presale \[and thus the fundraising campaign\] is to be open.
+
+**Handling fundraising proceeds.** The board decides on what use is to be made of the fundraising proceeds which are periodically transferred to their discretionnary `Vault` / `Finance` app.
+
+**Opening votes.** The board decides on when new votes should be open for shareholders to enforce decisions over the organization.
 
 *  Mint `BOARD` tokens and revoke vestings via the multisig voting app
 * Initiate and execute payments from the DAO's Finance app
 * Update the beneficiary address of the tap.
 
-The share holders are the one contributing to the fundraising campaign. They are represented through a `SHARE` bonded-token \[that can be bought and redeemed through the Aragon Fundraising interface\] and a voting app. `SHARE` token holders:
+### Shareholders
 
-* Can vote on who can buy and sell `SHARE` tokens. 
-* Can vote to set up and modify a fee on orders passed to the market maker \(where do these fees go?\).
-* Add and remove support for collateral tokens
+The share holders are the one contributing to the fundraising campaign. They are represented through a `SHARE` bonded-token \[that can be bought and redeemed through the Aragon Fundraising interface\] and a voting app. They hold most of the rights over the organization.
 
+**Handling system.** Shareholders decide on which apps are to be installed, which apps are to to upgraded and how permissions are to be set.
 
+**Handling fundraising parameters.** Shareholders decide on whether / how beneficiary, fees, collateralization settings and collaterals taps should be updated.
+
+{% hint style="warning" %}
+**Rationale**
+
+This architecture grants \[most of\] the governance rights to shareholders \[to protect their investment\]. There is thus a need to mitigate situations where a shareholder owning more than 50% of the shares would own the whole organization. This is why `SHARE` based votes \[_i.e._ most of the organization decisions\] can only be open and initiated by the board.
+{% endhint %}
 
 ## Permissions
 
@@ -169,6 +183,4 @@ _Forwards all transactions to the relevant modules \[API contract\]_
 | Controller | UPDATE\_TOKEN\_TAP | Voting `[SHARE]` | Voting `[SHARE]` |
 | Controller | OPEN\_BUY\_ORDER | Any | Voting `[SHARE]` |
 | Controller | OPEN\_SELL\_ORDER | Any | Voting `[SHARE]` |
-
-![Permissions Diagram](../.gitbook/assets/tdc-design-space-3.jpg)
 

@@ -22,10 +22,6 @@ For organizations to make use of funds in the reserve to reward contributors the
 
 These variables enable the organization to rate-limit the flow of funds from the reserve pool into the discretionary pool, this keeps the project contributors accountable by releasing funds over time and giving individuals an opportunity to exit by drawing down funds in the reserve pool before they are released to the discretionary pool. The minRatio parameter ensures that the Bonding Curve remains a functional source of liquidity for the project.
 
-### **Liquidating the Reserve Pool**
-
-In some cases a majority of the token holders will all want to sell at once, this can occur if the project encounters an issue that makes it clear that it should not continue or if key members of the team decide to leave the project. Rather than rushing to exit via the bonding curve, the community can vote to liquidate the reserve pool returning funds to the bonding curves token holders on a pro-rata basis.
-
 ## Discretionary Pool
 
 Funds which have moved from the bonding curve’s reserve pool to the organization’s discretionary pool can be directly governed by the organization \(see section 3 for more details\). These funds can be used to reward contributors to the project.
@@ -50,13 +46,7 @@ As you can see a CW close to 100% approximates a stable-coin: the bonding curve 
 
 ![Numbers and slope are illustrative and will vary according to a host of variables ](https://lh4.googleusercontent.com/ahqOfYhIIA6Sm-JN1FDe_7MXT9mlj_CGiObVzdM07UZGHshNmK0FHVGDTuGVjUnlHnUX6_sPdzdww042pLb6gt8jiycikk00ltPx9LZZYxr6Kj5G-cRReBEvL7ep8DX6f9mxA_ki)
 
-### **Apiary Pricing Formula**
 
-Because the Bancor pricing formula maintains a constant reserve ratio \(CW\) as tokens are bought and burned, the process of moving funds from the reserve pool into the discretionary pool would decrease CW. To account for that we need to adjust the pricing formula so that CW increases based on a bondPremium parameter as people buy tokens so that CW floats between minRatio and maxRatio values.
-
-When an individual uses the bonding curve to mint tokens and the current CW is less than maxRatio users are required to stake additional tokens relative to the current price, this amount is determined by the bondPremium.
-
-As funds move from the reserve pool to the discretionary pool the CW will decrease, when it reaches minRatio no more withdrawals to the discretionary pool will be permitted.
 
 ## Front-running
 

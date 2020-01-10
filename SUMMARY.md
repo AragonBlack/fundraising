@@ -1,11 +1,13 @@
 # Table of contents
 
 * [Aragon Fundraising](README.md)
-* [Preface and Resources](preface-and-resources.md)
-* [a\) What's a DAO?](a-what-the-dao.md)
-* [b\) How can DAOs raise funds](b-fundraising-for-daos-1.md)
-* [c\) Intro to bonding curves](untitled-1.md)
-* [Resources](resources.md)
+
+## Overview <a id="overview-1"></a>
+
+* [Overview](overview-1/b-fundraising-for-daos-1.md)
+* [Components](overview-1/components-1.md)
+* [Governance](overview-1/governance.md)
+* [Resources](overview-1/resources.md)
 
 ## User Guide - Basic <a id="overview"></a>
 
@@ -25,16 +27,10 @@
 
 * [High level overview of Aragon Fundraising](components/introduction.md)
 * [Aragon Fundraising Bonding Curves](components/bonding-curve.md)
-* [Governance overview](components/governance.md)
 
 ## User Guide - Advanced <a id="how-to"></a>
 
 * [Advanced Trading Settings \(whitelisting, collaterals, fees\)](how-to/advanced-trading-settings-whitelisting-collaterals-fees.md)
-* [Market Maker](how-to/market-maker.md)
-* [Controller](how-to/controller.md)
 * [Installing and Deploying a Fundraising DAO from the CLI](how-to/cli.md)
 * [Arbitrage](how-to/arbitrage.md)
-* [Leveraging other Aragon Apps](how-to/leveraging-other-aragon-apps/README.md)
-  * [Dot Voting and Allocations for the Tap](how-to/leveraging-other-aragon-apps/dot-voting-and-allocations-for-the-tap.md)
-* [Using the Aragon Agent to connect to external dapps](how-to/using-agent.md)
 
