@@ -55,6 +55,10 @@
 <br>
 
 
+## Disclaimer
+
+Aragon Fundraising is an open source suite of apps. None of the people or institutions involved in its development may be held accountable for how it is used. If you do use it please make sure you comply to the jurisdictions you may be jubjected to.
+
 ## Overview
 
 Aragon Fundraising is a suite of Aragon apps providing Aragon organizations continuous fundraising capabilities. It implements the following features.
