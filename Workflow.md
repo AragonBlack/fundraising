@@ -17,7 +17,7 @@ npx aragon devchain
 ```
 Start ipfs.
 ```
-npx aragon ipfs
+npx aragon ipfs start
 ```
 
 
