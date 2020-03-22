@@ -1,4 +1,4 @@
-# Table of contents
+# Table of Contents
 
 * [Aragon Fundraising](README.md)
 
@@ -23,7 +23,7 @@
 * [Permissions Settings](overview/permissions-settings.md)
 * [Email Notifications](overview/email-notifications.md)
 
-## Theoritical Overview <a id="components"></a>
+## Theoretical Overview <a id="components"></a>
 
 * [High level overview of Aragon Fundraising](components/introduction.md)
 * [Aragon Fundraising Bonding Curves](components/bonding-curve.md)
