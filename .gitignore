@@ -18,6 +18,10 @@ package-lock.json
 */**/allFiredEvents
 */**/scTopics
 
+# parcel build
+*/**/.cache/
+*/**/dist/
+
 # truffle and aragon build artifacts
 */**/abi
 */**/build
