@@ -1,0 +1,22 @@
+body {
+  font-family: "Roboto Mono", monospace;
+  text-align: center;
+  background-color: #000;
+  background-image: url("../assets/logotype.svg");
+  background-position: center center;
+  background-repeat: no-repeat;
+  min-height: 100vh;
+}
+
+#root {
+  font-family: "Roboto Mono", monospace;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+}
+
+#buttons > div:first-of-type {
+  margin-bottom: 3rem;
+}

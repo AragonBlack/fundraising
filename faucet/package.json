@@ -1,0 +1,21 @@
+{
+  "name": "@ablack/rinkeby-faucet",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "build": "parcel build ./src/index.html --no-minify",
+    "start": "parcel ./src/index.html --open"
+  },
+  "dependencies": {
+    "@aragon/templates-tokens": "^1.3.0",
+    "@aragon/ui": "^0.40.1",
+    "big-number": "^2.0.0",
+    "react": "^16.9.0",
+    "react-dom": "^16.9.0",
+    "styled-components": "^4.3.2",
+    "truffle-contract": "^4.0.29"
+  },
+  "devDependencies": {
+    "parcel": "^1.12.3"
+  }
+}

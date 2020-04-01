@@ -1,4 +1,4 @@
 {
-  "packages": ["apps/*", "shared/*", "templates/*"],
+  "packages": ["apps/*", "faucet", "shared/*", "templates/*"],
   "version": "independent"
 }
