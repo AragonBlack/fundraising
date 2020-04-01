@@ -32,7 +32,7 @@ In order for a bonding curve to function an algorithmic pricing function must be
 
 ### **Bancor Pricing Formula**
 
-In the Bancor Protocol smart tokens manage by a bonding curve which maintains a constant reserve ratio between tokens held in reserve \(Connector Tokens\) and the corresponding smart tokens total value \(market cap\). The ratio between them is called the connector weight \(CW\).
+In the Bancor Protocol smart tokens are managed by a bonding curve which maintains a constant reserve ratio between tokens held in reserve \(Connector Tokens\) and the corresponding smart tokens total value \(market cap\). The ratio between them is called the connector weight \(CW\).
 
 CW = Connector Balance / \(price \* Smart Token supply\)
 
@@ -50,7 +50,7 @@ As you can see a CW close to 100% approximates a stable-coin: the bonding curve 
 
 ## Front-running
 
-Since the Bonding Curve is managed by a smart contract and transactions are public the mechanism is vulnerable to front-running. These attacks were explored by Ivan Bogatyy along with some possible mitigations. Front-running occurs when someone sees a pending transaction and then makes a new transaction that is included before the pending transaction, changing how the original transaction executes. This can happen if front-runners use a higher gas price, or if they are miners/stakers who are in a position to select and order transactions for block inclusion.
+Since the Bonding Curve is managed by a smart contract and transactions are public, the mechanism is vulnerable to front-running. These attacks were explored by Ivan Bogatyy along with some possible mitigations. Front-running occurs when someone sees a pending transaction and then makes a new transaction that is included before the pending transaction, changing how the original transaction executes. This can happen if front-runners use a higher gas price, or if they are miners/stakers who are in a position to select and order transactions for block inclusion.
 
 **2.5.1 minReturn**
 
