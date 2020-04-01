@@ -98,4 +98,4 @@ This module enforce a tap-based control of the funds allowed to be withdrawn fro
 
 We are highly open to the community helping use improve and shape the future of `Aragon Fundraising`.
 
-To learn more about our development and deployment workflows you can look into the [`Workflow.md`](/Workflow.md) file.     
+To learn more about our development and deployment workflows you can look into the [`Workflow.md`](/Workflow.md) file.
