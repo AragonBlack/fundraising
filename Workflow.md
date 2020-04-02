@@ -17,7 +17,7 @@ npx aragon devchain
 ```
 Start ipfs.
 ```
-npx aragon ipfs
+npx aragon ipfs start
 ```
 
 
@@ -38,7 +38,7 @@ npm run bootstrap
 npm run publish
 ```
 
-We can then `cd template/multisig` and `npm run deploy:dao:rpc` to create a DAO. You'll get an address to a DAO which you need to remember since we need it soon.
+We can then `cd templates/multisig` and `npm run deploy:dao:rpc` to create a DAO. You'll get an address to a DAO which you need to remember since we need it soon.
 
 Finally we can `cd ../../apps/aragon-fundraising/app` and run `npm start` to start our fundraising frontend. By now you should have four running terminal processes.
 
