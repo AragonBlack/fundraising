@@ -10,22 +10,12 @@
   "homepage": "https://github.com/AragonBlack/fundraising",
   "scripts": {
     "lint": "solium --dir ./contracts --config ../../.soliumrc.json",
-    "compile": "truffle compile",
-    "test": "TRUFFLE_TEST=true npm run test:ganache",
-    "test:gas": "GAS_REPORTER=true npm test",
-    "test:coverage": "SOLIDITY_COVERAGE=true npm run test:ganache",
-    "test:ganache": "./node_modules/@aragon/test-helpers/ganache-cli.sh",
-    "prepublishOnly": "truffle compile --all && npm run abi:extract -- --no-compile",
-    "abi:extract": "truffle-extract --output abi/ --keys abi",
-    "apm:prepublish": "npm run compile",
-    "apm:publish:rpc:major": "aragon apm publish major --environment default --skip-confirmation true --propagate-content false",
-    "apm:publish:hatch:major": "aragon apm publish major --environment hatch --use-frame",
-    "apm:publish:rinkeby:major": "aragon apm publish major --environment rinkeby --use-frame",
-    "apm:publish:mainnet:major": "aragon apm publish major --environment mainnet --use-frame",
-    "publish": "npm run apm:publish:rpc:major"
+    "compile": "hardhat compile --force",
+    "test": "hardhat test --show-stack-traces",
+    "test:gas": "GAS_REPORTER=true yarn test --network localhost",
+    "coverage": "hardhat coverage"
   },
   "files": [
-    "/abi",
     "/arapp.json",
     "/build",
     "/contracts",
@@ -39,20 +29,25 @@
     "@aragon/os": "4.2.1"
   },
   "devDependencies": {
+    "@1hive/hardhat-aragon": "^0.0.3",
     "@ablack/fundraising-shared-test-helpers": "^1.0.0",
     "@aragon/apps-agent": "^2.0.0-rc.1",
     "@aragon/apps-shared-migrations": "^1.0.0",
     "@aragon/apps-shared-minime": "^1.0.0",
-    "@aragon/cli": "^6.2.5",
+    "@aragon/contract-helpers-test": "^0.1.0",
     "@aragon/test-helpers": "^2.0.0",
+    "@nomiclabs/hardhat-ethers": "^2.0.2",
+    "@nomiclabs/hardhat-truffle4": "^2.0.0",
+    "@nomiclabs/hardhat-web3-legacy": "^2.0.0",
+    "dotenv": "^9.0.2",
     "eth-ens-namehash": "^2.0.8",
     "eth-gas-reporter": "^0.2.0",
     "ethereumjs-testrpc-sc": "^6.5.1-sc.0",
-    "ganache-cli": "^6.4.3",
+    "hardhat": "^2.5.0",
+    "hardhat-deploy": "^0.7.5",
+    "hardhat-gas-reporter": "^1.0.4",
     "mocha-each": "^1.2.0",
-    "solidity-coverage": "0.6.2",
-    "solium": "^1.2.3",
-    "truffle": "4.1.14",
-    "truffle-extract": "^1.2.1"
+    "solidity-coverage": "^0.7.16",
+    "solium": "^1.2.5"
   }
 }

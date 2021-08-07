@@ -22,9 +22,9 @@ package-lock.json
 */**/.cache/
 */**/dist/
 
-# truffle and aragon build artifacts
-*/**/abi
-*/**/build
+# hardhat and aragon build artifacts
+*/**/artifacts
+*/**/cache
 */**/abis.json
 **/**/artifact.json
 */**/arapp_local.json
